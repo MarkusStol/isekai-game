@@ -1,0 +1,41 @@
+<!DOCTYPE html><html lang="de"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Isekai"><meta name="theme-color" content="#140c24">
+<link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="icon.svg">
+<title>Isekai Reinkarnation</title><link rel="stylesheet" href="style.css"></head><body>
+<div id="app">
+<header><div class="title">✦ Isekai Reinkarnation</div><button id="btnMenu" class="ghost">⚙︎</button></header>
+<section id="start" class="screen">
+ <h1>Du bist gestorben…</h1><p class="sub">…und eine Göttin bietet dir ein neues Leben an. Als wer wirst du wiedergeboren?</p>
+ <div id="roles"></div>
+ <button id="btnRandom" class="big">🎲 Zufällige Wiedergeburt</button>
+ <button id="btnContinue" class="big alt hidden">▶ Weiterspielen</button>
+</section>
+<section id="game" class="screen hidden">
+ <div id="hud"></div>
+ <div id="log"></div>
+ <div id="choices"></div>
+ <form id="inputRow"><input id="txt" placeholder="Was tust du? (freie Eingabe)" autocomplete="off"><button>➤</button></form>
+</section>
+<div id="sheet" class="hidden"><div class="panel">
+ <h2>Einstellungen</h2>
+ <label>Erzähler-KI</label>
+ <select id="mode"><option value="offline">Offline-Erzähler (immer verfügbar)</option><option value="webllm">On-Device KI (WebLLM, WebGPU)</option><option value="api">Eigener API-Endpunkt (OpenAI-kompatibel)</option></select>
+ <div id="webllmBox"><label>Modell</label><select id="wmodel">
+  <option value="Qwen2.5-1.5B-Instruct-q4f16_1-MLC">Qwen2.5 1.5B (~1 GB)</option>
+  <option value="Qwen2.5-0.5B-Instruct-q4f16_1-MLC">Qwen2.5 0.5B (~400 MB, schneller)</option>
+  <option value="Llama-3.2-1B-Instruct-q4f16_1-MLC">Llama 3.2 1B (~0.9 GB)</option></select>
+  <button id="btnLoad" type="button">Modell laden</button><div id="wstatus" class="small"></div></div>
+ <div id="apiBox"><label>Base-URL</label><input id="aurl" placeholder="https://api.groq.com/openai/v1">
+  <label>API-Key</label><input id="akey" type="password" placeholder="sk-…"><label>Modell</label><input id="amodel" placeholder="llama-3.1-8b-instant">
+  <div class="small">Key bleibt nur in deinem Browser (localStorage).</div></div>
+ <button id="btnSave" type="button">Speichern</button>
+ <button id="btnStats" type="button" class="alt">📜 Charakterbogen</button>
+ <button id="btnReset" type="button" class="danger">Neues Spiel (alles löschen)</button>
+ <button id="btnClose" type="button" class="ghost">Schließen</button>
+</div></div>
+<div id="toast"></div>
+</div>
+<script type="module" src="game.js"></script></body></html>
