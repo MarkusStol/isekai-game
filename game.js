@@ -21,7 +21,7 @@ const ROLES={
   npcs:{Velicya:'',Marlowe:'',Elias:'',Mascha:''},cls:['Fahrgast','Gast im Eisernen Licht','Eingetragen','Wer durch den Nebel kommt'],hidden:1}
 };
 const ISEKAI=Object.keys(ROLES).filter(k=>!ROLES[k].hidden);const isG=()=>S&&S.role==='grey';
-let GREY=null;async function loadGrey(){if(!GREY)GREY=await (await fetch('worlds/greymourne.json?v=7')).json();return GREY}
+let GREY=null;async function loadGrey(){if(!GREY)GREY=await (await fetch('worlds/greymourne.json?v=8')).json();return GREY}
 const GINTRO_DARREN=`Der Zug hätte nicht halten dürfen.\n\nAuf deiner Fahrkarte steht Blackmere, zwei Stationen weiter nördlich. Kurz nach Mitternacht verliert das Rattern der Räder seinen Takt – erst fehlt jeder zwölfte Schlag, dann jeder sechste. Die Messinglampe im Abteil hängt plötzlich vollkommen still, obwohl der Zug noch fährt.\n\nGegenüber schläft ein Soldat mit offenem Mund. Eine alte Frau strickt an einem grauen Handschuh und hat seit der Abfahrt nicht ein einziges Mal aus dem Fenster gesehen. Ein Junge in Sonntagskleidung liest ein Buch, dessen Seiten er nie umblättert.\n\nVor dem Fenster liegt Nebel wie trübes Wasser. Und außen auf der Scheibe, im Ruß: der Abdruck einer kleinen Hand. Fünf Finger, der Daumen schräg abgespreizt.\n\nDie Bremsen greifen. Die alte Frau zieht ihre Masche fest und legt die Nadeln quer über den Korb.\n„Sie sollten sitzen bleiben“, sagt sie.\n\nDraußen erscheint ein Schild an eisernen Pfosten. GREYMOURNE. Darunter, bis zur Brust im Nebel, steht ein Mädchen in einem hellen Mantel. Es hebt den Kopf.`;
 const GINTRO_OWN=(n,bg)=>`Der Zug hätte nicht halten dürfen.\n\nDu – ${n}. ${bg}. Seit Tagen hast du kaum geschlafen, und wenn du die Augen schließt, fällst du nicht in Träume, sondern in Räume. Jetzt sitzt du in einem Nachtzug, dessen Räder kurz nach Mitternacht ihren Takt verlieren. Die Messinglampe im Abteil hängt still, obwohl der Zug noch fährt.\n\nNeben dir strickt eine alte Frau an einem grauen Handschuh. Gegenüber hält ein unrasierter Mann mit Reisetasche eine Fahrkarte so fest, dass das Papier weich geworden ist; unter seiner Manschette zieht sich eine helle Narbe über den Unterarm. Er starrt auf das Fenster. Außen im Ruß: der Abdruck einer kleinen Hand.\n\nDie Abteiltür geht auf, ohne dass Schritte zu hören waren. Ein Schaffner in feucht glänzender Uniform, die Augen im Schatten der Mütze.\n„Fahrkarten.“\n\nAls du ihm deine reichst, dreht er sie um. Auf der Rückseite steht in violetter Tinte dein Name. Darunter hat jemand etwas gezeichnet – etwas, das du kennst und das du verloren hast.\n\nDraußen gleitet ein Schild in den Nebel: GREYMOURNE.\nDie alte Frau sagt, ohne aufzusehen: „Lassen Sie sich nicht beim vollen Namen rufen.“`;
 const INTRO={
@@ -73,11 +73,11 @@ function applyWorld(u){if(!u||!S.world)return;const w=S.world;const cut=(x,n)=>S
  if(Array.isArray(u.ereignisse)&&u.ereignisse.length)w.ereignisse=u.ereignisse.slice(0,6).map(x=>cut(x,140))}
 const KEY='isekai_save_v1',CFG='isekai_cfg_v1';
 let S=null,cfg=JSON.parse(localStorage.getItem(CFG)||'{"mode":"gemini"}'),engine=null,busy=false,_dbgMs=0;
-const save=()=>localStorage.setItem(KEY,JSON.stringify(S));
+function save(){if(!S)return;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){try{if(S.hist)S.hist=S.hist.slice(-8);if(S.log)S.log=S.log.slice(-40);if(S.summary)S.summary=String(S.summary).slice(0,400);if(S.world&&S.world.npcs)for(const n of Object.values(S.world.npcs))if(n.erinnerung)n.erinnerung=n.erinnerung.slice(-2);localStorage.setItem(KEY,JSON.stringify(S));toast('Speicher gekürzt (wenig Platz)')}catch(_){toast('Speichern fehlgeschlagen – wenig Speicher')}}}
 function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('on'),2200)}
 function hasKey(){return !!(cfg.gkey||'').trim()}
 function wantAI(){return cfg.mode!=='offline'}
-function gateOrShow(){if(wantAI()&&!hasKey()&&cfg.mode!=='webllm'&&cfg.mode!=='api'){showKeyGate();return}show()}
+function gateOrShow(){if(wantAI()&&!hasKey()&&cfg.mode!=='webllm'&&cfg.mode!=='api'&&cfg.mode!=='free'){showKeyGate();return}show()}
 function showKeyGate(){$('#start').classList.add('hidden');$('#game').classList.add('hidden');const g=$('#keyGate');if(g){g.classList.remove('hidden');$('#gateKey').value='';setTimeout(()=>$('#gateKey').focus(),50)}}
 function dbgLine(){let el=$('#dbg');if(!cfg.debug){if(el)el.remove();return}if(!el){el=document.createElement('div');el.id='dbg';el.className='dbg';$('#game').appendChild(el)}el.textContent=_dbgMs?('Zug '+_dbgMs+' ms'):'–'}
 
@@ -90,7 +90,7 @@ function newLife(role,meta){const r=ROLES[role];meta=meta||{lives:0,soul:0,keptS
  S.world=JSON.parse(JSON.stringify(WORLD[role]));S.hist=[{role:'assistant',content:INTRO[role]}]; add('n',intro);S.choices=defChoices();save();gateOrShow();}
 function defChoices(){const r=S.role;return {grey:['Sitzen bleiben','Aus dem Fenster sehen','Die alte Frau fragen','Nach etwas Unwichtigem fragen'],held:['Monster jagen','Mit Lyra reden','Training im Hof','Die Stadt erkunden'],villainess:['Mit dem Kronprinzen sprechen','Mira helfen','Intrige schmieden','Teeparty besuchen'],daemon:['Armee befehligen','Mit Velka planen','Die Heldin ausspionieren','Dunkle Magie üben'],mensch:['In der Taverne arbeiten','Mit Tom jagen gehen','Die Hexe besuchen','Ausruhen']}[r]}
 function add(k,t){S.log.push({k,t});if(S.log.length>80)S.log.shift();renderMsg(k,t)}
-function renderMsg(k,t){const d=document.createElement('div');d.className='msg '+k;d.textContent=t;$('#log').appendChild(d);d.scrollIntoView({behavior:'smooth',block:'end'});return d}
+function renderMsg(k,t){const d=document.createElement('div');d.className='msg '+k;d.textContent=t;const log=$('#log');log.appendChild(d);requestAnimationFrame(()=>{log.scrollTop=log.scrollHeight});return d}
 function hud(){if(isG())return hudG();const s=S.st,r=ROLES[S.role];const p=(v,m,c)=>`<div class="bar"><i style="width:${Math.max(0,Math.min(100,v/m*100))}%;background:${c}"></i></div>`;
  $('#hud').innerHTML=`<b>${r.e} ${r.cls[S.cls]}</b> · Lv ${s.lvl} · Leben #${S.lives}
  <div class="bars"><div style="flex:1">HP ${Math.max(0,s.hp)}/${s.maxhp}${p(s.hp,s.maxhp,'#ff5f7e')}</div><div style="flex:1">MP ${s.mp}/${s.maxmp}${p(s.mp,s.maxmp||1,'#6fb6ff')}</div><div style="flex:1">XP ${s.xp}/${s.lvl*100}${p(s.xp,s.lvl*100,'#ffd35a')}</div></div>
@@ -174,47 +174,60 @@ function offline(a){const q=askNPC(a);if(q)return q;if(isG()){const t=a.toLowerC
 
 // ---------- AI ----------
 if(!cfg.v2){if(cfg.mode==='offline'||!cfg.mode)cfg.mode=hasKey()?'gemini':'gemini';cfg.v2=1;localStorage.setItem(CFG,JSON.stringify(cfg))}
-if(cfg.mode==='free'){cfg.mode='gemini';localStorage.setItem(CFG,JSON.stringify(cfg))}
 const FREE_URL='https://text.pollinations.ai/openai';
 const STREAM_DELIM='###DATA###';
 function greyPrompt(stream){const B=GREY||{kern:{}};const k=B.kern;return `Du bist der Erzähler eines interaktiven literarischen Horror-Romans auf Deutsch: „${B.titel}“ (${B.quelle}).
 SPIELFIGUR: ${S.pc.name}${S.kind==='darren'?' (die Hauptfigur des Romans)':' (eigene Figur, kein Teil des Romans; Darren Crowe existiert als NPC in derselben Nacht)'}. Hintergrund: ${S.pc.bg}
 TON: ${k.ton}
 STIL: ${k.stil} Erzähle in der 2. Person („du“), Präsens oder Präteritum konsistent wie bisher.
-REGELN DER STADT (verbindlich, die Welt hält sich daran): ${(k.regeln_der_stadt||[]).map((x,i)=>(i+1)+') '+x).join(' ')}
+REGELN DER STADT (verbindlich): ${(k.regeln_der_stadt||[]).map((x,i)=>(i+1)+') '+x).join(' ')}
 MOTIVE: ${(k.motive||[]).join('; ')}.
 SPOILERSCHUTZ: ${k.spoilerschutz}
+STIMMEN (wörtliche Rede Pflicht, jede Figur klingt anders):
+- Marlowe: ruhig, trocken („Ich kenne Regeln. Keine Gründe.“ / „Das ist Wasser mit Ehrgeiz.“)
+- Elias: präzise, lakonisch („Das stand gestern noch nicht darin.“ / „Ich bin wahnsinnig, nicht unhöflich.“)
+- Mascha: derb, knapp („Dann stell eine bessere Frage.“)
+- Velicya: ironisch, schnell; „Darren.“ kann ein ganzer Satz sein
+- Schaffner: knapp („Fahrkarten.“) · Alte Frau: „Lassen Sie sich nicht beim vollen Namen rufen.“
 ERZÄHLREGELN:
-1. Reagiere zuerst direkt und konkret auf die exakten Worte/Taten des Spielers. Wer anwesend ist, hört es und antwortet in wörtlicher Rede „…“ mit eigener Stimme (siehe NPC-Bibel). Ignoriere oder ersetze die Eingabe nie.
-2. Nichts Beliebiges: keine zusammenhanglosen Ereignisse, keine Monsterjagd, keine Fantasy-Magie, keine Anime-Systemfenster. Neue Details müssen zur Bibel passen und werden in "world" eingetragen.
-3. Langsamer Aufbau: Unheimliches in kleinen Abweichungen. Zahlen, Namen, Glocken, Nebel, Kohle. Die Welt lebt weiter und wartet auf die Spielfigur: NPCs erinnern sich, Schichten laufen, Register zählen.
-4. Bricht die Spielfigur eine Regel der Stadt (voller Name, Tür nach dem 2. Schlag), hat das spürbare, konsequente Folgen.
-5. 4-9 Sätze. Ende auf einem stillen, beunruhigenden Detail oder einer offenen Frage. Entscheide nie für die Spielfigur.
-${stream?`AUSGABE: Zuerst NUR den Erzähltext (Narration) als normalen Fließtext. Danach eine eigene Zeile genau „${STREAM_DELIM}“. Danach EIN JSON-Objekt (ohne Markdown) mit: "choices" (4 kurze, eher leise Handlungen), "changes" {verstand,schuld,affinity,xp,items,removeItems}, "summary" (max 5 Sätze), "world" (scene,npcUpdates,newLocations,ereignisse≤6), optional "ending". Kein narration-Feld im JSON.`:`AUSGABE als JSON: "narration"; "choices" (4 kurze, szenenpassende, eher leise Handlungen); "changes" als Deltas dieses Zuges: "verstand" (-15..+10), "schuld" (-5..+5), "affinity" = Vertrauen je NPC (-15..15) für ${Object.keys(S.aff).join(', ')}, "xp" 0-20, items nur neu erhaltene, removeItems; "summary" (max 5 Sätze); "world" (scene {ort,zeit,anwesend}, npcUpdates [{name, erinnerung, beziehung}], newLocations, ereignisse ≤6); "ending" nur bei echtem Ende.`}`}
+1. Erster Satz: direkte, konkrete Reaktion auf die EXAKTEN Worte/Taten. Wird eine Frage gestellt, muss ein Anwesender sie inhaltlich beantworten (nicht ausweichen mit Nebel-Poetry). Wörtliche Rede „…“ mit eigener Stimme.
+2. Du erzählst NUR in der 2. Person über die Spielfigur – nie „Ich“ als Erzähler oder als die Figur.
+3. Kein Füller, keine Generic-Horror-Floskeln, keine Monsterjagd, keine Fantasy-Magie, keine Anime-Fenster. Neue Details nur aus der Bibel → "world".
+4. Kontinuität: Ruß, Messing, Zahlen, Tassen, Klopfrhythmus. NPCs erinnern sich.
+5. Regelbruch (voller Name laut, Tür nach 2. Schlag) → sofort spürbare Folge (Register, Schuld, Verstand, falsche Tür).
+6. 4-9 Sätze. Stille Irritation oder offene Frage am Ende. Entscheide nie für die Spielfigur.
+${stream?`AUSGABE: Zuerst NUR den Erzähltext als Fließtext. Danach eine eigene Zeile genau „${STREAM_DELIM}“. Danach EIN JSON-Objekt (ohne Markdown) mit: "choices" (4 kurze, eher leise Handlungen), "changes" {verstand,schuld,affinity,xp,items,removeItems}, "summary" (max 5 Sätze), "world" (scene,npcUpdates,newLocations,ereignisse≤6), optional "ending". Kein narration-Feld im JSON.`:`AUSGABE als JSON: "narration"; "choices" (4 kurze, szenenpassende, eher leise Handlungen); "changes" als Deltas: "verstand" (-15..+10), "schuld" (-5..+5), "affinity" = Vertrauen je NPC (-15..15) für ${Object.keys(S.aff).join(', ')}, "xp" 0-20, items nur neu erhaltene, removeItems; "summary" (max 5 Sätze); "world" (scene {ort,zeit,anwesend}, npcUpdates [{name, erinnerung, beziehung}], newLocations, ereignisse ≤6); "ending" nur bei echtem Ende.`}`}
+function voiceHint(){return ({
+ held:'STIMMEN: Elise förmlich/kühl („Der Held aus der anderen Welt.“); Lyra wortkarg-spöttisch; Garrick derb und laut; Orren murmelt nervös Formeln.',
+ villainess:'STIMMEN: Julian kalt/selbstgerecht („Rosalind!“); Mira überfreundlich, entschuldigt sich; Cedric kurz, loyal, fast flüstert.',
+ daemon:'STIMMEN: Velka sachlich-trocken mit Klemmbrett; Brok brüllt („KRIEG, Herr!“); Aria idealistisch/heißblütig (wenn sie auftritt).',
+ mensch:'STIMMEN: Tom rau, trockener Humor; Hanna mütterlich-resolut aus der Taverne; Morgana spricht in Andeutungen.'
+})[S.role]||''}
+function sysPrompt(stream=true){if(isG())return greyPrompt(stream);const r=ROLES[S.role];return `Du bist der Erzähler eines interaktiven Isekai-Anime auf Deutsch. Der SPIELER ist die Hauptfigur – alles dreht sich um ihn/sie. Schreibe wie eine packende Anime-/Light-Novel-Szene.
+
+WELT & FIGUREN:
+- Protagonist: ${r.name}, Klasse ${r.cls[S.cls]}, reinkarniert aus unserer modernen Welt (Lastwagen). Leben Nr. ${S.lives}.
+- Welt: ${r.world}. Ausgangslage: ${r.d}
+- NPCs (eigene Stimme/Sprechweise/Ziele): ${Object.entries(r.npcs).map(([k,v])=>k.replace('_',' ')+' – '+v).join('; ')}.
+${voiceHint()}
+
+GOLDENE REGELN:
+1. ERSTER SATZ reagiert DIREKT auf die exakten Worte/Taten. Fragen werden inhaltlich beantwortet; absurde Aktionen (Selfie, Macarena, WLAN) erzeugen echte NPC-Reaktionen, keine generische Quest.
+2. Nie die Eingabe ignorieren oder durch Zufallsereignisse ersetzen. Kein Füller ohne Bezug.
+3. Kontinuität: bleib in der Szene; greife konkrete Details aus Verlauf und WELT-BIBEL auf.
+4. NPCs sprechen mit „…“ und klingen unterscheidbar (siehe STIMMEN). Keine vertauschten Persönlichkeiten.
+5. Anime-Mittel nur wenn passend: (Gedanke …), [Status], [Skill].
+6. Sinneseindrücke kurz und konkret.
+7. 4-9 Sätze, 2. Person („du“) – nie „Ich“ als Erzähler. Kein Meta.
+8. Hook am Ende. Entscheide nie für den Spieler.
+9. WELT-BIBEL verbindlich; Updates per "world".
+10. Fairness: Riskantes kann HP kosten; Reden/Fragen meist nicht.
+${stream?`AUSGABE: Zuerst NUR den Erzähltext als Fließtext. Dann eine eigene Zeile genau „${STREAM_DELIM}“. Dann EIN JSON-Objekt (ohne Markdown, ohne narration) mit: "choices" (genau 4 kurze Aktionen), "changes" (Deltas: hp,mp,str,cha,ruf,xp,affinity,items,newSkills,removeItems), "summary" (max 5 Sätze), "world" (scene,npcUpdates,newLocations,ereignisse), optional "ending".`:`AUSGABE als JSON: "narration", "choices" (4), "changes", "summary", "world", optional "ending".`}`}
 function greyDetails(a){const B=GREY;if(!B)return '';const txt=(a+' '+JSON.stringify(S.world.scene)+' '+(S.hist||[]).slice(-4).map(h=>h.content).join(' ')).toLowerCase();
  const pick=(obj,force)=>Object.entries(obj).filter(([k])=>force.includes(k)||k.toLowerCase().split(/[ \/–-]+/).some(w=>w.length>3&&txt.includes(w)));
  const npcs=pick(B.npcs,S.kind==='darren'?['Der Schaffner']:['Der Schaffner','Darren Crowe']).slice(0,5).map(([k,v])=>{const o={...v};if(S.turn<40)delete o.geheim;return k+': '+JSON.stringify(o)});
  const orte=pick(B.orte,[]).slice(0,4).map(([k,v])=>k+': '+v);
  return 'BIBEL-DETAILS ZUR SZENE:\nNPCs: '+npcs.join('\n')+'\nOrte: '+orte.join('\n')+(S.turn>=25?'\nFraktionen: '+JSON.stringify(B.fraktionen):'')}
-function sysPrompt(stream=true){if(isG())return greyPrompt(stream);const r=ROLES[S.role];return `Du bist der Erzähler eines interaktiven Isekai-Anime auf Deutsch. Der SPIELER ist die Hauptfigur (Protagonist) – alles dreht sich um ihn. Schreibe wie eine packende Anime-/Light-Novel-Szene.
-
-WELT & FIGUREN (Charakterbogen):
-- Protagonist: ${r.name}, Klasse ${r.cls[S.cls]}, reinkarniert aus unserer modernen Welt (wurde von einem Lastwagen erfasst). Leben Nr. ${S.lives}.
-- Welt: ${r.world}. Ausgangslage: ${r.d}
-- NPCs (jeder mit eigener Stimme, Sprechweise, Gefühlen und Zielen): ${Object.entries(r.npcs).map(([k,v])=>k.replace('_',' ')+' – '+v).join('; ')}. Du darfst passende Nebenfiguren einführen, aber die Hauptbesetzung bleibt.
-
-GOLDENE REGELN:
-1. REAGIERE ZUERST und DIREKT auf die exakten Worte/Taten des Spielers. Sein Satz ist der Auslöser der Szene. Sagt er etwas laut, dann HÖREN die Anwesenden das – sie reagieren konkret darauf und antworten in wörtlicher Rede.
-2. Ignoriere oder ersetze NIE die Eingabe des Spielers. Erfinde keine zusammenhanglosen Zufallsereignisse.
-3. Kontinuität: Bleib in der aktuellen Szene. Greife Details aus dem Verlauf auf.
-4. NPCs sprechen in direkter Rede mit Anführungszeichen „…“.
-5. Anime-Stilmittel, wenn passend: innere Gedanken (Gedanke …), Systemfenster [Status]/ [Skill].
-6. Sinneseindrücke kurz und lebendig.
-7. Länge: 4-9 Sätze in der 2. Person („du“). Kein Meta-Kommentar.
-8. Ende mit einem Hook. Entscheide nie für den Spieler.
-9. WELT-BIBEL ist verbindlich. Updates per "world".
-10. Fairness: Riskantes kann HP kosten; Reden/Fragen meist nicht.
-${stream?`AUSGABE: Zuerst NUR den Erzähltext als Fließtext. Dann eine eigene Zeile genau „${STREAM_DELIM}“. Dann EIN JSON-Objekt (ohne Markdown, ohne narration) mit: "choices" (genau 4 kurze Aktionen), "changes" (Deltas: hp,mp,str,cha,ruf,xp,affinity,items,newSkills,removeItems), "summary" (max 5 Sätze), "world" (scene,npcUpdates,newLocations,ereignisse), optional "ending".`:`AUSGABE als JSON: "narration", "choices" (4), "changes", "summary", "world", optional "ending".`}`}
 function stateSum(){const s=S.st;if(isG())return `STATUS: Verstand ${s.hp}/100, Schuld ${s.ruf}/100 | Inventar: ${S.inv.join(', ')} | Vertrauen: ${Object.entries(S.aff).map(([k,v])=>k+'='+v).join(', ')} | Zug ${S.turn}`;return `STATUS: Lv${s.lvl} HP${s.hp}/${s.maxhp} MP${s.mp} Stärke${s.str} Charme${s.cha} Ruf${s.ruf} | Skills: ${S.skills.join(', ')} | Inventar: ${S.inv.join(', ')} | Affinität: ${Object.entries(S.aff).map(([k,v])=>k+'='+v).join(', ')} | Leben #${S.lives}`}
 function msgs(a){const sum=S.summary?'BISHERIGE GESCHICHTE (Zusammenfassung): '+S.summary+'\n':'';
  let h=(S.hist||[]).slice(-10);if(!h.length){const last=S.log.filter(m=>m.k==='n').slice(-1)[0];if(last)h=[{role:'assistant',content:last.t}]}
@@ -270,7 +283,7 @@ function gBody(a){const contents=[];for(const m of (S.hist||[]).slice(-10)){cons
  if(contents[0]&&contents[0].role==='model')contents.unshift({role:'user',parts:[{text:'(Spielbeginn)'}]});
  contents.push({role:'user',parts:[{text:turnMsg(a)}]});
  return {systemInstruction:{parts:[{text:sysPrompt(true)}]},contents,generationConfig:{temperature:.9,maxOutputTokens:700},safetySettings:G_SAFE}}
-function friendlyAIFail(){return 'Die Erzählerin ist gerade nicht erreichbar. Versuch es gleich noch einmal – oder spiele offline weiter.'}
+function friendlyAIFail(){return 'Die Erzählerin stockt kurz. Versuch es noch einmal – oder spiele ohne sie weiter.'}
 function gErr(t){const e=new Error(t);e.gem=1;return e}
 async function fetchWithTimeout(url,opts,ms){const ac=new AbortController();const to=setTimeout(()=>ac.abort(),ms);try{return await fetch(url,{...opts,signal:ac.signal})}finally{clearTimeout(to)}}
 async function readSSE(res,onText){const reader=res.body.getReader();const dec=new TextDecoder();let buf='',raw='';
@@ -280,7 +293,9 @@ async function readSSE(res,onText){const reader=res.body.getReader();const dec=n
    try{const j=JSON.parse(data);const {t}=gParse(j);if(t){raw+=t;if(onText)onText(raw)}}catch(_){}}}
  if(buf.startsWith('data:')){try{const j=JSON.parse(buf.slice(5).trim());const {t}=gParse(j);if(t){raw+=t;if(onText)onText(raw)}}catch(_){}}
  return raw}
-function showNarration(el,raw){const i=raw.indexOf(STREAM_DELIM);const vis=i>=0?raw.slice(0,i):raw;el.textContent=vis.replace(/\n+$/,'');el.classList.remove('typing')}
+function showNarration(el,raw){let vis=raw;const i=raw.indexOf(STREAM_DELIM);if(i>=0)vis=raw.slice(0,i);else{const partial=STREAM_DELIM;for(let n=Math.min(partial.length-1,raw.length);n>=3;n--){if(raw.endsWith(partial.slice(0,n))){vis=raw.slice(0,-n);break}}}
+ el.textContent=vis.replace(/\n+$/,'');if(i>=0)el.classList.remove('typing');else el.classList.add('typing');
+ const log=$('#log');if(log){const near=log.scrollHeight-log.scrollTop-log.clientHeight<120;if(near)log.scrollTop=log.scrollHeight}}
 
 async function gmProbe(key){const st=await gmFetch(key);const cands=(st.list||G_FALLBACK).slice(0,6);
  const results=[];for(const m of cands){const t0=performance.now();
@@ -332,14 +347,18 @@ async function aiTurn(a,el,mode=cfg.mode){if(mode==='webllm'){const e=await load
   if(!res.ok)throw new Error('API '+res.status);const j=await res.json();const t=j.choices[0].message.content;el.textContent=t.split('```')[0];return t}
  if(mode==='free'){let err;for(let i=0;i<2;i++){try{const ac=new AbortController(),to=setTimeout(()=>ac.abort(),25000);
    const res=await fetch(FREE_URL,{method:'POST',signal:ac.signal,headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'openai',messages:msgs(a),temperature:.9,reasoning_effort:'low',referrer:'isekai-game'})});clearTimeout(to);
-   if(!res.ok){const e=new Error('Gratis-KI '+res.status);e.ra=+res.headers.get('Retry-After')||0;throw e}const j=await res.json();const mm=j.choices?.[0]?.message||{};let t=(mm.content||'').trim()||(mm.reasoning_content||'').trim();if(!t){const e=new Error('leere Antwort');e.ra=1;throw e}el.textContent=t.split('```')[0];return t}
+   if(!res.ok){const e=new Error('Gratis-KI '+res.status);e.ra=+res.headers.get('Retry-After')||0;throw e}const j=await res.json();const mm=j.choices?.[0]?.message||{};let t=(mm.content||'').trim()||(mm.reasoning_content||'').trim();if(!t){const e=new Error('leere Antwort');e.ra=1;throw e}showNarration(el,t);return t}
   catch(e){err=e;if(i<1){el.textContent='…';await new Promise(r=>setTimeout(r,Math.min(3,e.ra||1)*1000))}}}throw err}
  throw new Error('offline')}
-async function act(a){if(busy||!a.trim())return;busy=true;const t0=performance.now();if(isG())try{await loadGrey()}catch(_){}add('p',a);S.turn++;const el=renderMsg('n typing','…');let res;
+function setBusy(on){busy=!!on;const txt=$('#txt'),btn=$('#inputRow button'),ch=$('#choices');if(txt)txt.disabled=on;if(btn)btn.disabled=on;if(ch)ch.querySelectorAll('button').forEach(b=>b.disabled=on);document.body.classList.toggle('busy',on)}
+async function act(a){if(busy||!a.trim())return;setBusy(true);const t0=performance.now();if(isG())try{await loadGrey()}catch(_){}add('p',a);S.turn++;const el=renderMsg('n','');el.classList.add('typing');el.innerHTML='<span class="dots">Schreibe</span>';let res;
  let softFail=false;try{if(cfg.mode==='offline')throw 0;
   if(cfg.mode==='gemini'||(cfg.mode!=='webllm'&&cfg.mode!=='api'&&cfg.mode!=='free'&&hasKey())){
-   try{res=await gemini(a,el)}catch(e){softFail=true;el.textContent='…'}}
-  if(!res&&cfg.mode!=='gemini'){const raw=await aiTurn(a,el,cfg.mode);res=parse(raw)}
+   try{res=await gemini(a,el)}catch(e){softFail=true;el.textContent='…';el.classList.add('typing')}}
+  // Pollinations fallback when Gemini fails or mode is free
+  if(!res&&(cfg.mode==='free'||softFail||(cfg.mode!=='gemini'&&cfg.mode!=='webllm'&&cfg.mode!=='api'&&cfg.mode!=='offline'))){
+   try{const raw=await aiTurn(a,el,'free');let p=raw.includes(STREAM_DELIM)?parseStream(raw):parse(raw);if(p&&p.text&&p.text!=='…'&&p.text.length>8){res=p;softFail=false} }catch(_){}}
+  if(!res&&cfg.mode!=='gemini'&&cfg.mode!=='free'){const raw=await aiTurn(a,el,cfg.mode);res=parse(raw)}
   if(!res){res=offline(a);softFail=true}
   {const c=res.changes,lim={hp:30,mp:30,str:2,cha:2,ruf:5,xp:60,verstand:15,schuld:5};for(const k in lim)if(k in c)c[k]=Math.max(-lim[k],Math.min(lim[k],+c[k]||0));if(c.affinity)for(const n in c.affinity)c.affinity[n]=Math.max(-15,Math.min(15,+c.affinity[n]||0))}
   if(Array.isArray(res.changes.items))res.changes.items=res.changes.items.filter(x=>!S.inv.includes(x));
@@ -349,7 +368,7 @@ async function act(a){if(busy||!a.trim())return;busy=true;const t0=performance.n
   S.hist=S.hist||[];S.hist.push({role:'user',content:'SPIELER: '+a},{role:'assistant',content:res.text});S.hist=S.hist.slice(-20);
   if(softFail)res.note=friendlyAIFail()}
  catch(e){res=offline(a);res.note=friendlyAIFail()}
- _dbgMs=Math.round(performance.now()-t0);el.remove();add('n',res.text);if(res.note)add('s',res.note);apply(res.changes);hud();save();busy=false}
+ _dbgMs=Math.round(performance.now()-t0);el.remove();add('n',res.text);if(res.note)add('s',res.note);apply(res.changes);hud();save();setBusy(false);requestAnimationFrame(()=>{const t=$('#txt');if(t)t.focus({preventScroll:true})})}
 
 // ---------- UI ----------
 function startScreen(){const g=$('#roles');g.innerHTML='';Object.entries(ROLES).filter(([k])=>k!=='grey').forEach(([k,r])=>{const b=document.createElement('button');b.className='role';b.innerHTML=`<div class="e">${r.e}</div><b>${r.name}</b><span>${r.d}</span>`;b.onclick=()=>newLife(k);g.appendChild(b)});
@@ -384,4 +403,11 @@ $('#btnGateSkip').onclick=()=>{cfg.mode='offline';cfg.v2=1;localStorage.setItem(
 window.__game={newGrey,greyDetails,loadGrey,get S(){return S},act,newLife,gBody,msgs,gmRank,gmProbe,parseStream,thinkingCfg,gmOrder,readSSE,STREAM_DELIM};
 window.__game.askNPC=a=>askNPC(a);window.__game.gemini=gemini;
 if(cfg.gkey)gmFetch(cfg.gkey.trim()).then(()=>gmProbe(cfg.gkey.trim()).catch(()=>{})).catch(()=>{});
+// iOS keyboard / visualViewport
+(function(){const root=document.documentElement;const apply=()=>{try{const vv=window.visualViewport;if(!vv)return;const kb=Math.max(0,window.innerHeight-vv.height-vv.offsetTop);root.style.setProperty('--kb',kb+'px');if(kb>40){const log=$('#log');if(log)log.scrollTop=log.scrollHeight}}catch(_){}};
+ if(window.visualViewport){visualViewport.addEventListener('resize',apply);visualViewport.addEventListener('scroll',apply)}
+ window.addEventListener('focusin',e=>{if(e.target&&e.target.id==='txt'){setTimeout(()=>{try{e.target.scrollIntoView({block:'end',behavior:'smooth'})}catch(_){ };apply()},300)}});
+ $('#txt')&&$('#txt').addEventListener('blur',()=>root.style.setProperty('--kb','0px'))})();
+try{if('serviceWorker' in navigator&&navigator.serviceWorker){navigator.serviceWorker.register('./sw.js?v=8').catch(()=>{});
+ navigator.serviceWorker.addEventListener('controllerchange',()=>{if(sessionStorage.getItem('isekai_sw_reloaded'))return;sessionStorage.setItem('isekai_sw_reloaded','1');location.reload()})}}catch(_){}
 startScreen();

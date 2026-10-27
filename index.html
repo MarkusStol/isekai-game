@@ -3,12 +3,12 @@
 <meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Isekai"><meta name="theme-color" content="#140c24">
-<link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="icon.svg">
-<title>Isekai Reinkarnation</title><link rel="stylesheet" href="style.css?v=7"></head><body>
+<link rel="icon" href="favicon.svg"><link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="icon.svg">
+<title>Isekai Reinkarnation</title><link rel="stylesheet" href="style.css?v=8"></head><body>
 <div id="app">
 <header><div class="title">✦ Isekai Reinkarnation</div><button id="btnMenu" class="ghost">⚙︎</button></header>
 <section id="start" class="screen">
- <h1>Du bist gestorben…</h1><p class="sub">…und eine Göttin bietet dir ein neues Leben an. Als wer wirst du wiedergeboren?</p>
+ <h1>Du bist gestorben…</h1><p class="sub">…und eine Göttin bietet dir ein neues Leben. Wähle, als wer du aufwachst – die Welt antwortet auf dich.</p>
  <div id="roles"></div>
  <button id="btnRandom" class="big">🎲 Zufällige Wiedergeburt</button>
  <button id="btnContinue" class="big alt hidden">▶ Weiterspielen</button>
@@ -25,16 +25,16 @@
  <div id="hud"></div>
  <div id="log"></div>
  <div id="choices"></div>
- <form id="inputRow"><input id="txt" placeholder="Was tust du? (freie Eingabe)" autocomplete="off"><button>➤</button></form>
+ <form id="inputRow"><input id="txt" placeholder="Was tust oder sagst du?" autocomplete="off" enterkeyhint="send" autocapitalize="sentences"><button type="submit" aria-label="Senden">➤</button></form>
 </section>
 <section id="keyGate" class="screen hidden">
  <h1>Noch ein Schritt</h1>
- <p class="sub">Damit die Geschichte für dich geschrieben wird, brauchst du einmalig einen kostenlosen Google-Schlüssel. Der bleibt nur auf deinem Handy.</p>
- <label>Gemini-Schlüssel</label>
- <input id="gateKey" type="password" placeholder="AIza…" autocomplete="off">
- <p class="small">Schlüssel erstellen: <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener">aistudio.google.com/app/apikey</a> → „API-Schlüssel erstellen“ → hier einfügen.</p>
+ <p class="sub">Einmalig einen kostenlosen Schlüssel von Google einfügen – danach schreibt die Geschichte nur für dich. Der Schlüssel bleibt auf deinem Handy.</p>
+ <label>Dein Schlüssel</label>
+ <input id="gateKey" type="password" placeholder="AIza…" autocomplete="off" enterkeyhint="go">
+ <p class="small">1. Öffne <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener">aistudio.google.com/app/apikey</a><br>2. „API-Schlüssel erstellen“ · 3. Hier einfügen.</p>
  <button id="btnGateSave" class="big">Los geht’s</button>
- <button id="btnGateSkip" class="big alt">Ohne KI spielen</button>
+ <button id="btnGateSkip" class="big alt">Ohne Erzählerin spielen</button>
 </section>
 <div id="sheet" class="hidden"><div class="panel">
  <h2>Einstellungen</h2>
@@ -61,4 +61,4 @@
 </div></div>
 <div id="toast"></div>
 </div>
-<script type="module" src="game.js?v=7"></script></body></html>
+<script type="module" src="game.js?v=8"></script></body></html>
