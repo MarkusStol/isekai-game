@@ -21,7 +21,7 @@ const ROLES={
   npcs:{Velicya:'',Marlowe:'',Elias:'',Mascha:''},cls:['Fahrgast','Gast im Eisernen Licht','Eingetragen','Wer durch den Nebel kommt'],hidden:1}
 };
 const ISEKAI=Object.keys(ROLES).filter(k=>!ROLES[k].hidden);const isG=()=>S&&S.role==='grey';
-let GREY=null;async function loadGrey(){if(!GREY)GREY=await (await fetch('worlds/greymourne.json?v=5')).json();return GREY}
+let GREY=null;async function loadGrey(){if(!GREY)GREY=await (await fetch('worlds/greymourne.json?v=6')).json();return GREY}
 const GINTRO_DARREN=`Der Zug hätte nicht halten dürfen.\n\nAuf deiner Fahrkarte steht Blackmere, zwei Stationen weiter nördlich. Kurz nach Mitternacht verliert das Rattern der Räder seinen Takt – erst fehlt jeder zwölfte Schlag, dann jeder sechste. Die Messinglampe im Abteil hängt plötzlich vollkommen still, obwohl der Zug noch fährt.\n\nGegenüber schläft ein Soldat mit offenem Mund. Eine alte Frau strickt an einem grauen Handschuh und hat seit der Abfahrt nicht ein einziges Mal aus dem Fenster gesehen. Ein Junge in Sonntagskleidung liest ein Buch, dessen Seiten er nie umblättert.\n\nVor dem Fenster liegt Nebel wie trübes Wasser. Und außen auf der Scheibe, im Ruß: der Abdruck einer kleinen Hand. Fünf Finger, der Daumen schräg abgespreizt.\n\nDie Bremsen greifen. Die alte Frau zieht ihre Masche fest und legt die Nadeln quer über den Korb.\n„Sie sollten sitzen bleiben“, sagt sie.\n\nDraußen erscheint ein Schild an eisernen Pfosten. GREYMOURNE. Darunter, bis zur Brust im Nebel, steht ein Mädchen in einem hellen Mantel. Es hebt den Kopf.`;
 const GINTRO_OWN=(n,bg)=>`Der Zug hätte nicht halten dürfen.\n\nDu – ${n}. ${bg}. Seit Tagen hast du kaum geschlafen, und wenn du die Augen schließt, fällst du nicht in Träume, sondern in Räume. Jetzt sitzt du in einem Nachtzug, dessen Räder kurz nach Mitternacht ihren Takt verlieren. Die Messinglampe im Abteil hängt still, obwohl der Zug noch fährt.\n\nNeben dir strickt eine alte Frau an einem grauen Handschuh. Gegenüber hält ein unrasierter Mann mit Reisetasche eine Fahrkarte so fest, dass das Papier weich geworden ist; unter seiner Manschette zieht sich eine helle Narbe über den Unterarm. Er starrt auf das Fenster. Außen im Ruß: der Abdruck einer kleinen Hand.\n\nDie Abteiltür geht auf, ohne dass Schritte zu hören waren. Ein Schaffner in feucht glänzender Uniform, die Augen im Schatten der Mütze.\n„Fahrkarten.“\n\nAls du ihm deine reichst, dreht er sie um. Auf der Rückseite steht in violetter Tinte dein Name. Darunter hat jemand etwas gezeichnet – etwas, das du kennst und das du verloren hast.\n\nDraußen gleitet ein Schild in den Nebel: GREYMOURNE.\nDie alte Frau sagt, ohne aufzusehen: „Lassen Sie sich nicht beim vollen Namen rufen.“`;
 const INTRO={
@@ -128,7 +128,19 @@ function reincarnate(msg){const soul=S.soul+Math.max(1,Math.floor(S.st.lvl/2));c
  S.choices=[];hud();const c=$('#choices');c.innerHTML='';Object.entries(ROLES).filter(([k])=>k!=='grey').forEach(([k,r])=>{const b=document.createElement('button');b.textContent=r.e+' '+r.name;b.onclick=()=>{$('#log').innerHTML='';newLife(k,meta)};c.appendChild(b)});save()}
 
 // ---------- offline narrator ----------
-function offline(a){if(isG()){const t=a.toLowerCase();const hit=/tür|öffn|klink/.test(t);
+function isQ(a){return /\?\s*$/.test(a.trim())||/^\s*(wer|was|wo|wohin|woher|wie|warum|wieso|weshalb|wann|welche[rsmn]?|seid|bist|sind|kannst|könnt|ist|habt|hast|gibt)\b/i.test(a)}
+function askNPC(a){if(!isQ(a)||!S)return null;const t=a.toLowerCase();const pres=(S.world?.scene?.anwesend||[]).map(String);const bible=isG()&&GREY?GREY.npcs:Object.fromEntries(Object.entries(ROLES[S.role].npcs||{}).map(([k,v])=>[k.replace('_',' '),{art:v}]));
+ const STOP=/^(der|die|das|ein|eine|einer|im|am|zug|von|und)$/;const find=n=>{const w=n.toLowerCase();return Object.entries(bible).find(([k])=>k.toLowerCase()===w)||Object.entries(bible).find(([k])=>k.toLowerCase().split(/[ \/–_-]+/).some(p=>p.length>3&&!STOP.test(p)&&w.includes(p)))};
+ let who=pres.map(p=>{const f=find(p);return f?{n:f[0],d:f[1],label:p}:{n:p,d:null,label:p}});if(!who.length)who=Object.entries(bible).slice(0,2).map(([k,v])=>({n:k,d:v,label:k}));
+ const named=who.filter(w=>t.includes(w.n.toLowerCase().split(' ')[0]));const sp=(named.length?named:who).slice(0,/ihr|euch|alle|seid/.test(t)?3:1);
+ const first=s=>String(s||'').split(/[.;]/)[0].trim();const lines=sp.map(w=>{const nm=w.n.split(' / ')[0];const desc=first(w.d?.art||w.d?.rolle);
+  if(/wer|seid|bist|name/.test(t)){const art=/^(der|die|das|ein|eine)\s/i.test(nm);return `${w.label} ${R(['mustert dich','hebt den Blick','zögert kurz'])}. „${art?'Ich? Nur '+nm.replace(/^\S+/,x=>x.toLowerCase())+'. Namen sagt man hier nicht laut.':'Ich bin '+nm+'.'}“${desc?' '+desc+'.':''}`}
+  if(/wo|wohin|woher/.test(t)){const o=S.world?.scene?.ort||'hier';return `${w.label} antwortet leise: „Du bist ${/^(in|im|am|auf|an)\b/i.test(o)?o:'in '+o}. ${R(['Mehr weiß niemand genau.','Frag lieber nicht zu laut.','Das sollte reichen – vorerst.'])}“`}
+  return `${w.label} ${R(['runzelt die Stirn','sieht dich lange an','senkt die Stimme'])}: „${R(['Das ist eine gute Frage. Ich weiß nur, was ich gesehen habe.','Nicht hier. Nicht jetzt.','Wenn du das wirklich wissen willst, bleib in meiner Nähe.'])}“${desc?' ('+desc+')':''}`});
+ const aff={};sp.forEach(w=>{if(S.aff&&w.n in S.aff)aff[w.n]=2;const k=Object.keys(S.aff||{}).find(x=>x.replace('_',' ')===w.n);if(k)aff[k]=2});
+ return {text:`„${a}“\n\n`+lines.join('\n\n'),changes:{xp:5,affinity:aff,choices:defChoices()}}}
+
+function offline(a){const q=askNPC(a);if(q)return q;if(isG()){const t=a.toLowerCase();const hit=/tür|öffn|klink/.test(t);
   const txt=R(['Irgendwo in der Stadt schlägt eine Glocke, tief und unsauber. Du spürst sie im Brustbein. Als der Ton vergeht, ist etwas an der Szene anders, aber du kannst nicht sagen, was.','Der Nebel antwortet nicht. Nur eine Uhr tickt, deren Zeiger stillstehen.','Aus einem Ablaufgitter kommt ein Klopfen: drei Schläge, eine Pause, zwei weitere.','Du zählst, ohne es zu wollen. Die Zahl stimmt nicht mit der von vorhin überein.']);
   return {text:`„${a}“ – ${txt}`,changes:{hp:hit?-8:-2,ruf:0,choices:defChoices()}}}const t=a.toLowerCase(),s=S.st,r=ROLES[S.role],npcs=Object.keys(S.aff);
  const who=npcs.find(n=>n.toLowerCase().split('_').some(p=>p.length>2&&t.includes(p.toLowerCase())));
@@ -204,7 +216,28 @@ function turnMsg(a){return (isG()?greyDetails(a)+'\n':'')+worldText()+'\n'+(S.su
 function parse(raw){let m=raw.match(/```(?:json)?\s*([\s\S]*?)```/)||raw.match(/(\{[\s\S]*\})\s*$/);let ch=null;
  if(m){try{ch=JSON.parse(m[1].trim())}catch(e){try{ch=JSON.parse(m[1].replace(/,\s*}/g,'}').replace(/'/g,'"'))}catch(_){}}}
  const text=(m?raw.replace(m[0],''):raw).replace(/```[\s\S]*$/,'').replace(/^\s*\d[.)]\s.*$/gm,'').replace(/\n*(Wie|Was) (willst|wirst|tust) du[^\n]*\?\s*$/,'').trim();return {text:text||'…',changes:ch||{xp:10}}}
-const G_MODELS=['gemini-3.8-flash','gemini-flash-latest','gemini-2.5-flash','gemini-2.5-flash-lite'];
+const G_FALLBACK=['gemini-flash-latest','gemini-2.5-flash','gemini-2.0-flash'];const GM_KEY='isekai_gmodels';
+const G_SAFE=['HARM_CATEGORY_HARASSMENT','HARM_CATEGORY_HATE_SPEECH','HARM_CATEGORY_SEXUALLY_EXPLICIT','HARM_CATEGORY_DANGEROUS_CONTENT'].map(category=>({category,threshold:'BLOCK_ONLY_HIGH'}));
+function gmStore(){try{return JSON.parse(localStorage.getItem(GM_KEY))||{}}catch(_){return {}}}
+function gmSave(o){localStorage.setItem(GM_KEY,JSON.stringify(o))}
+function gmScore(id){const n=id.toLowerCase();const v=(n.match(/gemini-(\d+(?:\.\d+)?)/)||[])[1];let s=(v?+v:0)*100;
+ if(/-latest$/.test(n))s+=350;// alias = newest stable
+ if(/flash-lite/.test(n))s+=0;else if(/flash/.test(n))s+=30;else if(/pro/.test(n))s+=50;
+ if(/preview|exp/.test(n))s-=60;if(/-\d{3}$|-\d{2}-\d{4}$/.test(n))s-=5;if(/gemma/.test(n))s-=400;return s}
+function gmRank(list){const bad=/embed|image|imagen|tts|audio|live|vision|aqa|veo|lyria|robotics|computer-use|learnlm|native|thinking-exp|nano|banana|deep-research/i;
+ const ids=list.filter(m=>(m.supportedGenerationMethods||[]).includes('generateContent')).map(m=>String(m.name||'').replace(/^models\//,'')).filter(id=>/^gemini/i.test(id)&&!bad.test(id));
+ const u=[...new Set(ids)];const pro=u.filter(x=>/pro/.test(x)).sort((x,y)=>gmScore(y)-gmScore(x)),fl=u.filter(x=>!/pro/.test(x)).sort((x,y)=>gmScore(y)-gmScore(x));
+ // newest pro first (free tier often 429 -> remembered and skipped), then flash family
+ return [...pro.slice(0,1),...fl,...pro.slice(1)]}
+async function gmFetch(key,force){const st=gmStore();if(!force&&st.key===key.slice(-6)&&st.list&&Date.now()-st.t<864e5)return st;
+ let all=[],tok='';try{for(let i=0;i<10;i++){const r=await fetch('https://generativelanguage.googleapis.com/v1beta/models?pageSize=1000'+(tok?'&pageToken='+encodeURIComponent(tok):'')+'&key='+encodeURIComponent(key));if(!r.ok)break;const j=await r.json();all=all.concat(j.models||[]);tok=j.nextPageToken;if(!tok)break}}catch(_){}
+ const list=all.length?gmRank(all):null;const o={key:key.slice(-6),t:Date.now(),list:list||st.list||G_FALLBACK,fail:force?{}:(st.fail||{}),chosen:st.chosen,manual:st.manual};gmSave(o);gmUI();return o}
+function gmOrder(st){const fail=st.fail||{},now=Date.now();let L=(st.list||G_FALLBACK).slice();if(st.manual)L=[st.manual,...L.filter(x=>x!==st.manual)];
+ const ok=L.filter(m=>!(fail[m]&&now-fail[m].t<(fail[m].c===429?36e5:864e5)));return ok.length?ok.concat(L.filter(m=>!ok.includes(m))):L}
+function gmUI(){const sel=$('#gmodel');if(!sel)return;const st=gmStore();const L=st.list||G_FALLBACK;sel.innerHTML='<option value="">Automatisch (beste verfügbare)</option>'+L.map(m=>`<option value="${m}">${m}${st.fail&&st.fail[m]?' ⚠️':''}</option>`).join('');sel.value=st.manual||'';
+ $('#gmstatus').textContent=st.chosen?'Aktives Modell: '+st.chosen:(L.length?'Noch kein Modell getestet':'')}
+function gParse(j){const c=j.candidates?.[0];const t=(c?.content?.parts||[]).filter(p=>!p.thought).map(p=>p.text||'').join('').trim();return {t,fr:c?.finishReason||j.promptFeedback?.blockReason||(c?'':'LEER')}}
+function gJSON(t){t=t.replace(/^```(?:json)?\s*/i,'').replace(/```\s*$/,'');try{return JSON.parse(t)}catch(_){}const i=t.indexOf('{'),k=t.lastIndexOf('}');if(i>=0&&k>i)try{return JSON.parse(t.slice(i,k+1))}catch(_){}return null}
 function gSchema(){const I={type:'INTEGER'},Sa={type:'ARRAY',items:{type:'STRING'}};
  return {type:'OBJECT',properties:{narration:{type:'STRING'},choices:{type:'ARRAY',items:{type:'STRING'},minItems:4,maxItems:4},
   changes:{type:'OBJECT',properties:{verstand:I,schuld:I,hp:I,mp:I,str:I,cha:I,ruf:I,xp:I,affinity:{type:'OBJECT',properties:Object.fromEntries(Object.keys(S.aff).map(k=>[k,I]))},items:Sa,newSkills:Sa,removeItems:Sa}},
@@ -216,18 +249,24 @@ function gBody(a){const contents=[];for(const m of (S.hist||[]).slice(-40)){cons
   if(last&&last.role===role)last.parts[0].text+='\n'+m.content;else contents.push({role,parts:[{text:m.content}]})}
  if(contents[0]&&contents[0].role==='model')contents.unshift({role:'user',parts:[{text:'(Spielbeginn)'}]});
  contents.push({role:'user',parts:[{text:turnMsg(a)}]});
- return {systemInstruction:{parts:[{text:sysPrompt(true)}]},contents,generationConfig:{temperature:1,maxOutputTokens:4096,responseMimeType:'application/json',responseSchema:gSchema()}}}
+ return {systemInstruction:{parts:[{text:sysPrompt(true)}]},contents,generationConfig:{temperature:1,maxOutputTokens:4096,responseMimeType:'application/json',responseSchema:gSchema()},safetySettings:G_SAFE}}
 async function gemini(a,el){const key=(cfg.gkey||'').trim();if(!key)throw gErr('Kein Gemini-Schlüssel eingetragen (⚙︎ Einstellungen).');let last;
- for(const m of G_MODELS){el.textContent='✨ Gemini denkt nach…';let res;
-  try{res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent`,{method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':key},body:JSON.stringify(gBody(a))})}catch(e){last=gErr('Gemini nicht erreichbar (Netzwerk).');continue}
-  if(res.ok){const j=await res.json();const t=(j.candidates?.[0]?.content?.parts||[]).filter(p=>!p.thought).map(p=>p.text||'').join('');let o;
-   try{o=JSON.parse(t)}catch(e){last=gErr('Gemini-Antwort unvollständig ('+(j.candidates?.[0]?.finishReason||j.promptFeedback?.blockReason||'leer')+').');continue}
-   const ch=Object.assign({},o.changes||{});ch.choices=o.choices;ch.summary=o.summary;ch.world=o.world;if(o.ending)ch.ending=o.ending;return {text:String(o.narration||'…'),changes:ch,model:m}}
-  let msg='';try{msg=(await res.json()).error?.message||''}catch(_){}
-  if(res.status===400&&/api.?key/i.test(msg)||res.status===401)throw gErr('Ungültiger Gemini-Schlüssel – bitte in ⚙︎ prüfen.');
-  if(res.status===403)throw gErr('Gemini-Schlüssel hat keinen Zugriff (403) – Schlüssel in AI Studio prüfen.');
-  last=gErr(res.status===429?'Gemini-Gratis-Kontingent erschöpft (429) – bitte später erneut versuchen.':`Gemini-Fehler ${res.status}${msg?': '+msg.slice(0,80):''}`)}
- throw last}
+ const st=await gmFetch(key);const base=gBody(a);
+ for(const m of gmOrder(st)){el.textContent='✨ Gemini denkt nach… ('+m+')';let schema=true,tries=0;
+  while(tries++<3){const body=JSON.parse(JSON.stringify(base));if(!schema){delete body.generationConfig.responseSchema;body.contents[body.contents.length-1].parts[0].text+='\n\nAntworte NUR mit einem gültigen JSON-Objekt mit den Feldern narration, choices, changes, summary, world (ohne Markdown).'}
+   let res;try{res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent`,{method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':key},body:JSON.stringify(body)})}catch(e){last=gErr('Gemini nicht erreichbar (Netzwerk).');break}
+   if(res.ok){const j=await res.json();const {t,fr}=gParse(j);const o=t&&gJSON(t);
+    if(o&&(o.narration||o.text)){const ch=Object.assign({},o.changes||{});ch.choices=o.choices;ch.summary=o.summary;ch.world=o.world;if(o.ending)ch.ending=o.ending;
+     const s2=gmStore();s2.chosen=m;if(s2.fail)delete s2.fail[m];gmSave(s2);return {text:String(o.narration||o.text||'…'),changes:ch,model:m}}
+    if(t&&!o&&schema&&fr!=='MAX_TOKENS'){schema=false;continue}// unparsable -> plain JSON instruction
+    last=gErr('Gemini-Antwort unvollständig ('+(fr||'leer')+').');if(/SAFETY|PROHIBITED|BLOCK|OTHER|LEER/i.test(fr)&&tries<3)continue;break}
+   let msg='';try{msg=(await res.json()).error?.message||''}catch(_){}
+   if(res.status===400&&/api.?key/i.test(msg)||res.status===401)throw gErr('Ungültiger Gemini-Schlüssel – bitte in ⚙︎ prüfen.');
+   if(res.status===400&&schema&&/schema|response_?schema|mime|json/i.test(msg)){schema=false;continue}
+   if(res.status===403&&!/model/i.test(msg))throw gErr('Gemini-Schlüssel hat keinen Zugriff (403) – Schlüssel in AI Studio prüfen.');
+   const s2=gmStore();s2.fail=s2.fail||{};s2.fail[m]={c:res.status,t:Date.now()};gmSave(s2);
+   last=gErr(res.status===429?'Gemini-Gratis-Kontingent erschöpft (429) – bitte später erneut versuchen.':`Gemini-Fehler ${res.status}${msg?': '+msg.slice(0,80):''}`);break}}
+ gmUI();throw last}
 function gErr(t){const e=new Error(t);e.gem=1;return e}
 async function loadWebLLM(){if(engine)return engine;if(!navigator.gpu)throw new Error('WebGPU nicht verfügbar');
  const w=await import('https://esm.run/@mlc-ai/web-llm');$('#wstatus').textContent='Lade Modell…';
@@ -239,7 +278,7 @@ async function aiTurn(a,el,mode=cfg.mode){if(mode==='webllm'){const e=await load
   if(!res.ok)throw new Error('API '+res.status);const j=await res.json();const t=j.choices[0].message.content;el.textContent=t.split('```')[0];return t}
  if(mode==='free'){let err;for(let i=0;i<3;i++){try{const ac=new AbortController(),to=setTimeout(()=>ac.abort(),60000);
    const res=await fetch(FREE_URL,{method:'POST',signal:ac.signal,headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'openai',messages:msgs(a),temperature:.9,reasoning_effort:'low',referrer:'isekai-game'})});clearTimeout(to);
-   if(!res.ok){const e=new Error('Gratis-KI '+res.status);e.ra=+res.headers.get('Retry-After')||0;throw e}const j=await res.json();const t=j.choices?.[0]?.message?.content;if(!t)throw new Error('leere Antwort');el.textContent=t.split('```')[0];return t}
+   if(!res.ok){const e=new Error('Gratis-KI '+res.status);e.ra=+res.headers.get('Retry-After')||0;throw e}const j=await res.json();const mm=j.choices?.[0]?.message||{};let t=(mm.content||'').trim()||(mm.reasoning_content||'').trim();if(!t){const e=new Error('leere Antwort');e.ra=1;throw e}el.textContent=t.split('```')[0];return t}
   catch(e){err=e;if(i<2){el.textContent='⏳ KI ist ausgelastet, neuer Versuch…';await new Promise(r=>setTimeout(r,Math.min(20,e.ra||(i?8:3))*1000))}}}throw err}
  throw new Error('offline')}
 async function act(a){if(busy||!a.trim())return;busy=true;if(isG())try{await loadGrey()}catch(_){}add('p',a);S.turn++;const el=renderMsg('n typing','');let res;
@@ -257,12 +296,14 @@ $('#btnDarren').onclick=()=>newGrey('darren');$('#btnOwnShow').onclick=()=>$('#o
 $('#btnOwnGo').onclick=()=>newGrey('own',$('#ownName').value.trim(),$('#ownBg').value.trim());
 $('#inputRow').onsubmit=e=>{e.preventDefault();const v=$('#txt').value;$('#txt').value='';act(v)};
 const sync=()=>{$('#webllmBox').style.display=$('#mode').value==='webllm'?'':'none';$('#apiBox').style.display=$('#mode').value==='api'?'':'none'};
-$('#btnMenu').onclick=()=>{$('#mode').value=cfg.mode;$('#wmodel').value=cfg.wmodel||$('#wmodel').value;$('#aurl').value=cfg.aurl||'';$('#akey').value=cfg.akey||'';$('#amodel').value=cfg.amodel||'';$('#gkey').value=cfg.gkey||'';sync();$('#sheet').classList.remove('hidden')};
+$('#btnMenu').onclick=()=>{$('#mode').value=cfg.mode;$('#wmodel').value=cfg.wmodel||$('#wmodel').value;$('#aurl').value=cfg.aurl||'';$('#akey').value=cfg.akey||'';$('#amodel').value=cfg.amodel||'';$('#gkey').value=cfg.gkey||'';gmUI();sync();$('#sheet').classList.remove('hidden')};
 $('#mode').onchange=sync;$('#btnClose').onclick=()=>$('#sheet').classList.add('hidden');
 $('#gkey').oninput=()=>{if($('#gkey').value.trim())$('#mode').value='gemini';sync()};
-$('#btnSave').onclick=()=>{const gk=$('#gkey').value.trim();cfg={v2:1,gkey:gk,mode:gk&&cfg.gkey!==gk?'gemini':$('#mode').value,wmodel:$('#wmodel').value,aurl:$('#aurl').value,akey:$('#akey').value,amodel:$('#amodel').value};localStorage.setItem(CFG,JSON.stringify(cfg));if(cfg.mode==='webllm'&&!navigator.gpu)toast('WebGPU fehlt – Offline-Fallback aktiv');else if(cfg.mode==='gemini'&&!gk)toast('Bitte Gemini-Schlüssel eintragen');else toast(cfg.mode==='gemini'?'✨ Gemini aktiv – gespeichert':'Gespeichert');$('#sheet').classList.add('hidden')};
+$('#btnSave').onclick=()=>{const gk=$('#gkey').value.trim();cfg={v2:1,gkey:gk,mode:gk&&cfg.gkey!==gk?'gemini':$('#mode').value,wmodel:$('#wmodel').value,aurl:$('#aurl').value,akey:$('#akey').value,amodel:$('#amodel').value};localStorage.setItem(CFG,JSON.stringify(cfg));{const st=gmStore();st.manual=$('#gmodel').value||'';gmSave(st);if(gk)gmFetch(gk,true).then(o=>toast('Gemini: '+(o.list||[]).length+' Modelle, zuerst '+(o.manual||o.list[0])))}if(cfg.mode==='webllm'&&!navigator.gpu)toast('WebGPU fehlt – Offline-Fallback aktiv');else if(cfg.mode==='gemini'&&!gk)toast('Bitte Gemini-Schlüssel eintragen');else toast(cfg.mode==='gemini'?'✨ Gemini aktiv – gespeichert':'Gespeichert');$('#sheet').classList.add('hidden')};
 $('#btnLoad').onclick=()=>{cfg.wmodel=$('#wmodel').value;engine=null;loadWebLLM().catch(e=>$('#wstatus').textContent='❌ '+e.message)};
 $('#btnReset').onclick=()=>{if(confirm('Wirklich alles löschen?')){localStorage.removeItem(KEY);location.reload()}};
 $('#btnStats').onclick=()=>{if(!S)return;$('#sheet').classList.add('hidden');add('s',`📜 ${ROLES[S.role].cls[S.cls]} · Seelenfragmente ${S.soul}\nSkills: ${S.skills.join(', ')}\nInventar: ${S.inv.join(', ')}`)};
 window.__game={newGrey,greyDetails,loadGrey,get S(){return S},act,newLife,gBody,msgs};
+if(cfg.gkey)gmFetch(cfg.gkey.trim()).catch(()=>{});
+window.__game.gmRank=gmRank;window.__game.askNPC=a=>askNPC(a);window.__game.gemini=gemini;
 startScreen();
