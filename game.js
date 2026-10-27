@@ -17,6 +17,47 @@ const ROLES={
   npcs:{Wirtin_Hanna:'Gutmütige Tavernenwirtin',Jäger_Tom:'Rauer Jäger',Hexe_Morgana:'Mysteriöse Waldhexe'},
   cls:['Dorfbewohner','Lehrling','Meister','Ungekrönter Legende']}
 };
+const INTRO={
+ held:`🚚 Hupen. Scheinwerfer. Ein dumpfer Schlag – dann nur noch weißes Rauschen.\n\nDu öffnest die Augen auf kaltem Marmor. Über dir glüht ein riesiger Beschwörungskreis aus, Weihrauch brennt in deiner Nase, und ein Dutzend Ritter starrt dich mit offenen Mündern an.\n\n[STATUS] Name: ??? · Klasse: Abenteurer · Lv 1 · Einzigartige Fähigkeit: Status-Fenster\n\nEin blaues Fenster schwebt direkt vor deinem Gesicht. Bevor du es wegwischen kannst, tritt eine junge Frau mit silberner Tiara vor – Prinzessin Elise. Ihr Blick ist eisig, aber ihre Hände zittern.\n„Endlich … der Held aus der anderen Welt.“ Sie mustert deine Kleidung, als wäre sie ein schlechter Witz. „Sag mir, dass du kämpfen kannst. Das Dämonenheer steht drei Tage vor unseren Mauern.“\n\n(Was sagst oder tust du?)`,
+ villainess:`🚚 Ein Lastwagen. Ein Knall. Und das Letzte, was du denkst: „Ich hab das Otome-Spiel nicht mal durchgespielt …“\n\nDu erwachst vor einem goldgerahmten Spiegel. Darin: blutrote Locken, ein arroganter Mund, ein Seidenfächer in der Hand – Lady Rosalind von Ashcroft. Die Schurkin. Die, die im Finale hingerichtet wird.\n\n[SYSTEM] Romanwissen aktiviert · Verbleibende Zeit bis zum Untergang: 365 Tage\n\nDie Tür fliegt auf. Kronprinz Julian steht im Rahmen, hinter ihm die zitternde Mira mit verschüttetem Tee auf dem Kleid. „Rosalind!“, zischt er. „Hast du Mira schon WIEDER gestoßen? Erklär dich – sofort.“\n(Moment … das ist exakt die Szene aus Kapitel 1. Die, mit der alles schiefgeht.)\n\n(Was sagst oder tust du?)`,
+ daemon:`🚚 Licht, Schmerz – und dann eine Stimme, tief wie ein Abgrund: „Erhebe dich.“\n\nDu sitzt auf einem Thron aus Knochen. Schwarze Flammen lecken an den Säulen, und unter dir knien hunderte Monster – Orks, Skelette, Schattenwesen – mit gesenkten Köpfen.\n\n[STATUS] Titel: Gefallener Fürst · Lv 1 · Aura: ÜBERWÄLTIGEND · Warnung: Ein Held wurde beschworen.\n\nEine Sukkubus mit Brille und Klemmbrett tritt an deine Seite – Velka. „Willkommen zurück, mein König. Sie haben dreihundert Jahre geschlafen.“ Sie räuspert sich. „Kurzer Lagebericht: Die Kasse ist leer, General Brok will sofort Krieg, und die neue Heldin Aria marschiert auf uns zu. Ihre Befehle?“\nGeneral Brok schlägt die Faust auf die Brust. „KRIEG, Herr! Sagt nur das Wort!“\n\n(Was sagst oder tust du?)`,
+ mensch:`🚚 Bremsen quietschen. Dunkelheit. Dann – Vogelgezwitscher und ein Stock, der dir in die Rippen piekst.\n\nDu liegst in einem Heuhaufen am Rand eines Dorfes. Fachwerkhäuser, Matschwege, ein Schild: „Kleinbach“. Kein blaues Fenster. Keine Göttin. Keine Cheat-Skills. Nur dein knurrender Magen.\n\nÜber dir steht ein bärtiger Mann mit Bogen und einem toten Hasen über der Schulter – Jäger Tom. Er piekst noch einmal. „Lebst du noch? Komische Kleidung hast du.“ Er kneift die Augen zusammen. „Bist du einer von den Wegelagerern, oder hat dich die Hexe aus dem Wald ausgespuckt?“\nAus der Taverne ruft eine Frauenstimme: „Tom! Lass den armen Kerl in Ruhe und bring ihn rein!“\n\n(Was sagst oder tust du?)`
+};
+const WORLD={
+ held:{scene:{ort:'Beschwörungshalle im Königspalast von Aldheim',zeit:'Abend, Fackellicht',anwesend:['Prinzessin Elise','Hofmagier Orren','ein Dutzend Ritter']},
+  orte:{'Beschwörungshalle':'Marmorhalle mit glühendem Beschwörungskreis, Weihrauchgeruch','Hauptstadt Aldheim':'Belagerte Königsstadt mit hohen weißen Mauern','Söldnergilde':'Laute Gildenhalle, Garricks Stammplatz','Nordwall':'Mauer, vor der das Dämonenheer lagert'},
+  npcs:{'Prinzessin Elise':{art:'kühl, stolz, spricht förmlich, insgeheim verzweifelt',ziel:'Das Königreich retten',geheimnis:'Die Beschwörung hat ihren Vater das Leben gekostet',beziehung:'misstrauische Beschwörerin',erinnerung:[]},
+   'Lyra':{art:'elfische Bogenschützin, wortkarg, spöttisch',ziel:'Ihren verschollenen Bruder finden',geheimnis:'Spionin des Elfenrats',beziehung:'noch unbekannt',erinnerung:[]},
+   'Garrick':{art:'polternder Söldner, lacht laut, redet derb',ziel:'Gold und ein letzter großer Kampf',geheimnis:'Desertierte einst aus der Königsarmee',beziehung:'noch unbekannt',erinnerung:[]},
+   'Hofmagier Orren':{art:'alter, nervöser Magier, murmelt Formeln',ziel:'Seinen Fehler bei der Beschwörung vertuschen',geheimnis:'Er hat den falschen Helden beschworen?',beziehung:'beobachtet dich ängstlich',erinnerung:[]}},
+  ereignisse:['Das Dämonenheer steht drei Tage vor dem Nordwall','Der Adel zweifelt an der Beschwörung']},
+ villainess:{scene:{ort:'Rosalinds Gemach in der Akademie von Lumière',zeit:'Morgen, Sonnenlicht durch Spitzenvorhänge',anwesend:['Kronprinz Julian','Heldin Mira']},
+  orte:{'Rosalinds Gemach':'Prunkvolles Zimmer mit goldgerahmtem Spiegel','Akademie-Rosengarten':'Ort der berüchtigten Teepartys','Ballsaal':'Hier findet in einem Jahr die Verurteilung statt'},
+  npcs:{'Kronprinz Julian':{art:'kalt, selbstgerecht, scharfe Zunge',ziel:'Die Verlobung lösen',geheimnis:'Fühlt sich vom Hof erdrückt',beziehung:'verachtet dich',erinnerung:[]},
+   'Heldin Mira':{art:'überfreundlich, tollpatschig, entschuldigt sich ständig',ziel:'Von allen gemocht werden',geheimnis:'Weiß vielleicht mehr, als sie zeigt',beziehung:'fürchtet dich',erinnerung:[]},
+   'Ritter Cedric':{art:'stiller Leibwächter, kurze Sätze, loyal',ziel:'Rosalind beschützen, egal was',geheimnis:'Schwärmt heimlich für dich',beziehung:'treuer Schatten',erinnerung:[]}},
+  ereignisse:['365 Tage bis zur Verurteilung im Ballsaal','Gerüchte, Rosalind habe Mira gestoßen']},
+ daemon:{scene:{ort:'Thronsaal der Nachtfestung, Nocturna',zeit:'Ewige Nacht, schwarze Flammen',anwesend:['Sekretärin Velka','General Brok','hunderte kniende Monster']},
+  orte:{'Thronsaal':'Knochenthron, schwarze Flammen an den Säulen','Schatzkammer':'Fast leer','Kasernen':'Brok\'s Orks trainieren lärmend','Grenzpass':'Weg, auf dem die Heldin anrückt'},
+  npcs:{'Sekretärin Velka':{art:'Sukkubus mit Brille, sachlich, trocken-ironisch, loyal',ziel:'Das Reich vor dem Bankrott retten',geheimnis:'Hat den alten König vergiftet?',beziehung:'ergebene Beraterin',erinnerung:[]},
+   'General Brok':{art:'Ork, brüllt, will immer Krieg',ziel:'Ruhm in der Schlacht',geheimnis:'Kann nicht lesen',beziehung:'fanatisch treu',erinnerung:[]},
+   'Heldin Aria':{art:'entschlossen, idealistisch, heißblütig',ziel:'Den Dämonenkönig töten',geheimnis:'Zweifelt an der Kirche, die sie schickte',beziehung:'Todfeindin (noch nie getroffen)',erinnerung:[]}},
+  ereignisse:['Die Heldin Aria marschiert auf Nocturna zu','Die Kriegskasse ist leer']},
+ mensch:{scene:{ort:'Heuhaufen am Dorfrand von Kleinbach',zeit:'Früher Morgen, Tau, Vogelgezwitscher',anwesend:['Jäger Tom']},
+  orte:{'Taverne „Zum Krummen Kessel“':'Warme Stube, Hannas Eintopf','Dunkelwald':'Hier lebt die Hexe','Dorfplatz':'Brunnen, Schwarzes Brett'},
+  npcs:{'Wirtin Hanna':{art:'gutmütig, resolut, mütterlich',ziel:'Die Taverne über den Winter bringen',geheimnis:'Ihr Mann verschwand im Dunkelwald',beziehung:'noch unbekannt',erinnerung:[]},
+   'Jäger Tom':{art:'rau, wortkarg, misstrauisch, trockener Humor',ziel:'Das Dorf vor Wölfen schützen',geheimnis:'Hat Angst vor der Hexe',beziehung:'misstrauisch',erinnerung:[]},
+   'Hexe Morgana':{art:'rätselhaft, spricht in Andeutungen',ziel:'Ein Ritual vollenden',geheimnis:'Sie hat dich hierher gerufen',beziehung:'beobachtet dich aus der Ferne',erinnerung:[]}},
+  ereignisse:['Wölfe reißen Schafe am Waldrand','Steuereintreiber kommen in einer Woche']}
+};
+function worldText(){const w=S.world;if(!w)return '';return 'WELT-BIBEL (verbindlich, bleib konsistent):\n'+JSON.stringify(w)}
+function applyWorld(u){if(!u||!S.world)return;const w=S.world;const cut=(x,n)=>String(x||'').slice(0,n);
+ if(u.scene&&u.scene.ort)w.scene={ort:cut(u.scene.ort,80),zeit:cut(u.scene.zeit,60),anwesend:(u.scene.anwesend||[]).slice(0,8).map(x=>cut(x,40))};
+ (u.npcUpdates||[]).forEach(n=>{if(!n||!n.name)return;let k=Object.keys(w.npcs).find(x=>x.toLowerCase()===String(n.name).toLowerCase());
+  if(!k){if(Object.keys(w.npcs).length>=14)return;k=cut(n.name,40);w.npcs[k]={art:'',ziel:'',geheimnis:'',beziehung:'',erinnerung:[]}}const p=w.npcs[k];
+  ['art','ziel','geheimnis','beziehung'].forEach(f=>{if(n[f])p[f]=cut(n[f],120)});if(n.erinnerung){p.erinnerung.push(cut(n.erinnerung,140));p.erinnerung=p.erinnerung.slice(-6)}});
+ (u.newLocations||[]).forEach(l=>{if(l&&l.name&&Object.keys(w.orte).length<16)w.orte[cut(l.name,50)]=cut(l.desc,140)});
+ if(Array.isArray(u.ereignisse)&&u.ereignisse.length)w.ereignisse=u.ereignisse.slice(0,6).map(x=>cut(x,140))}
 const KEY='isekai_save_v1',CFG='isekai_cfg_v1';
 let S=null,cfg=JSON.parse(localStorage.getItem(CFG)||'{"mode":"free"}'),engine=null,busy=false;
 const save=()=>localStorage.setItem(KEY,JSON.stringify(S));
@@ -27,8 +68,8 @@ function newLife(role,meta){const r=ROLES[role];meta=meta||{lives:0,soul:0,keptS
   st:{hp:r.base.hp+b*5,maxhp:r.base.hp+b*5,mp:r.base.mp+b*3,maxmp:r.base.mp+b*3,str:r.base.str+b,cha:r.base.cha+b,ruf:r.base.ruf,lvl:1,xp:0},
   skills:[...new Set([...r.skills,...meta.keptSkills])],inv:[...r.inv],aff:Object.fromEntries(Object.keys(r.npcs).map(k=>[k,0])),
   cls:0,turn:0,hist:[],log:[],flags:{}};
- const intro=`${r.e} ${meta.lives?`Reinkarnation #${S.lives}. Deine Seele erinnert sich (Seelenfragmente: ${b}).`:'Ein Lastwagen. Licht. Dann – Stille.'}\n\n${r.d}\nWelt: ${r.world}.\nDu triffst: ${Object.keys(r.npcs).map(n=>n.replace('_',' ')).join(', ')}.`;
- add('n',intro);S.choices=defChoices();save();show();}
+ const intro=(meta.lives?`${r.e} Reinkarnation #${S.lives}. Wieder dieses weiße Licht – und diesmal erinnert sich deine Seele (Seelenfragmente: ${b}).\n\n`:'')+INTRO[role];
+ S.world=JSON.parse(JSON.stringify(WORLD[role]));S.hist=[{role:'assistant',content:INTRO[role]}]; add('n',intro);S.choices=defChoices();save();show();}
 function defChoices(){const r=S.role;return {held:['Monster jagen','Mit Lyra reden','Training im Hof','Die Stadt erkunden'],villainess:['Mit dem Kronprinzen sprechen','Mira helfen','Intrige schmieden','Teeparty besuchen'],daemon:['Armee befehligen','Mit Velka planen','Die Heldin ausspionieren','Dunkle Magie üben'],mensch:['In der Taverne arbeiten','Mit Tom jagen gehen','Die Hexe besuchen','Ausruhen']}[r]}
 function add(k,t){S.log.push({k,t});if(S.log.length>80)S.log.shift();renderMsg(k,t)}
 function renderMsg(k,t){const d=document.createElement('div');d.className='msg '+k;d.textContent=t;$('#log').appendChild(d);d.scrollIntoView({behavior:'smooth',block:'end'});return d}
@@ -88,55 +129,96 @@ function offline(a){const t=a.toLowerCase(),s=S.st,r=ROLES[S.role],npcs=Object.k
 // ---------- AI ----------
 if(!cfg.v2){if(cfg.mode==='offline'||!cfg.mode)cfg.mode='free';cfg.v2=1;localStorage.setItem(CFG,JSON.stringify(cfg))}
 const FREE_URL='https://text.pollinations.ai/openai';
-function sysPrompt(){const r=ROLES[S.role];return `Du bist der Erzähler (Spielleiter) eines Isekai-Textabenteuers auf Deutsch. Rolle des Spielers: ${r.name} (${r.cls[S.cls]}). Welt: ${r.world}. NPCs: ${Object.entries(r.npcs).map(([k,v])=>k+': '+v).join('; ')}.
-REGELN:
-1. Reagiere DIREKT auf die exakten Worte des Spielers. Stellt er eine Frage (z.B. „Woher kommt die Truhe?“), beantworte sie IN der Geschichte (durch Beobachtung, Erinnerung oder einen NPC) – erfinde keine andere Aktion.
-2. Halte die Kontinuität: Orte, Gegenstände, Personen und Ereignisse aus der bisherigen Geschichte bleiben bestehen.
-3. Schreibe 3-6 lebendige Sätze im Anime-Stil, in der 2. Person („du“). Kein Meta-Kommentar.
-4. Sei fair: Riskantes kann HP kosten, Fragen/Reden kosten meist nichts.
-Danach IMMER genau ein JSON-Block in \`\`\`json ... \`\`\` mit Änderungen, z.B.:
+function sysPrompt(json=true){const r=ROLES[S.role];return `Du bist der Erzähler eines interaktiven Isekai-Anime auf Deutsch. Der SPIELER ist die Hauptfigur (Protagonist) – alles dreht sich um ihn. Schreibe wie eine packende Anime-/Light-Novel-Szene.
+
+WELT & FIGUREN (Charakterbogen):
+- Protagonist: ${r.name}, Klasse ${r.cls[S.cls]}, reinkarniert aus unserer modernen Welt (wurde von einem Lastwagen erfasst). Leben Nr. ${S.lives}.
+- Welt: ${r.world}. Ausgangslage: ${r.d}
+- NPCs (jeder mit eigener Stimme, Sprechweise, Gefühlen und Zielen): ${Object.entries(r.npcs).map(([k,v])=>k.replace('_',' ')+' – '+v).join('; ')}. Du darfst passende Nebenfiguren einführen, aber die Hauptbesetzung bleibt.
+
+GOLDENE REGELN:
+1. REAGIERE ZUERST und DIREKT auf die exakten Worte/Taten des Spielers. Sein Satz ist der Auslöser der Szene. Sagt er etwas laut (z.B. „Was zum Teufel mach ich hier?“), dann HÖREN die Anwesenden das – sie reagieren konkret darauf: verwirrt, beleidigt, belustigt, erschrocken – und antworten in wörtlicher Rede. Fragen werden in der Geschichte beantwortet (durch NPCs, Beobachtung, Erinnerung oder ein [System]-Fenster).
+2. Ignoriere oder ersetze NIE die Eingabe des Spielers. Erfinde keine zusammenhanglosen Zufallsereignisse, Truhen, Fallen oder Ortswechsel, die er nicht ausgelöst hat.
+3. Kontinuität: Bleib in der aktuellen Szene mit ihren konkreten Personen, Orten, Gegenständen und Stimmungen. Greife Details aus dem Verlauf auf.
+4. NPCs sprechen in direkter Rede mit Anführungszeichen „…“, zeigen Emotionen über Mimik/Gestik und haben unverwechselbare Stimmen (z.B. kühl-stolz, polternd, schüchtern, sarkastisch).
+5. Anime-Stilmittel, wenn passend: innere Gedanken des Protagonisten in Klammern (Gedanke …), Isekai-Systemfenster wie [Status], [Skill erhalten], [Quest] in eckigen Klammern, dramatische Pausen, Comedy-Momente.
+6. Sinneseindrücke: Licht, Geräusche, Gerüche, Temperatur – kurz und lebendig.
+7. Länge: 4-9 Sätze in der 2. Person („du“). Kein Meta-Kommentar, keine Aufzählungen.
+8. Ende mit einem Hook: eine Frage eines NPCs, eine Spannung, eine Entscheidung – etwas, worauf der Spieler reagieren will. Entscheide nie für den Spieler, was er als Nächstes sagt.
+9. WELT-BIBEL: Die mitgeschickte Welt-Bibel (Orte, NPCs mit Art/Ziel/Geheimnis/Beziehung/Erinnerung, laufende Ereignisse, aktuelle Szene) ist verbindlich. Die Welt lebt und wartet auf den Spieler: NPCs erinnern sich an frühere Begegnungen und verfolgen eigene Ziele; Ereignisse schreiten im Hintergrund glaubwürdig voran. Neue Details müssen dazu passen und werden per "world" eingetragen. Geheimnisse nur schrittweise enthüllen.
+10. Fairness: Riskantes kann HP kosten; Reden/Fragen meist nicht.
+${json?`
+AUSGABE als JSON: "narration" (der Szenentext), "choices" (genau 4 kurze, szenenpassende Aktionen, max. 6 Wörter, gern auch eine witzige oder wörtliche Rede), "changes" (NUR Änderungen DIESES Zuges als Deltas, meist 0: hp -30..30, mp -30..30, str/cha -2..2, ruf -5..5, xp 5-60 – bei Gesprächen 5-15; affinity je NPC -15..15; items nur NEU erhaltene Gegenstände; newSkills selten; removeItems verbrauchte), "summary" (aktualisierte Zusammenfassung der ganzen Geschichte, max. 5 Sätze, mit wichtigen Namen/Orten/offenen Fäden), "world" (Updates der Welt-Bibel: "scene" = aktuelle Szene {ort, zeit, anwesend}; "npcUpdates" = nur NPCs, die betroffen sind, mit "name" und kurzer neuer "erinnerung" an diesen Zug, ggf. geänderter "beziehung"/"ziel"; "newLocations" nur wirklich neue Orte; "ereignisse" = komplette aktualisierte Liste laufender Weltereignisse, max. 6), optional "ending" nur bei echtem Story-Ende (sonst leer).`:`
+Danach IMMER genau ein JSON-Block in \`\`\`json ... \`\`\`:
 \`\`\`json
-{"hp":0,"mp":0,"str":0,"cha":0,"ruf":0,"xp":10,"affinity":{"${Object.keys(r.npcs)[0]}":0},"newSkills":[],"items":[],"removeItems":[],"choices":["Passende Aktion 1","Aktion 2","Aktion 3","Aktion 4"],"summary":"Aktualisierte Kurz-Zusammenfassung der ganzen Geschichte bis jetzt (max. 4 Sätze)"}
+{"hp":0,"mp":0,"str":0,"cha":0,"ruf":0,"xp":10,"affinity":{"${Object.keys(r.npcs)[0]}":0},"newSkills":[],"items":[],"removeItems":[],"choices":["Aktion 1","Aktion 2","Aktion 3","Aktion 4"],"summary":"Aktualisierte Kurz-Zusammenfassung (max. 5 Sätze)","world":{"scene":{"ort":"…","zeit":"…","anwesend":["…"]},"npcUpdates":[{"name":"…","erinnerung":"was er sich von diesem Zug merkt","beziehung":"…"}],"newLocations":[],"ereignisse":["…"]}}
 \`\`\`
-WICHTIG: Die Zahlen sind NUR die Änderungen durch DIESEN Zug (Deltas, keine Gesamtwerte) – meist 0. Bei Fragen/Gesprächen nur xp 5-15, sonst 0. "items" NUR neu erhaltene Gegenstände (nicht, was schon im Inventar ist), sonst []. "newSkills" nur selten.
-"choices": genau 4 kurze, zur aktuellen Szene passende Aktionen. Werte klein halten (XP 5-60, HP -30..+30, Affinität -15..+15). Optional "ending":"Text" nur bei echtem Story-Ende.`}
+Zahlen sind NUR Deltas dieses Zuges (meist 0; XP 5-60, HP -30..30, Affinität -15..15). "items" nur neu erhaltene. "choices": genau 4 kurze, szenenpassende Aktionen.`}`}
 function stateSum(){const s=S.st;return `STATUS: Lv${s.lvl} HP${s.hp}/${s.maxhp} MP${s.mp} Stärke${s.str} Charme${s.cha} Ruf${s.ruf} | Skills: ${S.skills.join(', ')} | Inventar: ${S.inv.join(', ')} | Affinität: ${Object.entries(S.aff).map(([k,v])=>k+'='+v).join(', ')} | Leben #${S.lives}`}
 function msgs(a){const sum=S.summary?'BISHERIGE GESCHICHTE (Zusammenfassung): '+S.summary+'\n':'';
- let h=(S.hist||[]).slice(-16);if(!h.length){const last=S.log.filter(m=>m.k==='n').slice(-1)[0];if(last)h=[{role:'assistant',content:last.t}]}
- return [{role:'system',content:sysPrompt()},...h,{role:'user',content:sum+stateSum()+'\nSPIELER sagt/tut: „'+a+'“\n(Reagiere direkt darauf.)'}]}
+ let h=(S.hist||[]).slice(-20);if(!h.length){const last=S.log.filter(m=>m.k==='n').slice(-1)[0];if(last)h=[{role:'assistant',content:last.t}]}
+ return [{role:'system',content:sysPrompt(false)},...h,{role:'user',content:turnMsg(a)}]}
+function turnMsg(a){return worldText()+'\n'+(S.summary?'BISHERIGE GESCHICHTE (Zusammenfassung): '+S.summary+'\n':'')+stateSum()+'\nDER SPIELER (Protagonist) sagt/tut jetzt: „'+a+'“\n(Reagiere zuerst direkt und konkret genau darauf – die Anwesenden hören/sehen es.)'}
 function parse(raw){let m=raw.match(/```(?:json)?\s*([\s\S]*?)```/)||raw.match(/(\{[\s\S]*\})\s*$/);let ch=null;
  if(m){try{ch=JSON.parse(m[1].trim())}catch(e){try{ch=JSON.parse(m[1].replace(/,\s*}/g,'}').replace(/'/g,'"'))}catch(_){}}}
- const text=(m?raw.replace(m[0],''):raw).replace(/```[\s\S]*$/,'').trim();return {text:text||'…',changes:ch||{xp:10}}}
+ const text=(m?raw.replace(m[0],''):raw).replace(/```[\s\S]*$/,'').replace(/^\s*\d[.)]\s.*$/gm,'').replace(/\n*(Wie|Was) (willst|wirst|tust) du[^\n]*\?\s*$/,'').trim();return {text:text||'…',changes:ch||{xp:10}}}
+const G_MODELS=['gemini-3.8-flash','gemini-flash-latest','gemini-2.5-flash','gemini-2.5-flash-lite'];
+function gSchema(){const I={type:'INTEGER'},Sa={type:'ARRAY',items:{type:'STRING'}};
+ return {type:'OBJECT',properties:{narration:{type:'STRING'},choices:{type:'ARRAY',items:{type:'STRING'},minItems:4,maxItems:4},
+  changes:{type:'OBJECT',properties:{hp:I,mp:I,str:I,cha:I,ruf:I,xp:I,affinity:{type:'OBJECT',properties:Object.fromEntries(Object.keys(S.aff).map(k=>[k,I]))},items:Sa,newSkills:Sa,removeItems:Sa}},
+  summary:{type:'STRING'},ending:{type:'STRING'},
+  world:{type:'OBJECT',properties:{scene:{type:'OBJECT',properties:{ort:{type:'STRING'},zeit:{type:'STRING'},anwesend:Sa}},
+   npcUpdates:{type:'ARRAY',items:{type:'OBJECT',properties:{name:{type:'STRING'},erinnerung:{type:'STRING'},beziehung:{type:'STRING'},ziel:{type:'STRING'},art:{type:'STRING'}},required:['name']}},
+   newLocations:{type:'ARRAY',items:{type:'OBJECT',properties:{name:{type:'STRING'},desc:{type:'STRING'}},required:['name','desc']}},ereignisse:Sa}}},required:['narration','choices','changes','summary','world']}}
+function gBody(a){const contents=[];for(const m of (S.hist||[]).slice(-40)){const role=m.role==='assistant'?'model':'user';const last=contents[contents.length-1];
+  if(last&&last.role===role)last.parts[0].text+='\n'+m.content;else contents.push({role,parts:[{text:m.content}]})}
+ if(contents[0]&&contents[0].role==='model')contents.unshift({role:'user',parts:[{text:'(Spielbeginn)'}]});
+ contents.push({role:'user',parts:[{text:turnMsg(a)}]});
+ return {systemInstruction:{parts:[{text:sysPrompt(true)}]},contents,generationConfig:{temperature:1,maxOutputTokens:4096,responseMimeType:'application/json',responseSchema:gSchema()}}}
+async function gemini(a,el){const key=(cfg.gkey||'').trim();if(!key)throw gErr('Kein Gemini-Schlüssel eingetragen (⚙︎ Einstellungen).');let last;
+ for(const m of G_MODELS){el.textContent='✨ Gemini denkt nach…';let res;
+  try{res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent`,{method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':key},body:JSON.stringify(gBody(a))})}catch(e){last=gErr('Gemini nicht erreichbar (Netzwerk).');continue}
+  if(res.ok){const j=await res.json();const t=(j.candidates?.[0]?.content?.parts||[]).filter(p=>!p.thought).map(p=>p.text||'').join('');let o;
+   try{o=JSON.parse(t)}catch(e){last=gErr('Gemini-Antwort unvollständig ('+(j.candidates?.[0]?.finishReason||j.promptFeedback?.blockReason||'leer')+').');continue}
+   const ch=Object.assign({},o.changes||{});ch.choices=o.choices;ch.summary=o.summary;ch.world=o.world;if(o.ending)ch.ending=o.ending;return {text:String(o.narration||'…'),changes:ch,model:m}}
+  let msg='';try{msg=(await res.json()).error?.message||''}catch(_){}
+  if(res.status===400&&/api.?key/i.test(msg)||res.status===401)throw gErr('Ungültiger Gemini-Schlüssel – bitte in ⚙︎ prüfen.');
+  if(res.status===403)throw gErr('Gemini-Schlüssel hat keinen Zugriff (403) – Schlüssel in AI Studio prüfen.');
+  last=gErr(res.status===429?'Gemini-Gratis-Kontingent erschöpft (429) – bitte später erneut versuchen.':`Gemini-Fehler ${res.status}${msg?': '+msg.slice(0,80):''}`)}
+ throw last}
+function gErr(t){const e=new Error(t);e.gem=1;return e}
 async function loadWebLLM(){if(engine)return engine;if(!navigator.gpu)throw new Error('WebGPU nicht verfügbar');
  const w=await import('https://esm.run/@mlc-ai/web-llm');$('#wstatus').textContent='Lade Modell…';
  engine=await w.CreateMLCEngine(cfg.wmodel||'Qwen2.5-1.5B-Instruct-q4f16_1-MLC',{initProgressCallback:p=>{$('#wstatus').textContent=p.text}});$('#wstatus').textContent='✅ Modell bereit';return engine}
 async function streamTo(el,iter){let raw='';for await(const c of iter){raw+=c;el.textContent=raw.split('```')[0]}return raw}
-async function aiTurn(a,el){if(cfg.mode==='webllm'){const e=await loadWebLLM();const it=await e.chat.completions.create({messages:msgs(a),stream:true,temperature:.8,max_tokens:400});
+async function aiTurn(a,el,mode=cfg.mode){if(mode==='webllm'){const e=await loadWebLLM();const it=await e.chat.completions.create({messages:msgs(a),stream:true,temperature:.8,max_tokens:400});
   return streamTo(el,(async function*(){for await(const c of it)yield c.choices[0]?.delta?.content||''})())}
- if(cfg.mode==='api'){const res=await fetch((cfg.aurl||'').replace(/\/$/,'')+'/chat/completions',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+cfg.akey},body:JSON.stringify({model:cfg.amodel,messages:msgs(a),temperature:.8,max_tokens:500})});
+ if(mode==='api'){const res=await fetch((cfg.aurl||'').replace(/\/$/,'')+'/chat/completions',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+cfg.akey},body:JSON.stringify({model:cfg.amodel,messages:msgs(a),temperature:.8,max_tokens:500})});
   if(!res.ok)throw new Error('API '+res.status);const j=await res.json();const t=j.choices[0].message.content;el.textContent=t.split('```')[0];return t}
- if(cfg.mode==='free'){let err;for(let i=0;i<3;i++){try{const ac=new AbortController(),to=setTimeout(()=>ac.abort(),60000);
+ if(mode==='free'){let err;for(let i=0;i<3;i++){try{const ac=new AbortController(),to=setTimeout(()=>ac.abort(),60000);
    const res=await fetch(FREE_URL,{method:'POST',signal:ac.signal,headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'openai',messages:msgs(a),temperature:.9,reasoning_effort:'low',referrer:'isekai-game'})});clearTimeout(to);
    if(!res.ok){const e=new Error('Gratis-KI '+res.status);e.ra=+res.headers.get('Retry-After')||0;throw e}const j=await res.json();const t=j.choices?.[0]?.message?.content;if(!t)throw new Error('leere Antwort');el.textContent=t.split('```')[0];return t}
   catch(e){err=e;if(i<2){el.textContent='⏳ KI ist ausgelastet, neuer Versuch…';await new Promise(r=>setTimeout(r,Math.min(20,e.ra||(i?8:3))*1000))}}}throw err}
  throw new Error('offline')}
 async function act(a){if(busy||!a.trim())return;busy=true;add('p',a);S.turn++;const el=renderMsg('n typing','');let res;
- try{if(cfg.mode==='offline')throw 0;const raw=await aiTurn(a,el);res=parse(raw);{const c=res.changes,lim={hp:30,mp:30,str:2,cha:2,ruf:5,xp:60};for(const k in lim)if(k in c)c[k]=Math.max(-lim[k],Math.min(lim[k],+c[k]||0));if(c.affinity)for(const n in c.affinity)c.affinity[n]=Math.max(-15,Math.min(15,+c.affinity[n]||0))}if(Array.isArray(res.changes.items))res.changes.items=res.changes.items.filter(x=>!S.inv.includes(x));if(Array.isArray(res.changes.newSkills))res.changes.newSkills=res.changes.newSkills.filter(x=>!S.skills.includes(x));if(res.changes.summary){S.summary=String(res.changes.summary).slice(0,800);delete res.changes.summary}
-  S.hist=S.hist||[];S.hist.push({role:'user',content:'SPIELER: '+a},{role:'assistant',content:res.text});S.hist=S.hist.slice(-16)}
- catch(e){res=offline(a);if(e)res.note='⚠️ KI nicht erreichbar ('+(e.message||e)+') – Offline-Erzähler sprang ein.'}
+ let gnote='';try{if(cfg.mode==='offline')throw 0;if(cfg.mode==='gemini'){try{res=await gemini(a,el)}catch(e){gnote='⚠️ '+e.message+' Gratis-KI springt ein.';el.textContent='⏳ Wechsle zur Gratis-KI…'}}
+  if(!res){const raw=await aiTurn(a,el,cfg.mode==='gemini'?'free':cfg.mode);res=parse(raw)}{const c=res.changes,lim={hp:30,mp:30,str:2,cha:2,ruf:5,xp:60};for(const k in lim)if(k in c)c[k]=Math.max(-lim[k],Math.min(lim[k],+c[k]||0));if(c.affinity)for(const n in c.affinity)c.affinity[n]=Math.max(-15,Math.min(15,+c.affinity[n]||0))}if(Array.isArray(res.changes.items))res.changes.items=res.changes.items.filter(x=>!S.inv.includes(x));if(Array.isArray(res.changes.newSkills))res.changes.newSkills=res.changes.newSkills.filter(x=>!S.skills.includes(x));if(res.changes.summary){S.summary=String(res.changes.summary).slice(0,800);delete res.changes.summary}if(res.changes.world){try{applyWorld(res.changes.world)}catch(_){}delete res.changes.world}
+  S.hist=S.hist||[];S.hist.push({role:'user',content:'SPIELER: '+a},{role:'assistant',content:res.text});S.hist=S.hist.slice(-40);if(gnote)res.note=gnote}
+ catch(e){res=offline(a);if(e)res.note=(gnote?gnote+'\n':'')+'⚠️ KI nicht erreichbar ('+(e.message||e)+') – Offline-Erzähler sprang ein.'}
  el.remove();add('n',res.text);if(res.note)add('s',res.note);apply(res.changes);hud();save();busy=false}
 
 // ---------- UI ----------
 function startScreen(){const g=$('#roles');g.innerHTML='';Object.entries(ROLES).forEach(([k,r])=>{const b=document.createElement('button');b.className='role';b.innerHTML=`<div class="e">${r.e}</div><b>${r.name}</b><span>${r.d}</span>`;b.onclick=()=>newLife(k);g.appendChild(b)});
- const sv=localStorage.getItem(KEY);if(sv){$('#btnContinue').classList.remove('hidden');$('#btnContinue').onclick=()=>{S=JSON.parse(sv);show()}}}
+ const sv=localStorage.getItem(KEY);if(sv){$('#btnContinue').classList.remove('hidden');$('#btnContinue').onclick=()=>{S=JSON.parse(sv);if(!S.world)S.world=JSON.parse(JSON.stringify(WORLD[S.role]));show()}}}
 $('#btnRandom').onclick=()=>newLife(R(Object.keys(ROLES)));
 $('#inputRow').onsubmit=e=>{e.preventDefault();const v=$('#txt').value;$('#txt').value='';act(v)};
 const sync=()=>{$('#webllmBox').style.display=$('#mode').value==='webllm'?'':'none';$('#apiBox').style.display=$('#mode').value==='api'?'':'none'};
-$('#btnMenu').onclick=()=>{$('#mode').value=cfg.mode;$('#wmodel').value=cfg.wmodel||$('#wmodel').value;$('#aurl').value=cfg.aurl||'';$('#akey').value=cfg.akey||'';$('#amodel').value=cfg.amodel||'';sync();$('#sheet').classList.remove('hidden')};
+$('#btnMenu').onclick=()=>{$('#mode').value=cfg.mode;$('#wmodel').value=cfg.wmodel||$('#wmodel').value;$('#aurl').value=cfg.aurl||'';$('#akey').value=cfg.akey||'';$('#amodel').value=cfg.amodel||'';$('#gkey').value=cfg.gkey||'';sync();$('#sheet').classList.remove('hidden')};
 $('#mode').onchange=sync;$('#btnClose').onclick=()=>$('#sheet').classList.add('hidden');
-$('#btnSave').onclick=()=>{cfg={mode:$('#mode').value,wmodel:$('#wmodel').value,aurl:$('#aurl').value,akey:$('#akey').value,amodel:$('#amodel').value};localStorage.setItem(CFG,JSON.stringify(cfg));if(cfg.mode==='webllm'&&!navigator.gpu)toast('WebGPU fehlt – Offline-Fallback aktiv');else toast('Gespeichert');$('#sheet').classList.add('hidden')};
+$('#gkey').oninput=()=>{if($('#gkey').value.trim())$('#mode').value='gemini';sync()};
+$('#btnSave').onclick=()=>{const gk=$('#gkey').value.trim();cfg={v2:1,gkey:gk,mode:gk&&cfg.gkey!==gk?'gemini':$('#mode').value,wmodel:$('#wmodel').value,aurl:$('#aurl').value,akey:$('#akey').value,amodel:$('#amodel').value};localStorage.setItem(CFG,JSON.stringify(cfg));if(cfg.mode==='webllm'&&!navigator.gpu)toast('WebGPU fehlt – Offline-Fallback aktiv');else if(cfg.mode==='gemini'&&!gk)toast('Bitte Gemini-Schlüssel eintragen');else toast(cfg.mode==='gemini'?'✨ Gemini aktiv – gespeichert':'Gespeichert');$('#sheet').classList.add('hidden')};
 $('#btnLoad').onclick=()=>{cfg.wmodel=$('#wmodel').value;engine=null;loadWebLLM().catch(e=>$('#wstatus').textContent='❌ '+e.message)};
 $('#btnReset').onclick=()=>{if(confirm('Wirklich alles löschen?')){localStorage.removeItem(KEY);location.reload()}};
 $('#btnStats').onclick=()=>{if(!S)return;$('#sheet').classList.add('hidden');add('s',`📜 ${ROLES[S.role].cls[S.cls]} · Seelenfragmente ${S.soul}\nSkills: ${S.skills.join(', ')}\nInventar: ${S.inv.join(', ')}`)};
-window.__game={get S(){return S},act,newLife};
+window.__game={get S(){return S},act,newLife,gBody,msgs};
 startScreen();

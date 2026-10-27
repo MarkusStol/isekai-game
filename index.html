@@ -4,7 +4,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Isekai"><meta name="theme-color" content="#140c24">
 <link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="icon.svg">
-<title>Isekai Reinkarnation</title><link rel="stylesheet" href="style.css?v=3"></head><body>
+<title>Isekai Reinkarnation</title><link rel="stylesheet" href="style.css?v=4"></head><body>
 <div id="app">
 <header><div class="title">✦ Isekai Reinkarnation</div><button id="btnMenu" class="ghost">⚙︎</button></header>
 <section id="start" class="screen">
@@ -22,7 +22,9 @@
 <div id="sheet" class="hidden"><div class="panel">
  <h2>Einstellungen</h2>
  <label>Erzähler-KI</label>
- <select id="mode"><option value="free">Gratis-KI (Pollinations, ohne Konto) – Standard</option><option value="offline">Nur Offline-Erzähler</option><option value="webllm">On-Device KI (WebLLM, WebGPU)</option><option value="api">Eigener API-Endpunkt (OpenAI-kompatibel)</option></select>
+ <select id="mode"><option value="gemini">Google Gemini (gratis Schlüssel) – beste Qualität</option><option value="free">Gratis-KI (Pollinations, ohne Konto) – Standard</option><option value="offline">Nur Offline-Erzähler</option><option value="webllm">On-Device KI (WebLLM, WebGPU)</option><option value="api">Eigener API-Endpunkt (OpenAI-kompatibel)</option></select>
+ <div id="geminiBox"><label>Gemini API-Schlüssel</label><input id="gkey" type="password" placeholder="AIza…" autocomplete="off">
+  <div class="small">So bekommst du einen kostenlosen Schlüssel: 1. Öffne <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener">aistudio.google.com/app/apikey</a> und melde dich mit deinem Google-Konto an. 2. Tippe auf „API-Schlüssel erstellen“ (Create API key). 3. Kopiere den Schlüssel hier hinein und tippe auf „Speichern“. Der Schlüssel bleibt nur in deinem Browser (localStorage) und wird nur an Google gesendet.</div></div>
  <div id="webllmBox"><label>Modell</label><select id="wmodel">
   <option value="Qwen2.5-1.5B-Instruct-q4f16_1-MLC">Qwen2.5 1.5B (~1 GB)</option>
   <option value="Qwen2.5-0.5B-Instruct-q4f16_1-MLC">Qwen2.5 0.5B (~400 MB, schneller)</option>
@@ -38,4 +40,4 @@
 </div></div>
 <div id="toast"></div>
 </div>
-<script type="module" src="game.js?v=3"></script></body></html>
+<script type="module" src="game.js?v=4"></script></body></html>
