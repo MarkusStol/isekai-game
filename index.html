@@ -4,7 +4,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Isekai"><meta name="theme-color" content="#140c24">
 <link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="icon.svg">
-<title>Isekai Reinkarnation</title><link rel="stylesheet" href="style.css?v=4"></head><body>
+<title>Isekai Reinkarnation</title><link rel="stylesheet" href="style.css?v=5"></head><body>
 <div id="app">
 <header><div class="title">✦ Isekai Reinkarnation</div><button id="btnMenu" class="ghost">⚙︎</button></header>
 <section id="start" class="screen">
@@ -12,6 +12,14 @@
  <div id="roles"></div>
  <button id="btnRandom" class="big">🎲 Zufällige Wiedergeburt</button>
  <button id="btnContinue" class="big alt hidden">▶ Weiterspielen</button>
+ <div id="greyBox" class="grey">
+  <h2>🌫️ Greymourne</h2><p class="sub">Wer durch den Nebel kommt – leiser Horror nach dem Roman von Markus Stoll. Ein Nachtzug hält, wo er nicht halten dürfte.</p>
+  <button id="btnDarren" class="big">🎫 Als Darren Crowe spielen</button>
+  <button id="btnOwnShow" class="big alt">✒️ Eigene Figur steigt aus</button>
+  <div id="ownForm" class="hidden"><label>Name deiner Figur</label><input id="ownName" placeholder="z.B. Clara Hensel" maxlength="40">
+   <label>Kurzer Hintergrund (was hast du verloren?)</label><input id="ownBg" placeholder="z.B. Uhrmacherin, deren Bruder im Krieg verschollen ist" maxlength="200">
+   <button id="btnOwnGo" class="big">🚂 Einsteigen</button></div>
+ </div>
 </section>
 <section id="game" class="screen hidden">
  <div id="hud"></div>
@@ -40,4 +48,4 @@
 </div></div>
 <div id="toast"></div>
 </div>
-<script type="module" src="game.js?v=4"></script></body></html>
+<script type="module" src="game.js?v=5"></script></body></html>

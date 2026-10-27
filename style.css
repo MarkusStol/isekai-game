@@ -25,3 +25,10 @@ button.big{width:100%;padding:14px;margin-top:8px;font-size:16px}button.alt{back
 .panel h2{margin:0}.small{font-size:12px;opacity:.75}label{font-size:13px;opacity:.8}
 #toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#000c;padding:8px 14px;border-radius:12px;font-size:13px;opacity:0;transition:.3s;pointer-events:none}#toast.on{opacity:1}
 .typing:after{content:'▍';animation:b 1s infinite}@keyframes b{50%{opacity:0}}
+
+.grey{margin-top:18px;padding:14px;border-radius:16px;background:linear-gradient(170deg,#2a2d33,#14161a);border:1px solid #8a8f9a55;font-family:Georgia,'Times New Roman',serif}
+.grey h2{margin:0 0 4px;color:#d9dde4}.grey .sub{font-size:14px;color:#b8bec8}.grey button.big{background:#3b3f47;color:#e8eaee}.grey button.alt{background:#24272d}
+.grey input{width:100%;padding:12px;border-radius:12px;border:1px solid #ffffff30;background:#00000060;color:#fff;font-size:16px;margin:4px 0 8px}
+body.greyw{background:radial-gradient(circle at 30% 0%,#3a3d44,#0e0f12 65%) fixed}
+body.greyw .msg.n{font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:1.6;background:#ffffff0c;border-color:#ffffff18;color:#e4e6ea}
+body.greyw button{background:#3b3f47}body.greyw #choices button{background:#ffffff10}body.greyw .title{background:linear-gradient(90deg,#c9ced6,#7d8590);-webkit-background-clip:text}

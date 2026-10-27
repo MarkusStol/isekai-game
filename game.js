@@ -15,8 +15,15 @@ const ROLES={
  mensch:{e:'🧑',name:'Normaler Mensch',d:'Keine Kräfte, kein Status. Nur du, ein Dorf und viel Hoffnung.',world:'Dorf Kleinbach am Waldrand',
   base:{hp:60,mp:0,str:6,cha:8,ruf:0},skills:['Moderne Bildung'],inv:['Holzstock','Brotkanten'],
   npcs:{Wirtin_Hanna:'Gutmütige Tavernenwirtin',Jäger_Tom:'Rauer Jäger',Hexe_Morgana:'Mysteriöse Waldhexe'},
-  cls:['Dorfbewohner','Lehrling','Meister','Ungekrönter Legende']}
+  cls:['Dorfbewohner','Lehrling','Meister','Ungekrönter Legende']},
+ grey:{e:'🌫️',name:'Greymourne',d:'Ein Nachtzug hält, wo er nicht halten dürfte.',world:'Greymourne, eine Stadt hinter dem Nebel, die auf keiner Karte steht',
+  base:{hp:100,mp:0,str:0,cha:0,ruf:0},skills:['Nach Unwichtigem fragen'],inv:['Fahrkarte ohne Rückfahrt','Reisetasche'],
+  npcs:{Velicya:'',Marlowe:'',Elias:'',Mascha:''},cls:['Fahrgast','Gast im Eisernen Licht','Eingetragen','Wer durch den Nebel kommt'],hidden:1}
 };
+const ISEKAI=Object.keys(ROLES).filter(k=>!ROLES[k].hidden);const isG=()=>S&&S.role==='grey';
+let GREY=null;async function loadGrey(){if(!GREY)GREY=await (await fetch('worlds/greymourne.json?v=5')).json();return GREY}
+const GINTRO_DARREN=`Der Zug hätte nicht halten dürfen.\n\nAuf deiner Fahrkarte steht Blackmere, zwei Stationen weiter nördlich. Kurz nach Mitternacht verliert das Rattern der Räder seinen Takt – erst fehlt jeder zwölfte Schlag, dann jeder sechste. Die Messinglampe im Abteil hängt plötzlich vollkommen still, obwohl der Zug noch fährt.\n\nGegenüber schläft ein Soldat mit offenem Mund. Eine alte Frau strickt an einem grauen Handschuh und hat seit der Abfahrt nicht ein einziges Mal aus dem Fenster gesehen. Ein Junge in Sonntagskleidung liest ein Buch, dessen Seiten er nie umblättert.\n\nVor dem Fenster liegt Nebel wie trübes Wasser. Und außen auf der Scheibe, im Ruß: der Abdruck einer kleinen Hand. Fünf Finger, der Daumen schräg abgespreizt.\n\nDie Bremsen greifen. Die alte Frau zieht ihre Masche fest und legt die Nadeln quer über den Korb.\n„Sie sollten sitzen bleiben“, sagt sie.\n\nDraußen erscheint ein Schild an eisernen Pfosten. GREYMOURNE. Darunter, bis zur Brust im Nebel, steht ein Mädchen in einem hellen Mantel. Es hebt den Kopf.`;
+const GINTRO_OWN=(n,bg)=>`Der Zug hätte nicht halten dürfen.\n\nDu – ${n}. ${bg}. Seit Tagen hast du kaum geschlafen, und wenn du die Augen schließt, fällst du nicht in Träume, sondern in Räume. Jetzt sitzt du in einem Nachtzug, dessen Räder kurz nach Mitternacht ihren Takt verlieren. Die Messinglampe im Abteil hängt still, obwohl der Zug noch fährt.\n\nNeben dir strickt eine alte Frau an einem grauen Handschuh. Gegenüber hält ein unrasierter Mann mit Reisetasche eine Fahrkarte so fest, dass das Papier weich geworden ist; unter seiner Manschette zieht sich eine helle Narbe über den Unterarm. Er starrt auf das Fenster. Außen im Ruß: der Abdruck einer kleinen Hand.\n\nDie Abteiltür geht auf, ohne dass Schritte zu hören waren. Ein Schaffner in feucht glänzender Uniform, die Augen im Schatten der Mütze.\n„Fahrkarten.“\n\nAls du ihm deine reichst, dreht er sie um. Auf der Rückseite steht in violetter Tinte dein Name. Darunter hat jemand etwas gezeichnet – etwas, das du kennst und das du verloren hast.\n\nDraußen gleitet ein Schild in den Nebel: GREYMOURNE.\nDie alte Frau sagt, ohne aufzusehen: „Lassen Sie sich nicht beim vollen Namen rufen.“`;
 const INTRO={
  held:`🚚 Hupen. Scheinwerfer. Ein dumpfer Schlag – dann nur noch weißes Rauschen.\n\nDu öffnest die Augen auf kaltem Marmor. Über dir glüht ein riesiger Beschwörungskreis aus, Weihrauch brennt in deiner Nase, und ein Dutzend Ritter starrt dich mit offenen Mündern an.\n\n[STATUS] Name: ??? · Klasse: Abenteurer · Lv 1 · Einzigartige Fähigkeit: Status-Fenster\n\nEin blaues Fenster schwebt direkt vor deinem Gesicht. Bevor du es wegwischen kannst, tritt eine junge Frau mit silberner Tiara vor – Prinzessin Elise. Ihr Blick ist eisig, aber ihre Hände zittern.\n„Endlich … der Held aus der anderen Welt.“ Sie mustert deine Kleidung, als wäre sie ein schlechter Witz. „Sag mir, dass du kämpfen kannst. Das Dämonenheer steht drei Tage vor unseren Mauern.“\n\n(Was sagst oder tust du?)`,
  villainess:`🚚 Ein Lastwagen. Ein Knall. Und das Letzte, was du denkst: „Ich hab das Otome-Spiel nicht mal durchgespielt …“\n\nDu erwachst vor einem goldgerahmten Spiegel. Darin: blutrote Locken, ein arroganter Mund, ein Seidenfächer in der Hand – Lady Rosalind von Ashcroft. Die Schurkin. Die, die im Finale hingerichtet wird.\n\n[SYSTEM] Romanwissen aktiviert · Verbleibende Zeit bis zum Untergang: 365 Tage\n\nDie Tür fliegt auf. Kronprinz Julian steht im Rahmen, hinter ihm die zitternde Mira mit verschüttetem Tee auf dem Kleid. „Rosalind!“, zischt er. „Hast du Mira schon WIEDER gestoßen? Erklär dich – sofort.“\n(Moment … das ist exakt die Szene aus Kapitel 1. Die, mit der alles schiefgeht.)\n\n(Was sagst oder tust du?)`,
@@ -70,19 +77,32 @@ function newLife(role,meta){const r=ROLES[role];meta=meta||{lives:0,soul:0,keptS
   cls:0,turn:0,hist:[],log:[],flags:{}};
  const intro=(meta.lives?`${r.e} Reinkarnation #${S.lives}. Wieder dieses weiße Licht – und diesmal erinnert sich deine Seele (Seelenfragmente: ${b}).\n\n`:'')+INTRO[role];
  S.world=JSON.parse(JSON.stringify(WORLD[role]));S.hist=[{role:'assistant',content:INTRO[role]}]; add('n',intro);S.choices=defChoices();save();show();}
-function defChoices(){const r=S.role;return {held:['Monster jagen','Mit Lyra reden','Training im Hof','Die Stadt erkunden'],villainess:['Mit dem Kronprinzen sprechen','Mira helfen','Intrige schmieden','Teeparty besuchen'],daemon:['Armee befehligen','Mit Velka planen','Die Heldin ausspionieren','Dunkle Magie üben'],mensch:['In der Taverne arbeiten','Mit Tom jagen gehen','Die Hexe besuchen','Ausruhen']}[r]}
+function defChoices(){const r=S.role;return {grey:['Sitzen bleiben','Aus dem Fenster sehen','Die alte Frau fragen','Nach etwas Unwichtigem fragen'],held:['Monster jagen','Mit Lyra reden','Training im Hof','Die Stadt erkunden'],villainess:['Mit dem Kronprinzen sprechen','Mira helfen','Intrige schmieden','Teeparty besuchen'],daemon:['Armee befehligen','Mit Velka planen','Die Heldin ausspionieren','Dunkle Magie üben'],mensch:['In der Taverne arbeiten','Mit Tom jagen gehen','Die Hexe besuchen','Ausruhen']}[r]}
 function add(k,t){S.log.push({k,t});if(S.log.length>80)S.log.shift();renderMsg(k,t)}
 function renderMsg(k,t){const d=document.createElement('div');d.className='msg '+k;d.textContent=t;$('#log').appendChild(d);d.scrollIntoView({behavior:'smooth',block:'end'});return d}
-function hud(){const s=S.st,r=ROLES[S.role];const p=(v,m,c)=>`<div class="bar"><i style="width:${Math.max(0,Math.min(100,v/m*100))}%;background:${c}"></i></div>`;
+function hud(){if(isG())return hudG();const s=S.st,r=ROLES[S.role];const p=(v,m,c)=>`<div class="bar"><i style="width:${Math.max(0,Math.min(100,v/m*100))}%;background:${c}"></i></div>`;
  $('#hud').innerHTML=`<b>${r.e} ${r.cls[S.cls]}</b> · Lv ${s.lvl} · Leben #${S.lives}
  <div class="bars"><div style="flex:1">HP ${Math.max(0,s.hp)}/${s.maxhp}${p(s.hp,s.maxhp,'#ff5f7e')}</div><div style="flex:1">MP ${s.mp}/${s.maxmp}${p(s.mp,s.maxmp||1,'#6fb6ff')}</div><div style="flex:1">XP ${s.xp}/${s.lvl*100}${p(s.xp,s.lvl*100,'#ffd35a')}</div></div>
  <div class="chips"><span class="chip">💪 ${s.str}</span><span class="chip">✨ ${s.cha}</span><span class="chip">📣 Ruf ${s.ruf}</span>${Object.entries(S.aff).map(([n,v])=>`<span class="chip">💗 ${n.split('_').pop()} ${v}</span>`).join('')}</div>`;
  const c=$('#choices');c.innerHTML='';(S.choices||[]).slice(0,4).forEach(t=>{const b=document.createElement('button');b.textContent=t;b.onclick=()=>act(t);c.appendChild(b)})}
-function show(){$('#start').classList.add('hidden');$('#game').classList.remove('hidden');$('#log').innerHTML='';S.log.forEach(m=>renderMsg(m.k,m.t));hud()}
+async function newGrey(kind,name,bg){const B=await loadGrey();const r=ROLES.grey;const own=kind!=='darren';
+ const who=own?(name||'Fremde Person'):'Darren Crowe';
+ S={role:'grey',world_id:'greymourne',kind,pc:{name:who,bg:own?(bg||'Jemand, der etwas verloren hat'):B.npcs['Darren Crowe'].art},lives:1,soul:0,
+  st:{hp:100,maxhp:100,mp:0,maxmp:0,str:0,cha:0,ruf:own?10:30,lvl:1,xp:0},skills:[...r.skills],inv:own?['Fahrkarte ohne Rückfahrt','Reisetasche']:['Fahrkarte ohne Rückfahrt','Reisetasche','Taschenmesser mit Holzgriff','Streckenkarte'],
+  aff:own?{Marlowe:0,Elias:0,Mascha:0,Darren:0}:{Velicya:0,Marlowe:0,Elias:0,Mascha:0},cls:0,turn:0,hist:[],log:[],flags:{}};
+ S.world={scene:{ort:'Nachtzug, Abteil mit Messinglampe, kurz nach Mitternacht',zeit:'Nacht, Nebel',anwesend:['Der Schaffner','Die alte Frau im Zug','ein schlafender Soldat','ein Junge mit Buch']},orte:{},npcs:{},ereignisse:['Der Zug hält in Greymourne, obwohl er nach Blackmere fahren sollte']};
+ const first=own?GINTRO_OWN(who,S.pc.bg):GINTRO_DARREN;
+ add('n',first);S.hist=[{role:'assistant',content:first}];S.choices=defChoices();save();show()}
+function hudG(){const s=S.st;const p=(v,m,c)=>`<div class="bar"><i style="width:${Math.max(0,Math.min(100,v/m*100))}%;background:${c}"></i></div>`;
+ $('#hud').innerHTML=`<b>🌫️ ${S.pc.name}</b> · ${ROLES.grey.cls[S.cls]} · ${S.world?.scene?.ort||''}
+ <div class="bars"><div style="flex:1">🧠 Verstand ${Math.max(0,s.hp)}/100${p(s.hp,100,'#9fb3c8')}</div><div style="flex:1">⚖️ Schuld ${s.ruf}/100${p(s.ruf,100,'#8a5a5a')}</div></div>
+ <div class="chips">${Object.entries(S.aff).map(([n,v])=>`<span class="chip">🤝 ${n} ${v}</span>`).join('')}</div>`;
+ const c=$('#choices');c.innerHTML='';(S.choices||[]).slice(0,4).forEach(t=>{const b=document.createElement('button');b.textContent=t;b.onclick=()=>act(t);c.appendChild(b)})}
+function show(){document.body.classList.toggle('greyw',isG());$('.title').textContent=isG()?'✦ Greymourne':'✦ Isekai Reinkarnation';$('#start').classList.add('hidden');$('#game').classList.remove('hidden');$('#log').innerHTML='';S.log.forEach(m=>renderMsg(m.k,m.t));hud()}
 
 // ---------- apply JSON changes ----------
 function apply(ch){if(!ch)return;const s=S.st,num=v=>Math.max(-200,Math.min(200,Math.round(+v||0)));const out=[];
- const map={hp:'hp',mp:'mp',str:'str',staerke:'str',stärke:'str',cha:'cha',charme:'cha',ruf:'ruf',xp:'xp'};
+ const map={verstand:'hp',schuld:'ruf',hp:'hp',mp:'mp',str:'str',staerke:'str',stärke:'str',cha:'cha',charme:'cha',ruf:'ruf',xp:'xp'};
  for(const[k,v]of Object.entries(ch)){const m=map[k.toLowerCase()];if(m&&v){s[m]+=num(v);out.push(`${k} ${v>0?'+':''}${num(v)}`)}}
  if(ch.affinity&&typeof ch.affinity==='object')for(const[n,v]of Object.entries(ch.affinity)){const key=Object.keys(S.aff).find(a=>a.toLowerCase().includes(n.toLowerCase().split(/[ _]/).pop()));if(key&&v){S.aff[key]=Math.max(-100,Math.min(100,S.aff[key]+num(v)));out.push(`💗${key.split('_').pop()} ${v>0?'+':''}${num(v)}`)}}
  (ch.newSkills||ch.skills||[]).forEach(x=>{if(typeof x==='string'&&!S.skills.includes(x)&&S.skills.length<20){S.skills.push(x.slice(0,40));out.push('Skill: '+x)}});
@@ -90,24 +110,27 @@ function apply(ch){if(!ch)return;const s=S.st,num=v=>Math.max(-200,Math.min(200,
  (ch.removeItems||[]).forEach(x=>{const i=S.inv.indexOf(x);if(i>=0)S.inv.splice(i,1)});
  if(Array.isArray(ch.choices)&&ch.choices.length)S.choices=ch.choices.filter(x=>typeof x==='string').map(x=>x.slice(0,50));
  s.hp=Math.min(s.hp,s.maxhp);s.mp=Math.max(0,Math.min(s.mp,s.maxmp));
- while(s.xp>=s.lvl*100){s.xp-=s.lvl*100;s.lvl++;s.maxhp+=10;s.hp=s.maxhp;s.maxmp+=5;s.mp=s.maxmp;s.str+=2;s.cha+=1;out.push(`⬆ LEVEL ${s.lvl}!`)}
- const nc=Math.min(3,Math.floor(s.lvl/5));if(nc>S.cls){S.cls=nc;const cn=ROLES[S.role].cls[nc];out.push(`🌟 Klassenwechsel: ${cn}!`);S.skills.push(R(['Erwachte Aura','Zweite Natur','Seelenblick','Königlicher Befehl']))}
+ if(isG()){s.ruf=Math.max(0,Math.min(100,s.ruf));s.hp=Math.max(-1,s.hp);const nc=Math.min(3,Math.floor(S.turn/15));if(nc>S.cls){S.cls=nc;out.push('🌫️ '+ROLES.grey.cls[nc])}}
+ else while(s.xp>=s.lvl*100){s.xp-=s.lvl*100;s.lvl++;s.maxhp+=10;s.hp=s.maxhp;s.maxmp+=5;s.mp=s.maxmp;s.str+=2;s.cha+=1;out.push(`⬆ LEVEL ${s.lvl}!`)}
+ const nc=isG()?0:Math.min(3,Math.floor(s.lvl/5));if(!isG()&&nc>S.cls){S.cls=nc;const cn=ROLES[S.role].cls[nc];out.push(`🌟 Klassenwechsel: ${cn}!`);S.skills.push(R(['Erwachte Aura','Zweite Natur','Seelenblick','Königlicher Befehl']))}
  if(out.length)add('s',out.join(' · '));
  if(ch.ending)return ending(String(ch.ending));checkEnd()}
-function checkEnd(){const s=S.st;
+function checkEnd(){const s=S.st;if(isG()){if(s.hp<=0)return ending('Der Nebel hat deinen Verstand. Greymourne trägt deinen Namen jetzt in seinem Register.');if(s.ruf>=100)return ending('Die Schuld wiegt mehr als du. Die Stadt behält dich – AUSGEGEBEN: 1, ZURÜCK: 0.');return}
  if(s.hp<=0)return death();
  const top=Object.entries(S.aff).find(([,v])=>v>=100);if(top)return ending(`Romantisches Ende mit ${top[0].replace('_',' ')} 💞`);
  if(s.lvl>=20)return ending('Legenden-Ende: Dein Name wird ewig besungen 👑');
  if(s.ruf>=150)return ending('Ruhmes-Ende: Das Volk krönt dich zur Hoffnung der Welt');
  if(s.ruf<=-150)return ending('Tyrannen-Ende: Die Welt kniet in Furcht vor dir');}
 function death(){add('s',`💀 Du bist gestorben (Level ${S.st.lvl}).`);setTimeout(()=>reincarnate('Die Göttin seufzt: „Schon wieder? Na gut – nimm etwas mit.“'),600)}
-function ending(t){add('s','🏁 ENDE: '+t);S.choices=[];hud();save();setTimeout(()=>reincarnate('Ein neues Kapitel? Deine Seele wird stärker.'),1500)}
+function ending(t){add('s','🏁 ENDE: '+t);S.choices=[];hud();save();if(isG()){const c=$('#choices');c.innerHTML='';[['🎫 Erneut als Darren',()=>newGrey('darren')],['✒️ Andere Figur',()=>{S=null;location.reload()}]].forEach(([l,f])=>{const b=document.createElement('button');b.textContent=l;b.onclick=f;c.appendChild(b)});return}setTimeout(()=>reincarnate('Ein neues Kapitel? Deine Seele wird stärker.'),1500)}
 function reincarnate(msg){const soul=S.soul+Math.max(1,Math.floor(S.st.lvl/2));const kept=S.skills.filter(x=>!Object.values(ROLES).some(r=>r.skills.includes(x))).slice(-2);
  const meta={lives:S.lives,soul,keptSkills:kept};add('n',msg+(kept.length?`\nBehaltene Skills: ${kept.join(', ')}`:''));
- S.choices=[];hud();const c=$('#choices');c.innerHTML='';Object.entries(ROLES).forEach(([k,r])=>{const b=document.createElement('button');b.textContent=r.e+' '+r.name;b.onclick=()=>{$('#log').innerHTML='';newLife(k,meta)};c.appendChild(b)});save()}
+ S.choices=[];hud();const c=$('#choices');c.innerHTML='';Object.entries(ROLES).filter(([k])=>k!=='grey').forEach(([k,r])=>{const b=document.createElement('button');b.textContent=r.e+' '+r.name;b.onclick=()=>{$('#log').innerHTML='';newLife(k,meta)};c.appendChild(b)});save()}
 
 // ---------- offline narrator ----------
-function offline(a){const t=a.toLowerCase(),s=S.st,r=ROLES[S.role],npcs=Object.keys(S.aff);
+function offline(a){if(isG()){const t=a.toLowerCase();const hit=/tür|öffn|klink/.test(t);
+  const txt=R(['Irgendwo in der Stadt schlägt eine Glocke, tief und unsauber. Du spürst sie im Brustbein. Als der Ton vergeht, ist etwas an der Szene anders, aber du kannst nicht sagen, was.','Der Nebel antwortet nicht. Nur eine Uhr tickt, deren Zeiger stillstehen.','Aus einem Ablaufgitter kommt ein Klopfen: drei Schläge, eine Pause, zwei weitere.','Du zählst, ohne es zu wollen. Die Zahl stimmt nicht mit der von vorhin überein.']);
+  return {text:`„${a}“ – ${txt}`,changes:{hp:hit?-8:-2,ruf:0,choices:defChoices()}}}const t=a.toLowerCase(),s=S.st,r=ROLES[S.role],npcs=Object.keys(S.aff);
  const who=npcs.find(n=>n.toLowerCase().split('_').some(p=>p.length>2&&t.includes(p.toLowerCase())));
  const nm=x=>x.replace('_',' ');let txt,ch={};
  if(/kämpf|kampf|angriff|greif|jag|monster|schlag|töt|armee|befehl/.test(t)){const foe=R({held:['einen Goblin-Trupp','einen Oger','einen Dämonenspäher'],villainess:['einen Attentäter','eine eifersüchtige Rivalin im Duell'],daemon:['eine Abenteurergruppe','einen rebellischen Fürsten'],mensch:['einen Wildschwein','einen Wegelagerer','einen Wolf']}[S.role]);
@@ -129,7 +152,26 @@ function offline(a){const t=a.toLowerCase(),s=S.st,r=ROLES[S.role],npcs=Object.k
 // ---------- AI ----------
 if(!cfg.v2){if(cfg.mode==='offline'||!cfg.mode)cfg.mode='free';cfg.v2=1;localStorage.setItem(CFG,JSON.stringify(cfg))}
 const FREE_URL='https://text.pollinations.ai/openai';
-function sysPrompt(json=true){const r=ROLES[S.role];return `Du bist der Erzähler eines interaktiven Isekai-Anime auf Deutsch. Der SPIELER ist die Hauptfigur (Protagonist) – alles dreht sich um ihn. Schreibe wie eine packende Anime-/Light-Novel-Szene.
+function greyPrompt(json){const B=GREY||{kern:{}};const k=B.kern;return `Du bist der Erzähler eines interaktiven literarischen Horror-Romans auf Deutsch: „${B.titel}“ (${B.quelle}).
+SPIELFIGUR: ${S.pc.name}${S.kind==='darren'?' (die Hauptfigur des Romans)':' (eigene Figur, kein Teil des Romans; Darren Crowe existiert als NPC in derselben Nacht)'}. Hintergrund: ${S.pc.bg}
+TON: ${k.ton}
+STIL: ${k.stil} Erzähle in der 2. Person („du“), Präsens oder Präteritum konsistent wie bisher.
+REGELN DER STADT (verbindlich, die Welt hält sich daran): ${(k.regeln_der_stadt||[]).map((x,i)=>(i+1)+') '+x).join(' ')}
+MOTIVE: ${(k.motive||[]).join('; ')}.
+SPOILERSCHUTZ: ${k.spoilerschutz}
+ERZÄHLREGELN:
+1. Reagiere zuerst direkt und konkret auf die exakten Worte/Taten des Spielers. Wer anwesend ist, hört es und antwortet in wörtlicher Rede „…“ mit eigener Stimme (siehe NPC-Bibel). Ignoriere oder ersetze die Eingabe nie.
+2. Nichts Beliebiges: keine zusammenhanglosen Ereignisse, keine Monsterjagd, keine Fantasy-Magie, keine Anime-Systemfenster. Neue Details müssen zur Bibel passen und werden in "world" eingetragen.
+3. Langsamer Aufbau: Unheimliches in kleinen Abweichungen. Zahlen, Namen, Glocken, Nebel, Kohle. Die Welt lebt weiter und wartet auf die Spielfigur: NPCs erinnern sich, Schichten laufen, Register zählen.
+4. Bricht die Spielfigur eine Regel der Stadt (voller Name, Tür nach dem 2. Schlag), hat das spürbare, konsequente Folgen.
+5. 4-9 Sätze. Ende auf einem stillen, beunruhigenden Detail oder einer offenen Frage. Entscheide nie für die Spielfigur.
+${json?`AUSGABE als JSON: "narration"; "choices" (4 kurze, szenenpassende, eher leise Handlungen); "changes" als Deltas dieses Zuges: "verstand" (-15..+10; Schrecken, Verlust, Zweifel senken ihn, Ruhe/Halt hebt ihn), "schuld" (-5..+5; wer andere opfert, Namen nennt, wegsieht, lädt Schuld auf; wer hilft, sie ab), "affinity" = Vertrauen je NPC (-15..15) für ${Object.keys(S.aff).join(', ')}, "xp" 0-20, items nur neu erhaltene, removeItems; "summary" (max 5 Sätze); "world" (scene {ort,zeit,anwesend}, npcUpdates [{name, erinnerung, beziehung}], newLocations, ereignisse ≤6); "ending" nur bei echtem Ende.`:`Danach IMMER genau ein JSON-Block in \`\`\`json ... \`\`\`: {"verstand":0,"schuld":0,"affinity":{},"xp":5,"items":[],"removeItems":[],"choices":["…","…","…","…"],"summary":"…","world":{"scene":{"ort":"…","zeit":"…","anwesend":["…"]},"npcUpdates":[{"name":"…","erinnerung":"…"}],"newLocations":[],"ereignisse":["…"]}} – Zahlen sind Deltas, meist 0 oder klein.`}`}
+function greyDetails(a){const B=GREY;if(!B)return '';const txt=(a+' '+JSON.stringify(S.world.scene)+' '+(S.hist||[]).slice(-4).map(h=>h.content).join(' ')).toLowerCase();
+ const pick=(obj,force)=>Object.entries(obj).filter(([k])=>force.includes(k)||k.toLowerCase().split(/[ \/–-]+/).some(w=>w.length>3&&txt.includes(w)));
+ const npcs=pick(B.npcs,S.kind==='darren'?['Der Schaffner']:['Der Schaffner','Darren Crowe']).slice(0,7).map(([k,v])=>{const o={...v};if(S.turn<40)delete o.geheim;return k+': '+JSON.stringify(o)});
+ const orte=pick(B.orte,[]).slice(0,5).map(([k,v])=>k+': '+v);
+ return 'BIBEL-DETAILS ZUR SZENE:\nNPCs: '+npcs.join('\n')+'\nOrte: '+orte.join('\n')+(S.turn>=25?'\nFraktionen: '+JSON.stringify(B.fraktionen):'')+'\nWeitere Orte der Stadt (nur Namen): '+Object.keys(B.orte).join(', ')}
+function sysPrompt(json=true){if(isG())return greyPrompt(json);const r=ROLES[S.role];return `Du bist der Erzähler eines interaktiven Isekai-Anime auf Deutsch. Der SPIELER ist die Hauptfigur (Protagonist) – alles dreht sich um ihn. Schreibe wie eine packende Anime-/Light-Novel-Szene.
 
 WELT & FIGUREN (Charakterbogen):
 - Protagonist: ${r.name}, Klasse ${r.cls[S.cls]}, reinkarniert aus unserer modernen Welt (wurde von einem Lastwagen erfasst). Leben Nr. ${S.lives}.
@@ -154,18 +196,18 @@ Danach IMMER genau ein JSON-Block in \`\`\`json ... \`\`\`:
 {"hp":0,"mp":0,"str":0,"cha":0,"ruf":0,"xp":10,"affinity":{"${Object.keys(r.npcs)[0]}":0},"newSkills":[],"items":[],"removeItems":[],"choices":["Aktion 1","Aktion 2","Aktion 3","Aktion 4"],"summary":"Aktualisierte Kurz-Zusammenfassung (max. 5 Sätze)","world":{"scene":{"ort":"…","zeit":"…","anwesend":["…"]},"npcUpdates":[{"name":"…","erinnerung":"was er sich von diesem Zug merkt","beziehung":"…"}],"newLocations":[],"ereignisse":["…"]}}
 \`\`\`
 Zahlen sind NUR Deltas dieses Zuges (meist 0; XP 5-60, HP -30..30, Affinität -15..15). "items" nur neu erhaltene. "choices": genau 4 kurze, szenenpassende Aktionen.`}`}
-function stateSum(){const s=S.st;return `STATUS: Lv${s.lvl} HP${s.hp}/${s.maxhp} MP${s.mp} Stärke${s.str} Charme${s.cha} Ruf${s.ruf} | Skills: ${S.skills.join(', ')} | Inventar: ${S.inv.join(', ')} | Affinität: ${Object.entries(S.aff).map(([k,v])=>k+'='+v).join(', ')} | Leben #${S.lives}`}
+function stateSum(){const s=S.st;if(isG())return `STATUS: Verstand ${s.hp}/100, Schuld ${s.ruf}/100 | Inventar: ${S.inv.join(', ')} | Vertrauen: ${Object.entries(S.aff).map(([k,v])=>k+'='+v).join(', ')} | Zug ${S.turn}`;return `STATUS: Lv${s.lvl} HP${s.hp}/${s.maxhp} MP${s.mp} Stärke${s.str} Charme${s.cha} Ruf${s.ruf} | Skills: ${S.skills.join(', ')} | Inventar: ${S.inv.join(', ')} | Affinität: ${Object.entries(S.aff).map(([k,v])=>k+'='+v).join(', ')} | Leben #${S.lives}`}
 function msgs(a){const sum=S.summary?'BISHERIGE GESCHICHTE (Zusammenfassung): '+S.summary+'\n':'';
  let h=(S.hist||[]).slice(-20);if(!h.length){const last=S.log.filter(m=>m.k==='n').slice(-1)[0];if(last)h=[{role:'assistant',content:last.t}]}
  return [{role:'system',content:sysPrompt(false)},...h,{role:'user',content:turnMsg(a)}]}
-function turnMsg(a){return worldText()+'\n'+(S.summary?'BISHERIGE GESCHICHTE (Zusammenfassung): '+S.summary+'\n':'')+stateSum()+'\nDER SPIELER (Protagonist) sagt/tut jetzt: „'+a+'“\n(Reagiere zuerst direkt und konkret genau darauf – die Anwesenden hören/sehen es.)'}
+function turnMsg(a){return (isG()?greyDetails(a)+'\n':'')+worldText()+'\n'+(S.summary?'BISHERIGE GESCHICHTE (Zusammenfassung): '+S.summary+'\n':'')+stateSum()+'\n'+(isG()?'DIE SPIELFIGUR sagt/tut jetzt:':'DER SPIELER (Protagonist) sagt/tut jetzt:')+' „'+a+'“\n(Reagiere zuerst direkt und konkret genau darauf – die Anwesenden hören/sehen es.)'}
 function parse(raw){let m=raw.match(/```(?:json)?\s*([\s\S]*?)```/)||raw.match(/(\{[\s\S]*\})\s*$/);let ch=null;
  if(m){try{ch=JSON.parse(m[1].trim())}catch(e){try{ch=JSON.parse(m[1].replace(/,\s*}/g,'}').replace(/'/g,'"'))}catch(_){}}}
  const text=(m?raw.replace(m[0],''):raw).replace(/```[\s\S]*$/,'').replace(/^\s*\d[.)]\s.*$/gm,'').replace(/\n*(Wie|Was) (willst|wirst|tust) du[^\n]*\?\s*$/,'').trim();return {text:text||'…',changes:ch||{xp:10}}}
 const G_MODELS=['gemini-3.8-flash','gemini-flash-latest','gemini-2.5-flash','gemini-2.5-flash-lite'];
 function gSchema(){const I={type:'INTEGER'},Sa={type:'ARRAY',items:{type:'STRING'}};
  return {type:'OBJECT',properties:{narration:{type:'STRING'},choices:{type:'ARRAY',items:{type:'STRING'},minItems:4,maxItems:4},
-  changes:{type:'OBJECT',properties:{hp:I,mp:I,str:I,cha:I,ruf:I,xp:I,affinity:{type:'OBJECT',properties:Object.fromEntries(Object.keys(S.aff).map(k=>[k,I]))},items:Sa,newSkills:Sa,removeItems:Sa}},
+  changes:{type:'OBJECT',properties:{verstand:I,schuld:I,hp:I,mp:I,str:I,cha:I,ruf:I,xp:I,affinity:{type:'OBJECT',properties:Object.fromEntries(Object.keys(S.aff).map(k=>[k,I]))},items:Sa,newSkills:Sa,removeItems:Sa}},
   summary:{type:'STRING'},ending:{type:'STRING'},
   world:{type:'OBJECT',properties:{scene:{type:'OBJECT',properties:{ort:{type:'STRING'},zeit:{type:'STRING'},anwesend:Sa}},
    npcUpdates:{type:'ARRAY',items:{type:'OBJECT',properties:{name:{type:'STRING'},erinnerung:{type:'STRING'},beziehung:{type:'STRING'},ziel:{type:'STRING'},art:{type:'STRING'}},required:['name']}},
@@ -200,17 +242,19 @@ async function aiTurn(a,el,mode=cfg.mode){if(mode==='webllm'){const e=await load
    if(!res.ok){const e=new Error('Gratis-KI '+res.status);e.ra=+res.headers.get('Retry-After')||0;throw e}const j=await res.json();const t=j.choices?.[0]?.message?.content;if(!t)throw new Error('leere Antwort');el.textContent=t.split('```')[0];return t}
   catch(e){err=e;if(i<2){el.textContent='⏳ KI ist ausgelastet, neuer Versuch…';await new Promise(r=>setTimeout(r,Math.min(20,e.ra||(i?8:3))*1000))}}}throw err}
  throw new Error('offline')}
-async function act(a){if(busy||!a.trim())return;busy=true;add('p',a);S.turn++;const el=renderMsg('n typing','');let res;
+async function act(a){if(busy||!a.trim())return;busy=true;if(isG())try{await loadGrey()}catch(_){}add('p',a);S.turn++;const el=renderMsg('n typing','');let res;
  let gnote='';try{if(cfg.mode==='offline')throw 0;if(cfg.mode==='gemini'){try{res=await gemini(a,el)}catch(e){gnote='⚠️ '+e.message+' Gratis-KI springt ein.';el.textContent='⏳ Wechsle zur Gratis-KI…'}}
-  if(!res){const raw=await aiTurn(a,el,cfg.mode==='gemini'?'free':cfg.mode);res=parse(raw)}{const c=res.changes,lim={hp:30,mp:30,str:2,cha:2,ruf:5,xp:60};for(const k in lim)if(k in c)c[k]=Math.max(-lim[k],Math.min(lim[k],+c[k]||0));if(c.affinity)for(const n in c.affinity)c.affinity[n]=Math.max(-15,Math.min(15,+c.affinity[n]||0))}if(Array.isArray(res.changes.items))res.changes.items=res.changes.items.filter(x=>!S.inv.includes(x));if(Array.isArray(res.changes.newSkills))res.changes.newSkills=res.changes.newSkills.filter(x=>!S.skills.includes(x));if(res.changes.summary){S.summary=String(res.changes.summary).slice(0,800);delete res.changes.summary}if(res.changes.world){try{applyWorld(res.changes.world)}catch(_){}delete res.changes.world}
+  if(!res){const raw=await aiTurn(a,el,cfg.mode==='gemini'?'free':cfg.mode);res=parse(raw)}{const c=res.changes,lim={hp:30,mp:30,str:2,cha:2,ruf:5,xp:60,verstand:15,schuld:5};for(const k in lim)if(k in c)c[k]=Math.max(-lim[k],Math.min(lim[k],+c[k]||0));if(c.affinity)for(const n in c.affinity)c.affinity[n]=Math.max(-15,Math.min(15,+c.affinity[n]||0))}if(Array.isArray(res.changes.items))res.changes.items=res.changes.items.filter(x=>!S.inv.includes(x));if(Array.isArray(res.changes.newSkills))res.changes.newSkills=res.changes.newSkills.filter(x=>!S.skills.includes(x));if(res.changes.summary){S.summary=String(res.changes.summary).slice(0,800);delete res.changes.summary}if(res.changes.world){try{applyWorld(res.changes.world)}catch(_){}delete res.changes.world}
   S.hist=S.hist||[];S.hist.push({role:'user',content:'SPIELER: '+a},{role:'assistant',content:res.text});S.hist=S.hist.slice(-40);if(gnote)res.note=gnote}
  catch(e){res=offline(a);if(e)res.note=(gnote?gnote+'\n':'')+'⚠️ KI nicht erreichbar ('+(e.message||e)+') – Offline-Erzähler sprang ein.'}
  el.remove();add('n',res.text);if(res.note)add('s',res.note);apply(res.changes);hud();save();busy=false}
 
 // ---------- UI ----------
-function startScreen(){const g=$('#roles');g.innerHTML='';Object.entries(ROLES).forEach(([k,r])=>{const b=document.createElement('button');b.className='role';b.innerHTML=`<div class="e">${r.e}</div><b>${r.name}</b><span>${r.d}</span>`;b.onclick=()=>newLife(k);g.appendChild(b)});
- const sv=localStorage.getItem(KEY);if(sv){$('#btnContinue').classList.remove('hidden');$('#btnContinue').onclick=()=>{S=JSON.parse(sv);if(!S.world)S.world=JSON.parse(JSON.stringify(WORLD[S.role]));show()}}}
-$('#btnRandom').onclick=()=>newLife(R(Object.keys(ROLES)));
+function startScreen(){const g=$('#roles');g.innerHTML='';Object.entries(ROLES).filter(([k])=>k!=='grey').forEach(([k,r])=>{const b=document.createElement('button');b.className='role';b.innerHTML=`<div class="e">${r.e}</div><b>${r.name}</b><span>${r.d}</span>`;b.onclick=()=>newLife(k);g.appendChild(b)});
+ const sv=localStorage.getItem(KEY);if(sv){$('#btnContinue').classList.remove('hidden');$('#btnContinue').onclick=()=>{S=JSON.parse(sv);if(S.role==='grey')loadGrey();if(!S.world&&WORLD[S.role])S.world=JSON.parse(JSON.stringify(WORLD[S.role]));show()}}}
+$('#btnRandom').onclick=()=>newLife(R(ISEKAI));
+$('#btnDarren').onclick=()=>newGrey('darren');$('#btnOwnShow').onclick=()=>$('#ownForm').classList.toggle('hidden');
+$('#btnOwnGo').onclick=()=>newGrey('own',$('#ownName').value.trim(),$('#ownBg').value.trim());
 $('#inputRow').onsubmit=e=>{e.preventDefault();const v=$('#txt').value;$('#txt').value='';act(v)};
 const sync=()=>{$('#webllmBox').style.display=$('#mode').value==='webllm'?'':'none';$('#apiBox').style.display=$('#mode').value==='api'?'':'none'};
 $('#btnMenu').onclick=()=>{$('#mode').value=cfg.mode;$('#wmodel').value=cfg.wmodel||$('#wmodel').value;$('#aurl').value=cfg.aurl||'';$('#akey').value=cfg.akey||'';$('#amodel').value=cfg.amodel||'';$('#gkey').value=cfg.gkey||'';sync();$('#sheet').classList.remove('hidden')};
@@ -220,5 +264,5 @@ $('#btnSave').onclick=()=>{const gk=$('#gkey').value.trim();cfg={v2:1,gkey:gk,mo
 $('#btnLoad').onclick=()=>{cfg.wmodel=$('#wmodel').value;engine=null;loadWebLLM().catch(e=>$('#wstatus').textContent='❌ '+e.message)};
 $('#btnReset').onclick=()=>{if(confirm('Wirklich alles löschen?')){localStorage.removeItem(KEY);location.reload()}};
 $('#btnStats').onclick=()=>{if(!S)return;$('#sheet').classList.add('hidden');add('s',`📜 ${ROLES[S.role].cls[S.cls]} · Seelenfragmente ${S.soul}\nSkills: ${S.skills.join(', ')}\nInventar: ${S.inv.join(', ')}`)};
-window.__game={get S(){return S},act,newLife,gBody,msgs};
+window.__game={newGrey,greyDetails,loadGrey,get S(){return S},act,newLife,gBody,msgs};
 startScreen();
