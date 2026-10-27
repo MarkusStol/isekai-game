@@ -4,7 +4,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Isekai"><meta name="theme-color" content="#140c24">
 <link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="icon.svg">
-<title>Isekai Reinkarnation</title><link rel="stylesheet" href="style.css?v=6"></head><body>
+<title>Isekai Reinkarnation</title><link rel="stylesheet" href="style.css?v=7"></head><body>
 <div id="app">
 <header><div class="title">✦ Isekai Reinkarnation</div><button id="btnMenu" class="ghost">⚙︎</button></header>
 <section id="start" class="screen">
@@ -25,27 +25,40 @@
  <div id="hud"></div>
  <div id="log"></div>
  <div id="choices"></div>
- <form id="inputRow"><input id="txt" placeholder="Was tust du? (freie Eingabe)" autocomplete="off"><label>Gemini-Modell</label><select id="gmodel"></select><div class="small" id="gmstatus"></div><button>➤</button></form>
+ <form id="inputRow"><input id="txt" placeholder="Was tust du? (freie Eingabe)" autocomplete="off"><button>➤</button></form>
+</section>
+<section id="keyGate" class="screen hidden">
+ <h1>Noch ein Schritt</h1>
+ <p class="sub">Damit die Geschichte für dich geschrieben wird, brauchst du einmalig einen kostenlosen Google-Schlüssel. Der bleibt nur auf deinem Handy.</p>
+ <label>Gemini-Schlüssel</label>
+ <input id="gateKey" type="password" placeholder="AIza…" autocomplete="off">
+ <p class="small">Schlüssel erstellen: <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener">aistudio.google.com/app/apikey</a> → „API-Schlüssel erstellen“ → hier einfügen.</p>
+ <button id="btnGateSave" class="big">Los geht’s</button>
+ <button id="btnGateSkip" class="big alt">Ohne KI spielen</button>
 </section>
 <div id="sheet" class="hidden"><div class="panel">
  <h2>Einstellungen</h2>
- <label>Erzähler-KI</label>
- <select id="mode"><option value="gemini">Google Gemini (gratis Schlüssel) – beste Qualität</option><option value="free">Gratis-KI (Pollinations, ohne Konto) – Standard</option><option value="offline">Nur Offline-Erzähler</option><option value="webllm">On-Device KI (WebLLM, WebGPU)</option><option value="api">Eigener API-Endpunkt (OpenAI-kompatibel)</option></select>
- <div id="geminiBox"><label>Gemini API-Schlüssel</label><input id="gkey" type="password" placeholder="AIza…" autocomplete="off">
-  <div class="small">So bekommst du einen kostenlosen Schlüssel: 1. Öffne <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener">aistudio.google.com/app/apikey</a> und melde dich mit deinem Google-Konto an. 2. Tippe auf „API-Schlüssel erstellen“ (Create API key). 3. Kopiere den Schlüssel hier hinein und tippe auf „Speichern“. Der Schlüssel bleibt nur in deinem Browser (localStorage) und wird nur an Google gesendet.</div></div>
- <div id="webllmBox"><label>Modell</label><select id="wmodel">
-  <option value="Qwen2.5-1.5B-Instruct-q4f16_1-MLC">Qwen2.5 1.5B (~1 GB)</option>
-  <option value="Qwen2.5-0.5B-Instruct-q4f16_1-MLC">Qwen2.5 0.5B (~400 MB, schneller)</option>
-  <option value="Llama-3.2-1B-Instruct-q4f16_1-MLC">Llama 3.2 1B (~0.9 GB)</option></select>
-  <button id="btnLoad" type="button">Modell laden</button><div id="wstatus" class="small"></div></div>
- <div id="apiBox"><label>Base-URL</label><input id="aurl" placeholder="https://api.groq.com/openai/v1">
-  <label>API-Key</label><input id="akey" type="password" placeholder="sk-…"><label>Modell</label><input id="amodel" placeholder="llama-3.1-8b-instant">
-  <div class="small">Key bleibt nur in deinem Browser (localStorage).</div></div>
+ <div id="geminiBox"><label>Gemini-Schlüssel</label><input id="gkey" type="password" placeholder="AIza…" autocomplete="off">
+  <div class="small">Kostenlos unter <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener">aistudio.google.com/app/apikey</a>. Bleibt nur in deinem Browser.</div></div>
  <button id="btnSave" type="button">Speichern</button>
  <button id="btnStats" type="button" class="alt">📜 Charakterbogen</button>
+ <button id="btnAdv" type="button" class="ghost">Erweitert ▸</button>
+ <div id="advBox" class="hidden">
+  <label>Erzähler</label>
+  <select id="mode"><option value="gemini">Google Gemini</option><option value="offline">Nur Offline</option><option value="free">Gratis-KI (Pollinations)</option><option value="webllm">On-Device (WebLLM)</option><option value="api">Eigener API-Endpunkt</option></select>
+  <label>Gemini-Modell</label><select id="gmodel"></select><div class="small" id="gmstatus"></div>
+  <label><input type="checkbox" id="dbgToggle"> Zugzeit anzeigen</label>
+  <div id="webllmBox"><label>WebLLM-Modell</label><select id="wmodel">
+   <option value="Qwen2.5-1.5B-Instruct-q4f16_1-MLC">Qwen2.5 1.5B (~1 GB)</option>
+   <option value="Qwen2.5-0.5B-Instruct-q4f16_1-MLC">Qwen2.5 0.5B (~400 MB)</option>
+   <option value="Llama-3.2-1B-Instruct-q4f16_1-MLC">Llama 3.2 1B (~0.9 GB)</option></select>
+   <button id="btnLoad" type="button">Modell laden</button><div id="wstatus" class="small"></div></div>
+  <div id="apiBox"><label>Base-URL</label><input id="aurl" placeholder="https://api.groq.com/openai/v1">
+   <label>API-Key</label><input id="akey" type="password" placeholder="sk-…"><label>Modell</label><input id="amodel" placeholder="llama-3.1-8b-instant"></div>
+ </div>
  <button id="btnReset" type="button" class="danger">Neues Spiel (alles löschen)</button>
  <button id="btnClose" type="button" class="ghost">Schließen</button>
 </div></div>
 <div id="toast"></div>
 </div>
-<script type="module" src="game.js?v=6"></script></body></html>
+<script type="module" src="game.js?v=7"></script></body></html>

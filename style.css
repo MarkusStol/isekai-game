@@ -32,3 +32,10 @@ button.big{width:100%;padding:14px;margin-top:8px;font-size:16px}button.alt{back
 body.greyw{background:radial-gradient(circle at 30% 0%,#3a3d44,#0e0f12 65%) fixed}
 body.greyw .msg.n{font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:1.6;background:#ffffff0c;border-color:#ffffff18;color:#e4e6ea}
 body.greyw button{background:#3b3f47}body.greyw #choices button{background:#ffffff10}body.greyw .title{background:linear-gradient(90deg,#c9ced6,#7d8590);-webkit-background-clip:text}
+
+.dbg{position:fixed;right:8px;bottom:calc(70px + env(safe-area-inset-bottom));font-size:10px;opacity:.45;pointer-events:none;z-index:3}
+#keyGate{justify-content:center;gap:8px}
+#keyGate a{color:#cbb8ff}
+#advBox{display:flex;flex-direction:column;gap:8px;padding:8px;border:1px solid #ffffff22;border-radius:12px}
+#advBox.hidden{display:none!important}
+#advBox label input{width:auto;margin-right:6px}
