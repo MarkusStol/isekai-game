@@ -18,7 +18,7 @@ const ROLES={
   cls:['Dorfbewohner','Lehrling','Meister','Ungekrönter Legende']}
 };
 const KEY='isekai_save_v1',CFG='isekai_cfg_v1';
-let S=null,cfg=JSON.parse(localStorage.getItem(CFG)||'{"mode":"offline"}'),engine=null,busy=false;
+let S=null,cfg=JSON.parse(localStorage.getItem(CFG)||'{"mode":"free"}'),engine=null,busy=false;
 const save=()=>localStorage.setItem(KEY,JSON.stringify(S));
 function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('on'),2200)}
 
@@ -86,14 +86,24 @@ function offline(a){const t=a.toLowerCase(),s=S.st,r=ROLES[S.role],npcs=Object.k
  return {text:txt,changes:ch}}
 
 // ---------- AI ----------
-function sysPrompt(){const r=ROLES[S.role];return `Du bist der Erzähler eines Isekai-Textabenteuers auf Deutsch. Rolle des Spielers: ${r.name} (${r.cls[S.cls]}). Welt: ${r.world}. NPCs: ${Object.entries(r.npcs).map(([k,v])=>k+': '+v).join('; ')}.
-Erzähle 2-4 lebendige Sätze im Anime-Stil, in der 2. Person, als Reaktion auf die Aktion. Sei fair: Riskantes kann HP kosten. Danach IMMER genau ein JSON-Block in \`\`\`json ... \`\`\` mit Änderungen, z.B.:
+if(!cfg.v2){if(cfg.mode==='offline'||!cfg.mode)cfg.mode='free';cfg.v2=1;localStorage.setItem(CFG,JSON.stringify(cfg))}
+const FREE_URL='https://text.pollinations.ai/openai';
+function sysPrompt(){const r=ROLES[S.role];return `Du bist der Erzähler (Spielleiter) eines Isekai-Textabenteuers auf Deutsch. Rolle des Spielers: ${r.name} (${r.cls[S.cls]}). Welt: ${r.world}. NPCs: ${Object.entries(r.npcs).map(([k,v])=>k+': '+v).join('; ')}.
+REGELN:
+1. Reagiere DIREKT auf die exakten Worte des Spielers. Stellt er eine Frage (z.B. „Woher kommt die Truhe?“), beantworte sie IN der Geschichte (durch Beobachtung, Erinnerung oder einen NPC) – erfinde keine andere Aktion.
+2. Halte die Kontinuität: Orte, Gegenstände, Personen und Ereignisse aus der bisherigen Geschichte bleiben bestehen.
+3. Schreibe 3-6 lebendige Sätze im Anime-Stil, in der 2. Person („du“). Kein Meta-Kommentar.
+4. Sei fair: Riskantes kann HP kosten, Fragen/Reden kosten meist nichts.
+Danach IMMER genau ein JSON-Block in \`\`\`json ... \`\`\` mit Änderungen, z.B.:
 \`\`\`json
-{"hp":-10,"mp":0,"str":0,"cha":1,"ruf":2,"xp":30,"affinity":{"${Object.keys(r.npcs)[0]}":5},"newSkills":[],"items":[],"removeItems":[],"choices":["Aktion 1","Aktion 2","Aktion 3"]}
+{"hp":0,"mp":0,"str":0,"cha":0,"ruf":0,"xp":10,"affinity":{"${Object.keys(r.npcs)[0]}":0},"newSkills":[],"items":[],"removeItems":[],"choices":["Passende Aktion 1","Aktion 2","Aktion 3","Aktion 4"],"summary":"Aktualisierte Kurz-Zusammenfassung der ganzen Geschichte bis jetzt (max. 4 Sätze)"}
 \`\`\`
-Werte klein halten (XP 10-60, HP -30..+30, Affinität -15..+15). Optional "ending":"Text" nur bei echtem Story-Ende.`}
+WICHTIG: Die Zahlen sind NUR die Änderungen durch DIESEN Zug (Deltas, keine Gesamtwerte) – meist 0. Bei Fragen/Gesprächen nur xp 5-15, sonst 0. "items" NUR neu erhaltene Gegenstände (nicht, was schon im Inventar ist), sonst []. "newSkills" nur selten.
+"choices": genau 4 kurze, zur aktuellen Szene passende Aktionen. Werte klein halten (XP 5-60, HP -30..+30, Affinität -15..+15). Optional "ending":"Text" nur bei echtem Story-Ende.`}
 function stateSum(){const s=S.st;return `STATUS: Lv${s.lvl} HP${s.hp}/${s.maxhp} MP${s.mp} Stärke${s.str} Charme${s.cha} Ruf${s.ruf} | Skills: ${S.skills.join(', ')} | Inventar: ${S.inv.join(', ')} | Affinität: ${Object.entries(S.aff).map(([k,v])=>k+'='+v).join(', ')} | Leben #${S.lives}`}
-function msgs(a){return [{role:'system',content:sysPrompt()},...S.hist.slice(-6),{role:'user',content:stateSum()+'\nAKTION: '+a}]}
+function msgs(a){const sum=S.summary?'BISHERIGE GESCHICHTE (Zusammenfassung): '+S.summary+'\n':'';
+ let h=(S.hist||[]).slice(-16);if(!h.length){const last=S.log.filter(m=>m.k==='n').slice(-1)[0];if(last)h=[{role:'assistant',content:last.t}]}
+ return [{role:'system',content:sysPrompt()},...h,{role:'user',content:sum+stateSum()+'\nSPIELER sagt/tut: „'+a+'“\n(Reagiere direkt darauf.)'}]}
 function parse(raw){let m=raw.match(/```(?:json)?\s*([\s\S]*?)```/)||raw.match(/(\{[\s\S]*\})\s*$/);let ch=null;
  if(m){try{ch=JSON.parse(m[1].trim())}catch(e){try{ch=JSON.parse(m[1].replace(/,\s*}/g,'}').replace(/'/g,'"'))}catch(_){}}}
  const text=(m?raw.replace(m[0],''):raw).replace(/```[\s\S]*$/,'').trim();return {text:text||'…',changes:ch||{xp:10}}}
@@ -105,11 +115,16 @@ async function aiTurn(a,el){if(cfg.mode==='webllm'){const e=await loadWebLLM();c
   return streamTo(el,(async function*(){for await(const c of it)yield c.choices[0]?.delta?.content||''})())}
  if(cfg.mode==='api'){const res=await fetch((cfg.aurl||'').replace(/\/$/,'')+'/chat/completions',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+cfg.akey},body:JSON.stringify({model:cfg.amodel,messages:msgs(a),temperature:.8,max_tokens:500})});
   if(!res.ok)throw new Error('API '+res.status);const j=await res.json();const t=j.choices[0].message.content;el.textContent=t.split('```')[0];return t}
+ if(cfg.mode==='free'){let err;for(let i=0;i<3;i++){try{const ac=new AbortController(),to=setTimeout(()=>ac.abort(),60000);
+   const res=await fetch(FREE_URL,{method:'POST',signal:ac.signal,headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'openai',messages:msgs(a),temperature:.9,reasoning_effort:'low',referrer:'isekai-game'})});clearTimeout(to);
+   if(!res.ok){const e=new Error('Gratis-KI '+res.status);e.ra=+res.headers.get('Retry-After')||0;throw e}const j=await res.json();const t=j.choices?.[0]?.message?.content;if(!t)throw new Error('leere Antwort');el.textContent=t.split('```')[0];return t}
+  catch(e){err=e;if(i<2){el.textContent='⏳ KI ist ausgelastet, neuer Versuch…';await new Promise(r=>setTimeout(r,Math.min(20,e.ra||(i?8:3))*1000))}}}throw err}
  throw new Error('offline')}
 async function act(a){if(busy||!a.trim())return;busy=true;add('p',a);S.turn++;const el=renderMsg('n typing','');let res;
- try{if(cfg.mode==='offline')throw 0;const raw=await aiTurn(a,el);res=parse(raw);S.hist.push({role:'user',content:'AKTION: '+a},{role:'assistant',content:raw});S.hist=S.hist.slice(-8)}
- catch(e){if(e)toast('KI-Fehler → Offline-Erzähler: '+(e.message||e));res=offline(a)}
- el.remove();add('n',res.text);apply(res.changes);hud();save();busy=false}
+ try{if(cfg.mode==='offline')throw 0;const raw=await aiTurn(a,el);res=parse(raw);{const c=res.changes,lim={hp:30,mp:30,str:2,cha:2,ruf:5,xp:60};for(const k in lim)if(k in c)c[k]=Math.max(-lim[k],Math.min(lim[k],+c[k]||0));if(c.affinity)for(const n in c.affinity)c.affinity[n]=Math.max(-15,Math.min(15,+c.affinity[n]||0))}if(Array.isArray(res.changes.items))res.changes.items=res.changes.items.filter(x=>!S.inv.includes(x));if(Array.isArray(res.changes.newSkills))res.changes.newSkills=res.changes.newSkills.filter(x=>!S.skills.includes(x));if(res.changes.summary){S.summary=String(res.changes.summary).slice(0,800);delete res.changes.summary}
+  S.hist=S.hist||[];S.hist.push({role:'user',content:'SPIELER: '+a},{role:'assistant',content:res.text});S.hist=S.hist.slice(-16)}
+ catch(e){res=offline(a);if(e)res.note='⚠️ KI nicht erreichbar ('+(e.message||e)+') – Offline-Erzähler sprang ein.'}
+ el.remove();add('n',res.text);if(res.note)add('s',res.note);apply(res.changes);hud();save();busy=false}
 
 // ---------- UI ----------
 function startScreen(){const g=$('#roles');g.innerHTML='';Object.entries(ROLES).forEach(([k,r])=>{const b=document.createElement('button');b.className='role';b.innerHTML=`<div class="e">${r.e}</div><b>${r.name}</b><span>${r.d}</span>`;b.onclick=()=>newLife(k);g.appendChild(b)});
