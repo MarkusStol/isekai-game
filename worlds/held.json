@@ -1,0 +1,80 @@
+{
+ "id": "held",
+ "titel": "Königreich Aldheim",
+ "ton": "Anime-Isekai mit Statusfenster, Eile vor der Belagerung, Heldentum und Zweifel. Episch, aber mit Alltag und Politik dazwischen.",
+ "geschichte": "Vor 300 Jahren siegte der erste Held über den Dämonenkönig. Seitdem regieren die Nachfahren der Linie von König Alaric II. Die Elfen zogen sich nach dem Blutpakt von Sylvaris zurück. Vor drei Monden erwachte Nocturna erneut – und Aldheim rief in Panik nach einem neuen Helden.",
+ "magie": "Mana fließt in Adern. Statusfenster zeigt nur dem Beschworenen echte Zahlen. Skills brauchen MP oder Abklingzeit. Kirche von Solari nennt Magie 'Gnade', Elfen nennen sie 'Atem'.",
+ "kultur": "Ritterorden, Gilden, Marktstände mit Gewürzen aus dem Süden. Adel spricht Hochaldheimisch förmlich; Söldner fluchen in Gassenmundart. Abends Glocken, Fackelwachen, Bierstuben.",
+ "alltag": "Brot, Käse, dünne Suppe für Arme; Wildbraten und Wein für Hof. Wachen wechseln um Mitternacht. Gildengebühr: 2 Silbermünzen/Woche.",
+ "regionen": {
+  "Hauptstadt Aldheim": "Weiße Mauern, Königsburg auf dem Hügel, Unterstadt mit Gilden und Märkten. Geruch von Brot und Eisen.",
+  "Nordwall": "Drei Tagesmärsche nördlich. Steinmauer, Wachtürme, Ruß vom Dämonenheer jenseits der Ebene.",
+  "Elfenwald Sylvaris": "Silberne Blätter, Pfade die sich ändern. Fremde ohne Geleit verlieren den Weg.",
+  "Söldnergilde": "Laute Halle am Osttor. Aufträge an der Tafel, Wirtstische, Blut und Würfel.",
+  "Hafen von Myr": "Handelsschiffe, Schmuggler, Gerüchte über Nocturna.",
+  "Dorf Weidenau": "Getreidefelder vor den Mauern, Zuflucht für Flüchtlinge."
+ },
+ "politik": "König Alaric II. starb bei der Heldenbeschwörung (geheim). Elise regiert kommissarisch; der Adelsrat zweifelt. Kirche will den Helden unter Aufsicht. Söldnergilde verkauft Loyalität.",
+ "setup": [
+  {"id":"tod","titel":"Letzter Moment","text":"Hupen. Scheinwerfer. Der Asphalt kommt auf dich zu.\n\nIn dem Moment vor dem Aufprall – was hältst du fest?","choices":[
+   {"id":"family","label":"Ein Gesicht, das du liebst","past":"Du dachtest an jemanden, den du zurücklässt."},
+   {"id":"regret","label":"Einen ungelösten Streit","past":"Du dachtest an Worte, die du nie gesagt hast."},
+   {"id":"dream","label":"Einen Traum, den du nie gelebt hast","past":"Du dachtest an das Leben, das du noch führen wolltest."},
+   {"id":"joke","label":"Einen dummen Witz","past":"Du dachtest etwas Absurdes – und das rettet später dein Lachen."}
+  ]},
+  {"id":"erwachen","titel":"Erwachen","text":"Kalter Marmor unter deinen Handflächen. Weihrauch. Ein Kreis aus blauem Licht erlischt um dich.\n\nEin Fenster schwebt vor deinem Gesicht:\n[STATUS] Name: ??? · Klasse: Abenteurer · Lv 1 · Fähigkeit: Status-Fenster\n\nWas nimmst du zuerst wahr?","choices":[
+   {"id":"window","label":"Das blaue Statusfenster","focus":"system"},
+   {"id":"smell","label":"Weihrauch und Angstschweiß","focus":"sinne"},
+   {"id":"people","label":"Die starrenden Ritter","focus":"menschen"},
+   {"id":"body","label":"Deinen neuen Körper","focus":"körper"}
+  ]},
+  {"id":"name","titel":"Name","text":"Hofmagier Orren flüstert: „Der Kreis verlangt einen Namen aus dieser Welt – oder wir nennen dich 'Fremdling'.“\n\nWie willst du genannt werden?","choices":[
+   {"id":"keep","label":"Meinen alten Vornamen behalten","nameMode":"keep"},
+   {"id":"hero","label":"Einen Heldnamen wählen","nameMode":"hero"},
+   {"id":"silence","label":"Schweigen – sie sollen raten","nameMode":"mystery"}
+  ],"needsName":true},
+  {"id":"npc","titel":"Erste Begegnung","text":"Prinzessin Elise tritt vor. Silberne Tiara, eisiger Blick, zitternde Hände.\n„Endlich … der Held aus der anderen Welt.“ Sie mustert deine Kleidung. „Das Dämonenheer steht drei Tage vor unseren Mauern. Sag mir – kannst du kämpfen?“","choices":[
+   {"id":"brave","label":"„Ich werde kämpfen.“","impression":"tapfer","aff":{"Prinzessin Elise":5}},
+   {"id":"honest","label":"„Ich weiß es nicht – aber ich lerne.“","impression":"ehrlich","aff":{"Prinzessin Elise":8,"Hofmagier Orren":3}},
+   {"id":"joke2","label":"Einen Witz über Lastwagen machen","impression":"bizarr","aff":{"Prinzessin Elise":-2,"Garrick":5}},
+   {"id":"demand","label":"Zuerst Infos und Ausrüstung verlangen","impression":"pragmatisch","aff":{"Prinzessin Elise":2,"Lyra":3}}
+  ]}
+ ],
+ "arc": {
+  "titel": "Der Fall und die Flamme Aldheims",
+  "acts": [
+   {"id":"a1","titel":"Drei Tage","ziel":"Als Held anerkannt werden und den Nordwall erreichen","mile":["Status erklärt","Gilde beitreten oder Hofdienst","Erste Patrouille am Nordwall"],"twist":"Orren hat möglicherweise den falschen Helden beschworen – Alaric starb dafür."},
+   {"id":"a2","titel":"Risse in der Mauer","ziel":"Die Belagerung überstehen und Verrat aufdecken","mile":["Erste Schlacht überleben","Spion Kael entlarven oder nutzen","Elise vertraut dir ein Geheimnis an"],"twist":"Ein Adelsrat-Mitglied verkauft Passwörter an Nocturna."},
+   {"id":"a3","titel":"Der Preis des Lichts","ziel":"Sylvaris um Hilfe bitten oder allein stehen","mile":["Elfenwald betreten","Lyra's Bruder-Spur","Allianz oder Absage"],"twist":"Der Blutpakt verbietet Elfen, Aldheim direkt zu retten – es gibt einen Ausweg."},
+   {"id":"a4","titel":"Gegen die Nacht","ziel":"Den Dämonenvorstoß stoppen oder die Stadt evakuieren","mile":["Finale am Nordwall","Entscheidung: Thron, Flucht, oder Opfer"],"twist":"Der wahre Feind ist nicht nur das Heer – sondern was der erste Held vor 300 Jahren versiegelt hat."}
+  ]
+ },
+ "sideQuests": [
+  {"id":"sq_garrick","titel":"Garricks letzte Rechnung","ziel":"Finde heraus, warum Garrick desertierte","npc":"Garrick","ort":"Söldnergilde"},
+  {"id":"sq_lyra","titel":"Silberne Spur","ziel":"Hilf Lyra, ihren Bruder zu finden","npc":"Lyra","ort":"Elfenwald Sylvaris"},
+  {"id":"sq_otto","titel":"Flüchtlinge von Weidenau","ziel":"Bringe Vorräte zum Dorf","npc":"Bauer Otto","ort":"Dorf Weidenau"},
+  {"id":"sq_seris","titel":"Verbotene Glyphe","ziel":"Untersuche Seris' geheimes Ritual","npc":"Magierin Seris","ort":"Hauptstadt Aldheim"}
+ ],
+ "romanceable": ["Lyra","Prinzessin Elise","Magierin Seris"],
+ "npcs": {
+  "Prinzessin Elise": {"e":"👑","art":"Kühl, stolz, förmlich; hinter der Fassade verzweifelt und jung. Trägt Trauer unter der Tiara.","stimme":"Hochaldheimisch, knapp: „Der Held aus der anderen Welt.“ „Zweifel ist ein Luxus, den wir nicht haben.“","ziel":"Aldheim retten, ohne den Thron an den Rat zu verlieren.","furcht":"Dass der Held versagt und alles umsonst war.","geheim":"Die Beschwörung hat König Alaric das Leben gekostet – sie hat zugestimmt.","ort":"Königsburg / Thronsaal","plan":["Hof halten","Mit Orren beraten","Dich prüfen"],"meinung":{"Hofmagier Orren":"braucht ihn, traut ihm nicht ganz","Lyra":"nützlich, aber fremd","Garrick":"ordinär, aber ehrlich"},"romance":true,"geschlecht":"w"},
+  "Lyra": {"e":"🏹","art":"Elfische Bogenschützin, wortkarg, spöttisch, beobachtet länger als sie spricht.","stimme":"Leise, spitz: „Interessant.“ „Lauf nicht in meinen Schuss.“","ziel":"Ihren verschollenen Bruder Fael finden.","furcht":"Dass der Elfenrat sie als Verräterin brandmarkt.","geheim":"Sie ist Spionin des Elfenrats – und beginnt, Zweifel an ihrem Auftrag zu haben.","ort":"Söldnergilde / Mauern","plan":["Dich beobachten","Berichte schreiben","Nach Fael suchen"],"meinung":{"Prinzessin Elise":"zu steif","Garrick":"laut, aber brauchbar","Hofmagier Orren":"nervös und gefährlich"},"romance":true,"geschlecht":"w"},
+  "Garrick": {"e":"🪓","art":"Polternder Söldner, lacht laut, redet derb, trinkt zu viel, kämpft fair.","stimme":"Brüllend: „HA! Noch ein Becher!“ „Gold zuerst, Heldentum später.“","ziel":"Genug Gold für einen ruhigen Abgang – und einen letzten großen Kampf.","furcht":"Als Feigling zu sterben wie damals.","geheim":"Desertierte aus der Königsarmee, nachdem ein Befehl Zivilisten traf.","ort":"Söldnergilde","plan":["Saufen","Aufträge annehmen","Dich anheuern oder verarschen"],"meinung":{"Prinzessin Elise":"Adelskram","Lyra":"kalte Schönheit","Bauer Otto":"ehrlicher Mann"},"romance":false,"geschlecht":"m"},
+  "Hofmagier Orren": {"e":"🔮","art":"Alt, nervös, murmelt Formeln, Finger immer rußig von Kreide.","stimme":"Zerstreut: „Der Kreis… der Kreis war korrekt. Fast.“","ziel":"Seinen Fehler vertuschen und dich funktionsfähig halten.","furcht":"Enthüllt zu werden.","geheim":"Er vermutet, den falschen Helden beschworen zu haben – die Resonanz war 'zu modern'.","ort":"Beschwörungshalle / Turm","plan":["Dich messen","Elise beruhigen","Alte Schriftrollen prüfen"],"meinung":{"Prinzessin Elise":"seine Königin","Lyra":"magieempfindlich, unheimlich"},"romance":false,"geschlecht":"m"},
+  "Magierin Seris": {"e":"✨","art":"Junge Hofmagierin, neugierig, zu ehrlich, sammelt verbotene Glyphen.","stimme":"Schnell, begeistert: „Darf ich dein Statusfenster anfassen? Im übertragenen Sinne!“","ziel":"Verstehen, wie Fremdwelt-Seelen Mana binden.","furcht":"Von der Kirche als Ketzerin gebranntmarkt zu werden.","geheim":"Arbeitet an einer Glyphe, die Statusfenster spiegeln könnte.","ort":"Magierturm","plan":["Dich studieren","Bücher stehlen","Mit Orren streiten"],"meinung":{"Hofmagier Orren":"Lehrer und Hemmschuh","Prinzessin Elise":"respektiert sie"},"romance":true,"geschlecht":"w"},
+  "Kapitän Rhett": {"e":"🛡️","art":"Disziplinierter Mauerkommandant, graue Schläfen, schläft wenig.","stimme":"Militärisch: „Report.“ „Der Wall hält – noch.“","ziel":"Den Nordwall halten, bis Verstärkung kommt.","furcht":"Seine Leute zu opfern für Politik.","geheim":"Kennt den Verräter im Rat – schweigt, bis er Beweise hat.","ort":"Nordwall","plan":["Patrouillen","Dich testen","Vorräte zählen"],"meinung":{"Garrick":"Deserteur, aber Kämpfer","Prinzessin Elise":"loyal"},"romance":false,"geschlecht":"m"},
+  "Bauer Otto": {"e":"🌾","art":"Breitschultrig, gutmütig, gibt das letzte Brot weg.","stimme":"Dialekt: „Komm rein, Junge. Suppe is' da.“","ziel":"Seine Familie und die Flüchtlinge durchbringen.","furcht":"Dass die Stadt sie vergisst.","geheim":"Versteckt einen verwundeten Deserteur aus Nocturna, der reden will.","ort":"Dorf Weidenau","plan":["Ernten","Flüchtlinge versorgen","Dich um Hilfe bitten"],"meinung":{"Garrick":"hat ihm einmal geholfen"},"romance":false,"geschlecht":"m"},
+  "Spion Kael": {"e":"🗡️","art":"Charmant, wechselnde Verkleidung, lächelt zu viel.","stimme":"Samtig: „Nur ein Gerücht… außer es ist wahr.“","ziel":"Informationen verkaufen – an beide Seiten.","furcht":"Erkannt zu werden.","geheim":"Arbeitet für den Adelsrat UND Nocturna.","ort":"Unterstadt / Schatten","plan":["Gerüchte streuen","Dich anbaggern oder erpressen"],"meinung":{"Prinzessin Elise":"Ziel","Lyra":"gefährlich aufmerksam"},"romance":false,"geschlecht":"m"}
+ },
+ "startItems": [
+  {"id":"bronze_sword","name":"Bronzeschwert","icon":"⚔️","desc":"Schwer und ehrlich. +Kampf.","type":"weapon","equip":true},
+  {"id":"heal_potion","name":"Heiltrank","icon":"🧪","desc":"Stellt 30 HP wieder her.","type":"consumable","use":"heal:30"},
+  {"id":"status_shard","name":"Status-Splitter","icon":"📱","desc":"Ein Splitter des Fensters – beweist, dass du 'der Held' bist.","type":"key"}
+ ],
+ "startSkills": [
+  {"id":"status","name":"Status-Fenster","icon":"📊","desc":"Siehst HP, Skills und Schwächen (manchmal).","level":1,"cost":0,"cd":0},
+  {"id":"slash","name":"Schwertschlag","icon":"⚔️","desc":"Grundangriff. Kostet wenig MP.","level":1,"cost":5,"cd":0}
+ ],
+ "startScene": {"ort":"Beschwörungshalle im Königspalast von Aldheim","zeit":"Abend, Fackellicht","anwesend":["Prinzessin Elise","Hofmagier Orren","ein Dutzend Ritter"]},
+ "startEvents": ["Das Dämonenheer steht drei Tage vor dem Nordwall","Der Adel zweifelt an der Beschwörung","König Alaric ist 'erkrankt' (tot – geheim)"]
+}

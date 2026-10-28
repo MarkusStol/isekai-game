@@ -61,14 +61,51 @@
    "art": "36, Koch/Barkeeper aus einer Gaststätte, unrasiert, grau vor Müdigkeit, hinkt (verletztes Bein), helle Narbe am rechten Unterarm, die bei Kälte spannt. Pragmatisch, handelt vor dem Denken, versorgt Wunden reflexhaft, nimmt jede Schuld an sich. Trägt Reisetasche und Taschenmesser mit Holzgriff.",
    "ziel": "Herausfinden, woher die Stadt seine Tochter kennt; Aria finden.",
    "stimme": "knapp, gereizt, misstrauisch, Küchen-/Barsprache; 'Ich hätte da sein müssen.'",
-   "geheim": "Tochter Aria starb an einem Abend, an dem er länger blieb, um dem verletzten Spüler Leon zu helfen. Sieben Tage später starb Velicya im Streit in der Küche (Schere, Unfall im Handgemenge) – durch seine Hand. Erst spät enthüllen."
+   "geheim": "Tochter Aria starb an einem Abend, an dem er länger blieb, um dem verletzten Spüler Leon zu helfen. Sieben Tage später starb Velicya im Streit in der Küche (Schere, Unfall im Handgemenge) – durch seine Hand. Erst spät enthüllen.",
+   "e": "🧳",
+   "furcht": "Noch jemanden zu verlieren.",
+   "ort": "Bahnsteig / Eisernes Licht",
+   "plan": [
+    "Aria suchen",
+    "Velicya festhalten",
+    "Schulden tragen"
+   ],
+   "meinung": {
+    "Marlowe": "misstrauisch dankbar",
+    "Velicya": "alles"
+   },
+   "romance": false,
+   "geschlecht": "m",
+   "schedule": [
+    "nacht: Ankunft",
+    "danach: Suche"
+   ]
   },
   "Velicya": {
    "rolle": "Darrens Frau – oder das, was die Stadt aus ihr rekonstruiert",
    "art": "Linkes Auge schmaler, feine Linie in der linken Braue, trockener Spott, barfuß, später zu große geliehene Arbeitsstiefel, schneidet Äpfel mit Darrens Messer. Mutig, praktisch, wütend. Geburtstag: 15.; Darren brachte einmal am 14. Erdbeerkuchen (sie hasst ihn, aß zwei Stück). Erinnert vieles exakt, Kleinigkeiten manchmal falsch (Kerzenfarbe blau vs. gelb; Zimmermannsstift).",
    "ziel": "Aria finden; nicht nur Darrens Erinnerung sein.",
    "stimme": "ironisch, schnell; 'Darren.' als ganzer Satz; 'Du bist schlecht im Lügen.'",
-   "geheim": "Sie ist eine Rekonstruktion seit Darrens Ankunft, stabilisiert durch Überschneidung/Entnahmen bei Lebenden (u.a. Nessa Harrow). Verliert eigene Erinnerungen (erster Geburtstagskuchen der Mutter). Nicht früh enthüllen."
+   "geheim": "Sie ist eine Rekonstruktion seit Darrens Ankunft, stabilisiert durch Überschneidung/Entnahmen bei Lebenden (u.a. Nessa Harrow). Verliert eigene Erinnerungen (erster Geburtstagskuchen der Mutter). Nicht früh enthüllen.",
+   "e": "🥀",
+   "furcht": "Nur Darrens Erinnerung zu sein.",
+   "ort": "Zimmer sieben / Gänge",
+   "plan": [
+    "Darren finden",
+    "Aria suchen",
+    "Fehler der Stadt bemerken"
+   ],
+   "meinung": {
+    "Marlowe": "duldet ihn",
+    "Elias Ward": "seltsam nützlich",
+    "Mascha Petrowa": "respektiert Härte"
+   },
+   "romance": true,
+   "geschlecht": "w",
+   "schedule": [
+    "nacht: Zimmer sieben",
+    "spät: Gänge hinter Messingbändern"
+   ]
   },
   "Aria": {
    "rolle": "Darrens tote Tochter (ca. 6)",
@@ -82,28 +119,102 @@
    "art": "Schwer gebaut, dichter grauer Bart, vernarbte Knöchel, Mantelkragen nass ohne Regen. Trocken-humorvoll ('Das ist Wasser mit Ehrgeiz'), ruhig, hält ein langes Messer mit geübter Selbstverständlichkeit. Gibt zu viel bezahltes Geld zurück, damit man sich an den Preis erinnert.",
    "ziel": "Gäste lebend durch die Nacht bringen; Regeln einhalten.",
    "stimme": "'Ich kenne Regeln. Keine Gründe.'",
-   "geheim": "Weiß mehr über die Zuordnungen seines Hauses. Messingzunge Schicht 42 trägt RÜCKGABE: MARLOWE – etwas versucht, ihn der Schicht zurückzugeben. Narben an den Knöcheln wirken zu gerade für reine Barkeeperhände. Führt eine eigene Rechnung. Türen seines Hauses können in der Westgrube stehen."
+   "geheim": "Weiß mehr über die Zuordnungen seines Hauses. Messingzunge Schicht 42 trägt RÜCKGABE: MARLOWE – etwas versucht, ihn der Schicht zurückzugeben. Narben an den Knöcheln wirken zu gerade für reine Barkeeperhände. Führt eine eigene Rechnung. Türen seines Hauses können in der Westgrube stehen.",
+   "e": "🍺",
+   "furcht": "Dass sein Haus die Gäste falsch zuordnet.",
+   "ort": "Gasthaus Eisernes Licht",
+   "plan": [
+    "Gäste durch die Nacht bringen",
+    "Regeln durchsetzen",
+    "Rechnung führen"
+   ],
+   "meinung": {
+    "Elias Ward": "toliert den Wahnsinnigen",
+    "Mascha Petrowa": "zahlt ehrlich",
+    "Velicya": "Gast, der keines sein sollte"
+   },
+   "romance": false,
+   "geschlecht": "m",
+   "schedule": [
+    "immer: Schankraum",
+    "glocke: erstarrt kurz"
+   ]
   },
   "Elias Ward": {
    "rolle": "Vermesser, lebt zwischen den Wänden",
    "art": "Über fünfzig, grauer Bart, Mantel mit Lederflicken, Vermesserkette mit nummerierten Gliedern um den Hals, abgeblendete Grubenlampe, trägt einen Käfig mit einem seit vier Jahren toten Kanarienvogel, der rückwärts lebt (wird warm, atmet, singt – wenn er fliegt, sollte man nicht mehr unten sein). Zeigerlose Taschenuhr mit Kohlestaub. Lügt nicht, verschweigt aber.",
    "ziel": "Seinen Bruder Samuel Ward finden, der in die Westgrube ging.",
    "stimme": "nüchtern, präzise; 'Das stand gestern noch nicht darin.'; 'Ich bin wahnsinnig, nicht unhöflich.'; 'Leider vernünftig.'",
-   "geheim": "Hat den Tag verkauft, an dem er beschloss, Samuel zu suchen; erinnert sich nicht mehr, wie Samuel lachte."
+   "geheim": "Hat den Tag verkauft, an dem er beschloss, Samuel zu suchen; erinnert sich nicht mehr, wie Samuel lachte.",
+   "e": "🦜",
+   "furcht": "Samuel zu finden und ihn nicht mehr zu erkennen.",
+   "ort": "Kammer unter dem Treppenhaus / Straßen",
+   "plan": [
+    "Vermessen",
+    "Dich warnen",
+    "Samuel suchen"
+   ],
+   "meinung": {
+    "Marlowe": "Dach über dem Kopf",
+    "Mascha Petrowa": "verständigt sich ohne Namen",
+    "Velicya": "zu glatt"
+   },
+   "romance": true,
+   "geschlecht": "m",
+   "schedule": [
+    "tag: vermessen",
+    "nacht: Kammer"
+   ]
   },
   "Mascha Petrowa": {
    "rolle": "Vorarbeiterin aus dem Aschenviertel",
    "art": "Hart, schnell, zählt Geräusche statt Sekunden, flucht, schützt ihre Leute, verletzte Hand. Kennt Wege ohne Schrift. 'Dann stell eine bessere Frage.' Verachtet Leute, die beruflich Rätsel verkaufen.",
    "ziel": "Ihre Schicht und die Witwen/Kinder des Viertels schützen; Jon Verricks Rückgabe verhindern.",
    "stimme": "derb, knapp, praktisch; 'Dann stell eine bessere Frage.'; 'Wenn ich aufhöre, weil es unbequem wird, war es keiner.'",
-   "geheim": "Fünf Kerben in ihrer Tür, ein fünfter Platz am Tisch – jemand aus ihrer Familie fehlt; ihre Mutter nahm die Treppe aus der Hausordnung."
+   "geheim": "Fünf Kerben in ihrer Tür, ein fünfter Platz am Tisch – jemand aus ihrer Familie fehlt; ihre Mutter nahm die Treppe aus der Hausordnung.",
+   "e": "⚒️",
+   "furcht": "Dass die Schicht zurückgegeben wird.",
+   "ort": "Aschenviertel / Fabrik",
+   "plan": [
+    "Schicht schützen",
+    "Dich prüfen",
+    "Jon Verrick verhindern"
+   ],
+   "meinung": {
+    "Marlowe": "ok für einen Wirt",
+    "Elias Ward": "verrückt, aber brauchbar",
+    "Irena": "alte Bekannte"
+   },
+   "romance": true,
+   "geschlecht": "w",
+   "schedule": [
+    "schicht: Fabrik",
+    "danach: Haus mit Aschelinie"
+   ]
   },
   "Nessa Harrow": {
    "rolle": "Wäscherin, Mutter zweier Kinder",
    "art": "Vom Waschdampf gerötete Haut, Seifenschaum über der Braue. Wurde von einem Karren verletzt; sagte ihren vollen Namen laut.",
    "ziel": "Für ihre Kinder überleben.",
    "stimme": "erschöpft, misstrauisch",
-   "geheim": "Die Stadt hält sie für eine 'passende Überschneidung' mit Velicya (spät)."
+   "geheim": "Die Stadt hält sie für eine 'passende Überschneidung' mit Velicya (spät).",
+   "e": "🧺",
+   "furcht": "Ihre Kinder zu verlieren.",
+   "ort": "Waschküche / Aschenviertel",
+   "plan": [
+    "Waschen",
+    "Überleben",
+    "Fremde meiden"
+   ],
+   "meinung": {
+    "Mascha Petrowa": "Schutz"
+   },
+   "romance": true,
+   "geschlecht": "w",
+   "schedule": [
+    "tag: waschen",
+    "nacht: bei den Kindern"
+   ]
   },
   "Jon Verrick / Alina Verrick": {
    "rolle": "Toter Nachtofen-Arbeiter (Drosselweg 8) und seine Witwe",
@@ -121,7 +232,24 @@
    "rolle": "Hüterin in St. Orison",
    "art": "Bleich, streng, alte Bekannte Maschas. Nimmt Beichtzettel und Pfänder.",
    "ziel": "Die Ordnung der Kirche wahren.",
-   "stimme": "'Ihr habt zwei Antworten bekommen. Die Kirche wollte mehr.'"
+   "stimme": "'Ihr habt zwei Antworten bekommen. Die Kirche wollte mehr.'",
+   "e": "⛪",
+   "furcht": "Dass die Kirche nur noch Pfänder kennt.",
+   "ort": "St. Orison",
+   "plan": [
+    "Beichten nehmen",
+    "Ordnung wahren",
+    "Mascha helfen oder bremsen"
+   ],
+   "meinung": {
+    "Mascha Petrowa": "alte Bindung",
+    "Marlowe": "zahlt Pfand"
+   },
+   "romance": true,
+   "geschlecht": "w",
+   "schedule": [
+    "immer: St. Orison"
+   ]
   },
   "Toma / Jarek": {
    "rolle": "Junge Arbeiter in Maschas Schicht",
@@ -136,12 +264,37 @@
   "Der Schaffner": {
    "rolle": "Schaffner des Zuges",
    "art": "Dunkelblaue feuchte Uniform, Augen im Schatten der Mütze, kommt ohne Schritte. Stempelt die Karte; schreibt in violetter Tinte auf die Rückseite: Name, Gepäckstück, 'Ohne Rückfahrt'.",
-   "stimme": "'Fahrkarten.' 'Wenn Sie weiterfahren wollen, bleiben Sie sitzen. Dann sehen Sie nicht hinaus.'"
+   "stimme": "'Fahrkarten.' 'Wenn Sie weiterfahren wollen, bleiben Sie sitzen. Dann sehen Sie nicht hinaus.'",
+   "e": "🎫",
+   "furcht": "—",
+   "ort": "Zug",
+   "plan": [
+    "Karten stempeln"
+   ],
+   "meinung": {},
+   "romance": false,
+   "geschlecht": "m",
+   "schedule": [
+    "zug: Abteile"
+   ]
   },
   "Die alte Frau im Zug": {
    "rolle": "Mitreisende mit Weidenkorb",
    "art": "Strickt einen grauen Handschuh, sieht nie aus dem Fenster, trockene Stimme. Gibt die ersten Regeln weiter.",
-   "stimme": "'Der Ort ist nicht das Problem. Der Halt ist es.' 'Lassen Sie sich nicht beim vollen Namen rufen.'"
+   "stimme": "'Der Ort ist nicht das Problem. Der Halt ist es.' 'Lassen Sie sich nicht beim vollen Namen rufen.'",
+   "e": "🧶",
+   "furcht": "—",
+   "ort": "Zug",
+   "plan": [
+    "Warnen",
+    "Stricken"
+   ],
+   "meinung": {},
+   "romance": false,
+   "geschlecht": "w",
+   "schedule": [
+    "zug: Abteil"
+   ]
   },
   "Leon": {
    "rolle": "Junger Spüler aus Darrens Küche (nur Erinnerung)",
@@ -168,5 +321,270 @@
  "spielstart": {
   "darren": "Nachtzug, kurz nach Mitternacht, Abteil mit Messinglampe, Soldat schläft, alte Frau strickt, Junge liest ohne umzublättern. Handabdruck außen im Ruß. Zug hält in GREYMOURNE.",
   "eigene": "Derselbe Zug, dieselbe Nacht. Die Fahrkarte der eigenen Figur trägt auf der Rückseite ihren Namen in violetter Tinte und eine Kinderzeichnung von etwas, das sie verloren hat. Darren Crowe kann als NPC im Nebenabteil sitzen oder später im Eisernen Licht auftauchen."
- }
+ },
+ "setup": [
+  {
+   "id": "zug",
+   "titel": "Der Halt",
+   "text": "Der Zug hätte nicht halten dürfen.\n\nNebel wie trübes Wasser. Außen im Ruß: der Abdruck einer kleinen Hand.\nDie alte Frau legt die Stricknadeln quer. „Sie sollten sitzen bleiben.“\n\nWas tust du?",
+   "choices": [
+    {
+     "id": "sit",
+     "label": "Sitzen bleiben",
+     "impression": "vorsichtig"
+    },
+    {
+     "id": "window",
+     "label": "Zum Fenster gehen",
+     "impression": "neugierig"
+    },
+    {
+     "id": "ask",
+     "label": "Die alte Frau fragen",
+     "impression": "höflich"
+    },
+    {
+     "id": "unwichtig",
+     "label": "Nach etwas Unwichtigem fragen",
+     "impression": "klug"
+    }
+   ]
+  },
+  {
+   "id": "karte",
+   "titel": "Fahrkarte",
+   "text": "Der Schaffner steht da, ohne Schritte. „Fahrkarten.“\nAuf der Rückseite: violette Tinte. Ein Name. Ohne Rückfahrt.\n\nWie reagierst du?",
+   "choices": [
+    {
+     "id": "silent",
+     "label": "Schweigen und nicken",
+     "impression": "still"
+    },
+    {
+     "id": "correct",
+     "label": "Einen Fehler auf der Karte suchen",
+     "impression": "prüfend"
+    },
+    {
+     "id": "ask_name",
+     "label": "Nach dem Ort fragen – nicht nach Namen",
+     "impression": "regelbewusst"
+    },
+    {
+     "id": "refuse",
+     "label": "Die Karte nicht hergeben",
+     "impression": "widerspenstig"
+    }
+   ]
+  },
+  {
+   "id": "sense",
+   "titel": "Erster Atem",
+   "text": "Kälte. Kohle. Bohnerwachs. Irgendwo eine Glocke, die du eher im Brustbein spürst als hörst.\n\nWorauf achtest du?",
+   "choices": [
+    {
+     "id": "smell",
+     "label": "Gerüche",
+     "focus": "sinne"
+    },
+    {
+     "id": "count",
+     "label": "Zahlen und Striche",
+     "focus": "zählen"
+    },
+    {
+     "id": "faces",
+     "label": "Gesichter im Nebel",
+     "focus": "menschen"
+    },
+    {
+     "id": "rules",
+     "label": "Was die alte Frau nicht gesagt hat",
+     "focus": "regeln"
+    }
+   ]
+  },
+  {
+   "id": "exit",
+   "titel": "Schwelle",
+   "text": "Die Tür zum Bahnsteig. Nebel bis zur Brust. Ein Kind im hellen Mantel hebt den Kopf.\n\nSteigst du aus?",
+   "choices": [
+    {
+     "id": "out",
+     "label": "Aussteigen",
+     "impression": "entschlossen"
+    },
+    {
+     "id": "hesitate",
+     "label": "Zögern und die alte Frau ansehen",
+     "impression": "zweifelnd"
+    },
+    {
+     "id": "child",
+     "label": "Das Kind ansprechen – vorsichtig, ohne Namen",
+     "impression": "fürsorglich"
+    },
+    {
+     "id": "bag",
+     "label": "Zuerst die Tasche prüfen",
+     "impression": "pragmatisch"
+    }
+   ]
+  }
+ ],
+ "arc": {
+  "titel": "Wer durch den Nebel kommt",
+  "acts": [
+   {
+    "id": "a1",
+    "titel": "Ankunft",
+    "ziel": "Im Eisernen Licht ankommen und die ersten Regeln lernen",
+    "mile": [
+     "Bahnsteig überleben",
+     "Marlowe treffen",
+     "Zimmer ohne falsche Tür"
+    ],
+    "twist": "Die Stadt kennt bereits etwas, das du verloren hast."
+   },
+   {
+    "id": "a2",
+    "titel": "Register",
+    "ziel": "Verstehen, wie Namen, Schuld und Rückgabe zusammenhängen",
+    "mile": [
+     "Elias oder Mascha als Führer",
+     "Erstes Register-Zeichen",
+     "Vertrauen aufbauen"
+    ],
+    "twist": "Jemand aus deiner Nähe steht auf einer Tafel AUSGEGEBEN/ZURÜCK."
+   },
+   {
+    "id": "a3",
+    "titel": "Glockenhandel",
+    "ziel": "Einen Preis zahlen oder verweigern",
+    "mile": [
+     "St. Orison",
+     "Erinnerung als Währung",
+     "Ein Fehler der Stadt (Kerze, Mantel, Tasse)"
+    ],
+    "twist": "Was die Stadt zurückgibt, passt nie ganz."
+   },
+   {
+    "id": "a4",
+    "titel": "Turm ohne Glocke",
+    "ziel": "Entscheiden, was du behältst – und was die Stadt behält",
+    "mile": [
+     "Westgrube oder Turm",
+     "Konfrontation mit dem Angebot",
+     "Ausgang oder Verbleib"
+    ],
+    "twist": "Liebe rettet nicht alles; manchmal rettet sie die falsche Version."
+   }
+  ]
+ },
+ "sideQuests": [
+  {
+   "id": "sq_marlowe",
+   "titel": "Wasser mit Ehrgeiz",
+   "ziel": "Finde heraus, was Marlowe zurückgeben soll",
+   "npc": "Marlowe"
+  },
+  {
+   "id": "sq_elias",
+   "titel": "Der verkaufte Tag",
+   "ziel": "Hilf Elias bei der Suche nach Samuel – ohne seinen Namen laut zu sagen",
+   "npc": "Elias Ward"
+  },
+  {
+   "id": "sq_mascha",
+   "titel": "Aschelinie",
+   "ziel": "Schütze Maschas Schicht und die Kinder",
+   "npc": "Mascha Petrowa"
+  },
+  {
+   "id": "sq_nessa",
+   "titel": "Überschneidung",
+   "ziel": "Hilf Nessa, ohne zu viel zu fragen",
+   "npc": "Nessa Harrow"
+  },
+  {
+   "id": "sq_irena",
+   "titel": "Beichte gegen Zeugen",
+   "ziel": "Bringe eine Schuld nach St. Orison – oder nicht",
+   "npc": "Irena"
+  }
+ ],
+ "romanceable": [
+  "Velicya",
+  "Mascha Petrowa",
+  "Elias Ward",
+  "Nessa Harrow",
+  "Irena"
+ ],
+ "startItems_darren": [
+  {
+   "id": "ticket",
+   "name": "Fahrkarte ohne Rückfahrt",
+   "icon": "🎫",
+   "desc": "Violette Tinte. Name. Ein Gepäckstück.",
+   "type": "key"
+  },
+  {
+   "id": "bag",
+   "name": "Reisetasche",
+   "icon": "🧳",
+   "desc": "Schwer von dem, was fehlt.",
+   "type": "key"
+  },
+  {
+   "id": "knife",
+   "name": "Taschenmesser mit Holzgriff",
+   "icon": "🔪",
+   "desc": "Küchenreflex. Zum Schneiden, nicht zum Drohen.",
+   "type": "tool",
+   "equip": true
+  },
+  {
+   "id": "map",
+   "name": "Streckenkarte",
+   "icon": "🗺️",
+   "desc": "Greymourne steht nicht drauf.",
+   "type": "key"
+  }
+ ],
+ "startItems_own": [
+  {
+   "id": "ticket",
+   "name": "Fahrkarte ohne Rückfahrt",
+   "icon": "🎫",
+   "desc": "Violette Tinte. Dein Name. Etwas Verlorenes gezeichnet.",
+   "type": "key"
+  },
+  {
+   "id": "bag",
+   "name": "Reisetasche",
+   "icon": "🧳",
+   "desc": "Was du noch tragen konntest.",
+   "type": "key"
+  }
+ ],
+ "startSkills": [
+  {
+   "id": "unwichtig",
+   "name": "Nach Unwichtigem fragen",
+   "icon": "❓",
+   "desc": "Wiedergänger stolpern beim Kleinen.",
+   "level": 1,
+   "cost": 0,
+   "cd": 0
+  },
+  {
+   "id": "count",
+   "name": "Zählen",
+   "icon": "🔢",
+   "desc": "Atemzüge, Schritte, Striche – Abweichungen fallen auf.",
+   "level": 1,
+   "cost": 0,
+   "cd": 0
+  }
+ ]
 }

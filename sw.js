@@ -1,13 +1,18 @@
 /* Isekai Reinkarnation – offline shell cache. Bump CACHE on every release. */
-const CACHE = 'isekai-v8';
+const CACHE = 'isekai-v9';
 const ASSETS = [
   './',
   './index.html',
-  './style.css?v=8',
-  './game.js?v=8',
+  './style.css?v=9',
+  './game.js?v=9',
   './manifest.json',
   './icon.svg',
-  './worlds/greymourne.json?v=8'
+  './favicon.svg',
+  './worlds/greymourne.json?v=9',
+  './worlds/held.json?v=9',
+  './worlds/villainess.json?v=9',
+  './worlds/daemon.json?v=9',
+  './worlds/mensch.json?v=9'
 ];
 
 self.addEventListener('install', e => {
@@ -29,11 +34,10 @@ self.addEventListener('fetch', e => {
   const req = e.request;
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
-  if (url.origin !== self.location.origin) return; // never cache Gemini/Pollinations
+  if (url.origin !== self.location.origin) return;
 
   e.respondWith((async () => {
     const cache = await caches.open(CACHE);
-    // Network-first for HTML/JS/CSS so updates apply; cache fallback offline
     const isShell = /\.(?:html|js|css|json|svg)(?:\?|$)/.test(url.pathname) || url.pathname.endsWith('/isekai-game/') || url.pathname.endsWith('/isekai-game');
     if (isShell) {
       try {

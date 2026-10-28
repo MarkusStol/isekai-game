@@ -4,9 +4,11 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Isekai"><meta name="theme-color" content="#140c24">
 <link rel="icon" href="favicon.svg"><link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="icon.svg">
-<title>Isekai Reinkarnation</title><link rel="stylesheet" href="style.css?v=8"></head><body>
+<title>Isekai Reinkarnation</title><link rel="stylesheet" href="style.css?v=9"></head><body>
 <div id="app">
-<header><div class="title">✦ Isekai Reinkarnation</div><button id="btnMenu" class="ghost">⚙︎</button></header>
+<header><div class="title">✦ Isekai Reinkarnation</div>
+ <div class="hdr-actions"><button id="btnSys" class="ghost" type="button" title="System">☰</button><button id="btnMenu" class="ghost" type="button">⚙︎</button></div>
+</header>
 <section id="start" class="screen">
  <h1>Du bist gestorben…</h1><p class="sub">…und eine Göttin bietet dir ein neues Leben. Wähle, als wer du aufwachst – die Welt antwortet auf dich.</p>
  <div id="roles"></div>
@@ -26,6 +28,14 @@
  <div id="log"></div>
  <div id="choices"></div>
  <form id="inputRow"><input id="txt" placeholder="Was tust oder sagst du?" autocomplete="off" enterkeyhint="send" autocapitalize="sentences"><button type="submit" aria-label="Senden">➤</button></form>
+ <nav id="tabs" aria-label="System">
+  <button type="button" data-tab="status">Status</button>
+  <button type="button" data-tab="inv">Inventar</button>
+  <button type="button" data-tab="skills">Fähigkeiten</button>
+  <button type="button" data-tab="rels">Beziehungen</button>
+  <button type="button" data-tab="quests">Quests</button>
+  <button type="button" data-tab="lex">Welt</button>
+ </nav>
 </section>
 <section id="keyGate" class="screen hidden">
  <h1>Noch ein Schritt</h1>
@@ -36,12 +46,15 @@
  <button id="btnGateSave" class="big">Los geht’s</button>
  <button id="btnGateSkip" class="big alt">Ohne Erzählerin spielen</button>
 </section>
+<div id="drawer" class="hidden"><div class="drawer-panel">
+ <div class="drawer-head"><h2 id="drawerTitle">System</h2><button type="button" id="btnDrawerClose" class="ghost">✕</button></div>
+ <div id="drawerBody"></div>
+</div></div>
 <div id="sheet" class="hidden"><div class="panel">
  <h2>Einstellungen</h2>
  <div id="geminiBox"><label>Gemini-Schlüssel</label><input id="gkey" type="password" placeholder="AIza…" autocomplete="off">
   <div class="small">Kostenlos unter <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener">aistudio.google.com/app/apikey</a>. Bleibt nur in deinem Browser.</div></div>
  <button id="btnSave" type="button">Speichern</button>
- <button id="btnStats" type="button" class="alt">📜 Charakterbogen</button>
  <button id="btnAdv" type="button" class="ghost">Erweitert ▸</button>
  <div id="advBox" class="hidden">
   <label>Erzähler</label>
@@ -61,4 +74,4 @@
 </div></div>
 <div id="toast"></div>
 </div>
-<script type="module" src="game.js?v=8"></script></body></html>
+<script type="module" src="game.js?v=9"></script></body></html>
