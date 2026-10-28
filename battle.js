@@ -1,5 +1,5 @@
 /** v17 JRPG battle — ATB Active/Wait, Bruch/Stagger, jobs, gems, summons, gambits; free-choice + mercy preserved */
-import { ENEMIES, ELEM_LABEL, enemyById, pickEncounter, battleBgFor } from './enemies.js';
+import { ENEMIES, ELEM_LABEL, enemyById, pickEncounter, battleBgFor, designEncounter, storyBossBlurb } from './enemies.js';
 import * as Jrpg from './jrpg.js';
 import * as Jobs from './jobs.js';
 import * as Gems from './gems.js';
@@ -1238,7 +1238,8 @@ export function maybeRandomEncounter(S, opts={}){
 
 /** Pre-battle choice sheet — never auto-starts combat */
 export function offerEncounter(S, opts={}){
-  const foes=opts.enemies?.length?opts.enemies:pickEncounter(S,{count:opts.count,boss:opts.boss,noBoss:opts.noBoss!==false});
+  const foes=opts.enemies?.length?opts.enemies:(opts.kind?designEncounter(S,opts.kind):pickEncounter(S,{count:opts.count,boss:opts.boss,noBoss:opts.noBoss!==false}));
+  if(!opts.blurb && foes[0]){ try{ const sb=storyBossBlurb(foes[0]); if(sb) opts={...opts, blurb:sb}; }catch(_){} }
   if(!foes.length) return null;
   const root=ensureRoot();
   return new Promise(resolve=>{

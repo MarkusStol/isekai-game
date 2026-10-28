@@ -19,7 +19,7 @@ import * as Equip from './equip.js';
 import * as Jrpg from './jrpg.js';
 import * as Depth from './depth.js';
 const $=s=>document.querySelector(s);const $$=s=>[...document.querySelectorAll(s)];const R=a=>a[Math.floor(Math.random()*a.length)];const rnd=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
-const VER='21.1',CACHE_V='v21.1';
+const VER='22',CACHE_V='v22';
 const ROLES={
  held:{e:'⚔️',name:'Held mit Status-System',d:'Ein blaues Fenster erscheint: [Status]. Die Welt braucht dich.',world:'Königreich Aldheim',
   base:{hp:100,mp:40,str:12,cha:8,ruf:10,gold:40},cls:['Abenteurer','Ritter','Held','Legendärer Held'],pack:'worlds/held.json',
@@ -642,6 +642,7 @@ function migrate(raw){if(!raw)return null;const s=typeof raw==='string'?JSON.par
  if(Number(s.ver)<20){s.ver=20}
  if(Number(s.ver)<21){s.ver=21}
  if(Number(s.ver)<21.1){s.ver=21.1}
+ if(Number(s.ver)<22){s.ver=22}
  // v13.1 continuity+time always (kept in v14)
  try{Cont.ensureCont(s);if(s.cal&&s.cal.minute==null)s.cal.minute=0;if(s.cfgCatchupOptIn==null)s.cfgCatchupOptIn=false}catch(e){console.warn('cont migrate',e)}
  // Heal incomplete worlds from old saves (missing orte/graph)
@@ -981,7 +982,15 @@ function worldTick(){if(!S.world||!S.setup?.done)return;
   let label=who; try{label=Know.displayName(S,who,n)}catch(_){}
   const line=Imm.npcInitiativeLine(label, mem?.text||mem);
   S.flags.npcInit=who;eventToast(line);if(S.choices&&S.choices.length){const speak=Know.isNameKnown(S,who)?`Mit ${who} sprechen`:`Die Gestalt ansprechen`;S.choices=[speak,...S.choices.slice(0,3)]}
-  /* do NOT steal portrait mid-scene */}}}
+  /* do NOT steal portrait mid-scene */}}
+ // v22 life + camp stakes
+ try{
+   const bill=Depth.tickNeedsDeep(S, 0.35);
+   if(bill) eventToast(bill);
+   const raid=Depth.maybeHomeRaid(S);
+   if(raid){ const msg=raid.text||raid.line; if(msg){ eventToast(msg); pushSys('🏚️ '+msg);} }
+ }catch(_){}
+}
 
 function applyQuestUpdate(u){if(!u||!S.quests)return;const m=S.quests.main;
  if(u.mainObjectiveDone){const o=String(u.mainObjectiveDone);if(!(m.done||[]).includes(o)){m.done=m.done||[];m.done.push(o);toast('✓ Quest: '+o);pushSys('📜 '+o)}}
@@ -1273,37 +1282,37 @@ function parseRomance(a){const t=a.toLowerCase();const who=findNpcTarget(a)||(S.
 const GENRES={
  zombie:{id:'zombie',label:'Zombie-Apokalypse',ton:'Modern, düster, Überlebenskampf. Knappheit, Misstrauen, seltene Hoffnung.',icon:'🧟',
   systems:{kind:'zombie',hunger:35,thirst:30,infection:0,ammo:15,safehouse:''},
-  places:['Parkplatz Eastmall','Supermarkt Ruine','Safehouse Keller','Autobahnbrücke','Krankenhaus Flügel C','Radio-Turm','Wohnblock 4','Hafenlager'],
+  places:['Parkplatz Eastmall','Supermarkt Ruine','Safehouse Keller','Autobahnbrücke','Krankenhaus Flügel C','Radio-Turm','Wohnblock 4','Hafenlager','Schulhof','Tankstelle','U-Bahn Schacht','Kirchturm','Industriebrache','Containerhafen','Dachgarten','Polizeiwache Ruine'],
   factions:['Überlebende der Mall','Plünderer-Crew','Militär-Rest','Infizierte (Horden)'],
   conflict:'Die Stadt gehört den Infizierten. Essen und Munition schwinden. Ein Radio spricht von einer Evakuierung in drei Tagen – vielleicht Lüge.',
   npcSeeds:[{e:'🩹',art:'Sanitäterin, pragmatisch, müde Augen',ziel:'Impfstoffe finden'},{e:'🔧',art:'Mechaniker, zynisch, treu',ziel:'Generator am Laufen halten'},{e:'📻',art:'Scavengerin, schnell, misstrauisch',ziel:'Zum Radio-Turm'},{e:'🪖',art:'Ex-Soldat, Befehlston',ziel:'Disziplin erzwingen'},{e:'🎒',art:'Teenager (18+), ängstlich-tapfer',ziel:'Familie finden'},{e:'🧪',art:'Wissenschaftlerin, distanziert',ziel:'Infektion verstehen'},{e:'🔫',art:'Waffenhändlerin, kalt',ziel:'Profit in der Apokalypse'},{e:'🍞',art:'Koch, warmherzig',ziel:'Leute ernähren'}]},
  cyberpunk:{id:'cyberpunk',label:'Cyberpunk',ton:'Neon, Konzerne, Street-Level. Chrome und Schulden.',icon:'🌆',
   systems:{kind:'cyber',cred:50,heat_net:0},
-  places:['Neon-Gasse','Konzern-Lobby Arasaka-Analog','Nachtmarkt','Underground-Club','Datenkiosk','Rooftop-Slum','Klinik Chrom&Knochen','Hafencontainer'],
+  places:['Neon-Gasse','Konzern-Lobby Arasaka-Analog','Nachtmarkt','Underground-Club','Datenkiosk','Rooftop-Slum','Klinik Chrom&Knochen','Hafencontainer','Maglev-Bahnsteig','Noir-Bar','Serverfarm','Slum-Kapelle','Chop-Shop','Skybridge','Unterstadt-Markt','Corp-Parking'],
   factions:['Street-Fixer','Konzern-Security','Netrunner-Crew','Ganger'],
   conflict:'Ein Datenträger in deiner Tasche ist mehr wert als dein Leben. Zwei Fraktionen wollen ihn – und dich.',
   npcSeeds:[{e:'🕶️',art:'Fixer, lächelt nie echt',ziel:'Deals brokern'},{e:'💊',art:'Street-Doc',ziel:'Schulden tilgen'},{e:'🖥️',art:'Netrunnerin',ziel:'ICE brechen'},{e:'🏍️',art:'Nomadin',ziel:'Raus aus der Stadt'},{e:'👔',art:'Konzern-Agent',ziel:'Asset bergen'},{e:'🎤',art:'Club-Sängerin',ziel:'Vertrag lösen'},{e:'🤖',art:'Android mit Glitch',ziel:'Freiheit'},{e:'🔧',art:'Techie',ziel:'Legende bauen'}]},
  darkfantasy:{id:'darkfantasy',label:'Dark Fantasy',ton:'Bleicher Mond, Flüche, Königreiche aus Asche.',icon:'🦇',
   systems:{kind:'dark',corruption:0},
-  places:['Asche-Thron','Blutmoor','Verfluchte Kapelle','Söldnerlager','Knochenbrücke','Hexenwald','Ruinenstadt Vael','Katakomben'],
+  places:['Asche-Thron','Blutmoor','Verfluchte Kapelle','Söldnerlager','Knochenbrücke','Hexenwald','Ruinenstadt Vael','Katakomben','Mondsee','Galgenhügel','Flüsterarchiv','Opferstein','Schwarzer Markt','Nebelkloster','Drachengrab','Blutbad-Furt'],
   factions:['Aschenkirche','Nachtfürsten','Söldnerbund','Hexenzirkel'],
   conflict:'Der Mond blutet. Ein Fluch frisst Namen – und deiner steht als Nächstes auf der Liste.',
   npcSeeds:[{e:'🕯️',art:'Priesterin mit Rissen in den Handflächen',ziel:'Fluch binden'},{e:'🐺',art:'Verfluchter Jäger',ziel:'Erlösung oder Beute'},{e:'🗡️',art:'Söldnerhauptmann',ziel:'Gold und Überleben'},{e:'📜',art:'Chronistin',ziel:'Wahrheit aufschreiben'},{e:'🧙',art:'Hexenmeister',ziel:'Macht um jeden Preis'},{e:'👑',art:'Exil-Prinz',ziel:'Thron zurück'},{e:'🪶',art:'Rabenbotin',ziel:'Botschaften liefern'},{e:'💀',art:'Untoter Ritter',ziel:'Eid erfüllen'}]},
  highfantasy:{id:'highfantasy',label:'High Fantasy',ton:'Episch, Magie, Drachenferne, Hoffnung mit Preis.',icon:'🐉',
   systems:{kind:'fantasy',mana_tide:1},
-  places:['Kristallspitze','Elfenhain','Zwergenhalle','Drachenpass','Magierakademie','Königsmarkt','Ork-Grenzstein','Sternentempel'],
+  places:['Kristallspitze','Elfenhain','Zwergenhalle','Drachenpass','Magierakademie','Königsmarkt','Ork-Grenzstein','Sternentempel','Himmelsbrücke','Runenschmiede','Seewacht','Glühwürmchenhain','Adlerhorst','Portalruine','Bardenlaube','Silberminen'],
   factions:['Magierzirkel','Drachenbund','Händlerliga','Ork-Clans'],
   conflict:'Ein Drache erwacht nicht aus Gier – sondern aus einem gebrochenen Pakt. Die Reiche rüsten.',
   npcSeeds:[{e:'✨',art:'Magierlehrling',ziel:'Meister werden'},{e:'🏹',art:'Elfenwächterin',ziel:'Hain schützen'},{e:'⛏️',art:'Zwergen-Schmied',ziel:'Legendäre Klinge'},{e:'🛡️',art:'Paladin',ziel:'Licht tragen'},{e:'🐲',art:'Drachenblütige',ziel:'Herkunft verstehen'},{e:'🎪',art:'Barde',ziel:'Lied der Wahrheit'},{e:'🔮',art:'Orakel',ziel:'Schicksal biegen'},{e:'⚔️',art:'Ritterin',ziel:'Ehre halten'}]},
  survival:{id:'survival',label:'Survival',ton:'Wildnis, Kälte, Hunger, Handwerk.',icon:'🏕️',
   systems:{kind:'survival',hunger:40,thirst:35,cold:20,wood:5,food:3},
-  places:['Basislager','Flussufer','Dichter Forst','Höhle','Jagdpfad','Ruinenhütte','Berggrat','Moore'],
+  places:['Basislager','Flussufer','Dichter Forst','Höhle','Jagdpfad','Ruinenhütte','Berggrat','Moore','Beerensumpf','Steinschlag','Fallenlinie','Rauchzeichen-Hügel','Eiskluft','Biberdamm','Aussichtsfelsen','Kräuterhang'],
   factions:['Siedler','Wilderer','Einsiedler','Raubtiere'],
   conflict:'Der Winter kommt früh. Ohne Vorräte stirbt das Lager – und jemand sabotiert die Fallen.',
   npcSeeds:[{e:'🪓',art:'Holzfäller',ziel:'Holzvorrat'},{e:'🦌',art:'Jägerin',ziel:'Fleisch für alle'},{e:'🩹',art:'Heilerin',ziel:'Kräuter finden'},{e:'👶',art:'Junge Mutter (erwachsen)',ziel:'Kind schützen'},{e:'🧭',art:'Pfadfinder',ziel:'Karte fertig'},{e:'🎣',art:'Fischer',ziel:'Netz reparieren'},{e:'🐺',art:'Wolfsflüsterer',ziel:'Rudelbündnis'},{e:'🔥',art:'Wächterin',ziel:'Feuer am Leben'}]},
  postapoc:{id:'postapoc',label:'Post-Apokalypse',ton:'Staub, Ruinen, Stämme, sauberes Wasser als Gold.',icon:'☢️',
   systems:{kind:'postapoc',water:40,rad:5,scrap:10},
-  places:['Staub-Siedlung','Wasserloch','Schrottfestung','Giftfluss','Windrad-Farm','Bunker 9','Karawanenweg','Leuchtende Krater'],
+  places:['Staub-Siedlung','Wasserloch','Schrottfestung','Giftfluss','Windrad-Farm','Bunker 9','Karawanenweg','Leuchtende Krater','Salzsee','Schrottkathedrale','Rohrleitungsnest','Staubsturm-Wall','Samenbank','Radarschüssel','Oasenrest','Geistergleis'],
   factions:['Wasser-Kartell','Schrott-Nomaden','Bunker-Kult','Karawane'],
   conflict:'Das letzte saubere Wasserloch versiegt. Das Kartell verkauft Tropfen – und sucht Sündenböcke.',
   npcSeeds:[{e:'💧',art:'Wasserhändlerin',ziel:'Monopol halten'},{e:'🔩',art:'Schrottschmied',ziel:'Panzerung bauen'},{e:'📿',art:'Kultprediger',ziel:'Bekehren'},{e:'🐪',art:'Karawanenführer',ziel:'Route sichern'},{e:'😷',art:'Arzt ohne Mittel',ziel:'Medizin finden'},{e:'🗺️',art:'Kartografin',ziel:'Sichere Pfade'},{e:'⛓️',art:'Ex-Sklave',ziel:'Freiheit anderer'},{e:'🌱',art:'Gärtnerin',ziel:'Erde heilen'}]}
@@ -1325,15 +1334,26 @@ function pickGenre(idOrText){const s=String(idOrText||'').toLowerCase().trim();
   npcSeeds:[{e:'👤',art:'Fremde:r mit Geheimnis',ziel:'Überleben'},{e:'🧭',art:'Führer:in',ziel:'Den Weg kennen'},{e:'⚔️',art:'Kämpfer:in',ziel:'Stärke beweisen'},{e:'📚',art:'Gelehrte:r',ziel:'Wissen bergen'},{e:'💰',art:'Händler:in',ziel:'Profit'},{e:'🔮',art:'Seher:in',ziel:'Zukunft lesen'},{e:'🛡️',art:'Wächter:in',ziel:'Schützen'},{e:'🎭',art:'Trickser:in',ziel:'Spiel spielen'}],
   custom:s}}
 
-function offlineGenerateWorld(genreInput,pcName){const g=pickGenre(genreInput);const namesA=['Ava','Ren','Kai','Mira','Jon','Sera','Viktor','Lina','Omar','Nyx','Pia','Theo','Eira','Cruz','Yuna','Baz'];
- const nodes={};const places=g.places.slice(0,8);places.forEach((name,i)=>{const exits=[places[(i+1)%places.length],places[(i+2)%places.length]];if(i>0)exits.push(places[0]);
-  nodes[name]={desc:R(['Staub und Echo.','Leben trotz allem.','Spuren von gestern.','Ein Ort mit Zähnen.','Ruhe, die lügt.']),tags:[g.id],exits:[...new Set(exits)].slice(0,3),bg:slugify(name).split('-')[0]||'void'}});
- const start=places[0];const npcs={};const seeds=g.npcSeeds.slice(0,8);
- seeds.forEach((seed,i)=>{const nm=(R(namesA)+' '+R(['Voss','Chen','Adler','Krämer','Sol','Beck','Nguyen','Rauch'])+(i===0?'':''));
-  const name=nm+(npcs[nm]?('-'+i):'');const home=places[i%places.length];
+function offlineGenerateWorld(genreInput,pcName){const g=pickGenre(genreInput);const namesA=['Ava','Ren','Kai','Mira','Jon','Sera','Viktor','Lina','Omar','Nyx','Pia','Theo','Eira','Cruz','Yuna','Baz','Vera','Nils','Suri','Jax'];
+ // v22: ~3x places for procedural worlds
+ const basePlaces=g.places||[];
+ const extra=['Ostflügel','Außenposten','Unterführung','Lagerfeuer-Ring','Beobachtungsturm','Versorgungskeller','Grenzstein','Schleichweg','Markt der Verlorenen','Stiller Hof','Regenrinne','Dachland','Nebelsteig','Archivschacht','Wasserstelle','Schrottinsel'];
+ const places=[...basePlaces, ...extra.map((e,i)=> (basePlaces[i%Math.max(1,basePlaces.length)]?basePlaces[i%basePlaces.length].split(' ')[0]+' · '+e:e))].filter((x,i,a)=>a.indexOf(x)===i).slice(0,24);
+ const nodes={};places.forEach((name,i)=>{const exits=[places[(i+1)%places.length],places[(i+2)%places.length],places[(i+5)%places.length]];if(i>0)exits.push(places[0]);
+  nodes[name]={desc:R(['Staub und Echo.','Leben trotz allem.','Spuren von gestern.','Ein Ort mit Zähnen.','Ruhe, die lügt.','Hier entscheidet sich etwas.']),tags:[g.id],exits:[...new Set(exits)].slice(0,4),bg:slugify(name).split('-')[0]||'void'}});
+ const start=places[0];const npcs={};const seeds=(g.npcSeeds||[]).slice(0,12);
+ while(seeds.length<12) seeds.push({e:'👤',art:'Einheimische:r',ziel:'Überleben'});
+ seeds.forEach((seed,i)=>{
+  let proc=null; try{ proc=Depth.generateProcNpc((seed.art||'')+i+g.id, places[i%places.length], g.id); }catch(_){}
+  const nmBase=(R(namesA)+' '+R(['Voss','Chen','Adler','Krämer','Sol','Beck','Nguyen','Rauch','Holt','Senn']));
+  const name=nmBase+(npcs[nmBase]?('-'+i):'');
+  const home=places[i%places.length];
   const sch=['Morgen: '+home,'Mittag: '+places[(i+1)%places.length],'Nachmittag: '+places[(i+2)%places.length],'Abend: '+places[(i+3)%places.length],'Nacht: '+home];
-  npcs[name]={e:seed.e,art:seed.art+', erwachsen',stimme:'knapp, menschlich',ziel:seed.ziel,furcht:R(['Verlust','Verrat','Hunger','Vergessen']),geheimnis:R(['Hat jemanden im Stich gelassen.','Kennt einen geheimen Weg.','Schuldet einer Fraktion alles.','Trägt Infektion/Geheimnis verborgen.']),
-   beziehung:'Fremd',erinnerung:[],memories:[],ort:home,home,plan:[seed.ziel],relations:{},romance:i<5,adult:true,geschlecht:R(['weiblich','männlich','']),schedule:sch,mood:'angespannt',goals:[seed.ziel],portrait:'',alive:true,lastSeen:{ort:home,zeit:'',day:1}}});
+  const base={e:seed.e||'👤',art:(proc?.art||seed.art||'')+', erwachsen',stimme:proc?.speechStyle||'knapp, menschlich',ziel:seed.ziel||proc?.desire,furcht:proc?.need||R(['Verlust','Verrat','Hunger','Vergessen']),geheimnis:(proc?.secrets&&proc.secrets[0])||R(['Hat jemanden im Stich gelassen.','Kennt einen geheimen Weg.','Schuldet einer Fraktion alles.']),
+   beziehung:'Fremd',erinnerung:[],memories:[],ort:home,home,plan:[seed.ziel],relations:{},romance:i<6,adult:true,geschlecht:proc?.geschlecht||R(['weiblich','männlich','']),schedule:sch,mood:proc?.mood||'angespannt',goals:[seed.ziel],portrait:'',alive:true,lastSeen:{ort:home,zeit:'',day:1},procedural:true};
+  if(proc){ Object.assign(base,{backstory:proc.backstory,wound:proc.wound,desire:proc.desire,need:proc.need,contradiction:proc.contradiction,speechStyle:proc.speechStyle,samples:proc.samples,quirk:proc.quirk,secrets:proc.secrets,questLine:proc.questLine,roleReactions:proc.roleReactions}); }
+  npcs[name]=base;
+ });
  // link relations
  const keys=Object.keys(npcs);for(let i=0;i<keys.length;i++){const a=keys[i],b=keys[(i+1)%keys.length],c=keys[(i+3)%keys.length];
   npcs[a].relations[b]=R(['misstraut','respektiert','mag','schuldet']);npcs[a].relations[c]=R(['kennt','meidet','schätzt'])}
@@ -1436,7 +1456,21 @@ function parseLifeSim(a){const t=a.toLowerCase();
     return {ok:true,text:r.text+` Hunger ${S.needs?.hunger|0}.`,changes:{xp:10,choices:travelChoices()}}
   }
   if(/schlaf|ruhe|nacht verbring|ins bett|übernacht/.test(t)&&!/schlaf(en)? mit/.test(t)){
-    const r=Sim.sleepHome(S);advanceTime(r.hours);return {ok:true,text:r.text,changes:{hp:15,mp:10,choices:travelChoices()}}
+    const atHome=S.home?.owned&&S.world?.scene?.ort===S.home.location;
+    if(atHome){
+      try{ const deep=Depth.restAtHomeDeep(S); if(deep?.ok){ advanceTime(8); const r=Sim.sleepHome(S); return {ok:true,text:deep.line+'\n'+r.text,changes:{hp:20,mp:15,choices:['Heim ausbauen','Umsehen','Material sammeln','Weiter']}} } }catch(_){}
+    }
+    const r=Sim.sleepHome(S);advanceTime(r.hours);return {ok:true,text:r.text+(atHome?'':'\n(Zu Hause wäre die Rast erholsamer.)'),changes:{hp:15,mp:10,choices:travelChoices()}}
+  }
+  if(/heim ausbau|lager ausbau|camp (bauen|upgrade)|baue (herd|bett|truhe|wanne|werkbank|garten|palisade|wache|attrappe)|upgrade heim|heim verbessern/.test(t)){
+    try{
+      Depth.ensureDeepNeeds(S);
+      const opts=Depth.campUpgradeOptions(S);
+      const want=opts.find(u=>t.includes(u.id)||t.includes(u.name.toLowerCase()))||opts[0];
+      if(!want) return {ok:false,text:'Kein Ausbau möglich (Stufe/Upgrades). Heim: '+(Depth.homeStatusLine(S)||'keins')};
+      const r=Depth.applyCampUpgrade(S, want.id); advanceTime(2);
+      return {ok:r.ok,text:r.line+'\n'+Depth.homeStatusLine(S),changes:{xp:r.ok?12:0,choices:['Weiter ausbauen','Schlafen','Umsehen','Material sammeln']}}
+    }catch(e){ return {ok:false,text:'Ausbau fehlgeschlagen.'} }
   }
   if(/einzieh|mitbewohner|zieh .* ein/.test(t)){
     const who=findNpcTarget(a)||(S.world.scene.anwesend||[])[0];if(!who)return {ok:false,text:'Wen einladen?'};
@@ -1687,7 +1721,7 @@ function sysPrompt(stream=true){if(isG())return greyPrompt(stream);const r=ROLES
  const genre=S.genre||pack.genre||'';
  let depthBits='';
  try{
-   depthBits=[Depth.styleBible(pack,S.role), Depth.capabilityBlock(S)].filter(Boolean).join('\n');
+   depthBits=[Depth.styleBible(pack,S.role), Depth.capabilityBlock(S), Depth.homeStatusLine(S), Depth.lifeStatusLine(S)].filter(Boolean).join('\n');
  }catch(_){}
  return `Du bist Erzähler eines interaktiven Anime-/Genre-Spiels auf Deutsch. SPIELER = Hauptfigur mit voller Freiheit.
 Protagonist: ${S.pc?.name||r.name}. Welt: ${pack.titel||r.world}. Genre: ${genre||'isekai'}. Ton: ${pack.ton||''}
@@ -1735,7 +1769,9 @@ function turnMsg(a){
     const sit=Depth.situationSeed(S,a);
     const present=(S.world?.scene?.anwesend||[]).slice(0,3);
     const npcBits=present.map(n=>Depth.npcDepthBlurb(n,S.world?.npcs?.[n],S)).filter(Boolean).join('\n');
-    depthExtra=[sit,npcBits].filter(Boolean).join('\n').slice(0,900);
+    let fight='';
+    try{ const foes=S.flags?._offerEncounter?.foes; if(foes?.length) fight=Depth.fightDesignBlock(S,foes); }catch(_){}
+    depthExtra=[sit,npcBits,fight,Depth.lifeStatusLine(S)].filter(Boolean).join('\n').slice(0,1100);
   }catch(_){}
   return Cont.buildTurnUserMessage(S,a,{
     worldLean:worldText(),

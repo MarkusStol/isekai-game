@@ -108,7 +108,7 @@ const report={paths:{}, samples:{}};
 let server, browser, page;
 
 async function boot(role, name){
-  await page.goto(`http://127.0.0.1:${PORT}/index.html?v=21&gate=1`,{waitUntil:'domcontentloaded',timeout:60000});
+  await page.goto(`http://127.0.0.1:${PORT}/index.html?v=22&gate=1`,{waitUntil:'domcontentloaded',timeout:60000});
   await page.evaluate(()=>localStorage.clear());
   await page.reload({waitUntil:'networkidle0',timeout:60000});
   await page.waitForFunction(()=>window.__game&&window.__game.newLife,{timeout:30000});
@@ -324,6 +324,168 @@ async function runLiveSubset(){
   return fails;
 }
 
+
+/** Minimal legacy save factory (incomplete world — must heal + reply) */
+function fakeOldSave(ver){
+  return {
+    ver:String(ver), role:'held', cls:0, pc:{name:'Alt'+ver}, setup:{done:true},
+    st:{lvl:3,hp:30,maxhp:50,mp:12,maxmp:30,str:10,cha:9,ruf:0,gold:20,xp:40},
+    world:{
+      scene:{ort:'Marktplatz von Solari',anwesend:['Lyra'],zeit:'Mittag'},
+      npcs:{Lyra:{e:'🗡️',art:'Späherin',ort:'Marktplatz von Solari',alive:true,romance:true,geschlecht:'w',stimme:'knapp'}}
+      // deliberately no orte/graph — v21.1b heal must fix
+    },
+    hist:[], log:[{k:'n',t:'Markt.'}], flags:{}, romance:{Lyra:{affection:10,trust:2,stage:1}},
+    quests:{main:{act:0,done:[],objectives:[]},side:[]},
+    needs:{hunger:30,fatigue:20}, home:{owned:false,stage:0,materials:{}},
+    skills:[], inv:[], turn:5, heat:0, cal:{day:2,hour:12,minute:0}, choices:['Umsehen']
+  };
+}
+
+/** Path E: live github pages — fresh profile + old saves; no pageerrors; busy clears */
+async function runLiveSiteBrowser(){
+  const label='live-site';
+  let fails=0, total=0;
+  const LIVE='https://markusstol.github.io/isekai-game/';
+  const versions=['13','16','18','20'];
+  const safariUA='Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1';
+
+  async function oneProfile(name, {ua, seedVer}={}){
+    total++;
+    const errs=[];
+    const ctx=await browser.createBrowserContext();
+    const pg=await ctx.newPage();
+    pg.setDefaultTimeout(90000);
+    await pg.setViewport({width:390,height:844,isMobile:true,hasTouch:true});
+    if(ua) await pg.setUserAgent(ua);
+    pg.on('pageerror', e=>errs.push(String(e.message||e).split('\n')[0]));
+    try{
+      await pg.goto(LIVE,{waitUntil:'networkidle2',timeout:90000});
+      await pg.waitForFunction(()=>window.__game&&window.__game.act,{timeout:30000});
+      if(seedVer){
+        await pg.evaluate((save)=>{ localStorage.setItem('isekai_save_v1', JSON.stringify(save)); }, fakeOldSave(seedVer));
+        await pg.reload({waitUntil:'networkidle2',timeout:90000});
+        await pg.waitForFunction(()=>window.__game&&window.__game.act,{timeout:30000});
+        await pg.evaluate(async()=>{
+          const b=document.getElementById('btnContinue');
+          if(b && !b.classList.contains('hidden')) b.click();
+          await new Promise(r=>setTimeout(r,1800));
+          const g=window.__game;
+          if(g?.S && g.S.setup && !g.S.setup.done) g.S.setup.done=true;
+        });
+      } else {
+        await pg.evaluate(async()=>{
+          window.__FAST=true;
+          const g=window.__game;
+          await g.newLife('held',{lives:0,soul:0,keptSkills:[]},{fromIntro:true,name:'GateLive',bg:'',look:'',trait:''});
+          if(g.S.setup&&!g.S.setup.done){ g.S.setup.done=true; try{g.enterPlay()}catch(_){}}
+        });
+      }
+      const row=await pg.evaluate(async()=>{
+        const g=window.__game;
+        if(!g?.S) return {ok:false, reason:'no-S'};
+        try{ if(g.S.flags){ delete g.S.flags._offerEncounter; delete g.S.flags.narratorCombat } }catch(_){}
+        const actP=g.act('hallo');
+        const to=new Promise((_,rej)=>setTimeout(()=>rej(new Error('act-timeout')),30000));
+        try{ await Promise.race([actP, to]); }catch(e){ return {ok:false, reason:String(e.message||e), busy:document.body.classList.contains('busy'), vn:document.getElementById('vnText')?.textContent||''}; }
+        const busy=document.body.classList.contains('busy');
+        const disabled=!!document.getElementById('txt')?.disabled;
+        const vn=(document.getElementById('vnText')?.textContent||'').trim();
+        return {ok:true, busy, disabled, vn, ort:g.S.world?.scene?.ort, hasOrte:!!g.S.world?.orte, hasGraph:!!g.S.world?.graph?.nodes};
+      });
+      const pageErrs=errs.filter(e=>!/AbortError/i.test(e)); // AbortError from race must not appear after v21.1 — count if present
+      const abortErrs=errs.filter(e=>/AbortError/i.test(e));
+      let reason=null;
+      if(!row.ok) reason=row.reason||'act-fail';
+      else if(row.busy) reason='busy-stuck';
+      else if(row.disabled) reason='input-disabled';
+      else if((row.vn||'').length<8) reason='empty-reply';
+      else if(HIJACK.test(row.vn)) reason='hijack';
+      else if(pageErrs.length) reason='pageerror:'+pageErrs[0].slice(0,80);
+      else if(abortErrs.length) reason='abort-pageerror';
+      if(reason){
+        fails++;
+        failures.push({path:label, world:name, a:'hallo', reason, text:(row.vn||'').slice(0,120)});
+        console.log('  FAIL', name, reason, (row.vn||'').slice(0,60));
+      } else {
+        console.log('  OK', name, '→', (row.vn||'').slice(0,60).replace(/\n/g,' '), `busy=${row.busy}`);
+      }
+    }catch(e){
+      fails++; total=Math.max(total, fails);
+      failures.push({path:label, world:name, reason:'runner:'+String(e.message||e)});
+      console.log('  FAIL', name, e.message||e);
+    }finally{
+      try{await ctx.close()}catch(_){}
+    }
+  }
+
+  console.log('\n=== LIVE SITE (fresh + old saves) ===');
+  try{
+    await oneProfile('fresh');
+    await oneProfile('safari-fresh', {ua:safariUA});
+    for(const v of versions) await oneProfile('save-v'+v, {seedVer:v});
+  }catch(e){
+    fails++; failures.push({path:label, reason:'suite:'+String(e.message||e)});
+  }
+  report.paths[label]={fails, total};
+  console.log(`=== ${label}: ${fails}/${total} fails ===`);
+  return fails;
+}
+
+/** Path F: local — pageerror + busy clear under offline + poisoned Depth */
+async function runBusyPageerror(){
+  const label='busy-pageerror';
+  let fails=0, total=0;
+  const errs=[];
+  const onErr=e=>errs.push(String(e.message||e).split('\n')[0]);
+  page.on('pageerror', onErr);
+  try{
+    await boot('held','BusyTest');
+    // 1) normal hallo — busy must clear
+    total++;
+    const r1=await page.evaluate(async()=>{
+      const g=window.__game;
+      await g.act('hallo');
+      return {busy:document.body.classList.contains('busy'), disabled:!!document.getElementById('txt')?.disabled, vn:(document.getElementById('vnText')?.textContent||'').slice(0,80)};
+    });
+    if(r1.busy||r1.disabled||(r1.vn||'').length<8){
+      fails++; failures.push({path:label, a:'hallo', reason:r1.busy?'busy-stuck':r1.disabled?'input-disabled':'empty', text:r1.vn});
+      console.log('  FAIL hallo', r1);
+    } else console.log('  OK hallo busy-clear');
+
+    // 2) poison capabilityBlock — act must still reply and clear busy
+    total++;
+    const r2=await page.evaluate(async()=>{
+      const g=window.__game;
+      const real=g.Depth.capabilityBlock;
+      g.Depth.capabilityBlock=()=>{ throw new Error('gate-poison-cap'); };
+      try{ await g.act('wie geht es dir'); }
+      finally{ g.Depth.capabilityBlock=real; }
+      return {busy:document.body.classList.contains('busy'), vn:(document.getElementById('vnText')?.textContent||'').slice(0,100)};
+    });
+    if(r2.busy||(r2.vn||'').length<8){
+      fails++; failures.push({path:label, a:'poison', reason:r2.busy?'busy-stuck':'empty', text:r2.vn});
+      console.log('  FAIL poison', r2);
+    } else console.log('  OK poison-cap busy-clear');
+
+    // 3) pageerrors: gate-poison must not surface; AbortError must not appear in offline
+    total++;
+    const bad=errs.filter(e=>!/gate-poison/i.test(e)); // poison is inside try in Depth callers; if it surfaces, fail
+    // Actually capabilityBlock is try/caught in sysPrompt — should be 0 pageerrors
+    const realBad=errs.filter(e=>!/ResizeObserver|Loading CSS/i.test(e));
+    if(realBad.length){
+      fails++; failures.push({path:label, reason:'pageerror:'+realBad[0].slice(0,100)});
+      console.log('  FAIL pageerrors', realBad.slice(0,3));
+    } else console.log('  OK no-pageerrors', '(caught', errs.length, ')');
+  } finally {
+    page.off('pageerror', onErr);
+  }
+  report.paths[label]={fails, total};
+  console.log(`=== ${label}: ${fails}/${total} fails ===`);
+  return fails;
+}
+
+
 try{
   server=await serve();
   browser=await puppeteer.launch({
@@ -345,6 +507,15 @@ try{
   await runMock402();
   console.log('\n=== LIVE FREE SUBSET ===');
   await runLiveSubset();
+  console.log('\n=== BUSY + PAGEERROR ===');
+  await runBusyPageerror();
+  // Live site last (needs network); skip if GATE_SKIP_LIVE=1
+  if(process.env.GATE_SKIP_LIVE==='1'){
+    console.log('\n=== LIVE SITE skipped (GATE_SKIP_LIVE=1) ===');
+    report.paths['live-site']={fails:0,total:0,skipped:true};
+  } else {
+    await runLiveSiteBrowser();
+  }
 } catch(e){
   console.error('GATE ERROR', e);
   failures.push({path:'runner', reason:String(e.message||e)});
@@ -353,7 +524,7 @@ try{
   try{server?.close()}catch(_){}
 }
 
-fs.writeFileSync('/tmp/gate-v20.1.json', JSON.stringify({failures, report, inputCount:INPUTS.length},null,2));
+fs.writeFileSync('/tmp/gate-report.json', JSON.stringify({failures, report, inputCount:INPUTS.length},null,2));
 console.log('\n=== GATE SUMMARY ===');
 console.log(JSON.stringify(report.paths,null,2));
 console.log('Failures:', failures.length);

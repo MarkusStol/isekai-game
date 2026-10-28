@@ -1,673 +1,1780 @@
 {
- "titel": "Greymourne – Wer durch den Nebel kommt",
- "quelle": "Nach dem Roman von Markus Stoll (verdichtete Spielwelt-Bibel, kein Romantext)",
- "kern": {
-  "ton": "Leiser, präziser, unheimlicher Horror. Kein Splatter, kein Monsterkrach. Das Vertraute sieht aus wie immer und fühlt sich falsch an. Themen: Verlust, Schuld, Liebe, und was von einem Menschen bleibt, wenn er Verlorenes festhalten will. Die Stadt lebt, arbeitet, zählt, erinnert sich und macht aus menschlichen Schwächen etwas Greifbares.",
-  "stil": "Deutsche literarische Prosa, dritte Person nah oder zweite Person (du), Präteritum. Kurze, genaue Sätze; konkrete Dinge (Ruß, Messing, Kreide, Gaslicht, Bohnerwachs, Eintopf); Gerüche und Geräusche statt Adjektivgewitter. Trockener, lakonischer Dialog mit Subtext; Figuren beantworten Fragen oft schräg oder mit einer Gegenfrage. Das Grauen steckt in Abweichungen: eine falsche Zahl, eine Tasse in der falschen Farbe, ein Schritt zu viel. Nie erklären, was das Unheimliche ist. Pausen, Auslassungen, Ende auf einem stillen, beunruhigenden Detail.",
-  "regeln_der_stadt": [
-   "Nenne deinen vollen Namen nicht laut. Namen sind hier keine Bezeichnungen, sondern Griffe; ausgesprochene Namen landen im Register.",
-   "Nach dem zweiten Glockenschlag öffnest du keine Tür, an die jemand mit vertrauter Stimme klopft. Die erste Glocke ordnet die Straßen, die zweite die Häuser, bei der dritten werden Menschen geordnet.",
-   "Dreimal klopfen: Der Name fährt zum Schloss; wer dann die Klinke bewegt, bestätigt, wohin die Tür führt (z.B. WESTGRUBE).",
-   "Wenn jemand behauptet zu wissen, was du verloren hast, frag nach etwas Unwichtigem. Die Wiedergänger kennen das Schwere, beim Kleinen machen sie Fehler (Arias Tasse war weiß mit rotem Fuchs, nicht blau).",
-   "Wenn ein Raum so aussieht, wie du ihn dir gewünscht hast, prüfe zuerst, was darin fehlt.",
-   "Gib dem, was unter den Gittern klopft, weder Stimme noch Blut noch etwas, das es dir später zurückgeben kann.",
-   "Zahle im Voraus. Greymourne vergisst keinen Preis. Erinnerungen sind Währung; wer bezahlt, weiß danach oft nicht mehr, womit.",
-   "Die Stadt zählt: AUSGEGEBEN / ZURÜCK an Schiefertafeln, Markenpressen, Striche. Die Zahl 43 fehlt auffällig (Schicht 43). Fünf Striche, ein Turm-Zeichen.",
-   "Es wird nicht hell. Zeit läuft nicht sauber: Uhren mit stehenden Zeigern ticken, Notizen von morgen liegen heute auf dem Tisch. 'Wie lange bin ich schon hier?' ist eine gefährliche Frage.",
-   "Kein Fahrplan. Wenn die Bahnhofslampen blau brennen, wartet vielleicht ein Zug. Die Schienen enden sauber durchtrennt im Nebel; hinter dir schließt sich die Mauer.",
-   "Greymourne baut Beweise so gründlich wie Menschen: falsche Mäntel, Formulare, Löffel. Prüfe, was zu glatt passt.",
-   "Wer denkt oder liest einen vollen Namen, kann ihn dem Register übergeben – nicht nur wer ihn ausspricht."
+  "titel": "Greymourne – Wer durch den Nebel kommt",
+  "quelle": "Nach dem Roman von Markus Stoll (verdichtete Spielwelt-Bibel, kein Romantext)",
+  "kern": {
+    "ton": "Leiser, präziser, unheimlicher Horror. Kein Splatter, kein Monsterkrach. Das Vertraute sieht aus wie immer und fühlt sich falsch an. Themen: Verlust, Schuld, Liebe, und was von einem Menschen bleibt, wenn er Verlorenes festhalten will. Die Stadt lebt, arbeitet, zählt, erinnert sich und macht aus menschlichen Schwächen etwas Greifbares.",
+    "stil": "Deutsche literarische Prosa, dritte Person nah oder zweite Person (du), Präteritum. Kurze, genaue Sätze; konkrete Dinge (Ruß, Messing, Kreide, Gaslicht, Bohnerwachs, Eintopf); Gerüche und Geräusche statt Adjektivgewitter. Trockener, lakonischer Dialog mit Subtext; Figuren beantworten Fragen oft schräg oder mit einer Gegenfrage. Das Grauen steckt in Abweichungen: eine falsche Zahl, eine Tasse in der falschen Farbe, ein Schritt zu viel. Nie erklären, was das Unheimliche ist. Pausen, Auslassungen, Ende auf einem stillen, beunruhigenden Detail.",
+    "regeln_der_stadt": [
+      "Nenne deinen vollen Namen nicht laut. Namen sind hier keine Bezeichnungen, sondern Griffe; ausgesprochene Namen landen im Register.",
+      "Nach dem zweiten Glockenschlag öffnest du keine Tür, an die jemand mit vertrauter Stimme klopft. Die erste Glocke ordnet die Straßen, die zweite die Häuser, bei der dritten werden Menschen geordnet.",
+      "Dreimal klopfen: Der Name fährt zum Schloss; wer dann die Klinke bewegt, bestätigt, wohin die Tür führt (z.B. WESTGRUBE).",
+      "Wenn jemand behauptet zu wissen, was du verloren hast, frag nach etwas Unwichtigem. Die Wiedergänger kennen das Schwere, beim Kleinen machen sie Fehler (Arias Tasse war weiß mit rotem Fuchs, nicht blau).",
+      "Wenn ein Raum so aussieht, wie du ihn dir gewünscht hast, prüfe zuerst, was darin fehlt.",
+      "Gib dem, was unter den Gittern klopft, weder Stimme noch Blut noch etwas, das es dir später zurückgeben kann.",
+      "Zahle im Voraus. Greymourne vergisst keinen Preis. Erinnerungen sind Währung; wer bezahlt, weiß danach oft nicht mehr, womit.",
+      "Die Stadt zählt: AUSGEGEBEN / ZURÜCK an Schiefertafeln, Markenpressen, Striche. Die Zahl 43 fehlt auffällig (Schicht 43). Fünf Striche, ein Turm-Zeichen.",
+      "Es wird nicht hell. Zeit läuft nicht sauber: Uhren mit stehenden Zeigern ticken, Notizen von morgen liegen heute auf dem Tisch. 'Wie lange bin ich schon hier?' ist eine gefährliche Frage.",
+      "Kein Fahrplan. Wenn die Bahnhofslampen blau brennen, wartet vielleicht ein Zug. Die Schienen enden sauber durchtrennt im Nebel; hinter dir schließt sich die Mauer.",
+      "Greymourne baut Beweise so gründlich wie Menschen: falsche Mäntel, Formulare, Löffel. Prüfe, was zu glatt passt.",
+      "Wer denkt oder liest einen vollen Namen, kann ihn dem Register übergeben – nicht nur wer ihn ausspricht."
+    ],
+    "motive": [
+      "Nebel wie trübes Wasser",
+      "Glocken (tief, unsauber, im Brustbein spürbar); der Turm ohne Glocke",
+      "Kohle, Ruß, blaues Ofenfeuer, Rußöl",
+      "Namen auf Messingbändern, Papierstreifen, Marken; herausgeschnittene Namen",
+      "Zählen: Atemzüge, Schritte, Klopfrhythmus drei-Pause-zwei",
+      "Kreidezeichnungen von Kindern: Haus, drei Figuren, über der kleinsten ein A",
+      "Tassen, Teller, gedeckte Plätze, die einer zu viel sind",
+      "Der tote Kanarienvogel, der rückwärts lebt",
+      "Falsche Beweise (gelber Kindermantel, falscher Löffel, Formular ABHOLER)",
+      "Falscher Geburtstag (14. vs 15.), Kerzenfarbe als Streitpunkt",
+      "Messingzungen / Schichtnummern; 42 und die fehlende 43",
+      "Die Stadt von unten: Fundamente, schwebende Räume, Turm ohne Glocke"
+    ],
+    "spoilerschutz": "NIEMALS früh enthüllen: (1) Wie Velicya starb (Schere, Küche, Tag 7). (2) Dass Velicya eine Rekonstruktion seit Ankunft ist und durch Entnahmen bei Lebenden (Nessa) stabil bleibt. (3) Greymournes Angebot FORTBESTAND gegen fortlaufende Überschreibung Nessas. (4) Was im Turm ohne Glocke und am Ende geschieht. Nur Andeutungen, Bruchstücke, Spiegelbilder – erst nach langer Spielzeit und wenn der Spieler es sich erarbeitet. Frühe Fehler der Stadt (falsche Kerze, gelber Mantel, falsche Tassenfarbe) dürfen als Unheimliches stehen, ohne die große Wahrheit zu erklären."
+  },
+  "orte": {
+    "Bahnhof Greymourne": "Zwei Gaslampen im Nebel, abgeblättertes Schild, verschlossener Fahrkartenschalter, drei Bänke, Vordach mit schwarzem Wasser. Uhr: beide Zeiger auf zwölf, tickt trotzdem. Schienen enden durchtrennt. Die Scheibe des Schalters spiegelt manchmal eine helle Küche. Bahnsteigkinder im Nebel.",
+    "Weg zum Tor": "Steiler Weg zwischen schwarzen Bäumen; Schritte im Laub laufen parallel und gehen zwei Schritte weiter, wenn man stehen bleibt. Mauer mit Gaslampen, Torbogen mit verwaschener Inschrift, frische Kreidezeichnungen am Mauerfuß.",
+    "Hauptstraße": "Breit, Ruß in den Rinnen ohne Radspuren, Rauch sinkt an den Ziegeln herab. Menschen hinter Fenstern schlafen nie und sehen nie hinaus. Schiefertafel NACHTSCHICHT AUSGEGEBEN/ZURÜCK. Bäckerei mit Hausnummern in den Broten; Häuser wechseln die Straßenseite. Ablaufgitter, aus denen es klopft. Wegweiser: BAHNHOF, MINE, ST. ORISON, vierter Arm nur ein Turm.",
+    "Gasthaus Eisernes Licht": "Marlowes Gasthaus, Schild ohne Schrift: ein Glas mit gelber Flamme. Schankraum größer als die Fassade; Ofen mit blauen Flammen; Gäste, die beim Glockenschlag erstarren. Wasser mit einem schwarzen Korn. Zimmer sieben am Ende des Flurs (Lavendel, ein Bett, zwei Tassen, Schrank ohne Rückwand). Hinter den Türen laufen Messingbänder mit Namensstreifen. Sieben Bilderrahmen, der siebte leer.",
+    "Elias' Kammer unter dem Treppenhaus": "Tote Stelle, an der das Haus Schritte nicht sauber zählt. Regale mit Dochten und Plänen, ein aus Papierfetzen genähter Stadtplan, dessen Straßen an den Nähten nicht zusammenpassen, Messingnadeln mit Namensstreifen. Drei Tassen, Notizen mit morgigem Datum.",
+    "Fabrikviertel / Kesselhaus": "Rohre auf Pfeilern, Kondenswasser brennt helle Flecken ins Pflaster. Arbeiter gehen nach ungeschriebener Ordnung (rote Binden an der Hauswand, graue Schürzen in der Mitte). Markenpresse am Tor, Aufseher, Tafel AUSGEGEBEN/ANGETRETEN. Kessel 41, 42, 44 – die 43 fehlt. Sortierung, Schmelze.",
+    "Aschenviertel": "Niedrige, kalküberstrichene Arbeiterhäuser ohne Namensschilder; an den Türen Zeichen (blauer Faden, gebogene Nägel, ein Kinderstiefel). Frauen sieben Asche, Kinder suchen Kohlestücke. Hier gilt: keine Namen, auch keine Vornamen. Wege ohne Schrift.",
+    "Maschas Haus": "Grüner Fensterladen, fünf Kerben in der Haustür, täglich erneuerte Aschelinie über der Schwelle (nicht drauftreten). Küchentisch mit gedeckten Schalen, deren Zahl sich ändert. Oben wohnt niemand – die Treppe wurde aus der Hausordnung genommen; trotzdem gehen dort Schritte, vier hin, vier zurück.",
+    "Drosselweg": "Gasse der Nachtöfen-Arbeiter; Jon Verrick wohnte in Nr. 8. Hier rollte der Karren.",
+    "Amt der gestrichenen Namen": "Registratur hinter einer Waschküche ohne Schloss (Loch mit grauem Wachs, Haaren, gekreuzten Fäden). Registerseiten, Sätze wie AUSGABE WIDERRUFEN, RÜCKGABE AUSSTEHEND, ERSATZ ZULÄSSIG.",
+    "St. Orison": "Gedrungene Kirche aus schwarzem Stein, Glockenturm mit drei offenen Bögen je Seite, ohne Glocke. Zwei Schalter: links Papierstreifen, rechts Pfand (Münzen, Knöpfe, Marken, ein Milchzahn). 'Beichte gegen Zeugen.' Schulden lassen sich hier sprechen oder übertragen. Irena wacht hier.",
+    "Glockenhandel": "Händler, die Erinnerungen gegen Durchgänge und Marken tauschen. 'Folgen sind kein Aufpreis.' 'Namen sind Adressen.'",
+    "Unter dem Kanal": "Mauerwerk 12: Stützwand aus eingeritzten Namen, übermörtelt, die Buchstaben drücken durch. Darunter die Rückgabehalle: Sortiertische ANKUNFT, PRÜFUNG, ZUORDNUNG; Gegenstände Verschwundener; Kinder in grauen Schürzen; Kohlestücke als Fehlzeiten.",
+    "Börse der Möglichkeiten": "Findet man nur, wenn man aufhört, sie zu suchen. Hof mit einer schwarzen und einer weißen Tür: Schwarz für das, was ihr behalten habt, Weiß für das, was ihr nicht bekommen habt. Ein alter Mann flickt Handschuhe dazwischen.",
+    "Westgrube / Mine": "Fördertürme, Halden. Zugang oft unsichtbar: Vermessungskette an Mörtelfuge → Ziegelwand schwingt nach innen in eine arbeitende Lohnhalle (WESTGRUBE. EINFAHRT/AUSFAHRT Tafeln, Kohldampf). Stollen unter Fabrik und Bahnhof zu einem namenlosen schwarzen Kreis. Schienen, nummerierte Haken, Metallmarken; fällt eine Marke, verschwindet der Träger. Küchen-Erinnerungen können sich in die Mine schieben.",
+    "Der Turm": "Namenloser Turm ohne Glocke, auf keinem Wegweiser beschriftet. Keine Treppe – Räume gestapelt als mögliche Leben (Abzweigungen). Mauerwerk schneidet Fundamente und Stollen, ohne sie zu verdrängen. Schmale senkrechte Löcher. Spät im Spiel; nicht früh betreten lassen. Je höher, desto mehr verliert Velicya.",
+    "Förderschacht der Namen": "Holzförderturm zwischen Arbeiterhäusern ('der tiefe Schacht'). Schild: EINFAHRT NACH STELLE. AUSFAHRT NACH NAME. Korb hält an unmöglichen Stockwerken (Namenssortierung, Messingbuchstaben). Ganz unten: Bohlen über schwarzem Schacht, Seile mit Schildern (Namen oder Beschreibungen). Samuel: fünf Striche, NICHT ABSCHLIESSEN.",
+    "Unter dem Gasthaus / erste Glocke": "Treppe hinter Zimmer sieben älter als das Haus: Stein, Eisen, feuchte Wärme. Darunter hängt die Stadt von unten – Fundamente, schwebende Räume, der Turm durch alles hindurch. Markenfrau sortiert Messingplättchen (CROWE, PETROWA, leere Plättchen).",
+    "Leere Küche / sieben Tage": "Erinnerungsraum: kaltes Fett, tropfender Hahn, zwei Tassen, fehlender dritter Stuhl, Arias Schuhe im Flur. Tag sechs nach Arias Tod; Tag sieben endet im Streit. Greymourne schreibt Fehler hinein (Klopfrhythmus, den Velicya damals nicht gehört hat).",
+    "Nachtzug-Abteil": "Messing, Regen am Fenster, Sitze die sich erinnern.",
+    "Nebelgasse": "Gaslaternen, nasse Steine, Schritte ohne Körper.",
+    "Archivkeller": "Regale, Namen, Zahlen die nicht stimmen.",
+    "Hafenmauer": "Salz, Nebelhörner, Schiffe ohne Flagge.",
+    "Gleis 0": "Existiert auf keiner Karte. Echo von Abfahrten.",
+    "Wärterhäuschen": "Fenster beschlagen von innen.",
+    "Brücke über den Rußkanal": "Wasser schwarz, Spiegel ohne dich.",
+    "Schulhof der Stille": "Kreidezeichnungen von Kindern, die niemand kennt.",
+    "Kapelle ohne Heiligen": "Kerzen brennen ohne Docht.",
+    "Markt der leeren Stände": "Preisschilder, keine Ware.",
+    "Wachhaus Ost": "Uniformen auf Kleiderbügeln, niemand darin.",
+    "Druckerei Register": "Maschinen stanzen Namen in Nebel.",
+    "Zimmer 3": "Tür bleibt zu. Mascha schweigt.",
+    "Küche des Eisernen Lichts": "Dampf, Messer, Erinnerungen an Äpfel.",
+    "Treppenhaus Elias": "Knarrt nur, wenn du allein bist.",
+    "Kesselhaus oben": "Hitze ohne Feuer.",
+    "Kesselhaus unten": "Asche mit Fußabdrücken rückwärts.",
+    "Dach des Amts": "Überblick über Straßen, die sich verschieben.",
+    "Hinterhof Drosselweg": "Wäscheleinen mit Hemden ohne Besitzer.",
+    "Brunnenplatz": "Münzen ohne Jahrgang.",
+    "Bibliothek der Fehlseiten": "Bücher mit herausgerissenen Kapiteln.",
+    "Apotheke Quarantäne": "Flaschen ohne Etikett, Etiketten ohne Flaschen.",
+    "Friedhof Nebelhang": "Steine ohne Daten, Daten ohne Steine.",
+    "Fähranleger": "Boote, die nicht ablegen.",
+    "Zollschuppen": "Kisten mit Luft.",
+    "Laternenwerkstatt": "Glas, das Nebel speichert.",
+    "Schneideratelier": "Anzüge für Leute, die gestrichen wurden.",
+    "Uhrenladen Stillstand": "Alle Zeiger auf 00:00.",
+    "Postamt Unzustellbar": "Briefe an dich von dir.",
+    "Spielplatz Rost": "Schaukeln bewegen sich gegen den Wind.",
+    "Tunnel unter dem Bahnhof": "Tropfen zählen anders.",
+    "Wartesaal B": "Sitze für Fahrgäste, die nie kamen.",
+    "Kontrollbrücke": "Blick auf Gleise, die sich gabeln und wieder einen.",
+    "Rußwäscherei": "Wasser wird nie klar.",
+    "Hebammenhaus": "Wiegen ohne Kinder.",
+    "Notariat Grau": "Verträge, die dich unterschreiben.",
+    "Sternwarte Blind": "Teleskop auf Nebel gerichtet.",
+    "Gewächshaus Asche": "Pflanzen aus Papier.",
+    "Kriegsdenkmal Ohne Namen": "Platten blank poliert.",
+    "Kanaldeckel 17": "Führt dorthin, wo Akten nass werden.",
+    "Balkon Mascha": "Rauchen bei Regen, der nicht nass macht.",
+    "Seitenkapelle": "Beichte ohne Priester.",
+    "Lager der gestrichenen Dinge": "Objekte ohne Besitzerzeile.",
+    "Hof der Zeugen": "Stühle im Kreis, keiner setzt sich.",
+    "Schienenende": "Stoppblock mit Handabdrücken.",
+    "Hotel Reserve": "Zimmer gebucht auf Namen, die fehlen."
+  },
+  "npcs": {
+    "Darren Crowe": {
+      "rolle": "Protagonist des Romans (spielbar)",
+      "art": "36, Koch/Barkeeper aus einer Gaststätte, unrasiert, grau vor Müdigkeit, hinkt (verletztes Bein), helle Narbe am rechten Unterarm, die bei Kälte spannt. Pragmatisch, handelt vor dem Denken, versorgt Wunden reflexhaft, nimmt jede Schuld an sich. Trägt Reisetasche und Taschenmesser mit Holzgriff.",
+      "ziel": "Herausfinden, woher die Stadt seine Tochter kennt; Aria finden.",
+      "stimme": "knapp, gereizt, misstrauisch, Küchen-/Barsprache; 'Ich hätte da sein müssen.'",
+      "geheim": "Tochter Aria starb an einem Abend, an dem er länger blieb, um dem verletzten Spüler Leon zu helfen. Sieben Tage später starb Velicya im Streit in der Küche (Schere, Unfall im Handgemenge) – durch seine Hand. Erst spät enthüllen.",
+      "e": "🧳",
+      "furcht": "Noch jemanden zu verlieren.",
+      "ort": "Bahnsteig / Eisernes Licht",
+      "plan": [
+        "Aria suchen",
+        "Velicya festhalten",
+        "Schulden tragen"
+      ],
+      "meinung": {
+        "Marlowe": "misstrauisch dankbar",
+        "Velicya": "alles"
+      },
+      "romance": false,
+      "geschlecht": "m",
+      "schedule": [
+        "nacht: Ankunft",
+        "danach: Suche"
+      ],
+      "adult": true,
+      "backstory": "Koch und Barkeeper, der nach dem Tod seiner Tochter und Frau in den Nebel von Greymourne steigt — weil die Stadt ihre Namen kennt.",
+      "wound": "Aria starb an dem Abend, an dem er länger blieb; Velicya starb sieben Tage später im Streit.",
+      "desire": "Aria finden / die Stadt zwingen, die Wahrheit zu zeigen",
+      "need": "Vergebung — und nicht allein schuldig zu sein",
+      "contradiction": "Nimmt jede Schuld an sich, handelt aber impulsiv, bevor er denkt.",
+      "speechStyle": "knapp, gereizt, Küchen-/Barsprache",
+      "samples": [
+        "Ich hätte da sein müssen.",
+        "Sag mir, woher ihr meinen Namen kennt."
+      ],
+      "quirk": "Reibt die Narbe am Unterarm, wenn er lügt oder zweifelt",
+      "secrets": [
+        "Gab bei der Befragung nicht alles zu.",
+        "Hinkt von einer Verletzung, die er nicht erklärt."
+      ],
+      "questLine": {
+        "hook": "Finde heraus, warum Greymourne Aria kennt.",
+        "branches": [
+          "fragen",
+          "schweigen",
+          "brechen"
+        ]
+      },
+      "roleReactions": {
+        "grey": "Du bist er — oder jemand, der seinen Platz einnimmt."
+      },
+      "home": "Gasthaus Eisernes Licht",
+      "portrait": "darren",
+      "alive": true
+    },
+    "Velicya": {
+      "rolle": "Darrens Frau – oder das, was die Stadt aus ihr rekonstruiert",
+      "art": "Linkes Auge schmaler, feine Linie in der linken Braue, trockener Spott, barfuß, später zu große geliehene Arbeitsstiefel, schneidet Äpfel mit Darrens Messer. Mutig, praktisch, wütend. Geburtstag: 15.; Darren brachte einmal am 14. Erdbeerkuchen (sie hasst ihn, aß zwei Stück). Erinnert vieles exakt, Kleinigkeiten manchmal falsch (Kerzenfarbe blau vs. gelb; Zimmermannsstift).",
+      "ziel": "Aria finden; nicht nur Darrens Erinnerung sein.",
+      "stimme": "ironisch, schnell; 'Darren.' als ganzer Satz; 'Du bist schlecht im Lügen.'",
+      "geheim": "Sie ist eine Rekonstruktion seit Darrens Ankunft, stabilisiert durch Überschneidung/Entnahmen bei Lebenden (u.a. Nessa Harrow). Verliert eigene Erinnerungen (erster Geburtstagskuchen der Mutter). Nicht früh enthüllen.",
+      "e": "🥀",
+      "furcht": "Nur Darrens Erinnerung zu sein.",
+      "ort": "Zimmer sieben / Gänge",
+      "plan": [
+        "Darren finden",
+        "Aria suchen",
+        "Fehler der Stadt bemerken"
+      ],
+      "meinung": {
+        "Marlowe": "duldet ihn",
+        "Elias Ward": "seltsam nützlich",
+        "Mascha Petrowa": "respektiert Härte"
+      },
+      "romance": true,
+      "geschlecht": "w",
+      "schedule": [
+        "nacht: Zimmer sieben",
+        "spät: Gänge hinter Messingbändern"
+      ],
+      "adult": true,
+      "backstory": "Darrens Frau — oder die Rekonstruktion der Stadt. Erinnert vieles exakt, Kleinigkeiten manchmal falsch.",
+      "wound": "Starb in der Küche; kehrt zurück als etwas, das sich erinnert.",
+      "desire": "Aria finden; nicht nur Erinnerung sein",
+      "need": "Eigene Existenz, nicht nur Darrens Schuld",
+      "contradiction": "Spottet trocken, aber panisch bei falschen Kerzenfarben.",
+      "speechStyle": "ironisch, schnell; „Darren.“ als ganzer Satz",
+      "samples": [
+        "Du bist schlechter Lügner.",
+        "Das Bad war blau. Oder gelb. Verdammt."
+      ],
+      "quirk": "Barfuß, bis sie geliehene Stiefel findet; schneidet Äpfel mit Darrens Messer",
+      "secrets": [
+        "Manche Erinnerungen sind implantiert.",
+        "Kennt einen Namen im Register, den Darren nicht kennen sollte."
+      ],
+      "questLine": {
+        "hook": "Hilf ihr, echte von falschen Erinnerungen zu trennen.",
+        "branches": [
+          "glauben",
+          "prüfen",
+          "opfern"
+        ]
+      },
+      "portrait": "velicya",
+      "home": "Maschas Haus",
+      "alive": true
+    },
+    "Aria": {
+      "rolle": "Darrens tote Tochter (ca. 6)",
+      "art": "Dunkle Locken, roter Haarreif, weiße Tasse mit rotem Fuchs, Schnecke namens Großmutter in einer Streichholzschachtel. Lebte mit rotem Wintermantel, später dunkelblau mit zwei fehlenden Knöpfen – Gelb hasste sie ('sieht aus wie Senf'). Malt das große A mit zu tiefem Querstrich.",
+      "ziel": "–",
+      "stimme": "'Papa.'",
+      "geheim": "Erscheint nur als Bahnsteigkind/Stimme/Spiegelbild. Der gelbe Kindermantel ist KEIN echtes Andenken, sondern Greymournes falscher Beweis (die Stadt baut Beweise, nicht nur Menschen). Jede Version hat beim Kleinen Fehler. Spät: Formular ANGEHÖRIGER wird zu ABHOLER.",
+      "adult": true,
+      "backstory": "Tochter — tot, lebendig, Echo. Sagt Papa und Blau.",
+      "wound": "Starb, während Darren arbeitete.",
+      "desire": "Gefunden werden",
+      "need": "Sicherheit",
+      "contradiction": "Kind und Zeugin zugleich.",
+      "speechStyle": "kurz, klar, manchmal zu erwachsen",
+      "samples": [
+        "Papa.",
+        "Blau."
+      ],
+      "quirk": "Steht dort, wo Nebel dichter wird",
+      "secrets": [
+        "Kennt den Weg zum Amt der gestrichenen Namen"
+      ],
+      "e": "👧",
+      "romance": false,
+      "geschlecht": "w",
+      "alive": true
+    },
+    "Marlowe": {
+      "rolle": "Wirt des Eisernen Lichts",
+      "art": "Schwer gebaut, dichter grauer Bart, vernarbte Knöchel, Mantelkragen nass ohne Regen. Trocken-humorvoll ('Das ist Wasser mit Ehrgeiz'), ruhig, hält ein langes Messer mit geübter Selbstverständlichkeit. Gibt zu viel bezahltes Geld zurück, damit man sich an den Preis erinnert.",
+      "ziel": "Gäste lebend durch die Nacht bringen; Regeln einhalten.",
+      "stimme": "'Ich kenne Regeln. Keine Gründe.'",
+      "geheim": "Weiß mehr über die Zuordnungen seines Hauses. Messingzunge Schicht 42 trägt RÜCKGABE: MARLOWE – etwas versucht, ihn der Schicht zurückzugeben. Narben an den Knöcheln wirken zu gerade für reine Barkeeperhände. Führt eine eigene Rechnung. Türen seines Hauses können in der Westgrube stehen.",
+      "e": "🍺",
+      "furcht": "Dass sein Haus die Gäste falsch zuordnet.",
+      "ort": "Gasthaus Eisernes Licht",
+      "plan": [
+        "Gäste durch die Nacht bringen",
+        "Regeln durchsetzen",
+        "Rechnung führen"
+      ],
+      "meinung": {
+        "Elias Ward": "toliert den Wahnsinnigen",
+        "Mascha Petrowa": "zahlt ehrlich",
+        "Velicya": "Gast, der keines sein sollte"
+      },
+      "romance": false,
+      "geschlecht": "m",
+      "schedule": [
+        "immer: Schankraum",
+        "glocke: erstarrt kurz"
+      ],
+      "adult": true,
+      "backstory": "Kennt die Stadt länger als gut für ihn ist.",
+      "wound": "Hat Namen gestrichen.",
+      "desire": "Ordnung im Register",
+      "need": "Vergessen eigener Schuld",
+      "contradiction": "Hilft und löscht zugleich.",
+      "speechStyle": "bürokratisch-leise",
+      "samples": [
+        "Namen haben Gewicht.",
+        "Sie sollten sitzen bleiben."
+      ],
+      "quirk": "Schreibt mit Bleistift ohne Spitze",
+      "secrets": [
+        "Hat Darrens Akte schon gesehen"
+      ],
+      "alive": true
+    },
+    "Elias Ward": {
+      "rolle": "Vermesser, lebt zwischen den Wänden",
+      "art": "Über fünfzig, grauer Bart, Mantel mit Lederflicken, Vermesserkette mit nummerierten Gliedern um den Hals, abgeblendete Grubenlampe, trägt einen Käfig mit einem seit vier Jahren toten Kanarienvogel, der rückwärts lebt (wird warm, atmet, singt – wenn er fliegt, sollte man nicht mehr unten sein). Zeigerlose Taschenuhr mit Kohlestaub. Lügt nicht, verschweigt aber.",
+      "ziel": "Seinen Bruder Samuel Ward finden, der in die Westgrube ging.",
+      "stimme": "nüchtern, präzise; 'Das stand gestern noch nicht darin.'; 'Ich bin wahnsinnig, nicht unhöflich.'; 'Leider vernünftig.'",
+      "geheim": "Hat den Tag verkauft, an dem er beschloss, Samuel zu suchen; erinnert sich nicht mehr, wie Samuel lachte.",
+      "e": "🦜",
+      "furcht": "Samuel zu finden und ihn nicht mehr zu erkennen.",
+      "ort": "Kammer unter dem Treppenhaus / Straßen",
+      "plan": [
+        "Vermessen",
+        "Dich warnen",
+        "Samuel suchen"
+      ],
+      "meinung": {
+        "Marlowe": "Dach über dem Kopf",
+        "Mascha Petrowa": "verständigt sich ohne Namen",
+        "Velicya": "zu glatt"
+      },
+      "romance": true,
+      "geschlecht": "m",
+      "schedule": [
+        "tag: vermessen",
+        "nacht: Kammer"
+      ],
+      "adult": true,
+      "backstory": "Untermieter unter dem Treppenhaus; hört alles.",
+      "wound": "Wurde gestrichen und kam zurück.",
+      "desire": "Bleiben",
+      "need": "Zeuge sein",
+      "contradiction": "Will unsichtbar sein und erzählt trotzdem.",
+      "speechStyle": "flüsternd, hastig",
+      "samples": [
+        "Nicht die Treppe nach oben."
+      ],
+      "quirk": "Klopft dreimal an Rohre",
+      "secrets": [
+        "Kennt eine Tür hinter dem Kesselhaus"
+      ],
+      "alive": true
+    },
+    "Mascha Petrowa": {
+      "rolle": "Vorarbeiterin aus dem Aschenviertel",
+      "art": "Hart, schnell, zählt Geräusche statt Sekunden, flucht, schützt ihre Leute, verletzte Hand. Kennt Wege ohne Schrift. 'Dann stell eine bessere Frage.' Verachtet Leute, die beruflich Rätsel verkaufen.",
+      "ziel": "Ihre Schicht und die Witwen/Kinder des Viertels schützen; Jon Verricks Rückgabe verhindern.",
+      "stimme": "derb, knapp, praktisch; 'Dann stell eine bessere Frage.'; 'Wenn ich aufhöre, weil es unbequem wird, war es keiner.'",
+      "geheim": "Fünf Kerben in ihrer Tür, ein fünfter Platz am Tisch – jemand aus ihrer Familie fehlt; ihre Mutter nahm die Treppe aus der Hausordnung.",
+      "e": "⚒️",
+      "furcht": "Dass die Schicht zurückgegeben wird.",
+      "ort": "Aschenviertel / Fabrik",
+      "plan": [
+        "Schicht schützen",
+        "Dich prüfen",
+        "Jon Verrick verhindern"
+      ],
+      "meinung": {
+        "Marlowe": "ok für einen Wirt",
+        "Elias Ward": "verrückt, aber brauchbar",
+        "Irena": "alte Bekannte"
+      },
+      "romance": true,
+      "geschlecht": "w",
+      "schedule": [
+        "schicht: Fabrik",
+        "danach: Haus mit Aschelinie"
+      ],
+      "adult": true,
+      "backstory": "Hart, schnell, zählt Geräusche statt Sekunden, flucht, schützt ihre Leute, verletzte Hand. Kennt Wege ohne Schrift. 'Dann stell eine bessere Frage.' Verachtet L",
+      "wound": "Fünf Kerben in ihrer Tür, ein fünfter Platz am Tisch – jemand aus ihrer Familie fehlt; ihre Mutter n",
+      "desire": "Ihre Schicht und die Witwen/Kinder des Viertels schützen; Jon Verricks Rückgabe verhindern.",
+      "need": "Ruhe",
+      "contradiction": "Will helfen und sich schützen.",
+      "speechStyle": "derb, knapp, praktisch; 'Dann stell eine bessere Frage.'; 'Wenn ich aufhöre, weil es unbequem wird, ",
+      "samples": [
+        "…"
+      ],
+      "quirk": "schaut in den Nebel",
+      "secrets": [
+        "Fünf Kerben in ihrer Tür, ein fünfter Platz am Tisch – jemand aus ihrer Familie fehlt; ihre Mutter nahm die Treppe aus der Hausordnung."
+      ],
+      "alive": true
+    },
+    "Nessa Harrow": {
+      "rolle": "Wäscherin, Mutter zweier Kinder",
+      "art": "Vom Waschdampf gerötete Haut, Seifenschaum über der Braue. Wurde von einem Karren verletzt; sagte ihren vollen Namen laut.",
+      "ziel": "Für ihre Kinder überleben.",
+      "stimme": "erschöpft, misstrauisch",
+      "geheim": "Die Stadt hält sie für eine 'passende Überschneidung' mit Velicya (spät).",
+      "e": "🧺",
+      "furcht": "Ihre Kinder zu verlieren.",
+      "ort": "Waschküche / Aschenviertel",
+      "plan": [
+        "Waschen",
+        "Überleben",
+        "Fremde meiden"
+      ],
+      "meinung": {
+        "Mascha Petrowa": "Schutz"
+      },
+      "romance": true,
+      "geschlecht": "w",
+      "schedule": [
+        "tag: waschen",
+        "nacht: bei den Kindern"
+      ],
+      "adult": true,
+      "backstory": "Vom Waschdampf gerötete Haut, Seifenschaum über der Braue. Wurde von einem Karren verletzt; sagte ihren vollen Namen laut.",
+      "wound": "Die Stadt hält sie für eine 'passende Überschneidung' mit Velicya (spät).",
+      "desire": "Für ihre Kinder überleben.",
+      "need": "Ruhe",
+      "contradiction": "Will helfen und sich schützen.",
+      "speechStyle": "erschöpft, misstrauisch",
+      "samples": [
+        "…"
+      ],
+      "quirk": "schaut in den Nebel",
+      "secrets": [
+        "Die Stadt hält sie für eine 'passende Überschneidung' mit Velicya (spät)."
+      ],
+      "alive": true
+    },
+    "Jon Verrick / Alina Verrick": {
+      "rolle": "Toter Nachtofen-Arbeiter (Drosselweg 8) und seine Witwe",
+      "art": "Jon starb unter einem Karren, Brot ohne Kümmel bei sich. Alina weint nicht, Lippen schmal, Kinder.",
+      "ziel": "Alina: dass Jon nicht 'zurückgegeben' wird.",
+      "geheim": "Register: JON VERRICK – RÜCKGABE AUSSTEHEND. ERSATZ ZULÄSSIG.",
+      "adult": true,
+      "backstory": "Jon starb unter einem Karren, Brot ohne Kümmel bei sich. Alina weint nicht, Lippen schmal, Kinder.",
+      "wound": "Register: JON VERRICK – RÜCKGABE AUSSTEHEND. ERSATZ ZULÄSSIG.",
+      "desire": "Alina: dass Jon nicht 'zurückgegeben' wird.",
+      "need": "Ruhe",
+      "contradiction": "Will helfen und sich schützen.",
+      "speechStyle": "leise",
+      "samples": [
+        "…"
+      ],
+      "quirk": "schaut in den Nebel",
+      "secrets": [
+        "Register: JON VERRICK – RÜCKGABE AUSSTEHEND. ERSATZ ZULÄSSIG."
+      ],
+      "alive": true
+    },
+    "Arthur Pell": {
+      "rolle": "Gast aus Zimmer sechs",
+      "art": "Alt, pfeifender Husten, summt vier Töne. Wurde durch seine Tür in die Westgrube zugeordnet: AUSGEGEBEN 1, ZURÜCK 0.",
+      "ziel": "–",
+      "geheim": "Sein Papierstreifen trug vorher den Namen M. Venn.",
+      "adult": true,
+      "backstory": "Alt, pfeifender Husten, summt vier Töne. Wurde durch seine Tür in die Westgrube zugeordnet: AUSGEGEBEN 1, ZURÜCK 0.",
+      "wound": "Sein Papierstreifen trug vorher den Namen M. Venn.",
+      "desire": "–",
+      "need": "Ruhe",
+      "contradiction": "Will helfen und sich schützen.",
+      "speechStyle": "leise",
+      "samples": [
+        "…"
+      ],
+      "quirk": "schaut in den Nebel",
+      "secrets": [
+        "Sein Papierstreifen trug vorher den Namen M. Venn."
+      ],
+      "alive": true
+    },
+    "Irena": {
+      "rolle": "Hüterin in St. Orison",
+      "art": "Bleich, streng, alte Bekannte Maschas. Nimmt Beichtzettel und Pfänder.",
+      "ziel": "Die Ordnung der Kirche wahren.",
+      "stimme": "'Ihr habt zwei Antworten bekommen. Die Kirche wollte mehr.'",
+      "e": "⛪",
+      "furcht": "Dass die Kirche nur noch Pfänder kennt.",
+      "ort": "St. Orison",
+      "plan": [
+        "Beichten nehmen",
+        "Ordnung wahren",
+        "Mascha helfen oder bremsen"
+      ],
+      "meinung": {
+        "Mascha Petrowa": "alte Bindung",
+        "Marlowe": "zahlt Pfand"
+      },
+      "romance": true,
+      "geschlecht": "w",
+      "schedule": [
+        "immer: St. Orison"
+      ],
+      "adult": true,
+      "backstory": "Bleich, streng, alte Bekannte Maschas. Nimmt Beichtzettel und Pfänder.",
+      "wound": "Dass die Kirche nur noch Pfänder kennt.",
+      "desire": "Die Ordnung der Kirche wahren.",
+      "need": "Ruhe",
+      "contradiction": "Will helfen und sich schützen.",
+      "speechStyle": "'Ihr habt zwei Antworten bekommen. Die Kirche wollte mehr.'",
+      "samples": [
+        "…"
+      ],
+      "quirk": "schaut in den Nebel",
+      "secrets": [
+        "Kennt einen Namen zu viel"
+      ],
+      "alive": true
+    },
+    "Toma / Jarek": {
+      "rolle": "Junge Arbeiter in Maschas Schicht",
+      "art": "Toma läuft Botengänge; Jarek verwechselt rechts und links unter Druck.",
+      "ziel": "Durch die Schicht kommen.",
+      "adult": true,
+      "backstory": "Toma läuft Botengänge; Jarek verwechselt rechts und links unter Druck.",
+      "wound": "etwas Verborgenes",
+      "desire": "Durch die Schicht kommen.",
+      "need": "Ruhe",
+      "contradiction": "Will helfen und sich schützen.",
+      "speechStyle": "leise",
+      "samples": [
+        "…"
+      ],
+      "quirk": "schaut in den Nebel",
+      "secrets": [
+        "Kennt einen Namen zu viel"
+      ],
+      "alive": true
+    },
+    "Der namenlose Junge": {
+      "rolle": "Kind ohne Namen, schließt sich der Gruppe an",
+      "art": "Still, wachsam; sucht sich später vielleicht einen Namen auf einer Holzmarke.",
+      "ziel": "Einen eigenen Namen finden – und ihn nicht laut sagen.",
+      "adult": true,
+      "backstory": "Still, wachsam; sucht sich später vielleicht einen Namen auf einer Holzmarke.",
+      "wound": "etwas Verborgenes",
+      "desire": "Einen eigenen Namen finden – und ihn nicht laut sagen.",
+      "need": "Ruhe",
+      "contradiction": "Will helfen und sich schützen.",
+      "speechStyle": "leise",
+      "samples": [
+        "…"
+      ],
+      "quirk": "schaut in den Nebel",
+      "secrets": [
+        "Kennt einen Namen zu viel"
+      ],
+      "alive": true
+    },
+    "Der Schaffner": {
+      "rolle": "Schaffner des Zuges",
+      "art": "Dunkelblaue feuchte Uniform, Augen im Schatten der Mütze, kommt ohne Schritte. Stempelt die Karte; schreibt in violetter Tinte auf die Rückseite: Name, Gepäckstück, 'Ohne Rückfahrt'.",
+      "stimme": "'Fahrkarten.' 'Wenn Sie weiterfahren wollen, bleiben Sie sitzen. Dann sehen Sie nicht hinaus.'",
+      "e": "🎫",
+      "furcht": "—",
+      "ort": "Zug",
+      "plan": [
+        "Karten stempeln"
+      ],
+      "meinung": {},
+      "romance": false,
+      "geschlecht": "m",
+      "schedule": [
+        "zug: Abteile"
+      ],
+      "adult": true,
+      "backstory": "Dunkelblaue feuchte Uniform, Augen im Schatten der Mütze, kommt ohne Schritte. Stempelt die Karte; schreibt in violetter Tinte auf die Rückseite: Name, Gepäckst",
+      "wound": "—",
+      "desire": "—",
+      "need": "Ruhe",
+      "contradiction": "Will helfen und sich schützen.",
+      "speechStyle": "'Fahrkarten.' 'Wenn Sie weiterfahren wollen, bleiben Sie sitzen. Dann sehen Sie nicht hinaus.'",
+      "samples": [
+        "…"
+      ],
+      "quirk": "schaut in den Nebel",
+      "secrets": [
+        "Kennt einen Namen zu viel"
+      ],
+      "alive": true
+    },
+    "Die alte Frau im Zug": {
+      "rolle": "Mitreisende mit Weidenkorb",
+      "art": "Strickt einen grauen Handschuh, sieht nie aus dem Fenster, trockene Stimme. Gibt die ersten Regeln weiter.",
+      "stimme": "'Der Ort ist nicht das Problem. Der Halt ist es.' 'Lassen Sie sich nicht beim vollen Namen rufen.'",
+      "e": "🧶",
+      "furcht": "—",
+      "ort": "Zug",
+      "plan": [
+        "Warnen",
+        "Stricken"
+      ],
+      "meinung": {},
+      "romance": false,
+      "geschlecht": "w",
+      "schedule": [
+        "zug: Abteil"
+      ],
+      "adult": true,
+      "backstory": "Strickt einen grauen Handschuh, sieht nie aus dem Fenster, trockene Stimme. Gibt die ersten Regeln weiter.",
+      "wound": "—",
+      "desire": "—",
+      "need": "Ruhe",
+      "contradiction": "Will helfen und sich schützen.",
+      "speechStyle": "'Der Ort ist nicht das Problem. Der Halt ist es.' 'Lassen Sie sich nicht beim vollen Namen rufen.'",
+      "samples": [
+        "…"
+      ],
+      "quirk": "schaut in den Nebel",
+      "secrets": [
+        "Kennt einen Namen zu viel"
+      ],
+      "alive": true
+    },
+    "Leon": {
+      "rolle": "Junger Spüler aus Darrens Küche (nur Erinnerung)",
+      "art": "Schnitt sich tief in die Hand; Darren blieb bei ihm und verpasste den Bus.",
+      "geheim": "Darren hat die Erinnerung an ihn im Glockenhandel verkauft – nur der Name blieb als Loch.",
+      "adult": true,
+      "backstory": "Schnitt sich tief in die Hand; Darren blieb bei ihm und verpasste den Bus.",
+      "wound": "Darren hat die Erinnerung an ihn im Glockenhandel verkauft – nur der Name blieb als Loch.",
+      "desire": "—",
+      "need": "Ruhe",
+      "contradiction": "Will helfen und sich schützen.",
+      "speechStyle": "leise",
+      "samples": [
+        "…"
+      ],
+      "quirk": "schaut in den Nebel",
+      "secrets": [
+        "Darren hat die Erinnerung an ihn im Glockenhandel verkauft – nur der Name blieb als Loch."
+      ],
+      "alive": true
+    },
+    "Frau Quill": {
+      "rolle": "Die alte Frau im Zug",
+      "art": "Strickt ohne Wolle, warnt vor dem Aussteigen. Augen wie trübes Glas.",
+      "stimme": "ruhig, endgültig",
+      "ziel": "Dich im Zug halten — oder prüfen",
+      "furcht": "Dass du aussteigst und sie recht behält",
+      "geheim": "War selbst einmal ausgestiegen",
+      "backstory": "Fahrgast ohne Fahrkarte in den Akten.",
+      "wound": "Verlor jemanden am Bahnsteig.",
+      "desire": "Niemanden mehr verlieren",
+      "need": "Gehört zu werden",
+      "contradiction": "Warnt und bleibt doch sitzen.",
+      "speechStyle": "kurze Sätze, Nadeln pausieren",
+      "samples": [
+        "Sie sollten sitzen bleiben.",
+        "Der Halt ist kein Halt."
+      ],
+      "quirk": "Stricknadeln ohne Wolle",
+      "secrets": [
+        "Kennt den Schaffner beim wahren Namen"
+      ],
+      "e": "🧶",
+      "adult": true,
+      "geschlecht": "w",
+      "ort": "Bahnhof Greymourne",
+      "home": "Nachtzug-Abteil",
+      "romance": false,
+      "schedule": [
+        "Nacht: Nachtzug-Abteil",
+        "Morgen: Bahnhof Greymourne"
+      ]
+    },
+    "Mascha": {
+      "rolle": "Wirtin / Zuflucht",
+      "art": "Führt das Eiserne Licht; kenntnisreich, müde, großzügig mit Suppe und streng mit Fragen.",
+      "stimme": "warm, dann scharf",
+      "ziel": "Gäste am Leben halten",
+      "furcht": "Dass das Register ihr Haus streicht",
+      "geheim": "Beherbergt gestrichene Namen",
+      "backstory": "Übernahm das Gasthaus nach dem letzten Nebelwinter.",
+      "wound": "Ein Gast verschwand aus Zimmer 3.",
+      "desire": "Ein volles Haus ohne Lücken",
+      "need": "Vertrauen",
+      "contradiction": "Hilft jedem — und führt Buch.",
+      "speechStyle": "direkt, mit Spitznamen",
+      "samples": [
+        "Suppe zuerst. Fragen später.",
+        "Zimmer 3 bleibt zu."
+      ],
+      "quirk": "Wischen der Theke bei Lügen",
+      "secrets": [
+        "Keller luke führt zum Aschenviertel"
+      ],
+      "e": "🍲",
+      "adult": true,
+      "geschlecht": "w",
+      "ort": "Gasthaus Eisernes Licht",
+      "home": "Gasthaus Eisernes Licht",
+      "romance": true,
+      "schedule": [
+        "Morgen: Gasthaus Eisernes Licht",
+        "Mittag: Gasthaus Eisernes Licht",
+        "Abend: Gasthaus Eisernes Licht",
+        "Nacht: Gasthaus Eisernes Licht"
+      ]
+    },
+    "Inspektor Rhee": {
+      "rolle": "Befrager des Amts",
+      "art": "Saubere Manschetten im Schmutzviertel. Fragt in Schleifen.",
+      "stimme": "höflich, unnachgiebig",
+      "ziel": "Darrens Akte schließen",
+      "furcht": "Offene Zahlen",
+      "geheim": "Kennt Velicyas Sterbedatum in zwei Versionen",
+      "backstory": "Aufsteiger im Register.",
+      "wound": "Ein Fall, der nicht aufging, kostete ihn Beförderung.",
+      "desire": "Eine Akte ohne Lücke",
+      "need": "Anerkennung",
+      "contradiction": "Sucht Wahrheit, tilgt Widersprüche.",
+      "speechStyle": "Fragen statt Aussagen",
+      "samples": [
+        "Noch einmal von vorn.",
+        "Die Zahlen… stimmen nicht."
+      ],
+      "quirk": "Klopft mit dem Ring aufs Papier",
+      "secrets": [
+        "Hat eine Privatliste gestrichener Kinder"
+      ],
+      "e": "🔎",
+      "adult": true,
+      "geschlecht": "m",
+      "ort": "Amt der gestrichenen Namen",
+      "home": "Amt der gestrichenen Namen",
+      "romance": false
+    }
+  },
+  "fraktionen": {
+    "Das Register / Amt": "Bürokratische Seele der Stadt. Verwaltet Namen, Ausgaben, Rückgaben, Ersatz. Spricht in Großbuchstaben-Vermerken. Grausam durch Sauberkeit.",
+    "Die Schichten": "Arbeiter mit Metallmarken; Fabrik zählt Körper, Mine zählt Zeit. Ungeschriebene Ordnung, Kohlestücke als Fehlzeiten. Ein Streik ohne Stimmen ist möglich.",
+    "Das Aschenviertel": "Solidarität ohne Namen; Gewohnheiten statt Rituale ('Gewohnheiten merkt man, wenn sie sich verändern').",
+    "St. Orison": "Beichte gegen Zeugen; Schulden sprechen und verlagern.",
+    "Glockenhändler": "Handeln mit Erinnerungen, Durchgängen, Möglichkeiten.",
+    "Die Wiedergänger": "Vertraute Stimmen vor Türen, Bahnsteigkinder, Rekonstruktionen. Kennen das Schwere, nicht das Kleine."
+  },
+  "zeitlinie_roman": [
+    "Vorgeschichte: Darren bleibt nach Schicht bei Leon; an diesem Abend stirbt Aria (Velicya war kurz im Bad). Sieben Tage später, im Streit, stirbt Velicya in der Küche. Darren wird befragt.",
+    "Prolog: Zug nach Blackmere hält um Mitternacht in Greymourne. Fahrkarte: 'Darren Crowe. Ein Gepäckstück. Ohne Rückfahrt.' Bahnsteigkind sagt 'Papa', antwortet 'Blau'. Darren steigt aus.",
+    "Teil I: Eisernes Licht, Marlowe, Velicya vor der Tür und in Zimmer sieben, Elias in der Wand, Arthur Pell in die Westgrube zugeordnet, der tote Vogel, Nessa Harrow, Jon Verricks Tod am Drosselweg, Maschas Schicht, Aschenviertel, Amt der gestrichenen Namen.",
+    "Teil II (Der Glockenhandel): St. Orison, Elias' verkaufter Tag, Darren verliert Leon, Samuel, Kanal, Rückgabehalle, Maschas Haus, Börse der Möglichkeiten, ein Kind mit Darrens Augen, Streik ohne Stimmen, Kinder unter den Laternen.",
+    "Teil III (Die Mine öffnet sich): Westgrube (Lohnhalle hinter Ziegelwand), leere Küche (Tag 6), Marlowes Rechnung (Schicht 42 / RÜCKGABE: MARLOWE), Velicyas falscher Geburtstag (14./15., Kerze), Förderschacht der Namen, Arias gelber Mantel als falscher Beweis.",
+    "Teil IV: Unter der ersten Glocke, sieben Tage, Frau aus Erinnerung (Rekonstruktion/Überschneidung), Greymournes Angebot, Maschas offene Tür, der Turm ohne Glocke, was Liebe nicht retten kann, wer aus dem Nebel kommt."
   ],
-  "motive": [
-   "Nebel wie trübes Wasser",
-   "Glocken (tief, unsauber, im Brustbein spürbar); der Turm ohne Glocke",
-   "Kohle, Ruß, blaues Ofenfeuer, Rußöl",
-   "Namen auf Messingbändern, Papierstreifen, Marken; herausgeschnittene Namen",
-   "Zählen: Atemzüge, Schritte, Klopfrhythmus drei-Pause-zwei",
-   "Kreidezeichnungen von Kindern: Haus, drei Figuren, über der kleinsten ein A",
-   "Tassen, Teller, gedeckte Plätze, die einer zu viel sind",
-   "Der tote Kanarienvogel, der rückwärts lebt",
-   "Falsche Beweise (gelber Kindermantel, falscher Löffel, Formular ABHOLER)",
-   "Falscher Geburtstag (14. vs 15.), Kerzenfarbe als Streitpunkt",
-   "Messingzungen / Schichtnummern; 42 und die fehlende 43",
-   "Die Stadt von unten: Fundamente, schwebende Räume, Turm ohne Glocke"
+  "spielstart": {
+    "darren": "Nachtzug, kurz nach Mitternacht, Abteil mit Messinglampe, Soldat schläft, alte Frau strickt, Junge liest ohne umzublättern. Handabdruck außen im Ruß. Zug hält in GREYMOURNE.",
+    "eigene": "Derselbe Zug, dieselbe Nacht. Die Fahrkarte der eigenen Figur trägt auf der Rückseite ihren Namen in violetter Tinte und eine Kinderzeichnung von etwas, das sie verloren hat. Darren Crowe kann als NPC im Nebenabteil sitzen oder später im Eisernen Licht auftauchen."
+  },
+  "setup": [
+    {
+      "id": "zug",
+      "titel": "Der Halt",
+      "text": "Der Zug hätte nicht halten dürfen.\n\nNebel wie trübes Wasser. Außen im Ruß: der Abdruck einer kleinen Hand.\nDie alte Frau legt die Stricknadeln quer. „Sie sollten sitzen bleiben.“\n\nWas tust du?",
+      "choices": [
+        {
+          "id": "sit",
+          "label": "Sitzen bleiben",
+          "impression": "vorsichtig"
+        },
+        {
+          "id": "window",
+          "label": "Zum Fenster gehen",
+          "impression": "neugierig"
+        },
+        {
+          "id": "ask",
+          "label": "Die alte Frau fragen",
+          "impression": "höflich"
+        },
+        {
+          "id": "unwichtig",
+          "label": "Nach etwas Unwichtigem fragen",
+          "impression": "klug"
+        }
+      ]
+    },
+    {
+      "id": "karte",
+      "titel": "Fahrkarte",
+      "text": "Der Schaffner steht da, ohne Schritte. „Fahrkarten.“\nAuf der Rückseite: violette Tinte. Ein Name. Ohne Rückfahrt.\n\nWie reagierst du?",
+      "choices": [
+        {
+          "id": "silent",
+          "label": "Schweigen und nicken",
+          "impression": "still"
+        },
+        {
+          "id": "correct",
+          "label": "Einen Fehler auf der Karte suchen",
+          "impression": "prüfend"
+        },
+        {
+          "id": "ask_name",
+          "label": "Nach dem Ort fragen – nicht nach Namen",
+          "impression": "regelbewusst"
+        },
+        {
+          "id": "refuse",
+          "label": "Die Karte nicht hergeben",
+          "impression": "widerspenstig"
+        }
+      ]
+    },
+    {
+      "id": "sense",
+      "titel": "Erster Atem",
+      "text": "Kälte. Kohle. Bohnerwachs. Irgendwo eine Glocke, die du eher im Brustbein spürst als hörst.\n\nWorauf achtest du?",
+      "choices": [
+        {
+          "id": "smell",
+          "label": "Gerüche",
+          "focus": "sinne"
+        },
+        {
+          "id": "count",
+          "label": "Zahlen und Striche",
+          "focus": "zählen"
+        },
+        {
+          "id": "faces",
+          "label": "Gesichter im Nebel",
+          "focus": "menschen"
+        },
+        {
+          "id": "rules",
+          "label": "Was die alte Frau nicht gesagt hat",
+          "focus": "regeln"
+        }
+      ]
+    },
+    {
+      "id": "exit",
+      "titel": "Schwelle",
+      "text": "Die Tür zum Bahnsteig. Nebel bis zur Brust. Ein Kind im hellen Mantel hebt den Kopf.\n\nSteigst du aus?",
+      "choices": [
+        {
+          "id": "out",
+          "label": "Aussteigen",
+          "impression": "entschlossen"
+        },
+        {
+          "id": "hesitate",
+          "label": "Zögern und die alte Frau ansehen",
+          "impression": "zweifelnd"
+        },
+        {
+          "id": "child",
+          "label": "Das Kind ansprechen – vorsichtig, ohne Namen",
+          "impression": "fürsorglich"
+        },
+        {
+          "id": "bag",
+          "label": "Zuerst die Tasche prüfen",
+          "impression": "pragmatisch"
+        }
+      ]
+    }
   ],
-  "spoilerschutz": "NIEMALS früh enthüllen: (1) Wie Velicya starb (Schere, Küche, Tag 7). (2) Dass Velicya eine Rekonstruktion seit Ankunft ist und durch Entnahmen bei Lebenden (Nessa) stabil bleibt. (3) Greymournes Angebot FORTBESTAND gegen fortlaufende Überschreibung Nessas. (4) Was im Turm ohne Glocke und am Ende geschieht. Nur Andeutungen, Bruchstücke, Spiegelbilder – erst nach langer Spielzeit und wenn der Spieler es sich erarbeitet. Frühe Fehler der Stadt (falsche Kerze, gelber Mantel, falsche Tassenfarbe) dürfen als Unheimliches stehen, ohne die große Wahrheit zu erklären."
- },
- "orte": {
-  "Bahnhof Greymourne": "Zwei Gaslampen im Nebel, abgeblättertes Schild, verschlossener Fahrkartenschalter, drei Bänke, Vordach mit schwarzem Wasser. Uhr: beide Zeiger auf zwölf, tickt trotzdem. Schienen enden durchtrennt. Die Scheibe des Schalters spiegelt manchmal eine helle Küche. Bahnsteigkinder im Nebel.",
-  "Weg zum Tor": "Steiler Weg zwischen schwarzen Bäumen; Schritte im Laub laufen parallel und gehen zwei Schritte weiter, wenn man stehen bleibt. Mauer mit Gaslampen, Torbogen mit verwaschener Inschrift, frische Kreidezeichnungen am Mauerfuß.",
-  "Hauptstraße": "Breit, Ruß in den Rinnen ohne Radspuren, Rauch sinkt an den Ziegeln herab. Menschen hinter Fenstern schlafen nie und sehen nie hinaus. Schiefertafel NACHTSCHICHT AUSGEGEBEN/ZURÜCK. Bäckerei mit Hausnummern in den Broten; Häuser wechseln die Straßenseite. Ablaufgitter, aus denen es klopft. Wegweiser: BAHNHOF, MINE, ST. ORISON, vierter Arm nur ein Turm.",
-  "Gasthaus Eisernes Licht": "Marlowes Gasthaus, Schild ohne Schrift: ein Glas mit gelber Flamme. Schankraum größer als die Fassade; Ofen mit blauen Flammen; Gäste, die beim Glockenschlag erstarren. Wasser mit einem schwarzen Korn. Zimmer sieben am Ende des Flurs (Lavendel, ein Bett, zwei Tassen, Schrank ohne Rückwand). Hinter den Türen laufen Messingbänder mit Namensstreifen. Sieben Bilderrahmen, der siebte leer.",
-  "Elias' Kammer unter dem Treppenhaus": "Tote Stelle, an der das Haus Schritte nicht sauber zählt. Regale mit Dochten und Plänen, ein aus Papierfetzen genähter Stadtplan, dessen Straßen an den Nähten nicht zusammenpassen, Messingnadeln mit Namensstreifen. Drei Tassen, Notizen mit morgigem Datum.",
-  "Fabrikviertel / Kesselhaus": "Rohre auf Pfeilern, Kondenswasser brennt helle Flecken ins Pflaster. Arbeiter gehen nach ungeschriebener Ordnung (rote Binden an der Hauswand, graue Schürzen in der Mitte). Markenpresse am Tor, Aufseher, Tafel AUSGEGEBEN/ANGETRETEN. Kessel 41, 42, 44 – die 43 fehlt. Sortierung, Schmelze.",
-  "Aschenviertel": "Niedrige, kalküberstrichene Arbeiterhäuser ohne Namensschilder; an den Türen Zeichen (blauer Faden, gebogene Nägel, ein Kinderstiefel). Frauen sieben Asche, Kinder suchen Kohlestücke. Hier gilt: keine Namen, auch keine Vornamen. Wege ohne Schrift.",
-  "Maschas Haus": "Grüner Fensterladen, fünf Kerben in der Haustür, täglich erneuerte Aschelinie über der Schwelle (nicht drauftreten). Küchentisch mit gedeckten Schalen, deren Zahl sich ändert. Oben wohnt niemand – die Treppe wurde aus der Hausordnung genommen; trotzdem gehen dort Schritte, vier hin, vier zurück.",
-  "Drosselweg": "Gasse der Nachtöfen-Arbeiter; Jon Verrick wohnte in Nr. 8. Hier rollte der Karren.",
-  "Amt der gestrichenen Namen": "Registratur hinter einer Waschküche ohne Schloss (Loch mit grauem Wachs, Haaren, gekreuzten Fäden). Registerseiten, Sätze wie AUSGABE WIDERRUFEN, RÜCKGABE AUSSTEHEND, ERSATZ ZULÄSSIG.",
-  "St. Orison": "Gedrungene Kirche aus schwarzem Stein, Glockenturm mit drei offenen Bögen je Seite, ohne Glocke. Zwei Schalter: links Papierstreifen, rechts Pfand (Münzen, Knöpfe, Marken, ein Milchzahn). 'Beichte gegen Zeugen.' Schulden lassen sich hier sprechen oder übertragen. Irena wacht hier.",
-  "Glockenhandel": "Händler, die Erinnerungen gegen Durchgänge und Marken tauschen. 'Folgen sind kein Aufpreis.' 'Namen sind Adressen.'",
-  "Unter dem Kanal": "Mauerwerk 12: Stützwand aus eingeritzten Namen, übermörtelt, die Buchstaben drücken durch. Darunter die Rückgabehalle: Sortiertische ANKUNFT, PRÜFUNG, ZUORDNUNG; Gegenstände Verschwundener; Kinder in grauen Schürzen; Kohlestücke als Fehlzeiten.",
-  "Börse der Möglichkeiten": "Findet man nur, wenn man aufhört, sie zu suchen. Hof mit einer schwarzen und einer weißen Tür: Schwarz für das, was ihr behalten habt, Weiß für das, was ihr nicht bekommen habt. Ein alter Mann flickt Handschuhe dazwischen.",
-  "Westgrube / Mine": "Fördertürme, Halden. Zugang oft unsichtbar: Vermessungskette an Mörtelfuge → Ziegelwand schwingt nach innen in eine arbeitende Lohnhalle (WESTGRUBE. EINFAHRT/AUSFAHRT Tafeln, Kohldampf). Stollen unter Fabrik und Bahnhof zu einem namenlosen schwarzen Kreis. Schienen, nummerierte Haken, Metallmarken; fällt eine Marke, verschwindet der Träger. Küchen-Erinnerungen können sich in die Mine schieben.",
-  "Der Turm": "Namenloser Turm ohne Glocke, auf keinem Wegweiser beschriftet. Keine Treppe – Räume gestapelt als mögliche Leben (Abzweigungen). Mauerwerk schneidet Fundamente und Stollen, ohne sie zu verdrängen. Schmale senkrechte Löcher. Spät im Spiel; nicht früh betreten lassen. Je höher, desto mehr verliert Velicya.",
-  "Förderschacht der Namen": "Holzförderturm zwischen Arbeiterhäusern ('der tiefe Schacht'). Schild: EINFAHRT NACH STELLE. AUSFAHRT NACH NAME. Korb hält an unmöglichen Stockwerken (Namenssortierung, Messingbuchstaben). Ganz unten: Bohlen über schwarzem Schacht, Seile mit Schildern (Namen oder Beschreibungen). Samuel: fünf Striche, NICHT ABSCHLIESSEN.",
-  "Unter dem Gasthaus / erste Glocke": "Treppe hinter Zimmer sieben älter als das Haus: Stein, Eisen, feuchte Wärme. Darunter hängt die Stadt von unten – Fundamente, schwebende Räume, der Turm durch alles hindurch. Markenfrau sortiert Messingplättchen (CROWE, PETROWA, leere Plättchen).",
-  "Leere Küche / sieben Tage": "Erinnerungsraum: kaltes Fett, tropfender Hahn, zwei Tassen, fehlender dritter Stuhl, Arias Schuhe im Flur. Tag sechs nach Arias Tod; Tag sieben endet im Streit. Greymourne schreibt Fehler hinein (Klopfrhythmus, den Velicya damals nicht gehört hat).",
-  "Nachtzug-Abteil": "Messing, Regen am Fenster, Sitze die sich erinnern.",
-  "Nebelgasse": "Gaslaternen, nasse Steine, Schritte ohne Körper.",
-  "Archivkeller": "Regale, Namen, Zahlen die nicht stimmen.",
-  "Hafenmauer": "Salz, Nebelhörner, Schiffe ohne Flagge."
- },
- "npcs": {
-  "Darren Crowe": {
-   "rolle": "Protagonist des Romans (spielbar)",
-   "art": "36, Koch/Barkeeper aus einer Gaststätte, unrasiert, grau vor Müdigkeit, hinkt (verletztes Bein), helle Narbe am rechten Unterarm, die bei Kälte spannt. Pragmatisch, handelt vor dem Denken, versorgt Wunden reflexhaft, nimmt jede Schuld an sich. Trägt Reisetasche und Taschenmesser mit Holzgriff.",
-   "ziel": "Herausfinden, woher die Stadt seine Tochter kennt; Aria finden.",
-   "stimme": "knapp, gereizt, misstrauisch, Küchen-/Barsprache; 'Ich hätte da sein müssen.'",
-   "geheim": "Tochter Aria starb an einem Abend, an dem er länger blieb, um dem verletzten Spüler Leon zu helfen. Sieben Tage später starb Velicya im Streit in der Küche (Schere, Unfall im Handgemenge) – durch seine Hand. Erst spät enthüllen.",
-   "e": "🧳",
-   "furcht": "Noch jemanden zu verlieren.",
-   "ort": "Bahnsteig / Eisernes Licht",
-   "plan": [
-    "Aria suchen",
-    "Velicya festhalten",
-    "Schulden tragen"
-   ],
-   "meinung": {
-    "Marlowe": "misstrauisch dankbar",
-    "Velicya": "alles"
-   },
-   "romance": false,
-   "geschlecht": "m",
-   "schedule": [
-    "nacht: Ankunft",
-    "danach: Suche"
-   ],
-   "adult": true
+  "arc": {
+    "titel": "Wer durch den Nebel kommt",
+    "acts": [
+      {
+        "id": "a1",
+        "titel": "Ankunft",
+        "ziel": "Im Eisernen Licht ankommen und die ersten Regeln lernen",
+        "mile": [
+          "Bahnsteig überleben",
+          "Marlowe treffen",
+          "Zimmer ohne falsche Tür"
+        ],
+        "twist": "Die Stadt kennt bereits etwas, das du verloren hast."
+      },
+      {
+        "id": "a2",
+        "titel": "Register",
+        "ziel": "Verstehen, wie Namen, Schuld und Rückgabe zusammenhängen",
+        "mile": [
+          "Elias oder Mascha als Führer",
+          "Erstes Register-Zeichen",
+          "Vertrauen aufbauen"
+        ],
+        "twist": "Jemand aus deiner Nähe steht auf einer Tafel AUSGEGEBEN/ZURÜCK."
+      },
+      {
+        "id": "a3",
+        "titel": "Glockenhandel",
+        "ziel": "Einen Preis zahlen oder verweigern",
+        "mile": [
+          "St. Orison",
+          "Erinnerung als Währung",
+          "Ein Fehler der Stadt (Kerze, Mantel, Tasse)"
+        ],
+        "twist": "Was die Stadt zurückgibt, passt nie ganz."
+      },
+      {
+        "id": "a4",
+        "titel": "Turm ohne Glocke",
+        "ziel": "Entscheiden, was du behältst – und was die Stadt behält",
+        "mile": [
+          "Westgrube oder Turm",
+          "Konfrontation mit dem Angebot",
+          "Ausgang oder Verbleib"
+        ],
+        "twist": "Liebe rettet nicht alles; manchmal rettet sie die falsche Version."
+      }
+    ]
   },
-  "Velicya": {
-   "rolle": "Darrens Frau – oder das, was die Stadt aus ihr rekonstruiert",
-   "art": "Linkes Auge schmaler, feine Linie in der linken Braue, trockener Spott, barfuß, später zu große geliehene Arbeitsstiefel, schneidet Äpfel mit Darrens Messer. Mutig, praktisch, wütend. Geburtstag: 15.; Darren brachte einmal am 14. Erdbeerkuchen (sie hasst ihn, aß zwei Stück). Erinnert vieles exakt, Kleinigkeiten manchmal falsch (Kerzenfarbe blau vs. gelb; Zimmermannsstift).",
-   "ziel": "Aria finden; nicht nur Darrens Erinnerung sein.",
-   "stimme": "ironisch, schnell; 'Darren.' als ganzer Satz; 'Du bist schlecht im Lügen.'",
-   "geheim": "Sie ist eine Rekonstruktion seit Darrens Ankunft, stabilisiert durch Überschneidung/Entnahmen bei Lebenden (u.a. Nessa Harrow). Verliert eigene Erinnerungen (erster Geburtstagskuchen der Mutter). Nicht früh enthüllen.",
-   "e": "🥀",
-   "furcht": "Nur Darrens Erinnerung zu sein.",
-   "ort": "Zimmer sieben / Gänge",
-   "plan": [
-    "Darren finden",
-    "Aria suchen",
-    "Fehler der Stadt bemerken"
-   ],
-   "meinung": {
-    "Marlowe": "duldet ihn",
-    "Elias Ward": "seltsam nützlich",
-    "Mascha Petrowa": "respektiert Härte"
-   },
-   "romance": true,
-   "geschlecht": "w",
-   "schedule": [
-    "nacht: Zimmer sieben",
-    "spät: Gänge hinter Messingbändern"
-   ],
-   "adult": true
-  },
-  "Aria": {
-   "rolle": "Darrens tote Tochter (ca. 6)",
-   "art": "Dunkle Locken, roter Haarreif, weiße Tasse mit rotem Fuchs, Schnecke namens Großmutter in einer Streichholzschachtel. Lebte mit rotem Wintermantel, später dunkelblau mit zwei fehlenden Knöpfen – Gelb hasste sie ('sieht aus wie Senf'). Malt das große A mit zu tiefem Querstrich.",
-   "ziel": "–",
-   "stimme": "'Papa.'",
-   "geheim": "Erscheint nur als Bahnsteigkind/Stimme/Spiegelbild. Der gelbe Kindermantel ist KEIN echtes Andenken, sondern Greymournes falscher Beweis (die Stadt baut Beweise, nicht nur Menschen). Jede Version hat beim Kleinen Fehler. Spät: Formular ANGEHÖRIGER wird zu ABHOLER.",
-   "adult": true
-  },
-  "Marlowe": {
-   "rolle": "Wirt des Eisernen Lichts",
-   "art": "Schwer gebaut, dichter grauer Bart, vernarbte Knöchel, Mantelkragen nass ohne Regen. Trocken-humorvoll ('Das ist Wasser mit Ehrgeiz'), ruhig, hält ein langes Messer mit geübter Selbstverständlichkeit. Gibt zu viel bezahltes Geld zurück, damit man sich an den Preis erinnert.",
-   "ziel": "Gäste lebend durch die Nacht bringen; Regeln einhalten.",
-   "stimme": "'Ich kenne Regeln. Keine Gründe.'",
-   "geheim": "Weiß mehr über die Zuordnungen seines Hauses. Messingzunge Schicht 42 trägt RÜCKGABE: MARLOWE – etwas versucht, ihn der Schicht zurückzugeben. Narben an den Knöcheln wirken zu gerade für reine Barkeeperhände. Führt eine eigene Rechnung. Türen seines Hauses können in der Westgrube stehen.",
-   "e": "🍺",
-   "furcht": "Dass sein Haus die Gäste falsch zuordnet.",
-   "ort": "Gasthaus Eisernes Licht",
-   "plan": [
-    "Gäste durch die Nacht bringen",
-    "Regeln durchsetzen",
-    "Rechnung führen"
-   ],
-   "meinung": {
-    "Elias Ward": "toliert den Wahnsinnigen",
-    "Mascha Petrowa": "zahlt ehrlich",
-    "Velicya": "Gast, der keines sein sollte"
-   },
-   "romance": false,
-   "geschlecht": "m",
-   "schedule": [
-    "immer: Schankraum",
-    "glocke: erstarrt kurz"
-   ],
-   "adult": true
-  },
-  "Elias Ward": {
-   "rolle": "Vermesser, lebt zwischen den Wänden",
-   "art": "Über fünfzig, grauer Bart, Mantel mit Lederflicken, Vermesserkette mit nummerierten Gliedern um den Hals, abgeblendete Grubenlampe, trägt einen Käfig mit einem seit vier Jahren toten Kanarienvogel, der rückwärts lebt (wird warm, atmet, singt – wenn er fliegt, sollte man nicht mehr unten sein). Zeigerlose Taschenuhr mit Kohlestaub. Lügt nicht, verschweigt aber.",
-   "ziel": "Seinen Bruder Samuel Ward finden, der in die Westgrube ging.",
-   "stimme": "nüchtern, präzise; 'Das stand gestern noch nicht darin.'; 'Ich bin wahnsinnig, nicht unhöflich.'; 'Leider vernünftig.'",
-   "geheim": "Hat den Tag verkauft, an dem er beschloss, Samuel zu suchen; erinnert sich nicht mehr, wie Samuel lachte.",
-   "e": "🦜",
-   "furcht": "Samuel zu finden und ihn nicht mehr zu erkennen.",
-   "ort": "Kammer unter dem Treppenhaus / Straßen",
-   "plan": [
-    "Vermessen",
-    "Dich warnen",
-    "Samuel suchen"
-   ],
-   "meinung": {
-    "Marlowe": "Dach über dem Kopf",
-    "Mascha Petrowa": "verständigt sich ohne Namen",
-    "Velicya": "zu glatt"
-   },
-   "romance": true,
-   "geschlecht": "m",
-   "schedule": [
-    "tag: vermessen",
-    "nacht: Kammer"
-   ],
-   "adult": true
-  },
-  "Mascha Petrowa": {
-   "rolle": "Vorarbeiterin aus dem Aschenviertel",
-   "art": "Hart, schnell, zählt Geräusche statt Sekunden, flucht, schützt ihre Leute, verletzte Hand. Kennt Wege ohne Schrift. 'Dann stell eine bessere Frage.' Verachtet Leute, die beruflich Rätsel verkaufen.",
-   "ziel": "Ihre Schicht und die Witwen/Kinder des Viertels schützen; Jon Verricks Rückgabe verhindern.",
-   "stimme": "derb, knapp, praktisch; 'Dann stell eine bessere Frage.'; 'Wenn ich aufhöre, weil es unbequem wird, war es keiner.'",
-   "geheim": "Fünf Kerben in ihrer Tür, ein fünfter Platz am Tisch – jemand aus ihrer Familie fehlt; ihre Mutter nahm die Treppe aus der Hausordnung.",
-   "e": "⚒️",
-   "furcht": "Dass die Schicht zurückgegeben wird.",
-   "ort": "Aschenviertel / Fabrik",
-   "plan": [
-    "Schicht schützen",
-    "Dich prüfen",
-    "Jon Verrick verhindern"
-   ],
-   "meinung": {
-    "Marlowe": "ok für einen Wirt",
-    "Elias Ward": "verrückt, aber brauchbar",
-    "Irena": "alte Bekannte"
-   },
-   "romance": true,
-   "geschlecht": "w",
-   "schedule": [
-    "schicht: Fabrik",
-    "danach: Haus mit Aschelinie"
-   ],
-   "adult": true
-  },
-  "Nessa Harrow": {
-   "rolle": "Wäscherin, Mutter zweier Kinder",
-   "art": "Vom Waschdampf gerötete Haut, Seifenschaum über der Braue. Wurde von einem Karren verletzt; sagte ihren vollen Namen laut.",
-   "ziel": "Für ihre Kinder überleben.",
-   "stimme": "erschöpft, misstrauisch",
-   "geheim": "Die Stadt hält sie für eine 'passende Überschneidung' mit Velicya (spät).",
-   "e": "🧺",
-   "furcht": "Ihre Kinder zu verlieren.",
-   "ort": "Waschküche / Aschenviertel",
-   "plan": [
-    "Waschen",
-    "Überleben",
-    "Fremde meiden"
-   ],
-   "meinung": {
-    "Mascha Petrowa": "Schutz"
-   },
-   "romance": true,
-   "geschlecht": "w",
-   "schedule": [
-    "tag: waschen",
-    "nacht: bei den Kindern"
-   ],
-   "adult": true
-  },
-  "Jon Verrick / Alina Verrick": {
-   "rolle": "Toter Nachtofen-Arbeiter (Drosselweg 8) und seine Witwe",
-   "art": "Jon starb unter einem Karren, Brot ohne Kümmel bei sich. Alina weint nicht, Lippen schmal, Kinder.",
-   "ziel": "Alina: dass Jon nicht 'zurückgegeben' wird.",
-   "geheim": "Register: JON VERRICK – RÜCKGABE AUSSTEHEND. ERSATZ ZULÄSSIG.",
-   "adult": true
-  },
-  "Arthur Pell": {
-   "rolle": "Gast aus Zimmer sechs",
-   "art": "Alt, pfeifender Husten, summt vier Töne. Wurde durch seine Tür in die Westgrube zugeordnet: AUSGEGEBEN 1, ZURÜCK 0.",
-   "ziel": "–",
-   "geheim": "Sein Papierstreifen trug vorher den Namen M. Venn.",
-   "adult": true
-  },
-  "Irena": {
-   "rolle": "Hüterin in St. Orison",
-   "art": "Bleich, streng, alte Bekannte Maschas. Nimmt Beichtzettel und Pfänder.",
-   "ziel": "Die Ordnung der Kirche wahren.",
-   "stimme": "'Ihr habt zwei Antworten bekommen. Die Kirche wollte mehr.'",
-   "e": "⛪",
-   "furcht": "Dass die Kirche nur noch Pfänder kennt.",
-   "ort": "St. Orison",
-   "plan": [
-    "Beichten nehmen",
-    "Ordnung wahren",
-    "Mascha helfen oder bremsen"
-   ],
-   "meinung": {
-    "Mascha Petrowa": "alte Bindung",
-    "Marlowe": "zahlt Pfand"
-   },
-   "romance": true,
-   "geschlecht": "w",
-   "schedule": [
-    "immer: St. Orison"
-   ],
-   "adult": true
-  },
-  "Toma / Jarek": {
-   "rolle": "Junge Arbeiter in Maschas Schicht",
-   "art": "Toma läuft Botengänge; Jarek verwechselt rechts und links unter Druck.",
-   "ziel": "Durch die Schicht kommen.",
-   "adult": true
-  },
-  "Der namenlose Junge": {
-   "rolle": "Kind ohne Namen, schließt sich der Gruppe an",
-   "art": "Still, wachsam; sucht sich später vielleicht einen Namen auf einer Holzmarke.",
-   "ziel": "Einen eigenen Namen finden – und ihn nicht laut sagen.",
-   "adult": true
-  },
-  "Der Schaffner": {
-   "rolle": "Schaffner des Zuges",
-   "art": "Dunkelblaue feuchte Uniform, Augen im Schatten der Mütze, kommt ohne Schritte. Stempelt die Karte; schreibt in violetter Tinte auf die Rückseite: Name, Gepäckstück, 'Ohne Rückfahrt'.",
-   "stimme": "'Fahrkarten.' 'Wenn Sie weiterfahren wollen, bleiben Sie sitzen. Dann sehen Sie nicht hinaus.'",
-   "e": "🎫",
-   "furcht": "—",
-   "ort": "Zug",
-   "plan": [
-    "Karten stempeln"
-   ],
-   "meinung": {},
-   "romance": false,
-   "geschlecht": "m",
-   "schedule": [
-    "zug: Abteile"
-   ],
-   "adult": true
-  },
-  "Die alte Frau im Zug": {
-   "rolle": "Mitreisende mit Weidenkorb",
-   "art": "Strickt einen grauen Handschuh, sieht nie aus dem Fenster, trockene Stimme. Gibt die ersten Regeln weiter.",
-   "stimme": "'Der Ort ist nicht das Problem. Der Halt ist es.' 'Lassen Sie sich nicht beim vollen Namen rufen.'",
-   "e": "🧶",
-   "furcht": "—",
-   "ort": "Zug",
-   "plan": [
-    "Warnen",
-    "Stricken"
-   ],
-   "meinung": {},
-   "romance": false,
-   "geschlecht": "w",
-   "schedule": [
-    "zug: Abteil"
-   ],
-   "adult": true
-  },
-  "Leon": {
-   "rolle": "Junger Spüler aus Darrens Küche (nur Erinnerung)",
-   "art": "Schnitt sich tief in die Hand; Darren blieb bei ihm und verpasste den Bus.",
-   "geheim": "Darren hat die Erinnerung an ihn im Glockenhandel verkauft – nur der Name blieb als Loch.",
-   "adult": true
-  }
- },
- "fraktionen": {
-  "Das Register / Amt": "Bürokratische Seele der Stadt. Verwaltet Namen, Ausgaben, Rückgaben, Ersatz. Spricht in Großbuchstaben-Vermerken. Grausam durch Sauberkeit.",
-  "Die Schichten": "Arbeiter mit Metallmarken; Fabrik zählt Körper, Mine zählt Zeit. Ungeschriebene Ordnung, Kohlestücke als Fehlzeiten. Ein Streik ohne Stimmen ist möglich.",
-  "Das Aschenviertel": "Solidarität ohne Namen; Gewohnheiten statt Rituale ('Gewohnheiten merkt man, wenn sie sich verändern').",
-  "St. Orison": "Beichte gegen Zeugen; Schulden sprechen und verlagern.",
-  "Glockenhändler": "Handeln mit Erinnerungen, Durchgängen, Möglichkeiten.",
-  "Die Wiedergänger": "Vertraute Stimmen vor Türen, Bahnsteigkinder, Rekonstruktionen. Kennen das Schwere, nicht das Kleine."
- },
- "zeitlinie_roman": [
-  "Vorgeschichte: Darren bleibt nach Schicht bei Leon; an diesem Abend stirbt Aria (Velicya war kurz im Bad). Sieben Tage später, im Streit, stirbt Velicya in der Küche. Darren wird befragt.",
-  "Prolog: Zug nach Blackmere hält um Mitternacht in Greymourne. Fahrkarte: 'Darren Crowe. Ein Gepäckstück. Ohne Rückfahrt.' Bahnsteigkind sagt 'Papa', antwortet 'Blau'. Darren steigt aus.",
-  "Teil I: Eisernes Licht, Marlowe, Velicya vor der Tür und in Zimmer sieben, Elias in der Wand, Arthur Pell in die Westgrube zugeordnet, der tote Vogel, Nessa Harrow, Jon Verricks Tod am Drosselweg, Maschas Schicht, Aschenviertel, Amt der gestrichenen Namen.",
-  "Teil II (Der Glockenhandel): St. Orison, Elias' verkaufter Tag, Darren verliert Leon, Samuel, Kanal, Rückgabehalle, Maschas Haus, Börse der Möglichkeiten, ein Kind mit Darrens Augen, Streik ohne Stimmen, Kinder unter den Laternen.",
-  "Teil III (Die Mine öffnet sich): Westgrube (Lohnhalle hinter Ziegelwand), leere Küche (Tag 6), Marlowes Rechnung (Schicht 42 / RÜCKGABE: MARLOWE), Velicyas falscher Geburtstag (14./15., Kerze), Förderschacht der Namen, Arias gelber Mantel als falscher Beweis.",
-  "Teil IV: Unter der ersten Glocke, sieben Tage, Frau aus Erinnerung (Rekonstruktion/Überschneidung), Greymournes Angebot, Maschas offene Tür, der Turm ohne Glocke, was Liebe nicht retten kann, wer aus dem Nebel kommt."
- ],
- "spielstart": {
-  "darren": "Nachtzug, kurz nach Mitternacht, Abteil mit Messinglampe, Soldat schläft, alte Frau strickt, Junge liest ohne umzublättern. Handabdruck außen im Ruß. Zug hält in GREYMOURNE.",
-  "eigene": "Derselbe Zug, dieselbe Nacht. Die Fahrkarte der eigenen Figur trägt auf der Rückseite ihren Namen in violetter Tinte und eine Kinderzeichnung von etwas, das sie verloren hat. Darren Crowe kann als NPC im Nebenabteil sitzen oder später im Eisernen Licht auftauchen."
- },
- "setup": [
-  {
-   "id": "zug",
-   "titel": "Der Halt",
-   "text": "Der Zug hätte nicht halten dürfen.\n\nNebel wie trübes Wasser. Außen im Ruß: der Abdruck einer kleinen Hand.\nDie alte Frau legt die Stricknadeln quer. „Sie sollten sitzen bleiben.“\n\nWas tust du?",
-   "choices": [
+  "sideQuests": [
     {
-     "id": "sit",
-     "label": "Sitzen bleiben",
-     "impression": "vorsichtig"
+      "id": "sq_marlowe",
+      "titel": "Wasser mit Ehrgeiz",
+      "ziel": "Finde heraus, was Marlowe zurückgeben soll",
+      "npc": "Marlowe"
     },
     {
-     "id": "window",
-     "label": "Zum Fenster gehen",
-     "impression": "neugierig"
+      "id": "sq_elias",
+      "titel": "Der verkaufte Tag",
+      "ziel": "Hilf Elias bei der Suche nach Samuel – ohne seinen Namen laut zu sagen",
+      "npc": "Elias Ward"
     },
     {
-     "id": "ask",
-     "label": "Die alte Frau fragen",
-     "impression": "höflich"
+      "id": "sq_mascha",
+      "titel": "Aschelinie",
+      "ziel": "Schütze Maschas Schicht und die Kinder",
+      "npc": "Mascha Petrowa"
     },
     {
-     "id": "unwichtig",
-     "label": "Nach etwas Unwichtigem fragen",
-     "impression": "klug"
+      "id": "sq_nessa",
+      "titel": "Überschneidung",
+      "ziel": "Hilf Nessa, ohne zu viel zu fragen",
+      "npc": "Nessa Harrow"
+    },
+    {
+      "id": "sq_irena",
+      "titel": "Beichte gegen Zeugen",
+      "ziel": "Bringe eine Schuld nach St. Orison – oder nicht",
+      "npc": "Irena"
     }
-   ]
-  },
-  {
-   "id": "karte",
-   "titel": "Fahrkarte",
-   "text": "Der Schaffner steht da, ohne Schritte. „Fahrkarten.“\nAuf der Rückseite: violette Tinte. Ein Name. Ohne Rückfahrt.\n\nWie reagierst du?",
-   "choices": [
+  ],
+  "romanceable": [
+    "Velicya",
+    "Mascha Petrowa",
+    "Elias Ward",
+    "Nessa Harrow",
+    "Irena"
+  ],
+  "startItems_darren": [
     {
-     "id": "silent",
-     "label": "Schweigen und nicken",
-     "impression": "still"
+      "id": "ticket",
+      "name": "Fahrkarte ohne Rückfahrt",
+      "icon": "🎫",
+      "desc": "Violette Tinte. Name. Ein Gepäckstück.",
+      "type": "key"
     },
     {
-     "id": "correct",
-     "label": "Einen Fehler auf der Karte suchen",
-     "impression": "prüfend"
+      "id": "bag",
+      "name": "Reisetasche",
+      "icon": "🧳",
+      "desc": "Schwer von dem, was fehlt.",
+      "type": "key"
     },
     {
-     "id": "ask_name",
-     "label": "Nach dem Ort fragen – nicht nach Namen",
-     "impression": "regelbewusst"
+      "id": "knife",
+      "name": "Taschenmesser mit Holzgriff",
+      "icon": "🔪",
+      "desc": "Küchenreflex. Zum Schneiden, nicht zum Drohen.",
+      "type": "tool",
+      "equip": true
     },
     {
-     "id": "refuse",
-     "label": "Die Karte nicht hergeben",
-     "impression": "widerspenstig"
+      "id": "map",
+      "name": "Streckenkarte",
+      "icon": "🗺️",
+      "desc": "Greymourne steht nicht drauf.",
+      "type": "key"
     }
-   ]
-  },
-  {
-   "id": "sense",
-   "titel": "Erster Atem",
-   "text": "Kälte. Kohle. Bohnerwachs. Irgendwo eine Glocke, die du eher im Brustbein spürst als hörst.\n\nWorauf achtest du?",
-   "choices": [
+  ],
+  "startItems_own": [
     {
-     "id": "smell",
-     "label": "Gerüche",
-     "focus": "sinne"
+      "id": "ticket",
+      "name": "Fahrkarte ohne Rückfahrt",
+      "icon": "🎫",
+      "desc": "Violette Tinte. Dein Name. Etwas Verlorenes gezeichnet.",
+      "type": "key"
     },
     {
-     "id": "count",
-     "label": "Zahlen und Striche",
-     "focus": "zählen"
-    },
-    {
-     "id": "faces",
-     "label": "Gesichter im Nebel",
-     "focus": "menschen"
-    },
-    {
-     "id": "rules",
-     "label": "Was die alte Frau nicht gesagt hat",
-     "focus": "regeln"
+      "id": "bag",
+      "name": "Reisetasche",
+      "icon": "🧳",
+      "desc": "Was du noch tragen konntest.",
+      "type": "key"
     }
-   ]
-  },
-  {
-   "id": "exit",
-   "titel": "Schwelle",
-   "text": "Die Tür zum Bahnsteig. Nebel bis zur Brust. Ein Kind im hellen Mantel hebt den Kopf.\n\nSteigst du aus?",
-   "choices": [
+  ],
+  "startSkills": [
     {
-     "id": "out",
-     "label": "Aussteigen",
-     "impression": "entschlossen"
+      "id": "unwichtig",
+      "name": "Nach Unwichtigem fragen",
+      "icon": "❓",
+      "desc": "Wiedergänger stolpern beim Kleinen.",
+      "level": 1,
+      "cost": 0,
+      "cd": 0
     },
     {
-     "id": "hesitate",
-     "label": "Zögern und die alte Frau ansehen",
-     "impression": "zweifelnd"
-    },
-    {
-     "id": "child",
-     "label": "Das Kind ansprechen – vorsichtig, ohne Namen",
-     "impression": "fürsorglich"
-    },
-    {
-     "id": "bag",
-     "label": "Zuerst die Tasche prüfen",
-     "impression": "pragmatisch"
+      "id": "count",
+      "name": "Zählen",
+      "icon": "🔢",
+      "desc": "Atemzüge, Schritte, Striche – Abweichungen fallen auf.",
+      "level": 1,
+      "cost": 0,
+      "cd": 0
     }
-   ]
+  ],
+  "locations": {
+    "nodes": {
+      "Bahnhof Greymourne": {
+        "desc": "Nebel, stillstehende Uhren, leere Gleise.",
+        "tags": [
+          "stadt",
+          "außen"
+        ],
+        "exits": [
+          "Nachtzug-Abteil",
+          "Nebelgasse",
+          "Hafenmauer",
+          "Weg zum Tor",
+          "Fabrikviertel / Kesselhaus"
+        ],
+        "bg": "bahnhof"
+      },
+      "Nachtzug-Abteil": {
+        "desc": "Messing, Regen am Fenster, Sitze die sich erinnern.",
+        "tags": [
+          "zug",
+          "innen"
+        ],
+        "exits": [
+          "Bahnhof Greymourne",
+          "Nebelgasse",
+          "Wärterhäuschen"
+        ],
+        "bg": "zugabteil"
+      },
+      "Nebelgasse": {
+        "desc": "Gaslaternen, nasse Steine, Schritte ohne Körper.",
+        "tags": [
+          "stadt",
+          "außen"
+        ],
+        "exits": [
+          "Bahnhof Greymourne",
+          "Archivkeller",
+          "Hafenmauer",
+          "Brücke über den Rußkanal"
+        ],
+        "bg": "gasse"
+      },
+      "Archivkeller": {
+        "desc": "Regale, Namen, Zahlen die nicht stimmen.",
+        "tags": [
+          "stadt",
+          "innen"
+        ],
+        "exits": [
+          "Nebelgasse",
+          "Hafenmauer",
+          "Schulhof der Stille"
+        ],
+        "bg": "gasse"
+      },
+      "Hafenmauer": {
+        "desc": "Salz, Nebelhörner, Schiffe ohne Flagge.",
+        "tags": [
+          "außen"
+        ],
+        "exits": [
+          "Bahnhof Greymourne",
+          "Nebelgasse",
+          "Gleis 0",
+          "Kapelle ohne Heiligen"
+        ],
+        "bg": "gasse"
+      },
+      "Weg zum Tor": {
+        "desc": "Steiler Weg zwischen schwarzen Bäumen; Schritte im Laub laufen parallel und gehen zwei Schritte weiter, wenn man stehen bleibt. Mauer mit Gaslampen, Torbogen mit verwaschener Inschrift, frische Kreidezeichnungen am Mauerfuß.",
+        "tags": [
+          "stadt"
+        ],
+        "exits": [
+          "Hauptstraße",
+          "Elias' Kammer unter dem Treppenhaus",
+          "Drosselweg"
+        ],
+        "bg": "gasse"
+      },
+      "Hauptstraße": {
+        "desc": "Breit, Ruß in den Rinnen ohne Radspuren, Rauch sinkt an den Ziegeln herab. Menschen hinter Fenstern schlafen nie und sehen nie hinaus. Schiefertafel NACHTSCHICHT AUSGEGEBEN/ZURÜCK. Bäckerei mit Hausnummern in den Broten; Häuser wechseln die Straßenseite. Ablaufgitter, aus denen es klopft. Wegweiser: BAHNHOF, MINE, ST. ORISON, vierter Arm nur ein Turm.",
+        "tags": [
+          "stadt"
+        ],
+        "exits": [
+          "Gasthaus Eisernes Licht",
+          "Fabrikviertel / Kesselhaus",
+          "Amt der gestrichenen Namen"
+        ],
+        "bg": "gasse"
+      },
+      "Gasthaus Eisernes Licht": {
+        "desc": "Marlowes Gasthaus, Schild ohne Schrift: ein Glas mit gelber Flamme. Schankraum größer als die Fassade; Ofen mit blauen Flammen; Gäste, die beim Glockenschlag erstarren. Wasser mit einem schwarzen Korn. Zimmer sieben am Ende des Flurs (Lavendel, ein Bett, zwei Tassen, Schrank ohne Rückwand). Hinter den Türen laufen Messingbänder mit Namensstreifen. Sieben Bilderrahmen, der siebte leer.",
+        "tags": [
+          "stadt"
+        ],
+        "exits": [
+          "Elias' Kammer unter dem Treppenhaus",
+          "Aschenviertel",
+          "St. Orison"
+        ],
+        "bg": "gasse"
+      },
+      "Elias' Kammer unter dem Treppenhaus": {
+        "desc": "Tote Stelle, an der das Haus Schritte nicht sauber zählt. Regale mit Dochten und Plänen, ein aus Papierfetzen genähter Stadtplan, dessen Straßen an den Nähten nicht zusammenpassen, Messingnadeln mit Namensstreifen. Drei Tassen, Notizen mit morgigem Datum.",
+        "tags": [
+          "stadt"
+        ],
+        "exits": [
+          "Fabrikviertel / Kesselhaus",
+          "Maschas Haus",
+          "Glockenhandel"
+        ],
+        "bg": "gasse"
+      },
+      "Fabrikviertel / Kesselhaus": {
+        "desc": "Rohre auf Pfeilern, Kondenswasser brennt helle Flecken ins Pflaster. Arbeiter gehen nach ungeschriebener Ordnung (rote Binden an der Hauswand, graue Schürzen in der Mitte). Markenpresse am Tor, Aufseher, Tafel AUSGEGEBEN/ANGETRETEN. Kessel 41, 42, 44 – die 43 fehlt. Sortierung, Schmelze.",
+        "tags": [
+          "stadt"
+        ],
+        "exits": [
+          "Aschenviertel",
+          "Drosselweg",
+          "Unter dem Kanal"
+        ],
+        "bg": "gasse"
+      },
+      "Aschenviertel": {
+        "desc": "Niedrige, kalküberstrichene Arbeiterhäuser ohne Namensschilder; an den Türen Zeichen (blauer Faden, gebogene Nägel, ein Kinderstiefel). Frauen sieben Asche, Kinder suchen Kohlestücke. Hier gilt: keine Namen, auch keine Vornamen. Wege ohne Schrift.",
+        "tags": [
+          "stadt"
+        ],
+        "exits": [
+          "Maschas Haus",
+          "Amt der gestrichenen Namen",
+          "Börse der Möglichkeiten"
+        ],
+        "bg": "gasse"
+      },
+      "Maschas Haus": {
+        "desc": "Grüner Fensterladen, fünf Kerben in der Haustür, täglich erneuerte Aschelinie über der Schwelle (nicht drauftreten). Küchentisch mit gedeckten Schalen, deren Zahl sich ändert. Oben wohnt niemand – die Treppe wurde aus der Hausordnung genommen; trotzdem gehen dort Schritte, vier hin, vier zurück.",
+        "tags": [
+          "stadt"
+        ],
+        "exits": [
+          "Drosselweg",
+          "St. Orison",
+          "Westgrube / Mine"
+        ],
+        "bg": "gasse"
+      },
+      "Drosselweg": {
+        "desc": "Gasse der Nachtöfen-Arbeiter; Jon Verrick wohnte in Nr. 8. Hier rollte der Karren.",
+        "tags": [
+          "stadt"
+        ],
+        "exits": [
+          "Amt der gestrichenen Namen",
+          "Glockenhandel",
+          "Der Turm"
+        ],
+        "bg": "gasse"
+      },
+      "Amt der gestrichenen Namen": {
+        "desc": "Registratur hinter einer Waschküche ohne Schloss (Loch mit grauem Wachs, Haaren, gekreuzten Fäden). Registerseiten, Sätze wie AUSGABE WIDERRUFEN, RÜCKGABE AUSSTEHEND, ERSATZ ZULÄSSIG.",
+        "tags": [
+          "stadt"
+        ],
+        "exits": [
+          "St. Orison",
+          "Unter dem Kanal",
+          "Förderschacht der Namen"
+        ],
+        "bg": "gasse"
+      },
+      "St. Orison": {
+        "desc": "Gedrungene Kirche aus schwarzem Stein, Glockenturm mit drei offenen Bögen je Seite, ohne Glocke. Zwei Schalter: links Papierstreifen, rechts Pfand (Münzen, Knöpfe, Marken, ein Milchzahn). 'Beichte gegen Zeugen.' Schulden lassen sich hier sprechen oder übertragen. Irena wacht hier.",
+        "tags": [
+          "stadt"
+        ],
+        "exits": [
+          "Glockenhandel",
+          "Börse der Möglichkeiten",
+          "Unter dem Gasthaus / erste Glocke"
+        ],
+        "bg": "gasse"
+      },
+      "Glockenhandel": {
+        "desc": "Händler, die Erinnerungen gegen Durchgänge und Marken tauschen. 'Folgen sind kein Aufpreis.' 'Namen sind Adressen.'",
+        "tags": [
+          "stadt"
+        ],
+        "exits": [
+          "Unter dem Kanal",
+          "Westgrube / Mine",
+          "Leere Küche / sieben Tage"
+        ],
+        "bg": "gasse"
+      },
+      "Unter dem Kanal": {
+        "desc": "Mauerwerk 12: Stützwand aus eingeritzten Namen, übermörtelt, die Buchstaben drücken durch. Darunter die Rückgabehalle: Sortiertische ANKUNFT, PRÜFUNG, ZUORDNUNG; Gegenstände Verschwundener; Kinder in grauen Schürzen; Kohlestücke als Fehlzeiten.",
+        "tags": [
+          "stadt"
+        ],
+        "exits": [
+          "Börse der Möglichkeiten",
+          "Der Turm",
+          "Nachtzug-Abteil"
+        ],
+        "bg": "gasse"
+      },
+      "Börse der Möglichkeiten": {
+        "desc": "Findet man nur, wenn man aufhört, sie zu suchen. Hof mit einer schwarzen und einer weißen Tür: Schwarz für das, was ihr behalten habt, Weiß für das, was ihr nicht bekommen habt. Ein alter Mann flickt Handschuhe dazwischen.",
+        "tags": [
+          "stadt"
+        ],
+        "exits": [
+          "Westgrube / Mine",
+          "Förderschacht der Namen",
+          "Nebelgasse"
+        ],
+        "bg": "gasse"
+      },
+      "Westgrube / Mine": {
+        "desc": "Fördertürme, Halden. Zugang oft unsichtbar: Vermessungskette an Mörtelfuge → Ziegelwand schwingt nach innen in eine arbeitende Lohnhalle (WESTGRUBE. EINFAHRT/AUSFAHRT Tafeln, Kohldampf). Stollen unter Fabrik und Bahnhof zu einem namenlosen schwarzen Kreis. Schienen, nummerierte Haken, Metallmarken; fällt eine Marke, verschwindet der Träger. Küchen-Erinnerungen können sich in die Mine schieben.",
+        "tags": [
+          "stadt"
+        ],
+        "exits": [
+          "Der Turm",
+          "Unter dem Gasthaus / erste Glocke",
+          "Archivkeller"
+        ],
+        "bg": "gasse"
+      },
+      "Der Turm": {
+        "desc": "Namenloser Turm ohne Glocke, auf keinem Wegweiser beschriftet. Keine Treppe – Räume gestapelt als mögliche Leben (Abzweigungen). Mauerwerk schneidet Fundamente und Stollen, ohne sie zu verdrängen. Schmale senkrechte Löcher. Spät im Spiel; nicht früh betreten lassen. Je höher, desto mehr verliert Velicya.",
+        "tags": [
+          "stadt"
+        ],
+        "exits": [
+          "Förderschacht der Namen",
+          "Leere Küche / sieben Tage",
+          "Hafenmauer"
+        ],
+        "bg": "gasse"
+      },
+      "Förderschacht der Namen": {
+        "desc": "Holzförderturm zwischen Arbeiterhäusern ('der tiefe Schacht'). Schild: EINFAHRT NACH STELLE. AUSFAHRT NACH NAME. Korb hält an unmöglichen Stockwerken (Namenssortierung, Messingbuchstaben). Ganz unten: Bohlen über schwarzem Schacht, Seile mit Schildern (Namen oder Beschreibungen). Samuel: fünf Striche, NICHT ABSCHLIESSEN.",
+        "tags": [
+          "stadt"
+        ],
+        "exits": [
+          "Unter dem Gasthaus / erste Glocke",
+          "Nachtzug-Abteil",
+          "Gleis 0"
+        ],
+        "bg": "gasse"
+      },
+      "Unter dem Gasthaus / erste Glocke": {
+        "desc": "Treppe hinter Zimmer sieben älter als das Haus: Stein, Eisen, feuchte Wärme. Darunter hängt die Stadt von unten – Fundamente, schwebende Räume, der Turm durch alles hindurch. Markenfrau sortiert Messingplättchen (CROWE, PETROWA, leere Plättchen).",
+        "tags": [
+          "stadt"
+        ],
+        "exits": [
+          "Leere Küche / sieben Tage",
+          "Nebelgasse",
+          "Wärterhäuschen"
+        ],
+        "bg": "gasse"
+      },
+      "Leere Küche / sieben Tage": {
+        "desc": "Erinnerungsraum: kaltes Fett, tropfender Hahn, zwei Tassen, fehlender dritter Stuhl, Arias Schuhe im Flur. Tag sechs nach Arias Tod; Tag sieben endet im Streit. Greymourne schreibt Fehler hinein (Klopfrhythmus, den Velicya damals nicht gehört hat).",
+        "tags": [
+          "stadt"
+        ],
+        "exits": [
+          "Nachtzug-Abteil",
+          "Archivkeller",
+          "Brücke über den Rußkanal"
+        ],
+        "bg": "gasse"
+      },
+      "Gleis 0": {
+        "desc": "Existiert auf keiner Karte. Echo von Abfahrten.",
+        "tags": [
+          "stadt"
+        ],
+        "exits": [
+          "Wärterhäuschen",
+          "Schulhof der Stille",
+          "Druckerei Register"
+        ],
+        "bg": "gasse"
+      },
+      "Wärterhäuschen": {
+        "desc": "Fenster beschlagen von innen.",
+        "tags": [
+          "stadt"
+        ],
+        "exits": [
+          "Brücke über den Rußkanal",
+          "Kapelle ohne Heiligen",
+          "Zimmer 3"
+        ],
+        "bg": "gasse"
+      },
+      "Brücke über den Rußkanal": {
+        "desc": "Wasser schwarz, Spiegel ohne dich.",
+        "tags": [
+          "stadt"
+        ],
+        "exits": [
+          "Schulhof der Stille",
+          "Markt der leeren Stände",
+          "Küche des Eisernen Lichts"
+        ],
+        "bg": "gasse"
+      },
+      "Schulhof der Stille": {
+        "desc": "Kreidezeichnungen von Kindern, die niemand kennt.",
+        "tags": [
+          "stadt"
+        ],
+        "exits": [
+          "Kapelle ohne Heiligen",
+          "Wachhaus Ost",
+          "Treppenhaus Elias"
+        ],
+        "bg": "gasse"
+      },
+      "Kapelle ohne Heiligen": {
+        "desc": "Kerzen brennen ohne Docht.",
+        "tags": [
+          "stadt"
+        ],
+        "exits": [
+          "Markt der leeren Stände",
+          "Druckerei Register",
+          "Kesselhaus oben"
+        ],
+        "bg": "gasse"
+      },
+      "Markt der leeren Stände": {
+        "desc": "Preisschilder, keine Ware.",
+        "tags": [
+          "stadt"
+        ],
+        "exits": [
+          "Wachhaus Ost",
+          "Zimmer 3",
+          "Kesselhaus unten"
+        ],
+        "bg": "gasse"
+      },
+      "Wachhaus Ost": {
+        "desc": "Uniformen auf Kleiderbügeln, niemand darin.",
+        "tags": [
+          "stadt"
+        ],
+        "exits": [
+          "Druckerei Register",
+          "Küche des Eisernen Lichts",
+          "Dach des Amts"
+        ],
+        "bg": "gasse"
+      },
+      "Druckerei Register": {
+        "desc": "Maschinen stanzen Namen in Nebel.",
+        "tags": [
+          "stadt"
+        ],
+        "exits": [
+          "Zimmer 3",
+          "Treppenhaus Elias",
+          "Hinterhof Drosselweg"
+        ],
+        "bg": "gasse"
+      },
+      "Zimmer 3": {
+        "desc": "Tür bleibt zu. Mascha schweigt.",
+        "tags": [
+          "stadt"
+        ],
+        "exits": [
+          "Küche des Eisernen Lichts",
+          "Kesselhaus oben",
+          "Brunnenplatz"
+        ],
+        "bg": "gasse"
+      },
+      "Küche des Eisernen Lichts": {
+        "desc": "Dampf, Messer, Erinnerungen an Äpfel.",
+        "tags": [
+          "stadt"
+        ],
+        "exits": [
+          "Treppenhaus Elias",
+          "Kesselhaus unten",
+          "Bibliothek der Fehlseiten"
+        ],
+        "bg": "gasse"
+      },
+      "Treppenhaus Elias": {
+        "desc": "Knarrt nur, wenn du allein bist.",
+        "tags": [
+          "stadt"
+        ],
+        "exits": [
+          "Kesselhaus oben",
+          "Dach des Amts",
+          "Apotheke Quarantäne"
+        ],
+        "bg": "gasse"
+      },
+      "Kesselhaus oben": {
+        "desc": "Hitze ohne Feuer.",
+        "tags": [
+          "stadt"
+        ],
+        "exits": [
+          "Kesselhaus unten",
+          "Hinterhof Drosselweg",
+          "Friedhof Nebelhang"
+        ],
+        "bg": "gasse"
+      },
+      "Kesselhaus unten": {
+        "desc": "Asche mit Fußabdrücken rückwärts.",
+        "tags": [
+          "stadt"
+        ],
+        "exits": [
+          "Dach des Amts",
+          "Brunnenplatz",
+          "Fähranleger"
+        ],
+        "bg": "gasse"
+      },
+      "Dach des Amts": {
+        "desc": "Überblick über Straßen, die sich verschieben.",
+        "tags": [
+          "stadt"
+        ],
+        "exits": [
+          "Hinterhof Drosselweg",
+          "Bibliothek der Fehlseiten",
+          "Zollschuppen"
+        ],
+        "bg": "gasse"
+      },
+      "Hinterhof Drosselweg": {
+        "desc": "Wäscheleinen mit Hemden ohne Besitzer.",
+        "tags": [
+          "stadt"
+        ],
+        "exits": [
+          "Brunnenplatz",
+          "Apotheke Quarantäne",
+          "Laternenwerkstatt"
+        ],
+        "bg": "gasse"
+      },
+      "Brunnenplatz": {
+        "desc": "Münzen ohne Jahrgang.",
+        "tags": [
+          "stadt"
+        ],
+        "exits": [
+          "Bibliothek der Fehlseiten",
+          "Friedhof Nebelhang",
+          "Schneideratelier"
+        ],
+        "bg": "gasse"
+      },
+      "Bibliothek der Fehlseiten": {
+        "desc": "Bücher mit herausgerissenen Kapiteln.",
+        "tags": [
+          "stadt"
+        ],
+        "exits": [
+          "Apotheke Quarantäne",
+          "Fähranleger",
+          "Uhrenladen Stillstand"
+        ],
+        "bg": "gasse"
+      },
+      "Apotheke Quarantäne": {
+        "desc": "Flaschen ohne Etikett, Etiketten ohne Flaschen.",
+        "tags": [
+          "stadt"
+        ],
+        "exits": [
+          "Friedhof Nebelhang",
+          "Zollschuppen",
+          "Postamt Unzustellbar"
+        ],
+        "bg": "gasse"
+      },
+      "Friedhof Nebelhang": {
+        "desc": "Steine ohne Daten, Daten ohne Steine.",
+        "tags": [
+          "stadt"
+        ],
+        "exits": [
+          "Fähranleger",
+          "Laternenwerkstatt",
+          "Spielplatz Rost"
+        ],
+        "bg": "gasse"
+      },
+      "Fähranleger": {
+        "desc": "Boote, die nicht ablegen.",
+        "tags": [
+          "stadt"
+        ],
+        "exits": [
+          "Zollschuppen",
+          "Schneideratelier",
+          "Tunnel unter dem Bahnhof"
+        ],
+        "bg": "gasse"
+      },
+      "Zollschuppen": {
+        "desc": "Kisten mit Luft.",
+        "tags": [
+          "stadt"
+        ],
+        "exits": [
+          "Laternenwerkstatt",
+          "Uhrenladen Stillstand",
+          "Wartesaal B"
+        ],
+        "bg": "gasse"
+      },
+      "Laternenwerkstatt": {
+        "desc": "Glas, das Nebel speichert.",
+        "tags": [
+          "stadt"
+        ],
+        "exits": [
+          "Schneideratelier",
+          "Postamt Unzustellbar",
+          "Kontrollbrücke"
+        ],
+        "bg": "gasse"
+      },
+      "Schneideratelier": {
+        "desc": "Anzüge für Leute, die gestrichen wurden.",
+        "tags": [
+          "stadt"
+        ],
+        "exits": [
+          "Uhrenladen Stillstand",
+          "Spielplatz Rost",
+          "Rußwäscherei"
+        ],
+        "bg": "gasse"
+      },
+      "Uhrenladen Stillstand": {
+        "desc": "Alle Zeiger auf 00:00.",
+        "tags": [
+          "stadt"
+        ],
+        "exits": [
+          "Postamt Unzustellbar",
+          "Tunnel unter dem Bahnhof",
+          "Hebammenhaus"
+        ],
+        "bg": "gasse"
+      },
+      "Postamt Unzustellbar": {
+        "desc": "Briefe an dich von dir.",
+        "tags": [
+          "stadt"
+        ],
+        "exits": [
+          "Spielplatz Rost",
+          "Wartesaal B",
+          "Notariat Grau"
+        ],
+        "bg": "gasse"
+      },
+      "Spielplatz Rost": {
+        "desc": "Schaukeln bewegen sich gegen den Wind.",
+        "tags": [
+          "stadt"
+        ],
+        "exits": [
+          "Tunnel unter dem Bahnhof",
+          "Kontrollbrücke",
+          "Sternwarte Blind"
+        ],
+        "bg": "gasse"
+      },
+      "Tunnel unter dem Bahnhof": {
+        "desc": "Tropfen zählen anders.",
+        "tags": [
+          "stadt"
+        ],
+        "exits": [
+          "Wartesaal B",
+          "Rußwäscherei",
+          "Gewächshaus Asche"
+        ],
+        "bg": "gasse"
+      },
+      "Wartesaal B": {
+        "desc": "Sitze für Fahrgäste, die nie kamen.",
+        "tags": [
+          "stadt"
+        ],
+        "exits": [
+          "Kontrollbrücke",
+          "Hebammenhaus",
+          "Kriegsdenkmal Ohne Namen"
+        ],
+        "bg": "gasse"
+      },
+      "Kontrollbrücke": {
+        "desc": "Blick auf Gleise, die sich gabeln und wieder einen.",
+        "tags": [
+          "stadt"
+        ],
+        "exits": [
+          "Rußwäscherei",
+          "Notariat Grau",
+          "Kanaldeckel 17"
+        ],
+        "bg": "gasse"
+      },
+      "Rußwäscherei": {
+        "desc": "Wasser wird nie klar.",
+        "tags": [
+          "stadt"
+        ],
+        "exits": [
+          "Hebammenhaus",
+          "Sternwarte Blind",
+          "Balkon Mascha"
+        ],
+        "bg": "gasse"
+      },
+      "Hebammenhaus": {
+        "desc": "Wiegen ohne Kinder.",
+        "tags": [
+          "stadt"
+        ],
+        "exits": [
+          "Notariat Grau",
+          "Gewächshaus Asche",
+          "Seitenkapelle"
+        ],
+        "bg": "gasse"
+      },
+      "Notariat Grau": {
+        "desc": "Verträge, die dich unterschreiben.",
+        "tags": [
+          "stadt"
+        ],
+        "exits": [
+          "Sternwarte Blind",
+          "Kriegsdenkmal Ohne Namen",
+          "Lager der gestrichenen Dinge"
+        ],
+        "bg": "gasse"
+      },
+      "Sternwarte Blind": {
+        "desc": "Teleskop auf Nebel gerichtet.",
+        "tags": [
+          "stadt"
+        ],
+        "exits": [
+          "Gewächshaus Asche",
+          "Kanaldeckel 17",
+          "Hof der Zeugen"
+        ],
+        "bg": "gasse"
+      },
+      "Gewächshaus Asche": {
+        "desc": "Pflanzen aus Papier.",
+        "tags": [
+          "stadt"
+        ],
+        "exits": [
+          "Kriegsdenkmal Ohne Namen",
+          "Balkon Mascha",
+          "Schienenende"
+        ],
+        "bg": "gasse"
+      },
+      "Kriegsdenkmal Ohne Namen": {
+        "desc": "Platten blank poliert.",
+        "tags": [
+          "stadt"
+        ],
+        "exits": [
+          "Kanaldeckel 17",
+          "Seitenkapelle",
+          "Hotel Reserve"
+        ],
+        "bg": "gasse"
+      },
+      "Kanaldeckel 17": {
+        "desc": "Führt dorthin, wo Akten nass werden.",
+        "tags": [
+          "stadt"
+        ],
+        "exits": [
+          "Balkon Mascha",
+          "Lager der gestrichenen Dinge",
+          "Bahnhof Greymourne"
+        ],
+        "bg": "gasse"
+      },
+      "Balkon Mascha": {
+        "desc": "Rauchen bei Regen, der nicht nass macht.",
+        "tags": [
+          "stadt"
+        ],
+        "exits": [
+          "Seitenkapelle",
+          "Hof der Zeugen",
+          "Weg zum Tor"
+        ],
+        "bg": "gasse"
+      },
+      "Seitenkapelle": {
+        "desc": "Beichte ohne Priester.",
+        "tags": [
+          "stadt"
+        ],
+        "exits": [
+          "Lager der gestrichenen Dinge",
+          "Schienenende",
+          "Hauptstraße"
+        ],
+        "bg": "gasse"
+      },
+      "Lager der gestrichenen Dinge": {
+        "desc": "Objekte ohne Besitzerzeile.",
+        "tags": [
+          "stadt"
+        ],
+        "exits": [
+          "Hof der Zeugen",
+          "Hotel Reserve",
+          "Gasthaus Eisernes Licht"
+        ],
+        "bg": "gasse"
+      },
+      "Hof der Zeugen": {
+        "desc": "Stühle im Kreis, keiner setzt sich.",
+        "tags": [
+          "stadt"
+        ],
+        "exits": [
+          "Schienenende",
+          "Bahnhof Greymourne",
+          "Elias' Kammer unter dem Treppenhaus"
+        ],
+        "bg": "gasse"
+      },
+      "Schienenende": {
+        "desc": "Stoppblock mit Handabdrücken.",
+        "tags": [
+          "stadt"
+        ],
+        "exits": [
+          "Hotel Reserve",
+          "Weg zum Tor",
+          "Fabrikviertel / Kesselhaus"
+        ],
+        "bg": "gasse"
+      },
+      "Hotel Reserve": {
+        "desc": "Zimmer gebucht auf Namen, die fehlen.",
+        "tags": [
+          "stadt"
+        ],
+        "exits": [
+          "Bahnhof Greymourne",
+          "Hauptstraße",
+          "Aschenviertel"
+        ],
+        "bg": "gasse"
+      }
+    },
+    "start": "Bahnhof Greymourne"
   }
- ],
- "arc": {
-  "titel": "Wer durch den Nebel kommt",
-  "acts": [
-   {
-    "id": "a1",
-    "titel": "Ankunft",
-    "ziel": "Im Eisernen Licht ankommen und die ersten Regeln lernen",
-    "mile": [
-     "Bahnsteig überleben",
-     "Marlowe treffen",
-     "Zimmer ohne falsche Tür"
-    ],
-    "twist": "Die Stadt kennt bereits etwas, das du verloren hast."
-   },
-   {
-    "id": "a2",
-    "titel": "Register",
-    "ziel": "Verstehen, wie Namen, Schuld und Rückgabe zusammenhängen",
-    "mile": [
-     "Elias oder Mascha als Führer",
-     "Erstes Register-Zeichen",
-     "Vertrauen aufbauen"
-    ],
-    "twist": "Jemand aus deiner Nähe steht auf einer Tafel AUSGEGEBEN/ZURÜCK."
-   },
-   {
-    "id": "a3",
-    "titel": "Glockenhandel",
-    "ziel": "Einen Preis zahlen oder verweigern",
-    "mile": [
-     "St. Orison",
-     "Erinnerung als Währung",
-     "Ein Fehler der Stadt (Kerze, Mantel, Tasse)"
-    ],
-    "twist": "Was die Stadt zurückgibt, passt nie ganz."
-   },
-   {
-    "id": "a4",
-    "titel": "Turm ohne Glocke",
-    "ziel": "Entscheiden, was du behältst – und was die Stadt behält",
-    "mile": [
-     "Westgrube oder Turm",
-     "Konfrontation mit dem Angebot",
-     "Ausgang oder Verbleib"
-    ],
-    "twist": "Liebe rettet nicht alles; manchmal rettet sie die falsche Version."
-   }
-  ]
- },
- "sideQuests": [
-  {
-   "id": "sq_marlowe",
-   "titel": "Wasser mit Ehrgeiz",
-   "ziel": "Finde heraus, was Marlowe zurückgeben soll",
-   "npc": "Marlowe"
-  },
-  {
-   "id": "sq_elias",
-   "titel": "Der verkaufte Tag",
-   "ziel": "Hilf Elias bei der Suche nach Samuel – ohne seinen Namen laut zu sagen",
-   "npc": "Elias Ward"
-  },
-  {
-   "id": "sq_mascha",
-   "titel": "Aschelinie",
-   "ziel": "Schütze Maschas Schicht und die Kinder",
-   "npc": "Mascha Petrowa"
-  },
-  {
-   "id": "sq_nessa",
-   "titel": "Überschneidung",
-   "ziel": "Hilf Nessa, ohne zu viel zu fragen",
-   "npc": "Nessa Harrow"
-  },
-  {
-   "id": "sq_irena",
-   "titel": "Beichte gegen Zeugen",
-   "ziel": "Bringe eine Schuld nach St. Orison – oder nicht",
-   "npc": "Irena"
-  }
- ],
- "romanceable": [
-  "Velicya",
-  "Mascha Petrowa",
-  "Elias Ward",
-  "Nessa Harrow",
-  "Irena"
- ],
- "startItems_darren": [
-  {
-   "id": "ticket",
-   "name": "Fahrkarte ohne Rückfahrt",
-   "icon": "🎫",
-   "desc": "Violette Tinte. Name. Ein Gepäckstück.",
-   "type": "key"
-  },
-  {
-   "id": "bag",
-   "name": "Reisetasche",
-   "icon": "🧳",
-   "desc": "Schwer von dem, was fehlt.",
-   "type": "key"
-  },
-  {
-   "id": "knife",
-   "name": "Taschenmesser mit Holzgriff",
-   "icon": "🔪",
-   "desc": "Küchenreflex. Zum Schneiden, nicht zum Drohen.",
-   "type": "tool",
-   "equip": true
-  },
-  {
-   "id": "map",
-   "name": "Streckenkarte",
-   "icon": "🗺️",
-   "desc": "Greymourne steht nicht drauf.",
-   "type": "key"
-  }
- ],
- "startItems_own": [
-  {
-   "id": "ticket",
-   "name": "Fahrkarte ohne Rückfahrt",
-   "icon": "🎫",
-   "desc": "Violette Tinte. Dein Name. Etwas Verlorenes gezeichnet.",
-   "type": "key"
-  },
-  {
-   "id": "bag",
-   "name": "Reisetasche",
-   "icon": "🧳",
-   "desc": "Was du noch tragen konntest.",
-   "type": "key"
-  }
- ],
- "startSkills": [
-  {
-   "id": "unwichtig",
-   "name": "Nach Unwichtigem fragen",
-   "icon": "❓",
-   "desc": "Wiedergänger stolpern beim Kleinen.",
-   "level": 1,
-   "cost": 0,
-   "cd": 0
-  },
-  {
-   "id": "count",
-   "name": "Zählen",
-   "icon": "🔢",
-   "desc": "Atemzüge, Schritte, Striche – Abweichungen fallen auf.",
-   "level": 1,
-   "cost": 0,
-   "cd": 0
-  }
- ],
- "locations": {
-  "nodes": {
-   "Bahnhof Greymourne": {
-    "desc": "Nebel, stillstehende Uhren, leere Gleise.",
-    "tags": [
-     "stadt",
-     "außen"
-    ],
-    "exits": [
-     "Nachtzug-Abteil",
-     "Nebelgasse",
-     "Hafenmauer"
-    ],
-    "bg": "bahnhof"
-   },
-   "Nachtzug-Abteil": {
-    "desc": "Messing, Regen am Fenster, Sitze die sich erinnern.",
-    "tags": [
-     "zug",
-     "innen"
-    ],
-    "exits": [
-     "Bahnhof Greymourne"
-    ],
-    "bg": "zugabteil"
-   },
-   "Nebelgasse": {
-    "desc": "Gaslaternen, nasse Steine, Schritte ohne Körper.",
-    "tags": [
-     "stadt",
-     "außen"
-    ],
-    "exits": [
-     "Bahnhof Greymourne",
-     "Archivkeller",
-     "Hafenmauer"
-    ],
-    "bg": "gasse"
-   },
-   "Archivkeller": {
-    "desc": "Regale, Namen, Zahlen die nicht stimmen.",
-    "tags": [
-     "stadt",
-     "innen"
-    ],
-    "exits": [
-     "Nebelgasse"
-    ],
-    "bg": "gasse"
-   },
-   "Hafenmauer": {
-    "desc": "Salz, Nebelhörner, Schiffe ohne Flagge.",
-    "tags": [
-     "außen"
-    ],
-    "exits": [
-     "Bahnhof Greymourne",
-     "Nebelgasse"
-    ],
-    "bg": "gasse"
-   }
-  },
-  "start": "Bahnhof Greymourne"
- }
 }

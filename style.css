@@ -1152,3 +1152,12 @@ body.hud-dim .topbar{opacity:.28}
 .battle-root:not(.hidden) .battle-cmd{animation:cardRise .35s cubic-bezier(.2,.8,.2,1)}
 .choices button{transition:transform .12s ease,border-color .15s,background .15s}
 .choices button:active{transform:scale(.98)}
+
+
+/* v22-visual: richer VN + camp/life chips */
+.vn-box{box-shadow:0 12px 40px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.06);backdrop-filter:blur(10px)}
+.portrait-cutout,.sprite-cutout{filter:drop-shadow(0 8px 18px rgba(0,0,0,.55));image-rendering:auto}
+.chip.life{border-color:rgba(255,180,120,.35);color:#ffd2a8}
+.chip.camp{border-color:rgba(140,220,160,.35);color:#c8f0d0}
+.title-badge{letter-spacing:.08em}
+body.busy #txt{opacity:.7}

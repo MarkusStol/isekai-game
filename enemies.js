@@ -47,6 +47,27 @@ export const ENEMIES={
   boss_archfiend:{id:'boss_archfiend',name:'Erzfiend',icon:'👿',art:'assets/creature/boss_archfiend.webp',genre:['daemon'],hp:240,mp:50,atk:22,def:16,mag:20,spd:9,exp:240,gold:110,element:'schatten',weak:['licht'],resist:['feuer','schatten'],ai:'boss',boss:true,skills:[{id:'hoellensturm',name:'Höllensturm',pow:1.55,elem:'feuer',aoe:true,mp:12},{id:'furcht',name:'Furcht',pow:0,status:'schlaf',statusChance:.4,mp:8,aoe:true}],loot:[{name:'Erzhorn',icon:'📯',chance:.5}],phases:[{at:0.45,buff:{mag:1.3,atk:1.2},announce:'Flügel aus schwarzer Flamme!'}]},
   boss_fogking:{id:'boss_fogking',name:'König im Nebel',icon:'👑',art:'assets/creature/boss_fogking.webp',genre:['grey'],hp:200,mp:60,atk:16,def:14,mag:22,spd:8,exp:230,gold:0,element:'schatten',weak:['licht'],resist:['phys'],ai:'boss',boss:true,skills:[{id:'nebelmeer',name:'Nebelmeer',pow:1.4,elem:'schatten',aoe:true,mp:12},{id:'vergessen',name:'Vergessen',pow:1.1,elem:'schatten',status:'schlaf',statusChance:.5,mp:10}],loot:[{name:'Nebelkrone',icon:'👑',chance:.4}],phases:[{at:0.4,buff:{mag:1.35},announce:'Der Nebel wird dichter – Stimmen rufen deinen Namen.'}]},
   golden_slime:{id:'golden_slime',name:'Goldschleim',icon:'🥇',art:'assets/creature/slime.svg',genre:['held','fantasy'],hp:45,mp:0,atk:5,def:20,mag:5,spd:4,exp:120,gold:200,element:'licht',weak:['feuer'],resist:['phys'],rare:true,ai:'cautious',skills:[{id:'rollen',name:'Rollen',pow:0.8,elem:'phys'}],loot:[{name:'Goldklumpen',icon:'🪙',chance:.9}],steal:[{name:'Heilstein',icon:'💚',chance:.4,gem:'heilstein'}]},
+  // v22 story bosses — tied to world arcs (not random filler)
+  story_wallbreaker:{id:'story_wallbreaker',name:'Wallbrecher Ghor',icon:'🏰',art:'assets/creature/boss_ogre.webp',genre:['held','fantasy'],hp:260,mp:10,atk:26,def:20,mag:6,spd:6,exp:280,gold:100,element:'erde',weak:['blitz'],resist:['phys','feuer'],ai:'boss',boss:true,story:true,storyWorlds:['held'],storyTag:'belagerung',
+    blurb:'Belagerungs-Boss: bricht den Ostwall. Elise hat seinen Namen in den Kriegsakten.',
+    skills:[{id:'ramme',name:'Rammbock',pow:1.7,elem:'erde',aoe:true,cd:2},{id:'schildbruch',name:'Schildbruch',pow:1.4,elem:'phys',staggerBonus:1.4},{id:'kriegsruf',name:'Kriegsruf',pow:0,buffSelf:{atk:1.25},cd:3}],
+    loot:[{name:'Belagerungshammer',icon:'🔨',chance:.45,type:'weapon'},{name:'Wallstein',icon:'🪨',chance:.6}],
+    phases:[{at:0.6,buff:{def:1.2},announce:'Ghor stemmt den Rammbock — der Wall ächzt.'},{at:0.3,buff:{atk:1.35},announce:'Bresche! Die Horde hinter ihm brüllt.'}],aggroBias:1.7},
+  story_velka_shadow:{id:'story_velka_shadow',name:'Schatten-Protokoll',icon:'😈',art:'assets/creature/boss_archfiend.webp',genre:['daemon'],hp:200,mp:60,atk:14,def:14,mag:28,spd:12,exp:260,gold:90,element:'schatten',weak:['licht'],resist:['schatten','feuer'],ai:'boss',boss:true,story:true,storyWorlds:['daemon'],storyTag:'hofintrige',
+    blurb:'Hof-Boss: Velkas Notfall-Konstrukt wenn der Thronsaal bedroht ist.',
+    skills:[{id:'siegelbruch',name:'Siegelbruch',pow:1.5,elem:'schatten',mp:10},{id:'aktensturm',name:'Aktensturm',pow:1.2,elem:'schatten',aoe:true,mp:12,status:'stille',statusChance:.35},{id:'loyalitaet',name:'Loyalitätszwang',pow:0,status:'schlaf',statusChance:.4,mp:8}],
+    loot:[{name:'Velkas Siegelring',icon:'💍',chance:.4},{name:'Schwarzwachs',icon:'🕯️',chance:.5}],
+    phases:[{at:0.5,buff:{mag:1.3},announce:'Das Protokoll schreibt deinen Namen in Rot.'}],aggroBias:1.4},
+  story_ashcroft:{id:'story_ashcroft',name:'Herzogin Ashcroft (Duell)',icon:'🗡️',art:'assets/creature/bandit.webp',genre:['villainess','fantasy'],hp:160,mp:30,atk:18,def:12,mag:16,spd:14,exp:220,gold:120,element:'phys',weak:['gift'],ai:'boss',boss:true,story:true,storyWorlds:['villainess'],storyTag:'salonduell',human:true,
+    blurb:'Salon-Boss: Duell mit Fächer und Gift — Gerüchte als Waffen.',
+    skills:[{id:'faecherhieb',name:'Fächerhieb',pow:1.35,elem:'phys'},{id:'giftgeruecht',name:'Giftgerücht',pow:1.1,elem:'gift',status:'gift',statusChance:.5,mp:6},{id:'hofmacht',name:'Hofmacht',pow:0,buffSelf:{def:1.3},cd:3}],
+    loot:[{name:'Ashcroft-Fächer',icon:'🪭',chance:.5},{name:'Kompromittierender Brief',icon:'✉️',chance:.6}],
+    phases:[{at:0.4,buff:{spd:1.25},announce:'Die Herzogin lächelt — das Duell wird persönlich.'}],aggroBias:1.2},
+  story_nebelrichter:{id:'story_nebelrichter',name:'Nebelrichter',icon:'⚖️',art:'assets/creature/boss_fogking.webp',genre:['grey'],hp:190,mp:50,atk:15,def:15,mag:24,spd:9,exp:240,gold:0,element:'schatten',weak:['licht'],resist:['phys'],ai:'boss',boss:true,story:true,storyWorlds:['grey'],storyTag:'schuld',
+    blurb:'Greymourne-Boss: richtet über Schuld — Zahlen die nicht aufgehen.',
+    skills:[{id:'urteil',name:'Urteil',pow:1.55,elem:'schatten',mp:12},{id:'aktennebel',name:'Aktennebel',pow:1.2,elem:'schatten',aoe:true,mp:10},{id:'vergessen2',name:'Streichen',pow:1.0,elem:'schatten',status:'schlaf',statusChance:.45,mp:8}],
+    loot:[{name:'Richterstempel',icon:'🔏',chance:.45}],
+    phases:[{at:0.45,buff:{mag:1.3},announce:'Im Nebel erscheinen Zeugen, die du nicht kennst.'}],aggroBias:1.5},
   superboss_aether:{id:'superboss_aether',name:'Ätherwyrm Eternalis',icon:'🐉',art:'assets/creature/boss_archfiend.webp',genre:['held','fantasy','daemon'],hp:480,mp:100,atk:28,def:22,mag:26,spd:11,exp:800,gold:400,element:'licht',weak:['dunkel'],resist:['feuer','eis','blitz'],absorb:['licht'],immune:['gift'],ai:'boss',boss:true,superboss:true,staggerMax:160,skills:[{id:'aetheratem',name:'Ätheratem',pow:1.8,elem:'licht',aoe:true,mp:16},{id:'weltenzorn',name:'Weltenzorn',pow:2.2,elem:'phys',aoe:true,cd:3}],loot:[{name:'Sternenklinge',icon:'✨',chance:.35}],phases:[{at:0.7,buff:{mag:1.15},announce:'Eternalis öffnet ein Sternentor.'},{at:0.4,buff:{atk:1.25,spd:1.1},announce:'Schuppen aus reinem Äther — Bruchfenster!'},{at:0.15,buff:{mag:1.4},announce:'Die letzte Nova naht.'}],aggroBias:2}
 
 };
@@ -70,38 +91,46 @@ export function enemyById(id){
 }
 
 export function pickEncounter(S,opts={}){
-  const genre=String(S.genre||S.role||'held').toLowerCase();
+  const role=S?.role||S?.genre||'held';
   const pool=Object.values(ENEMIES).filter(e=>{
     if(opts.bossOnly && !e.boss)return false;
     if(opts.noBoss && e.boss)return false;
-    return (e.genre||[]).some(g=>genre.includes(g)||g===genre||(genre==='held'&&g==='fantasy')||(genre==='mensch'&&g==='fantasy'));
+    if(opts.storyOnly && !e.story)return false;
+    if(e.genre && e.genre.length && !e.genre.some(g=>g===role||g===S?.genre||g==='fantasy')){
+      if(!(opts.boss||opts.forceBoss||opts.story)) return false;
+    }
+    return true;
   });
   const normal=pool.filter(e=>!e.boss);
   const bosses=pool.filter(e=>e.boss);
-  if(opts.boss || (opts.forceBoss) || (S.flags?.bossChance && Math.random()<0.08)){
-    const b=bosses[Math.floor(Math.random()*bosses.length)]||normal[0];
-    return b?[enemyById(b.id)]:[];
+  const storyBosses=bosses.filter(e=>e.story && (!e.storyWorlds || e.storyWorlds.includes(role)||e.storyWorlds.includes(S?.genre)));
+
+  // Story boss when arc heat / flag / explicit
+  if(opts.story || S?.flags?.storyBoss || (S?.quests?.main?.act|0)>=2 && Math.random()<0.12){
+    const b=storyBosses[Math.floor(Math.random()*storyBosses.length)]||bosses[0];
+    if(b) return [enemyById(b.id)];
   }
-  // rare spawn ~4%
-  const rares=normal.filter(e=>e.rare);
-  if(rares.length && Math.random()<0.04 && !opts.noRare){
-    return [enemyById(rares[Math.floor(Math.random()*rares.length)].id)];
+  if(opts.boss || opts.forceBoss || (S.flags?.bossChance && Math.random()<0.08)){
+    const b=bosses[Math.floor(Math.random()*bosses.length)]||normal[0];
+    if(b) return [enemyById(b.id)];
   }
   if(opts.superboss){
     const sb=pool.find(e=>e.superboss)||Object.values(ENEMIES).find(e=>e.superboss);
-    return sb?[enemyById(sb.id)]:[];
+    if(sb) return [enemyById(sb.id)];
   }
-  const n=opts.count||(Math.random()<.55?1:Math.random()<.75?2:3);
-  const out=[];
+  // Formations: mix roles for non-trivial fights
+  const count=Math.max(1, Math.min(4, opts.count|| (Math.random()<0.35?2:1) + (S?.st?.lvl>8&&Math.random()<0.3?1:0)));
   const poolN=normal.filter(e=>!e.rare && !e.superboss);
-  for(let i=0;i<n;i++){
-    const e=poolN[Math.floor(Math.random()*poolN.length)];
-    if(e) out.push(enemyById(e.id));
+  const pick=()=>enemyById((poolN[Math.floor(Math.random()*poolN.length)]||normal[0]||Object.values(ENEMIES)[0]).id);
+  const foes=[];
+  for(let i=0;i<count;i++) foes.push(pick());
+  // Tag formation for UI/narration
+  if(foes.length>1){
+    foes[0]._formation='front';
+    if(foes[1]) foes[1]._formation='flank';
+    if(foes[2]) foes[2]._formation='support';
   }
-  // unique instance names for multiples
-  const counts={};
-  for(const e of out){counts[e.id]=(counts[e.id]|0)+1; if(counts[e.id]>1) e.name=e.name+' '+String.fromCharCode(64+counts[e.id]); e._iid=e.id+'_'+iRand()}
-  return out;
+  return foes;
 }
 function iRand(){return Math.random().toString(36).slice(2,7)}
 
@@ -118,4 +147,16 @@ export function battleBgFor(S){
   return BATTLE_BG.held;
 }
 
-export default {ENEMIES,ELEMENTS,ELEM_LABEL,STATUS,BATTLE_BG,enemyById,pickEncounter,battleBgFor};
+export function designEncounter(S, kind='patrol'){
+  if(kind==='story') return pickEncounter(S,{story:true});
+  if(kind==='boss') return pickEncounter(S,{forceBoss:true});
+  if(kind==='ambush') return pickEncounter(S,{noBoss:true,count:2+((S?.st?.lvl|0)>6?1:0)});
+  if(kind==='duel') return pickEncounter(S,{noBoss:true,count:1});
+  return pickEncounter(S,{noBoss:true,count:1});
+}
+export function storyBossBlurb(foe){
+  if(!foe) return '';
+  return foe.blurb||foe.storyTag||'';
+}
+export default {ENEMIES,ELEMENTS,ELEM_LABEL,STATUS,BATTLE_BG,enemyById,pickEncounter,battleBgFor,designEncounter,storyBossBlurb};
+
