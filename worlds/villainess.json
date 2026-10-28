@@ -243,7 +243,8 @@
     "Mittag: Akademie / Palast",
     "Abend: Akademie / Palast",
     "Nacht: ruht nahe Akademie "
-   ]
+   ],
+   "adult": true
   },
   "Heldin Mira": {
    "e": "🌸",
@@ -270,7 +271,8 @@
     "Mittag: Campus / Rosengarten",
     "Abend: Campus / Rosengarten",
     "Nacht: ruht nahe Campus "
-   ]
+   ],
+   "adult": true
   },
   "Ritter Cedric": {
    "e": "🛡️",
@@ -296,7 +298,8 @@
     "Mittag: Deine Nähe",
     "Abend: Deine Nähe",
     "Nacht: ruht nahe Deine Nähe"
-   ]
+   ],
+   "adult": true
   },
   "Lady Vivienne": {
    "e": "🦚",
@@ -322,7 +325,8 @@
     "Mittag: Salons",
     "Abend: Salons",
     "Nacht: ruht nahe Salons"
-   ]
+   ],
+   "adult": true
   },
   "Professor Alden": {
    "e": "📚",
@@ -347,7 +351,8 @@
     "Mittag: Bibliothek",
     "Abend: Bibliothek",
     "Nacht: ruht nahe Bibliothek"
-   ]
+   ],
+   "adult": true
   },
   "Herzogin Ashcroft": {
    "e": "💍",
@@ -371,7 +376,8 @@
     "Mittag: Villa / Briefe",
     "Abend: Villa / Briefe",
     "Nacht: ruht nahe Villa "
-   ]
+   ],
+   "adult": true
   },
   "Dienerin Lotte": {
    "e": "🕯️",
@@ -396,7 +402,8 @@
     "Mittag: Dein Gemach",
     "Abend: Dein Gemach",
     "Nacht: ruht nahe Dein Gemach"
-   ]
+   ],
+   "adult": true
   },
   "Kaiserin-Witwe": {
    "e": "👑",
@@ -420,7 +427,8 @@
     "Mittag: Palast",
     "Abend: Palast",
     "Nacht: ruht nahe Palast"
-   ]
+   ],
+   "adult": true
   }
  },
  "startItems": [
@@ -468,7 +476,7 @@
   }
  ],
  "startScene": {
-  "ort": "Rosalinds Gemach in der Akademie von Lumière",
+  "ort": "Salon der Rose",
   "zeit": "Morgen, Sonnenlicht durch Spitzenvorhänge",
   "anwesend": [
    "Kronprinz Julian",
@@ -479,5 +487,109 @@
   "365 Tage bis zur Verurteilung im Ballsaal",
   "Gerücht: Rosalind habe Mira gestoßen",
   "Ashcroft-Schulden steigen"
- ]
+ ],
+ "locations": {
+  "nodes": {
+   "Salon der Rose": {
+    "desc": "Spiegel, Rosenwasser, tickende Uhren.",
+    "tags": [
+     "akademie",
+     "innen"
+    ],
+    "exits": [
+     "Akademiehof Lumière",
+     "Bibliothek",
+     "Rosengarten"
+    ],
+    "bg": "salon"
+   },
+   "Akademiehof Lumière": {
+    "desc": "Marmorbrunnen, Schüler in Uniform.",
+    "tags": [
+     "akademie",
+     "außen"
+    ],
+    "exits": [
+     "Salon der Rose",
+     "Bibliothek",
+     "Speisesaal",
+     "Stadtgasse"
+    ],
+    "bg": "akademie"
+   },
+   "Bibliothek": {
+    "desc": "Staubige Folianten, heimliche Notizen.",
+    "tags": [
+     "akademie",
+     "innen"
+    ],
+    "exits": [
+     "Akademiehof Lumière",
+     "Salon der Rose"
+    ],
+    "bg": "salon"
+   },
+   "Speisesaal": {
+    "desc": "Lange Tafeln, Flüstern, Blicke.",
+    "tags": [
+     "akademie",
+     "innen"
+    ],
+    "exits": [
+     "Akademiehof Lumière"
+    ],
+    "bg": "salon"
+   },
+   "Rosengarten": {
+    "desc": "Mondlicht, Dornen, geheime Treffen.",
+    "tags": [
+     "akademie",
+     "außen"
+    ],
+    "exits": [
+     "Salon der Rose",
+     "Stadtgasse"
+    ],
+    "bg": "garten"
+   },
+   "Stadtgasse": {
+    "desc": "Kutschen, Händler, Gerüchte über dich.",
+    "tags": [
+     "stadt",
+     "außen"
+    ],
+    "exits": [
+     "Akademiehof Lumière",
+     "Rosengarten",
+     "Ballsaal"
+    ],
+    "bg": "akademie"
+   },
+   "Ballsaal": {
+    "desc": "Kristalllüster, Masken, Intrigen.",
+    "tags": [
+     "stadt",
+     "innen"
+    ],
+    "exits": [
+     "Stadtgasse"
+    ],
+    "bg": "salon"
+   }
+  },
+  "start": "Salon der Rose"
+ },
+ "orte": {
+  "Salon der Rose": "Spiegel, Rosenwasser, tickende Uhren.",
+  "Akademiehof Lumière": "Marmorbrunnen, Schüler in Uniform.",
+  "Bibliothek": "Staubige Folianten, heimliche Notizen.",
+  "Speisesaal": "Lange Tafeln, Flüstern, Blicke.",
+  "Rosengarten": "Mondlicht, Dornen, geheime Treffen.",
+  "Stadtgasse": "Kutschen, Händler, Gerüchte über dich.",
+  "Ballsaal": "Kristalllüster, Masken, Intrigen.",
+  "Akademie-Campus": "Rosenstein, Hörsäle, Bibliothek mit verbotener Galerie.",
+  "Ashcroft-Villa": "Rosalinds Familie: Schulden, Stolz, kalte Mütter.",
+  "Hauptstadt Solenne": "Kaiserpalast, Zeitung 'Lilienblatt', Unterwelt der Informanten.",
+  "Nordkloster": "Zuflucht oder Verbannung für gefallene Ladies."
+ }
 }

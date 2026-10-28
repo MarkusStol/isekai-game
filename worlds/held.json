@@ -241,11 +241,24 @@
    "romance": true,
    "geschlecht": "w",
    "schedule": [
-    "Morgen: Königsburg / Thronsaal",
-    "Mittag: Königsburg / Thronsaal",
-    "Abend: Königsburg / Thronsaal",
-    "Nacht: ruht nahe Königsburg "
-   ]
+    "Morgen: Thronsaal von Aldheim",
+    "Mittag: Thronsaal von Aldheim",
+    "Nachmittag: Palastgarten",
+    "Abend: Beschwörungshalle im Königspalast von Aldheim",
+    "Nacht: Thronsaal von Aldheim"
+   ],
+   "home": "Thronsaal von Aldheim",
+   "portrait": "elise",
+   "mood": "angespannt",
+   "goals": [
+    "Aldheim retten",
+    "Rat kontrollieren"
+   ],
+   "relations": {
+    "Hofmagier Orren": "vertraut",
+    "Kapitän Rhett": "respekt"
+   },
+   "adult": true
   },
   "Lyra": {
    "e": "🏹",
@@ -268,11 +281,22 @@
    "romance": true,
    "geschlecht": "w",
    "schedule": [
-    "Morgen: Söldnergilde / Mauern",
-    "Mittag: Söldnergilde / Mauern",
-    "Abend: Söldnergilde / Mauern",
-    "Nacht: ruht nahe Söldnergilde "
-   ]
+    "Morgen: Elfenwald Sylvaris",
+    "Mittag: Waldweg nach Sylvaris",
+    "Nachmittag: Unterstadt-Markt",
+    "Abend: Taverne Zum Silberfuchs",
+    "Nacht: Elfenwald Sylvaris"
+   ],
+   "home": "Elfenwald Sylvaris",
+   "portrait": "lyra",
+   "mood": "wachsam",
+   "goals": [
+    "Bruder Fael finden"
+   ],
+   "relations": {
+    "Garrick": "toleriert"
+   },
+   "adult": true
   },
   "Garrick": {
    "e": "🪓",
@@ -296,10 +320,22 @@
    "geschlecht": "m",
    "schedule": [
     "Morgen: Söldnergilde",
-    "Mittag: Söldnergilde",
-    "Abend: Söldnergilde",
-    "Nacht: ruht nahe Söldnergilde"
-   ]
+    "Mittag: Taverne Zum Silberfuchs",
+    "Nachmittag: Unterstadt-Markt",
+    "Abend: Taverne Zum Silberfuchs",
+    "Nacht: Söldnergilde"
+   ],
+   "home": "Söldnergilde",
+   "portrait": "garrick",
+   "mood": "laut",
+   "goals": [
+    "Gold",
+    "einen letzten Kampf"
+   ],
+   "relations": {
+    "Lyra": "neckt"
+   },
+   "adult": true
   },
   "Hofmagier Orren": {
    "e": "🔮",
@@ -321,11 +357,24 @@
    "romance": false,
    "geschlecht": "m",
    "schedule": [
-    "Morgen: Beschwörungshalle / Turm",
-    "Mittag: Beschwörungshalle / Turm",
-    "Abend: Beschwörungshalle / Turm",
-    "Nacht: ruht nahe Beschwörungshalle "
-   ]
+    "Morgen: Beschwörungshalle im Königspalast von Aldheim",
+    "Mittag: Kirche von Solari",
+    "Nachmittag: Beschwörungshalle im Königspalast von Aldheim",
+    "Abend: Thronsaal von Aldheim",
+    "Nacht: Beschwörungshalle im Königspalast von Aldheim"
+   ],
+   "home": "Beschwörungshalle im Königspalast von Aldheim",
+   "portrait": "orren",
+   "mood": "erschöpft",
+   "goals": [
+    "Kreis stabilisieren",
+    "Elise schützen"
+   ],
+   "relations": {
+    "Prinzessin Elise": "loyal",
+    "Magierin Seris": "rival"
+   },
+   "adult": true
   },
   "Magierin Seris": {
    "e": "✨",
@@ -347,11 +396,22 @@
    "romance": true,
    "geschlecht": "w",
    "schedule": [
-    "Morgen: Magierturm",
-    "Mittag: Magierturm",
-    "Abend: Magierturm",
-    "Nacht: ruht nahe Magierturm"
-   ]
+    "Morgen: Kirche von Solari",
+    "Mittag: Unterstadt-Markt",
+    "Nachmittag: Kirche von Solari",
+    "Abend: Thronsaal von Aldheim",
+    "Nacht: Kirche von Solari"
+   ],
+   "home": "Kirche von Solari",
+   "portrait": "seris",
+   "mood": "kühl",
+   "goals": [
+    "Kirche stärken"
+   ],
+   "relations": {
+    "Hofmagier Orren": "rival"
+   },
+   "adult": true
   },
   "Kapitän Rhett": {
    "e": "🛡️",
@@ -373,11 +433,22 @@
    "romance": false,
    "geschlecht": "m",
    "schedule": [
-    "Morgen: Nordwall",
+    "Morgen: Königsburg-Hof",
     "Mittag: Nordwall",
-    "Abend: Nordwall",
-    "Nacht: ruht nahe Nordwall"
-   ]
+    "Nachmittag: Nordwall",
+    "Abend: Königsburg-Hof",
+    "Nacht: Nordwall"
+   ],
+   "home": "Königsburg-Hof",
+   "portrait": "rhett",
+   "mood": "pflichtbewusst",
+   "goals": [
+    "Mauer halten"
+   ],
+   "relations": {
+    "Prinzessin Elise": "loyal"
+   },
+   "adult": true
   },
   "Bauer Otto": {
    "e": "🌾",
@@ -400,9 +471,18 @@
    "schedule": [
     "Morgen: Dorf Weidenau",
     "Mittag: Dorf Weidenau",
+    "Nachmittag: Osttor",
     "Abend: Dorf Weidenau",
-    "Nacht: ruht nahe Dorf Weidenau"
-   ]
+    "Nacht: Dorf Weidenau"
+   ],
+   "home": "Dorf Weidenau",
+   "portrait": "otto",
+   "mood": "müde",
+   "goals": [
+    "Flüchtlinge füttern"
+   ],
+   "relations": {},
+   "adult": true
   },
   "Spion Kael": {
    "e": "🗡️",
@@ -423,11 +503,20 @@
    "romance": false,
    "geschlecht": "m",
    "schedule": [
-    "Morgen: Unterstadt / Schatten",
-    "Mittag: Unterstadt / Schatten",
-    "Abend: Unterstadt / Schatten",
-    "Nacht: ruht nahe Unterstadt "
-   ]
+    "Morgen: Hafen von Myr",
+    "Mittag: Unterstadt-Markt",
+    "Nachmittag: Taverne Zum Silberfuchs",
+    "Abend: Hafen von Myr",
+    "Nacht: Nebel – unterwegs"
+   ],
+   "home": "Hafen von Myr",
+   "portrait": "rhett",
+   "mood": "verschlossen",
+   "goals": [
+    "Geheimnisse verkaufen"
+   ],
+   "relations": {},
+   "adult": true
   }
  },
  "startItems": [
@@ -488,5 +577,202 @@
   "Das Dämonenheer steht drei Tage vor dem Nordwall",
   "Der Adel zweifelt an der Beschwörung",
   "König Alaric ist 'erkrankt' (tot – geheim)"
- ]
+ ],
+ "locations": {
+  "nodes": {
+   "Beschwörungshalle im Königspalast von Aldheim": {
+    "desc": "Marmor, Weihrauch, erloschener Beschwörungskreis.",
+    "tags": [
+     "palast",
+     "innen"
+    ],
+    "exits": [
+     "Thronsaal von Aldheim",
+     "Palastgarten",
+     "Unterstadt-Markt"
+    ],
+    "bg": "beschwoerungshalle"
+   },
+   "Thronsaal von Aldheim": {
+    "desc": "Purpurne Banner, leerer Thron, flüsternde Räte.",
+    "tags": [
+     "palast",
+     "innen"
+    ],
+    "exits": [
+     "Beschwörungshalle im Königspalast von Aldheim",
+     "Palastgarten",
+     "Königsburg-Hof"
+    ],
+    "bg": "thron"
+   },
+   "Palastgarten": {
+    "desc": "Geschnittene Hecken, Springbrunnen, Wachen an den Toren.",
+    "tags": [
+     "palast",
+     "außen"
+    ],
+    "exits": [
+     "Thronsaal von Aldheim",
+     "Königsburg-Hof",
+     "Unterstadt-Markt"
+    ],
+    "bg": "dorf"
+   },
+   "Königsburg-Hof": {
+    "desc": "Waffenständer, Übungsring, Fahnen im Wind.",
+    "tags": [
+     "palast",
+     "außen"
+    ],
+    "exits": [
+     "Palastgarten",
+     "Unterstadt-Markt",
+     "Nordwall"
+    ],
+    "bg": "nordwall"
+   },
+   "Unterstadt-Markt": {
+    "desc": "Stände, Gewürzduft, Gildenbanner.",
+    "tags": [
+     "stadt",
+     "außen"
+    ],
+    "exits": [
+     "Königsburg-Hof",
+     "Söldnergilde",
+     "Taverne Zum Silberfuchs",
+     "Osttor",
+     "Kirche von Solari"
+    ],
+    "bg": "markt"
+   },
+   "Taverne Zum Silberfuchs": {
+    "desc": "Warmes Feuer, Bier, Gerüchte.",
+    "tags": [
+     "stadt",
+     "innen",
+     "taverne"
+    ],
+    "exits": [
+     "Unterstadt-Markt",
+     "Söldnergilde"
+    ],
+    "bg": "taverne"
+   },
+   "Söldnergilde": {
+    "desc": "Auftragstafel, Würfel, Blut und Gold.",
+    "tags": [
+     "stadt",
+     "innen"
+    ],
+    "exits": [
+     "Unterstadt-Markt",
+     "Taverne Zum Silberfuchs",
+     "Osttor"
+    ],
+    "bg": "soeldnergilde"
+   },
+   "Kirche von Solari": {
+    "desc": "Goldenes Licht, Weihrauch, strenge Priester.",
+    "tags": [
+     "stadt",
+     "innen"
+    ],
+    "exits": [
+     "Unterstadt-Markt"
+    ],
+    "bg": "beschwoerungshalle"
+   },
+   "Osttor": {
+    "desc": "Wachtürme, Wartende Karawanen.",
+    "tags": [
+     "stadt",
+     "außen"
+    ],
+    "exits": [
+     "Unterstadt-Markt",
+     "Dorf Weidenau",
+     "Hafen von Myr",
+     "Elfenwald Sylvaris"
+    ],
+    "bg": "markt"
+   },
+   "Dorf Weidenau": {
+    "desc": "Getreidefelder, Flüchtlingszelte, sanfte Hügel.",
+    "tags": [
+     "dorf",
+     "außen"
+    ],
+    "exits": [
+     "Osttor",
+     "Waldweg nach Sylvaris"
+    ],
+    "bg": "dorf"
+   },
+   "Waldweg nach Sylvaris": {
+    "desc": "Silberne Blätter am Wegesrand, Pfade die sich drehen.",
+    "tags": [
+     "wald",
+     "außen"
+    ],
+    "exits": [
+     "Dorf Weidenau",
+     "Elfenwald Sylvaris"
+    ],
+    "bg": "elfenwald"
+   },
+   "Elfenwald Sylvaris": {
+    "desc": "Wechselnde Pfade, Elfenwachen, Licht ohne Sonne.",
+    "tags": [
+     "wald",
+     "außen"
+    ],
+    "exits": [
+     "Waldweg nach Sylvaris"
+    ],
+    "bg": "elfenwald"
+   },
+   "Hafen von Myr": {
+    "desc": "Schiffe, Salz, Schmugglerflüstern.",
+    "tags": [
+     "hafen",
+     "außen"
+    ],
+    "exits": [
+     "Osttor"
+    ],
+    "bg": "hafen"
+   },
+   "Nordwall": {
+    "desc": "Steinmauer, Ruß, Dämonenheere in der Ferne.",
+    "tags": [
+     "front",
+     "außen"
+    ],
+    "exits": [
+     "Königsburg-Hof"
+    ],
+    "bg": "nordwall"
+   }
+  },
+  "start": "Beschwörungshalle im Königspalast von Aldheim"
+ },
+ "orte": {
+  "Beschwörungshalle im Königspalast von Aldheim": "Marmor, Weihrauch, erloschener Beschwörungskreis.",
+  "Thronsaal von Aldheim": "Purpurne Banner, leerer Thron, flüsternde Räte.",
+  "Palastgarten": "Geschnittene Hecken, Springbrunnen, Wachen an den Toren.",
+  "Königsburg-Hof": "Waffenständer, Übungsring, Fahnen im Wind.",
+  "Unterstadt-Markt": "Stände, Gewürzduft, Gildenbanner.",
+  "Taverne Zum Silberfuchs": "Warmes Feuer, Bier, Gerüchte.",
+  "Söldnergilde": "Auftragstafel, Würfel, Blut und Gold.",
+  "Kirche von Solari": "Goldenes Licht, Weihrauch, strenge Priester.",
+  "Osttor": "Wachtürme, Wartende Karawanen.",
+  "Dorf Weidenau": "Getreidefelder, Flüchtlingszelte, sanfte Hügel.",
+  "Waldweg nach Sylvaris": "Silberne Blätter am Wegesrand, Pfade die sich drehen.",
+  "Elfenwald Sylvaris": "Wechselnde Pfade, Elfenwachen, Licht ohne Sonne.",
+  "Hafen von Myr": "Schiffe, Salz, Schmugglerflüstern.",
+  "Nordwall": "Steinmauer, Ruß, Dämonenheere in der Ferne.",
+  "Hauptstadt Aldheim": "Weiße Mauern, Königsburg auf dem Hügel, Unterstadt mit Gilden und Märkten. Geruch von Brot und Eisen."
+ }
 }

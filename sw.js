@@ -1,18 +1,18 @@
 /* Isekai Reinkarnation – offline shell cache. Bump CACHE on every release. */
-const CACHE = 'isekai-v11';
+const CACHE = 'isekai-v12';
 const ASSETS = [
   './',
   './index.html',
-  './style.css?v=11',
-  './game.js?v=11',
+  './style.css?v=12',
+  './game.js?v=12',
   './manifest.json',
   './icon.svg',
   './favicon.svg',
-  './worlds/greymourne.json?v=11',
-  './worlds/held.json?v=11',
-  './worlds/villainess.json?v=11',
-  './worlds/daemon.json?v=11',
-  './worlds/mensch.json?v=11'
+  './worlds/greymourne.json?v=12',
+  './worlds/held.json?v=12',
+  './worlds/villainess.json?v=12',
+  './worlds/daemon.json?v=12',
+  './worlds/mensch.json?v=12'
 ];
 
 self.addEventListener('install', e => {

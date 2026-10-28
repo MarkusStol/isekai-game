@@ -243,7 +243,8 @@
     "Mittag: Thronsaal / Büro",
     "Abend: Thronsaal / Büro",
     "Nacht: ruht nahe Thronsaal "
-   ]
+   ],
+   "adult": true
   },
   "General Brok": {
    "e": "🐗",
@@ -269,7 +270,8 @@
     "Mittag: Kasernen",
     "Abend: Kasernen",
     "Nacht: ruht nahe Kasernen"
-   ]
+   ],
+   "adult": true
   },
   "Heldin Aria": {
    "e": "⚔️",
@@ -295,7 +297,8 @@
     "Mittag: Grenzpass (anrückend)",
     "Abend: Grenzpass (anrückend)",
     "Nacht: ruht nahe Grenzpass (anrückend)"
-   ]
+   ],
+   "adult": true
   },
   "Spionin Nyx": {
    "e": "🌑",
@@ -321,7 +324,8 @@
     "Mittag: Schattenmarkt",
     "Abend: Schattenmarkt",
     "Nacht: ruht nahe Schattenmarkt"
-   ]
+   ],
+   "adult": true
   },
   "Fürst Malgor": {
    "e": "🦴",
@@ -346,7 +350,8 @@
     "Mittag: Ruinen von Solmir",
     "Abend: Ruinen von Solmir",
     "Nacht: ruht nahe Ruinen von Solmir"
-   ]
+   ],
+   "adult": true
   },
   "Koch Grimbel": {
    "e": "🍲",
@@ -370,7 +375,8 @@
     "Mittag: Küche",
     "Abend: Küche",
     "Nacht: ruht nahe Küche"
-   ]
+   ],
+   "adult": true
   },
   "Priesterin Solara": {
    "e": "☀️",
@@ -394,7 +400,8 @@
     "Mittag: Mit Arias Heer",
     "Abend: Mit Arias Heer",
     "Nacht: ruht nahe Mit Arias Heer"
-   ]
+   ],
+   "adult": true
   }
  },
  "startItems": [
@@ -443,7 +450,7 @@
   }
  ],
  "startScene": {
-  "ort": "Thronsaal der Nachtfestung, Nocturna",
+  "ort": "Thronsaal der Nacht",
   "zeit": "Ewige Nacht, schwarze Flammen",
   "anwesend": [
    "Sekretärin Velka",
@@ -455,5 +462,92 @@
   "Die Heldin Aria marschiert auf Nocturna zu",
   "Die Kriegskasse ist leer",
   "Fürst Malgor prüft deine Schwäche"
- ]
+ ],
+ "locations": {
+  "nodes": {
+   "Thronsaal der Nacht": {
+    "desc": "Knochenpfeiler, rote Monde, kniende Fürsten.",
+    "tags": [
+     "burg",
+     "innen"
+    ],
+    "exits": [
+     "Dämonischer Hof",
+     "Schatzkammer",
+     "Kriegsratskammer"
+    ],
+    "bg": "thron"
+   },
+   "Dämonischer Hof": {
+    "desc": "Schwarzer Stein, Lavabäche, Heere.",
+    "tags": [
+     "burg",
+     "außen"
+    ],
+    "exits": [
+     "Thronsaal der Nacht",
+     "Kerker",
+     "Grenzpass"
+    ],
+    "bg": "hof"
+   },
+   "Kriegsratskammer": {
+    "desc": "Karten, Blutwachs, streitende Generäle.",
+    "tags": [
+     "burg",
+     "innen"
+    ],
+    "exits": [
+     "Thronsaal der Nacht"
+    ],
+    "bg": "thron"
+   },
+   "Schatzkammer": {
+    "desc": "Gold, Flüche, verbotene Relikte.",
+    "tags": [
+     "burg",
+     "innen"
+    ],
+    "exits": [
+     "Thronsaal der Nacht"
+    ],
+    "bg": "kerker"
+   },
+   "Kerker": {
+    "desc": "Ketten, Echo, Geständnisse.",
+    "tags": [
+     "burg",
+     "innen"
+    ],
+    "exits": [
+     "Dämonischer Hof"
+    ],
+    "bg": "kerker"
+   },
+   "Grenzpass": {
+    "desc": "Wind, Sterbliche Reiche in der Ferne.",
+    "tags": [
+     "außen"
+    ],
+    "exits": [
+     "Dämonischer Hof"
+    ],
+    "bg": "hof"
+   }
+  },
+  "start": "Thronsaal der Nacht"
+ },
+ "orte": {
+  "Thronsaal der Nacht": "Knochenpfeiler, rote Monde, kniende Fürsten.",
+  "Dämonischer Hof": "Schwarzer Stein, Lavabäche, Heere.",
+  "Kriegsratskammer": "Karten, Blutwachs, streitende Generäle.",
+  "Schatzkammer": "Gold, Flüche, verbotene Relikte.",
+  "Kerker": "Ketten, Echo, Geständnisse.",
+  "Grenzpass": "Wind, Sterbliche Reiche in der Ferne.",
+  "Nachtfestung": "Thronsaal, leere Schatzkammer, Kasernen, Labor der Schatten.",
+  "Ork-Lager": "Trommeln, Fleischgruben, Ehrenduell-Kreide.",
+  "Ruinen von Solmir": "Alte Tempel, Relikte des ersten Helden.",
+  "Schattenmarkt": "Schmuggel zwischen Welten, Gerüchte, Preise in Angst.",
+  "Menschengrenzdorf": "Mögliche Verhandlungsmasse oder Beute."
+ }
 }

@@ -244,7 +244,8 @@
     "Mittag: Taverne",
     "Abend: Taverne",
     "Nacht: ruht nahe Taverne"
-   ]
+   ],
+   "adult": true
   },
   "Jäger Tom": {
    "e": "🏹",
@@ -271,7 +272,8 @@
     "Mittag: Waldrand / Taverne",
     "Abend: Waldrand / Taverne",
     "Nacht: ruht nahe Waldrand "
-   ]
+   ],
+   "adult": true
   },
   "Hexe Morgana": {
    "e": "🧙‍♀️",
@@ -297,7 +299,8 @@
     "Mittag: Dunkelwald-Hütte",
     "Abend: Dunkelwald-Hütte",
     "Nacht: ruht nahe Dunkelwald-Hütte"
-   ]
+   ],
+   "adult": true
   },
   "Müllerin Lena": {
    "e": "🌾",
@@ -322,7 +325,8 @@
     "Mittag: Mühle",
     "Abend: Mühle",
     "Nacht: ruht nahe Mühle"
-   ]
+   ],
+   "adult": true
   },
   "Müller Pete": {
    "e": "⚙️",
@@ -346,7 +350,8 @@
     "Mittag: Mühle",
     "Abend: Mühle",
     "Nacht: ruht nahe Mühle"
-   ]
+   ],
+   "adult": true
   },
   "Kind Elsi": {
    "e": "👧",
@@ -370,7 +375,8 @@
     "Mittag: Dorfplatz",
     "Abend: Dorfplatz",
     "Nacht: ruht nahe Dorfplatz"
-   ]
+   ],
+   "adult": true
   },
   "Steuereintreiber Volz": {
    "e": "📜",
@@ -395,7 +401,8 @@
     "Mittag: Anrückend / Dorfplatz",
     "Abend: Anrückend / Dorfplatz",
     "Nacht: ruht nahe Anrückend "
-   ]
+   ],
+   "adult": true
   }
  },
  "startItems": [
@@ -444,7 +451,7 @@
   }
  ],
  "startScene": {
-  "ort": "Heuhaufen am Dorfrand von Kleinbach",
+  "ort": "Dorfplatz Kleinbach",
   "zeit": "Früher Morgen, Tau, Vogelgezwitscher",
   "anwesend": [
    "Jäger Tom"
@@ -454,5 +461,97 @@
   "Wölfe reißen Schafe am Waldrand",
   "Steuereintreiber kommen in einer Woche",
   "Gerücht: die Hexe hat etwas gerufen"
- ]
+ ],
+ "locations": {
+  "nodes": {
+   "Dorfplatz Kleinbach": {
+    "desc": "Brunnen, Bäckerei, neugierige Nachbarn.",
+    "tags": [
+     "dorf",
+     "außen"
+    ],
+    "exits": [
+     "Taverne Zum Müden Ochsen",
+     "Bauernhof Otto",
+     "Waldpfad",
+     "Feldweg"
+    ],
+    "bg": "dorfplatz"
+   },
+   "Taverne Zum Müden Ochsen": {
+    "desc": "Rauch, Lachen, dünnes Bier.",
+    "tags": [
+     "dorf",
+     "innen"
+    ],
+    "exits": [
+     "Dorfplatz Kleinbach"
+    ],
+    "bg": "taverne"
+   },
+   "Bauernhof Otto": {
+    "desc": "Heu, Hühner, ehrliche Arbeit.",
+    "tags": [
+     "dorf",
+     "außen"
+    ],
+    "exits": [
+     "Dorfplatz Kleinbach",
+     "Feldweg"
+    ],
+    "bg": "dorfplatz"
+   },
+   "Feldweg": {
+    "desc": "Getreide bis zum Horizont.",
+    "tags": [
+     "außen"
+    ],
+    "exits": [
+     "Dorfplatz Kleinbach",
+     "Bauernhof Otto",
+     "Waldpfad"
+    ],
+    "bg": "dorfplatz"
+   },
+   "Waldpfad": {
+    "desc": "Vogelsang, Knacken im Unterholz.",
+    "tags": [
+     "wald",
+     "außen"
+    ],
+    "exits": [
+     "Dorfplatz Kleinbach",
+     "Feldweg",
+     "Dunkle Lichtung"
+    ],
+    "bg": "waldpfad"
+   },
+   "Dunkle Lichtung": {
+    "desc": "Zu still. Etwas beobachtet.",
+    "tags": [
+     "wald",
+     "außen"
+    ],
+    "exits": [
+     "Waldpfad"
+    ],
+    "bg": "waldpfad"
+   }
+  },
+  "start": "Dorfplatz Kleinbach"
+ },
+ "orte": {
+  "Dorfplatz Kleinbach": "Brunnen, Bäckerei, neugierige Nachbarn.",
+  "Taverne Zum Müden Ochsen": "Rauch, Lachen, dünnes Bier.",
+  "Bauernhof Otto": "Heu, Hühner, ehrliche Arbeit.",
+  "Feldweg": "Getreide bis zum Horizont.",
+  "Waldpfad": "Vogelsang, Knacken im Unterholz.",
+  "Dunkle Lichtung": "Zu still. Etwas beobachtet.",
+  "Dorfplatz": "Brunnen, Schwarzes Brett, Klatsch.",
+  "Taverne Zum Krummen Kessel": "Hannas Reich. Wärme, Gerüchte, Jobs.",
+  "Dunkelwald": "Pfade, Morganas Hütte, Dinge die Namen flüstern.",
+  "Felder": "Getreide, Steuermarkierungen, Vogelscheuchen die zu gut stehen.",
+  "Mühle": "Lärm, Mehlstaub, heimliche Treffen.",
+  "Baronssitz Feldreich": "Einen Tagesritt entfernt – Steuern und Urteile."
+ }
 }

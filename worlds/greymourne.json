@@ -53,7 +53,11 @@
   "Der Turm": "Namenloser Turm ohne Glocke, auf keinem Wegweiser beschriftet. Keine Treppe – Räume gestapelt als mögliche Leben (Abzweigungen). Mauerwerk schneidet Fundamente und Stollen, ohne sie zu verdrängen. Schmale senkrechte Löcher. Spät im Spiel; nicht früh betreten lassen. Je höher, desto mehr verliert Velicya.",
   "Förderschacht der Namen": "Holzförderturm zwischen Arbeiterhäusern ('der tiefe Schacht'). Schild: EINFAHRT NACH STELLE. AUSFAHRT NACH NAME. Korb hält an unmöglichen Stockwerken (Namenssortierung, Messingbuchstaben). Ganz unten: Bohlen über schwarzem Schacht, Seile mit Schildern (Namen oder Beschreibungen). Samuel: fünf Striche, NICHT ABSCHLIESSEN.",
   "Unter dem Gasthaus / erste Glocke": "Treppe hinter Zimmer sieben älter als das Haus: Stein, Eisen, feuchte Wärme. Darunter hängt die Stadt von unten – Fundamente, schwebende Räume, der Turm durch alles hindurch. Markenfrau sortiert Messingplättchen (CROWE, PETROWA, leere Plättchen).",
-  "Leere Küche / sieben Tage": "Erinnerungsraum: kaltes Fett, tropfender Hahn, zwei Tassen, fehlender dritter Stuhl, Arias Schuhe im Flur. Tag sechs nach Arias Tod; Tag sieben endet im Streit. Greymourne schreibt Fehler hinein (Klopfrhythmus, den Velicya damals nicht gehört hat)."
+  "Leere Küche / sieben Tage": "Erinnerungsraum: kaltes Fett, tropfender Hahn, zwei Tassen, fehlender dritter Stuhl, Arias Schuhe im Flur. Tag sechs nach Arias Tod; Tag sieben endet im Streit. Greymourne schreibt Fehler hinein (Klopfrhythmus, den Velicya damals nicht gehört hat).",
+  "Nachtzug-Abteil": "Messing, Regen am Fenster, Sitze die sich erinnern.",
+  "Nebelgasse": "Gaslaternen, nasse Steine, Schritte ohne Körper.",
+  "Archivkeller": "Regale, Namen, Zahlen die nicht stimmen.",
+  "Hafenmauer": "Salz, Nebelhörner, Schiffe ohne Flagge."
  },
  "npcs": {
   "Darren Crowe": {
@@ -79,7 +83,8 @@
    "schedule": [
     "nacht: Ankunft",
     "danach: Suche"
-   ]
+   ],
+   "adult": true
   },
   "Velicya": {
    "rolle": "Darrens Frau – oder das, was die Stadt aus ihr rekonstruiert",
@@ -105,14 +110,16 @@
    "schedule": [
     "nacht: Zimmer sieben",
     "spät: Gänge hinter Messingbändern"
-   ]
+   ],
+   "adult": true
   },
   "Aria": {
    "rolle": "Darrens tote Tochter (ca. 6)",
    "art": "Dunkle Locken, roter Haarreif, weiße Tasse mit rotem Fuchs, Schnecke namens Großmutter in einer Streichholzschachtel. Lebte mit rotem Wintermantel, später dunkelblau mit zwei fehlenden Knöpfen – Gelb hasste sie ('sieht aus wie Senf'). Malt das große A mit zu tiefem Querstrich.",
    "ziel": "–",
    "stimme": "'Papa.'",
-   "geheim": "Erscheint nur als Bahnsteigkind/Stimme/Spiegelbild. Der gelbe Kindermantel ist KEIN echtes Andenken, sondern Greymournes falscher Beweis (die Stadt baut Beweise, nicht nur Menschen). Jede Version hat beim Kleinen Fehler. Spät: Formular ANGEHÖRIGER wird zu ABHOLER."
+   "geheim": "Erscheint nur als Bahnsteigkind/Stimme/Spiegelbild. Der gelbe Kindermantel ist KEIN echtes Andenken, sondern Greymournes falscher Beweis (die Stadt baut Beweise, nicht nur Menschen). Jede Version hat beim Kleinen Fehler. Spät: Formular ANGEHÖRIGER wird zu ABHOLER.",
+   "adult": true
   },
   "Marlowe": {
    "rolle": "Wirt des Eisernen Lichts",
@@ -138,7 +145,8 @@
    "schedule": [
     "immer: Schankraum",
     "glocke: erstarrt kurz"
-   ]
+   ],
+   "adult": true
   },
   "Elias Ward": {
    "rolle": "Vermesser, lebt zwischen den Wänden",
@@ -164,7 +172,8 @@
    "schedule": [
     "tag: vermessen",
     "nacht: Kammer"
-   ]
+   ],
+   "adult": true
   },
   "Mascha Petrowa": {
    "rolle": "Vorarbeiterin aus dem Aschenviertel",
@@ -190,7 +199,8 @@
    "schedule": [
     "schicht: Fabrik",
     "danach: Haus mit Aschelinie"
-   ]
+   ],
+   "adult": true
   },
   "Nessa Harrow": {
    "rolle": "Wäscherin, Mutter zweier Kinder",
@@ -214,19 +224,22 @@
    "schedule": [
     "tag: waschen",
     "nacht: bei den Kindern"
-   ]
+   ],
+   "adult": true
   },
   "Jon Verrick / Alina Verrick": {
    "rolle": "Toter Nachtofen-Arbeiter (Drosselweg 8) und seine Witwe",
    "art": "Jon starb unter einem Karren, Brot ohne Kümmel bei sich. Alina weint nicht, Lippen schmal, Kinder.",
    "ziel": "Alina: dass Jon nicht 'zurückgegeben' wird.",
-   "geheim": "Register: JON VERRICK – RÜCKGABE AUSSTEHEND. ERSATZ ZULÄSSIG."
+   "geheim": "Register: JON VERRICK – RÜCKGABE AUSSTEHEND. ERSATZ ZULÄSSIG.",
+   "adult": true
   },
   "Arthur Pell": {
    "rolle": "Gast aus Zimmer sechs",
    "art": "Alt, pfeifender Husten, summt vier Töne. Wurde durch seine Tür in die Westgrube zugeordnet: AUSGEGEBEN 1, ZURÜCK 0.",
    "ziel": "–",
-   "geheim": "Sein Papierstreifen trug vorher den Namen M. Venn."
+   "geheim": "Sein Papierstreifen trug vorher den Namen M. Venn.",
+   "adult": true
   },
   "Irena": {
    "rolle": "Hüterin in St. Orison",
@@ -249,17 +262,20 @@
    "geschlecht": "w",
    "schedule": [
     "immer: St. Orison"
-   ]
+   ],
+   "adult": true
   },
   "Toma / Jarek": {
    "rolle": "Junge Arbeiter in Maschas Schicht",
    "art": "Toma läuft Botengänge; Jarek verwechselt rechts und links unter Druck.",
-   "ziel": "Durch die Schicht kommen."
+   "ziel": "Durch die Schicht kommen.",
+   "adult": true
   },
   "Der namenlose Junge": {
    "rolle": "Kind ohne Namen, schließt sich der Gruppe an",
    "art": "Still, wachsam; sucht sich später vielleicht einen Namen auf einer Holzmarke.",
-   "ziel": "Einen eigenen Namen finden – und ihn nicht laut sagen."
+   "ziel": "Einen eigenen Namen finden – und ihn nicht laut sagen.",
+   "adult": true
   },
   "Der Schaffner": {
    "rolle": "Schaffner des Zuges",
@@ -276,7 +292,8 @@
    "geschlecht": "m",
    "schedule": [
     "zug: Abteile"
-   ]
+   ],
+   "adult": true
   },
   "Die alte Frau im Zug": {
    "rolle": "Mitreisende mit Weidenkorb",
@@ -294,12 +311,14 @@
    "geschlecht": "w",
    "schedule": [
     "zug: Abteil"
-   ]
+   ],
+   "adult": true
   },
   "Leon": {
    "rolle": "Junger Spüler aus Darrens Küche (nur Erinnerung)",
    "art": "Schnitt sich tief in die Hand; Darren blieb bei ihm und verpasste den Bus.",
-   "geheim": "Darren hat die Erinnerung an ihn im Glockenhandel verkauft – nur der Name blieb als Loch."
+   "geheim": "Darren hat die Erinnerung an ihn im Glockenhandel verkauft – nur der Name blieb als Loch.",
+   "adult": true
   }
  },
  "fraktionen": {
@@ -586,5 +605,69 @@
    "cost": 0,
    "cd": 0
   }
- ]
+ ],
+ "locations": {
+  "nodes": {
+   "Bahnhof Greymourne": {
+    "desc": "Nebel, stillstehende Uhren, leere Gleise.",
+    "tags": [
+     "stadt",
+     "außen"
+    ],
+    "exits": [
+     "Nachtzug-Abteil",
+     "Nebelgasse",
+     "Hafenmauer"
+    ],
+    "bg": "bahnhof"
+   },
+   "Nachtzug-Abteil": {
+    "desc": "Messing, Regen am Fenster, Sitze die sich erinnern.",
+    "tags": [
+     "zug",
+     "innen"
+    ],
+    "exits": [
+     "Bahnhof Greymourne"
+    ],
+    "bg": "zugabteil"
+   },
+   "Nebelgasse": {
+    "desc": "Gaslaternen, nasse Steine, Schritte ohne Körper.",
+    "tags": [
+     "stadt",
+     "außen"
+    ],
+    "exits": [
+     "Bahnhof Greymourne",
+     "Archivkeller",
+     "Hafenmauer"
+    ],
+    "bg": "gasse"
+   },
+   "Archivkeller": {
+    "desc": "Regale, Namen, Zahlen die nicht stimmen.",
+    "tags": [
+     "stadt",
+     "innen"
+    ],
+    "exits": [
+     "Nebelgasse"
+    ],
+    "bg": "gasse"
+   },
+   "Hafenmauer": {
+    "desc": "Salz, Nebelhörner, Schiffe ohne Flagge.",
+    "tags": [
+     "außen"
+    ],
+    "exits": [
+     "Bahnhof Greymourne",
+     "Nebelgasse"
+    ],
+    "bg": "gasse"
+   }
+  },
+  "start": "Bahnhof Greymourne"
+ }
 }

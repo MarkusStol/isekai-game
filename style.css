@@ -175,3 +175,79 @@ label{font-size:13px;opacity:.8}
 .portrait-ph .port-svg{width:100%;height:100%}
 .rel-port .port-initial{font-size:18px;font-weight:800;color:#fff}
 .rel-port{background:linear-gradient(160deg,var(--port-a,#3a1a5c),var(--port-b,#1a0f2e))}
+
+/* ========== v12 ANIME VN / GACHA POLISH ========== */
+:root{
+  --font-title:'Cinzel','Noto Serif JP',Georgia,serif;
+  --font-body:'Noto Sans',system-ui,sans-serif;
+  --gold:#f0d59a;--gold2:#c9a227;--pink:#ff7eb6;--violet:#a78bfa;--panel:#140c24ee;--line:#f0d59a55;
+}
+html,body{font-family:var(--font-body);letter-spacing:.01em}
+.logo,.title-badge,h1,h2,h3,.speaker,.nameplate,.menu-head,.stage-lab{font-family:var(--font-title)}
+.logo{font-size:42px;line-height:1.05;background:linear-gradient(180deg,#fff,#f0d59a 55%,#c9a227);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 4px 18px #a78bfa66)}
+.logo span{font-size:22px;letter-spacing:.18em;text-transform:uppercase}
+.tagline{color:#d4c4f0;opacity:.9}
+.title-badge{background:linear-gradient(135deg,#7c3aed,#db2777);border:1px solid var(--gold);box-shadow:0 0 20px #db277788}
+.big.glow{background:linear-gradient(135deg,#7c3aed,#db2777 60%,#f59e0b);border:1px solid var(--gold);box-shadow:0 0 0 1px #fff2,0 8px 28px #7c3aed88;font-family:var(--font-title);letter-spacing:.04em}
+.big.alt,.big.book{border:1px solid var(--line);background:linear-gradient(180deg,#1a1030cc,#0e0818ee);font-family:var(--font-title)}
+.genre-pick{position:absolute;inset:8% 5% auto;z-index:5;background:linear-gradient(180deg,#1a1030f2,#0c0818f8);border:1px solid var(--gold);border-radius:18px;padding:18px;box-shadow:0 20px 60px #000a,0 0 40px #7c3aed44;max-height:80%;overflow:auto}
+.genre-pick h2{margin:0 0 8px;color:var(--gold);font-size:20px}
+.genre-pick label{display:block;margin:10px 0 4px;color:#c4b5fd;font-size:12px;font-family:var(--font-title)}
+.genre-pick input,.genre-pick select{width:100%;padding:12px;border-radius:12px;border:1px solid var(--line);background:#0a0614;color:#fff;font:inherit}
+.genre-pick .row{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+
+/* Ornate dialogue */
+.vn-box{position:relative;background:linear-gradient(180deg,#1a1038e8,#0c081eea);border:1.5px solid var(--gold);border-radius:18px;box-shadow:0 0 0 1px #fff1,0 12px 40px #000a,0 0 28px #a78bfa44;backdrop-filter:blur(10px);padding:16px 16px 14px;overflow:hidden}
+.vn-frame{pointer-events:none;position:absolute;inset:4px;border:1px solid #f0d59a33;border-radius:14px;box-shadow:inset 0 0 24px #a78bfa22}
+.vn-box::before{content:'';position:absolute;left:12px;right:12px;top:0;height:2px;background:linear-gradient(90deg,transparent,var(--gold),transparent);opacity:.7}
+.nameplate,.speaker{font-family:var(--font-title);display:inline-block;background:linear-gradient(135deg,#7c3aed,#db2777);color:#fff;padding:4px 14px;border-radius:999px;border:1px solid var(--gold);box-shadow:0 4px 14px #db277766;font-size:13px;letter-spacing:.04em;margin-bottom:8px}
+.vn-text{font-size:15.5px;line-height:1.55;color:#f5f0ff;text-shadow:0 1px 2px #0008;min-height:4.5em}
+.vn-tap{color:var(--gold);animation:blink 1.2s infinite}
+
+/* Portrait frame */
+.portrait-wrap{filter:drop-shadow(0 8px 18px #000a)}
+.portrait-frame{position:relative;width:86px;height:86px;border-radius:16px;border:2px solid var(--gold);overflow:hidden;box-shadow:0 0 0 1px #fff3,0 0 20px #a78bfa66;background:#1a1030}
+.portrait-frame img,.portrait-frame .portrait-ph{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.portrait-ph{background:linear-gradient(160deg,var(--port-a,#3a1a5c),var(--port-b,#1a0f2e))}
+
+/* Choices as game buttons */
+.choices button{font-family:var(--font-body);font-weight:600;background:linear-gradient(180deg,#24183acc,#120a22f0);border:1px solid var(--line);border-radius:14px;box-shadow:0 4px 0 #0006,inset 0 1px 0 #fff2;color:#f8f0ff;transition:transform .12s,border-color .12s,box-shadow .12s}
+.choices button:active{transform:translateY(2px);box-shadow:0 1px 0 #0006}
+.choices button:hover,.choices button:focus{border-color:var(--gold);box-shadow:0 0 16px #a78bfa55}
+
+/* Menu gacha panels */
+.menu-panel{background:linear-gradient(180deg,#1a1038f6,#0a0618f8);border:1.5px solid var(--gold);border-radius:22px;box-shadow:0 0 40px #7c3aed55,0 20px 60px #000a}
+.menu-tabs button{font-family:var(--font-title);font-size:12px;border:1px solid transparent;border-radius:999px;padding:8px 12px;color:#c4b5fd}
+.menu-tabs button.on{background:linear-gradient(135deg,#7c3aed,#db2777);color:#fff;border-color:var(--gold);box-shadow:0 0 14px #db277766}
+.card{background:linear-gradient(160deg,#1e1438cc,#120a24ee);border:1px solid #f0d59a33;border-radius:16px;box-shadow:inset 0 1px 0 #fff1,0 8px 20px #0005}
+.inv-cell{border:1px solid #ffffff18;border-radius:14px;background:linear-gradient(180deg,#221844,#120a22);position:relative;overflow:hidden}
+.inv-cell.r-rare{box-shadow:0 0 12px #60a5fa88;border-color:#60a5fa}
+.inv-cell.r-epic{box-shadow:0 0 14px #a78bfa99;border-color:#a78bfa}
+.inv-cell.r-legendary{box-shadow:0 0 16px #f59e0b99;border-color:#f59e0b;animation:shine 2.8s linear infinite}
+@keyframes shine{0%{filter:brightness(1)}50%{filter:brightness(1.15)}100%{filter:brightness(1)}}
+.rel-port{border:2px solid var(--gold);box-shadow:0 0 12px #a78bfa55;background:linear-gradient(160deg,var(--port-a,#3a1a5c),var(--port-b,#1a0f2e))}
+.hearts{color:#ff6b9d;text-shadow:0 0 8px #ff6b9d88}
+.aff-bar{background:#0006;border:1px solid #fff2;border-radius:999px;overflow:hidden;height:8px}
+.aff-bar i{display:block;height:100%;background:linear-gradient(90deg,#ff6b9d,#f0d59a);box-shadow:0 0 8px #ff6b9d}
+
+/* HUD chips */
+.hud{font-family:var(--font-body)}
+.hud-top b{font-family:var(--font-title);letter-spacing:.03em}
+.chip{background:#1a1038cc;border:1px solid var(--line);border-radius:999px}
+.bar{background:#0006;border:1px solid #fff2;border-radius:999px;overflow:hidden;height:10px}
+.bar i{box-shadow:0 0 8px currentColor}
+
+/* Genre theme extras */
+.scene-bg.theme-zombie{background:linear-gradient(180deg,#2a3038 0%,#1a1510 50%,#0a0806 100%)}
+.scene-bg.theme-cyber{background:linear-gradient(180deg,#0a0618 0%,#12082a 50%,#1a0530 100%)}
+.scene-bg.theme-ash{background:linear-gradient(180deg,#1a0810,#100508 60%,#050203)}
+.scene-bg.theme-survival{background:linear-gradient(180deg,#1a2a18,#0e1810 55%,#081008)}
+
+.input-row input{border:1px solid var(--line);background:#0c0818ee;border-radius:14px}
+.input-row button{background:linear-gradient(135deg,#7c3aed,#db2777);border:1px solid var(--gold);border-radius:14px;box-shadow:0 0 16px #db277766}
+
+@keyframes blink{0%,100%{opacity:.3}50%{opacity:1}}
+
+.portrait-frame img{opacity:0;transition:opacity .45s ease;z-index:2}
+.portrait-frame img.on{opacity:1}
+.portrait-ph{z-index:1}

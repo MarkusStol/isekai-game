@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="768" height="1344" viewBox="0 0 768 1344">
+<defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#2a3038"/>
+<stop offset="50%" stop-color="#1a1510"/>
+<stop offset="100%" stop-color="#0a0806"/></linearGradient>
+<radialGradient id="glow" cx="70%" cy="18%" r="40%"><stop offset="0%" stop-color="#fff6" /><stop offset="100%" stop-color="#0000"/></radialGradient></defs>
+<rect width="768" height="1344" fill="url(#g)"/>
+<rect width="768" height="1344" fill="url(#glow)"/>
+<rect x="50" y="900" width="180" height="80" fill="#1a1010" opacity=".7"/>
+<rect x="300" y="920" width="200" height="70" fill="#12100e"/>
+<rect x="560" y="890" width="160" height="90" fill="#181410"/>
+<text x="100" y="500" fill="#4a3020" font-size="40" opacity=".3">EASTMALL</text>
+<circle cx="33%" cy="6%" r="2" fill="#ffe7a6" opacity="0.6000000000000001"/><circle cx="47%" cy="20%" r="1" fill="#ffe7a6" opacity="0.5"/><circle cx="85%" cy="26%" r="3" fill="#ffe7a6" opacity="0.3"/><circle cx="47%" cy="29%" r="1" fill="#ffe7a6" opacity="0.5"/><circle cx="24%" cy="30%" r="2" fill="#ffe7a6" opacity="0.7"/><circle cx="31%" cy="48%" r="3" fill="#ffe7a6" opacity="0.4"/><circle cx="81%" cy="51%" r="2" fill="#ffe7a6" opacity="0.4"/><circle cx="82%" cy="24%" r="3" fill="#ffe7a6" opacity="0.5"/><circle cx="89%" cy="52%" r="1" fill="#ffe7a6" opacity="0.7"/><circle cx="75%" cy="25%" r="2" fill="#ffe7a6" opacity="0.3"/><circle cx="55%" cy="8%" r="3" fill="#ffe7a6" opacity="0.3"/><circle cx="27%" cy="36%" r="2" fill="#ffe7a6" opacity="0.5"/><circle cx="70%" cy="39%" r="3" fill="#ffe7a6" opacity="0.3"/><circle cx="55%" cy="6%" r="3" fill="#ffe7a6" opacity="0.3"/><circle cx="81%" cy="56%" r="2" fill="#ffe7a6" opacity="0.4"/><circle cx="35%" cy="61%" r="1" fill="#ffe7a6" opacity="0.3"/><circle cx="90%" cy="29%" r="2" fill="#ffe7a6" opacity="0.3"/><circle cx="27%" cy="9%" r="2" fill="#ffe7a6" opacity="0.5"/>
+</svg>
