@@ -4,11 +4,11 @@ export const MONTH_LEN=30; // 12*30 = 360-day year
 export const HOURS_DAY=24;
 
 export function blankCalendar(seed={}){
-  return {year:seed.year||1, day:seed.day||1, hour:seed.hour??18, season:seasonOf(seed.day||1)};
+  return {year:seed.year||1, day:seed.day||1, hour:seed.hour??18, minute:seed.minute||0, season:seasonOf(seed.day||1)};
 }
 export function seasonOf(day){const d=((day-1)%360+360)%360; return SEASONS[Math.floor(d/90)%4]}
 export function calLabel(c){if(!c)return ''; const dow=['Mo','Di','Mi','Do','Fr','Sa','So'][(c.day-1)%7];
-  return `${dow} · ${c.season} · Tag ${c.day}, Jahr ${c.year} · ${String(c.hour).padStart(2,'0')}:00`}
+  return `${dow} · ${c.season} · Tag ${c.day}, Jahr ${c.year} · ${String(c.hour).padStart(2,'0')}:${String(c.minute|0).padStart(2,'0')}`}
 export function phaseFromHour(h){if(h<5)return 'Nacht';if(h<11)return 'Morgen';if(h<14)return 'Mittag';if(h<18)return 'Nachmittag';if(h<22)return 'Abend';return 'Nacht'}
 
 let _eid=1;

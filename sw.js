@@ -1,24 +1,28 @@
 /* Isekai Reinkarnation – offline shell cache. Bump CACHE on every release. */
-const CACHE = 'isekai-v13';
+const CACHE = 'isekai-v13.1';
 const ASSETS = [
   './',
   './index.html',
-  './style.css?v=13',
-  './game.js?v=13',
-  './ui13.js?v=13',
-  './codex.js?v=13',
-  './econ.js?v=13',
-  './map.js?v=13',
-  './persist.js?v=13',
-  './sim.js?v=13',
+  './style.css?v=13.1',
+  './game.js?v=13.1',
+  './ui13.js?v=13.1',
+  './codex.js?v=13.1',
+  './econ.js?v=13.1',
+  './map.js?v=13.1',
+  './persist.js?v=13.1',
+  './sim.js?v=13.1',
+  './know.js?v=13.1',
+  './continuity.js?v=13.1',
+  './ui14.js?v=13.1',
+  './leveling.js?v=13.1',
   './manifest.json',
   './icon.svg',
   './favicon.svg',
-  './worlds/greymourne.json?v=13',
-  './worlds/held.json?v=13',
-  './worlds/villainess.json?v=13',
-  './worlds/daemon.json?v=13',
-  './worlds/mensch.json?v=13'
+  './worlds/greymourne.json?v=13.1',
+  './worlds/held.json?v=13.1',
+  './worlds/villainess.json?v=13.1',
+  './worlds/daemon.json?v=13.1',
+  './worlds/mensch.json?v=13.1'
 ];
 
 self.addEventListener('install', e => {

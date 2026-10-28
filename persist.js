@@ -4,7 +4,7 @@ const LS_META='isekai_save_meta_v1';
 const IDB_NAME='isekai_db_v13';
 const IDB_STORE='saves';
 const REAL_TO_GAME_HOURS=1; // 1 real hour → 1 game hour (configurable)
-const CATCHUP_CAP_HOURS=24*14; // max 14 game-days catch-up
+const CATCHUP_CAP_HOURS=6; // v13.1: default cap 6 game hours; opt-in only
 
 let _db=null;
 function openDB(){return new Promise((res,rej)=>{
@@ -104,20 +104,21 @@ export async function loadBest(migrate){
 
 /** Simulate world forward for real-time away */
 export function catchUp(S, hooks={}){
-  if(!S)return {hours:0,summary:[]};
+  if(!S)return {hours:0,summary:[],skipped:true};
+  // v13.1: opt-in only — never scramble an ongoing scene by default
+  if(!S.cfgCatchupOptIn){S.lastRealAt=Date.now();return {hours:0,summary:[],skipped:'opt-in'}}
   const now=Date.now();
   const last=S.lastRealAt||S.savedAt||now;
   const realMs=Math.max(0,now-last);
-  const rate=S.cfgCatchupRate??REAL_TO_GAME_HOURS; // game hours per real hour
+  const rate=S.cfgCatchupRate??REAL_TO_GAME_HOURS;
   let gameHours=Math.floor((realMs/3600000)*rate);
   if(gameHours<1){S.lastRealAt=now;return {hours:0,summary:[]}}
   gameHours=Math.min(gameHours,S.cfgCatchupCap??CATCHUP_CAP_HOURS);
+  const sceneSnap=S.world?.scene?JSON.parse(JSON.stringify(S.world.scene)):null;
   const beforeLedger=(S.ledger||[]).length;
-  const notes=[];
-  // Batched ticks: 6h chunks
   let left=gameHours;
   while(left>0){
-    const step=Math.min(left,6);
+    const step=Math.min(left,2); // small steps
     if(hooks.advance)hooks.advance(S,step);
     else if(hooks.Sim){
       hooks.Sim.advanceCalendar(S,step,{hourly:(st)=>{try{hooks.Sim.runWorldAI(st,1)}catch(_){}}});
@@ -126,11 +127,16 @@ export function catchUp(S, hooks={}){
     if(hooks.seasonTick)hooks.seasonTick(S,step);
     left-=step;
   }
+  // Resume player scene at same place/people; only clock/zeit updated
+  if(sceneSnap&&S.world){
+    const zeit=S.world.scene?.zeit||sceneSnap.zeit;
+    S.world.scene={...sceneSnap, zeit};
+  }
   S.lastRealAt=now;
   const newEvents=(S.ledger||[]).slice(beforeLedger);
   const summary=newEvents.filter(e=>(e.importance|0)>=35).slice(0,12).map(e=>`• ${e.who}: ${e.what}`);
-  if(!summary.length&&gameHours>=6)summary.push(`• ${gameHours} Stunden vergingen in der Welt.`);
-  return {hours:gameHours,summary,events:newEvents};
+  if(!summary.length&&gameHours>=1)summary.push(`• Offscreen vergingen ${gameHours} Std. — du stehst noch am gleichen Ort.`);
+  return {hours:gameHours,summary,events:newEvents,scenePreserved:!!sceneSnap};
 }
 
 export default {atomicSave,loadBest,prepareSave,catchUp,saveMeta,writeMeta};

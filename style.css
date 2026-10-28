@@ -266,3 +266,63 @@ html,body{font-family:var(--font-body);letter-spacing:.01em}
 
 .codex-inline{margin:8px 0;clear:both}
 .codex-thumb{background:#0a1620}
+
+/* ===== v14 genre themes ===== */
+body.genre-fantasy{--accent:#ff6fb5;--accent2:#7b6bff;--gold:#f0d59a;--vn-border:#f0d59a66}
+body.genre-zombie{--accent:#8fbf6a;--accent2:#3d5c34;--gold:#a8c27a;--vn-border:#6a8f4a66}
+body.genre-zombie .scene-bg{filter:saturate(.75) contrast(1.05)}
+body.genre-zombie .vn-box{background:linear-gradient(180deg,#1a2418ee,#0e140cf2);border-color:#6a8f4a66}
+body.genre-zombie .speaker{background:linear-gradient(90deg,#8fbf6a,#3d5c34);color:#0a1008}
+body.genre-zombie button.big,body.genre-zombie .input-row button{background:linear-gradient(90deg,#6a8f4a,#3d5c34)}
+body.genre-cyberpunk{--accent:#00f0ff;--accent2:#ff00aa;--gold:#7df9ff;--vn-border:#00f0ff55}
+body.genre-cyberpunk .scene-bg{filter:saturate(1.2) contrast(1.1)}
+body.genre-cyberpunk .vn-box{background:linear-gradient(180deg,#0a1228ee,#120018f2);border-color:#00f0ff55;box-shadow:0 0 24px #00f0ff22}
+body.genre-cyberpunk .speaker{background:linear-gradient(90deg,#00f0ff,#ff00aa);color:#050510}
+body.genre-cyberpunk .hud{border-color:#00f0ff44}
+body.genre-darkfantasy{--accent:#c45c5c;--accent2:#4a1a2a;--gold:#c9a66b;--vn-border:#8a405066}
+body.genre-darkfantasy .scene-bg{filter:saturate(.85) brightness(.92)}
+body.genre-darkfantasy .vn-box{background:linear-gradient(180deg,#1a0c10ee,#0a0608f2);border-color:#8a405066}
+body.genre-darkfantasy .speaker{background:linear-gradient(90deg,#c45c5c,#4a1a2a)}
+body.genre-postapoc{--accent:#d4a574;--accent2:#6b4a2a;--gold:#e8c99a;--vn-border:#a0805066}
+body.genre-postapoc .vn-box{background:linear-gradient(180deg,#221810ee,#120c08f2);border-color:#a0805066}
+body.genre-grey .vn-box{font-family:Georgia,'Times New Roman',serif}
+
+/* ===== v14 hub (Genshin/Persona-like) ===== */
+.hub{padding:4px 2px 16px}
+.hub-hero{display:flex;gap:12px;align-items:stretch;padding:12px;margin-bottom:12px;border-radius:18px;background:linear-gradient(135deg,#2a1848,#120a28);border:1px solid #ffffff22;overflow:hidden}
+.hub-hero-art{width:88px;height:88px;border-radius:16px;background:#1a0f2e center/cover no-repeat;border:2px solid var(--gold,#f0d59a66);flex-shrink:0}
+.hub-hero-meta{flex:1;min-width:0}
+.hub-name{font-size:20px;font-weight:800;letter-spacing:-.02em}
+.hub-sub{font-size:12px;opacity:.75;margin-top:2px}
+.hub-lvl{font-size:12px;margin-top:6px;color:var(--gold,#f0d59a)}
+.hub-attrs{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
+.hub-attrs span{font-size:10px;background:#ffffff14;padding:2px 6px;border-radius:6px}
+.hub-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.hub-tile{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:16px 8px;border-radius:16px;background:linear-gradient(180deg,#ffffff14,#ffffff08);border:1px solid #ffffff22;min-height:88px}
+.hub-tile:active{transform:scale(.97);background:#ffffff22}
+.hub-ico{font-size:26px;line-height:1}
+.hub-lab{font-size:12px;font-weight:700;opacity:.9}
+.attr-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.attr-btn.on,.tiny.on{outline:1px solid var(--gold,#f0d59a)}
+.tree-row{padding:8px 0;border-bottom:1px solid #ffffff12;font-size:12px}
+.tree-row .sk{opacity:.45}
+.tree-row .sk.on{opacity:1;color:var(--gold,#f0d59a);font-weight:700}
+
+/* ===== Begegnung ===== */
+.begegnung{position:fixed;inset:0;z-index:40;background:#000c;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(6px)}
+.begegnung.hidden{display:none!important}
+.begegnung-card{width:100%;max-width:360px;background:linear-gradient(180deg,#1e1438,#0e0a1c);border:1px solid var(--gold,#f0d59a88);border-radius:22px;padding:18px;text-align:center;box-shadow:0 20px 60px #000a,0 0 40px #7c3aed44;animation:begIn .45s ease}
+@keyframes begIn{from{opacity:0;transform:translateY(20px) scale(.96)}to{opacity:1;transform:none}}
+.begegnung-badge{display:inline-block;font-size:11px;letter-spacing:.14em;text-transform:uppercase;padding:4px 10px;border-radius:999px;background:linear-gradient(90deg,#ff6fb5,#7b6bff);color:#1a0a20;font-weight:800;margin-bottom:12px}
+.begegnung-img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:16px;border:1px solid #ffffff22;background:#120a28;margin-bottom:12px}
+.begegnung-card h2{margin:0 0 6px;font-size:22px}
+.begegnung-art{font-size:14px;opacity:.85;line-height:1.45;margin:0 0 8px}
+.port-avatar{display:grid;place-items:center;height:100%;background:linear-gradient(160deg,var(--port-a,#3a1a5c),var(--port-b,#1a0f2e))}
+.port-emoji{font-size:28px;line-height:1}
+.port-name{font-size:10px;opacity:.8;margin-top:4px;font-weight:700}
+
+/* menu tabs scroll + hub first */
+.menu-tabs button[data-tab="hub"]{background:linear-gradient(90deg,#ff6fb544,#7b6bff44)}
+
+.narrator-badge{position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:50;font-size:11px;font-weight:700;letter-spacing:.04em;padding:4px 10px;border-radius:999px;background:linear-gradient(90deg,#f59e0b,#ef4444);color:#1a0a00;box-shadow:0 4px 16px #0008}
+.narrator-badge.hidden{display:none!important}

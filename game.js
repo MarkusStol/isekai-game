@@ -4,8 +4,12 @@ import * as WorldMap from './map.js';
 import * as Econ from './econ.js';
 import * as Codex from './codex.js';
 import * as UI13 from './ui13.js';
+import * as Level from './leveling.js';
+import * as UI14 from './ui14.js';
+import * as Know from './know.js';
+import * as Cont from './continuity.js';
 const $=s=>document.querySelector(s);const $$=s=>[...document.querySelectorAll(s)];const R=a=>a[Math.floor(Math.random()*a.length)];const rnd=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
-const VER=13,CACHE_V='v13';
+const VER=131,CACHE_V='v13.1';
 const ROLES={
  held:{e:'⚔️',name:'Held mit Status-System',d:'Ein blaues Fenster erscheint: [Status]. Die Welt braucht dich.',world:'Königreich Aldheim',
   base:{hp:100,mp:40,str:12,cha:8,ruf:10,gold:40},cls:['Abenteurer','Ritter','Held','Legendärer Held'],pack:'worlds/held.json',
@@ -114,16 +118,22 @@ function buildSceneArt(theme){const art=$('#sceneArt');if(!art)return;art.innerH
 }
 
 function applySceneTheme(theme){const bg=$('#sceneBg');if(!bg)return;const th=theme||'void';
- [...bg.classList].filter(c=>c.startsWith('theme-')).forEach(c=>bg.classList.remove(c));
- bg.classList.add('theme-'+th);bg.dataset.theme=th;buildSceneArt(th);
- const ph=$('#scenePh');if(ph){ph.classList.add('hidden')}}
+  bg.dataset.theme=th; bg.className='scene-bg theme-'+th;
+  const genre=S?.genre||(isG()?'grey':(S?.role||'held'));
+  document.body.dataset.genre=genre;
+  document.body.classList.toggle('greyw', isG()||genre==='grey');
+  document.body.classList.remove('genre-zombie','genre-cyberpunk','genre-darkfantasy','genre-fantasy','genre-postapoc','genre-grey');
+  const map={zombie:'genre-zombie',cyberpunk:'genre-cyberpunk',darkfantasy:'genre-darkfantasy',dark:'genre-darkfantasy',postapoc:'genre-postapoc',grey:'genre-grey',held:'genre-fantasy',villainess:'genre-fantasy',daemon:'genre-darkfantasy',mensch:'genre-fantasy'};
+  document.body.classList.add(map[genre]||'genre-fantasy');
+}
 
 function portColors(name){const h=hashSeed(String(name||'x'));const hues=[[255,111,181],[123,107,255],[110,200,255],[255,180,100],[160,255,180],[255,120,140],[200,160,255]];
  const a=hues[h%hues.length],b=hues[(h*3)%hues.length];return {a:`rgb(${a[0]},${a[1]},${a[2]})`,b:`rgb(${(b[0]*0.35)|0},${(b[1]*0.35)|0},${(b[2]*0.35)|0})`,hexA:`#${a.map(x=>x.toString(16).padStart(2,'0')).join('')}`}}
 function initialsOf(name){const p=String(name||'?').replace(/[^a-zA-ZäöüÄÖÜß\s]/g,' ').trim().split(/\s+/).filter(Boolean);
  if(!p.length)return '?';if(p.length===1)return p[0].slice(0,2).toUpperCase();return (p[0][0]+p[p.length-1][0]).toUpperCase()}
-function stylizedPortraitHTML(name,npc){const col=portColors(name);const ini=initialsOf(name);const e=(npc&&npc.e)||'';
- return `<div class="port-svg" style="--port-a:${col.a};--port-b:${col.b};width:100%;height:100%;display:grid;place-items:center;background:linear-gradient(160deg,${col.a},${col.b})"><div style="text-align:center"><div style="font-size:22px;line-height:1">${e||'✦'}</div><div class="port-initial" style="font-size:20px;margin-top:2px">${ini}</div></div></div>`}
+function stylizedPortraitHTML(name,npc){const col=portColors(name);const e=(npc&&npc.e)||'✦';
+ let label='…';try{label=Know.isNameKnown(S,name)?name:Know.displayName(S,name,npc)}catch(_){label=String(name||'').split(' ').slice(-1)[0].slice(0,10)}
+ return `<div class="port-svg" style="--port-a:${col.a};--port-b:${col.b};width:100%;height:100%;display:grid;place-items:center;background:linear-gradient(160deg,${col.a},${col.b})"><div style="text-align:center"><div style="font-size:28px;line-height:1">${e}</div><div style="font-size:10px;margin-top:4px;opacity:.85">${label}</div></div></div>`}
 function applyPortraitFallback(name,npc){const ph=$('#portraitPh');if(!ph)return;const col=portColors(name);
  ph.style.setProperty('--port-a',col.a);ph.style.setProperty('--port-b',col.b);
  ph.innerHTML=stylizedPortraitHTML(name,npc);ph.classList.remove('hidden')}
@@ -231,7 +241,7 @@ function travelTo(dest,opts){opts=opts||{};if(!S?.world)return {ok:false,text:'K
  const g=ensureGraph();const from=S.world.scene.ort;const key=locKey(dest);
  if(g&&!g.nodes[key]&&!opts.force){ // discover dynamic place
   if(!S.world.orte[dest]){S.world.orte[cutStr(dest,50)]=opts.desc||'Ein neuer Ort, den du entdeckst.';}
-  discover(dest);S.world.scene={ort:cutStr(dest,80),zeit:phaseLabel(),anwesend:[]};advanceTime(opts.hours||2);
+  discover(dest);S.world.scene={ort:cutStr(dest,80),zeit:phaseLabel(),anwesend:[]};{const est=Cont.estimateMinutes('reise nach '+dest, opts.hours?opts.hours*60:null);advanceTimeMinutes(est.minutes,{allowLong:true,reason:est.kind});}
   return finishTravel(from,dest)}
  if(g&&g.nodes[key]){const exits=exitsFrom(from);const known=exits.includes(key)||(S.discovered||[]).includes(key)||opts.force;
   if(!known&&exits.length){ // allow travel to any discovered or exit; if neither, still allow with longer time + rumour
@@ -242,11 +252,11 @@ function travelTo(dest,opts){opts=opts||{};if(!S?.world)return {ok:false,text:'K
   // NPCs at destination by schedule/ort
   const anwesend=[];for(const[name,n]of Object.entries(S.world.npcs||{})){if(n.alive===false)continue;if((n.ort||'')===key||(n._schedNow&&String(n._schedNow).includes(key)))anwesend.push(name)}
   S.world.scene={ort:key,zeit:phaseLabel(),anwesend:anwesend.slice(0,6)};
-  advanceTime(opts.hours||rnd(1,3));
+  {const est=Cont.estimateMinutes('reise nach '+key, opts.hours?opts.hours*60:null);advanceTimeMinutes(est.minutes,{allowLong:true,reason:est.kind})}
   return finishTravel(from,key)}
  // fallback: just set scene
  discover(dest);S.world.scene={ort:cutStr(dest,80),zeit:phaseLabel(),anwesend:whoHere(dest).slice(0,6)};
- advanceTime(opts.hours||2);return finishTravel(from,dest)}
+ applyActionDuration('reise nach '+dest, opts.hours?opts.hours*60:null);return finishTravel(from,dest)}
 function finishTravel(from,to){const node=locNode(to);const bg=node?.bg;
   const present=S.world.scene.anwesend||[];
   // NPC return greetings / life updates
@@ -299,15 +309,62 @@ function localAsset(kind,key){ // kind: bg|port
    // try exact, then without phase, then role/slug
    return path}
   return `assets/port/${key}.webp`}
-function tryLocalBg(ort,bgHint){const role=isG()?'grey':(S?.role||'held');const phase=phaseLabel();
-  const base=bgHint||locNode(ort)?.bg||slugify(ort||'');
+function bgRoleFolder(){
+  if(isG())return 'grey';
+  const gen=S?.genre||'';
+  if(gen==='zombie')return 'zombie';
+  if(gen==='cyberpunk')return 'cyberpunk';
+  if(gen==='darkfantasy'||gen==='dark')return 'darkfantasy';
+  if(gen==='postapoc'||gen==='post-apoc')return 'postapoc';
+  if(S?.role==='daemon')return 'daemon';
+  if(S?.role==='villainess')return 'villainess';
+  if(S?.role==='mensch')return 'mensch';
+  if(S?.role==='proc'){
+    if(/zombie|apok/i.test(gen))return 'zombie';
+    if(/cyber|neon/i.test(gen))return 'cyberpunk';
+    if(/dark|dunkel|horror/i.test(gen))return 'darkfantasy';
+    if(/wüste|wasteland|post/i.test(gen))return 'postapoc';
+  }
+  return S?.role||'held';
+}
+function bgAlias(ort,bgHint){
+  if(bgHint)return bgHint;
+  const node=locNode(ort); if(node?.bg)return node.bg;
+  const t=String(ort||'').toLowerCase();
+  const rules=[
+    [/beschw[oö]r|summon|kreis/, 'beschwoerungshalle'],
+    [/thron/, 'thron'],
+    [/markt|unterstadt/, 'markt'],
+    [/taverne|gasthaus|inn/, 'taverne'],
+    [/hafen|hafenstadt|kai/, 'hafen'],
+    [/elf|sylvar|wald/, 'elfenwald'],
+    [/nordwall|wall|festung/, 'nordwall'],
+    [/garten|palastgarten/, 'palastgarten'],
+    [/salon/, 'salon'],
+    [/bahnhof|greymourne|station/, 'bahnhof-nebel'],
+    [/zug|abteil|waggon/, 'zugabteil'],
+    [/parkplatz/, 'parkplatz'],
+    [/safehouse|sicher/, 'safehouse'],
+    [/neon|gasse|cyber/, 'neon-gasse'],
+    [/asche|blutmond/, 'asche-thron'],
+    [/kristall/, 'kristall'],
+    [/wüste|desert/, 'wueste'],
+    [/bunker/, 'bunker'],
+  ];
+  for(const [rx,slug] of rules){ if(rx.test(t)) return slug }
+  return slugify(ort||'default').split('-').slice(0,2).join('-')||'default';
+}
+function tryLocalBg(ort,bgHint){const role=bgRoleFolder();const phase=phaseLabel();
+  const base=bgAlias(ort,bgHint);
   const variants=[];
-  if(/nacht|spät/i.test(phase))variants.push(`${base}-nacht`,`${base}-abend`,`${base}-tag`);
-  else if(/abend/i.test(phase))variants.push(`${base}-abend`,`${base}-tag`,`${base}-nacht`);
-  else if(/morgen|früh/i.test(phase))variants.push(`${base}-morgen`,`${base}-tag`,`${base}-abend`);
-  else variants.push(`${base}-tag`,`${base}-abend`,`${base}-nacht`);
+  if(/nacht|spät/i.test(phase))variants.push(base+'-nacht',base+'-abend',base+'-tag',base+'-morgen');
+  else if(/abend/i.test(phase))variants.push(base+'-abend',base+'-tag',base+'-nacht',base+'-morgen');
+  else if(/morgen|früh/i.test(phase))variants.push(base+'-morgen',base+'-tag',base+'-abend',base+'-nacht');
+  else variants.push(base+'-tag',base+'-abend',base+'-nacht',base+'-morgen');
   variants.push(base);
-  return variants.map(v=>`assets/bg/${role}/${v}.webp`)}
+  const paths=variants.flatMap(v=>[`assets/bg/${role}/${v}.webp`,`assets/bg/held/${v}.webp`,`assets/bg/proc/${v}.webp`]);
+  paths.push('assets/bg/proc/default-abend.webp','assets/bg/proc/default-tag.webp','assets/bg/held/beschwoerungshalle-abend.webp');
+  return [...new Set(paths)]}
 function portAssetKey(name,npc){if(npc?.portrait)return npc.portrait;const map={elise:'elise',lyra:'lyra',garrick:'garrick',orren:'orren',seris:'seris',rhett:'rhett',mira:'mira',julian:'julian',velka:'velka',brok:'brok',tom:'tom',otto:'otto'};
   const s=String(name||'').toLowerCase();for(const[k,v]of Object.entries(map)){if(s.includes(k))return v}return slugify(name).split('-')[0]}
 
@@ -318,7 +375,23 @@ function addMemory(name,text,kind){const n=S.world?.npcs?.[name];if(!n||n.alive=
   const emotion=/Tod|trau|Mord/i.test(line)?'trauervoll':/Rache|wüt/i.test(line)?'wütend':/Romance|Liebe|Kuss/i.test(line)?'verliebt':'neutral';
   try{Sim.ledgerPush(S,{type:kind||'memory', who:name, what:line, where:S.world.scene?.ort||n.ort, witnesses:[], importance:imp, emotion, meta:{about:name}})}catch(_){n.memories=(n.memories||[]).concat({text:line,importance:imp,emotion,strength:imp}).slice(-12)}
   n.erinnerung=(n.erinnerung||[]).concat(line).slice(-8);n.lastSeen={ort:S.world.scene?.ort||n.ort,zeit:phaseLabel(),day:S.time?.day||1}}
-function memoryHint(){try{return Sim.memoryHintV13(S)}catch(_){return ''}}
+function revealAndMask(text){
+  try{
+    const flags=Know.applyNarratorFlags(S,text);
+    for(const nm of flags.learned){
+      try{Codex.recordPerson(S,nm,S.world?.npcs?.[nm])}catch(_){}
+      try{UI14.showBegegnung(nm,S.world?.npcs?.[nm],{imgUrl,setPortrait,slug:portAssetKey(nm,S.world?.npcs?.[nm]),know:S.know?.people?.[nm]})}catch(_){}
+      toast('Namen erfahren: '+nm);
+    }
+    for(const nm of flags.interacted){try{Know.markInteracted(S,nm)}catch(_){}}
+    let t=String(text||'').replace(/FLAG:\s*(LEARN_NAME|INTERACT|LEARN_FACT)=[^\n]+/gi,'').trim();
+    t=Know.maskNarrationNames(S,t);
+    return t;
+  }catch(_){return text}
+}
+function memoryHint(){let h='';try{h=Sim.memoryHintV13(S)}catch(_){}
+  try{h=(h?h+'\n':'')+Know.knowledgePrompt(S)}catch(_){}
+  return h}
 function heatHint(){const h=S.heat|0;const w=(S.wanted||[]).slice(-3);const dead=(S.dead||[]).slice(-5);
   if(!h&&!w.length&&!dead.length)return '';
   return `KONSEQUENZEN: Heat ${h}/100. Fahndung: ${w.join('; ')||'–'}. Tot: ${dead.join(', ')||'–'}. NPCs reagieren (Trauer, Rache, Ermittlung, Kopfgeld).`}
@@ -386,14 +459,20 @@ function parseCrime(a){const t=a.toLowerCase();const who=findNpcTarget(a);
 /* ---------- save / toast / gate ---------- */
 function save(){if(!S)return;Persist.atomicSave(S,{toast}).then(r=>{if(!r.ok&&r.reason==='stale')toast('⚠ Älterer Stand nicht überschrieben');else if(!r.ok)toast('⚠ Speichern fehlgeschlagen')}).catch(()=>toast('⚠ Speichern fehlgeschlagen'))}
 async function loadSave(){const s=await Persist.loadBest(migrate);return s}
-function applyCatchUp(){if(!S)return null;const r=Persist.catchUp(S,{Sim,econTick:(st,h)=>Econ.econHourly(st,h)});if(r.hours>=1){const lines=['Während du weg warst… ('+r.hours+' Std. Spielzeit)',...(r.summary||[])];pushSys(lines[0]);if(r.summary?.length){const t=r.summary.slice(0,6).join('\n');setTimeout(()=>{try{eventToast(lines[0]);add('n',lines.join('\n'))}catch(_){toast(lines[0])}},400)}save()}return r}
+function applyCatchUp(){if(!S)return null;
+ // v13.1 default: skip auto catch-up (preserves ongoing scene). Opt-in via S.cfgCatchupOptIn or confirm.
+ if(!S.cfgCatchupOptIn){S.lastRealAt=Date.now();return {hours:0,skipped:'opt-in'}}
+ const r=Persist.catchUp(S,{Sim,econTick:(st,h)=>Econ.econHourly(st,h)});
+ if(r.hours>=1){const lines=['⏳ Während du weg warst (offscreen, '+r.hours+' Std.) — Szene unverändert:',...(r.summary||[])];
+  pushSys(lines[0]);setTimeout(()=>{try{eventToast(lines[0])}catch(_){toast(lines[0])}},300);save()}
+ return r}
 function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('on'),2600)}
 function eventToast(t){const e=$('#eventToast');if(!e)return;e.textContent=t;e.classList.remove('hidden');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.add('hidden'),4200)}
 function hasKey(){return !!(cfg.gkey||'').trim()}
 function wantAI(){return cfg.mode!=='offline'}
 function gateOrShow(){if(S&&S.setup&&!S.setup.done){enterPlay();return}if(wantAI()&&!hasKey()&&cfg.mode!=='webllm'&&cfg.mode!=='api'&&cfg.mode!=='free'){showKeyGate();return}enterPlay()}
 function showKeyGate(){$('#title').classList.add('hidden');$('#stage').classList.add('hidden');const g=$('#keyGate');if(g){g.classList.remove('hidden');$('#gateKey').value='';setTimeout(()=>$('#gateKey').focus(),50)}}
-function dbgLine(){const el=$('#dbg');if(!el)return;if(!cfg.debug){el.classList.add('hidden');return}el.classList.remove('hidden');el.textContent=_dbgMs?('Zug '+_dbgMs+' ms'):'–'}
+function dbgLine(){const el=$('#dbg');if(!el)return;if(!cfg.debug){el.classList.add('hidden');return}el.classList.remove('hidden');el.textContent=_dbgMs?('Zug '+_dbgMs+' ms'+(S?._ttft!=null?(' · TTFT '+S._ttft+' ms'):'')+(S?._promptChars?(' · ~'+Math.round(S._promptChars/3.5)+' tok'):'')):'–'}
 
 /* ---------- items / skills helpers ---------- */
 function itemFromStr(x){if(typeof x==='object'&&x&&x.name)return x;const s=String(x);return {id:'i_'+s.slice(0,20),name:s,icon:'📦',desc:s,type:'misc',rarity:'common'}}
@@ -405,16 +484,38 @@ function stageName(n){return STAGES[Math.max(0,Math.min(5,n|0))]}
 function rarityOf(item){const r=(item&&item.rarity)||'common';return ['common','uncommon','rare','epic','legendary'].includes(r)?r:'common'}
 function hearts(stage){return '♥'.repeat(Math.max(0,Math.min(5,stage|0)))+'♡'.repeat(Math.max(0,5-Math.max(0,stage|0)))}
 function phaseLabel(){if(!S)return '–';
-  if(S.cal){try{return Sim.calLabel(S.cal)}catch(_){}}
+  try{Cont.ensureCont(S)}catch(_){}
+  if(S.cal){
+    const ph=Cont.phaseFromClock(S);
+    const clock=String(S.cal.hour|0).padStart(2,'0')+':'+String(S.cal.minute|0).padStart(2,'0');
+    try{const base=Sim.calLabel(S.cal); return base.replace(/\d{1,2}:\d{2}/,clock).includes(clock)?(base.split('·')[0].trim()+' · '+clock+' · '+ph):`${ph} · ${clock} · Tag ${S.cal.day|1}`}catch(_){return `${ph} · ${clock} · Tag ${S.cal.day|1}`}
+  }
   if(!S.time)return '–';return `${S.time.phase||PHASE_H[S.time.hour|0]||'–'} · Tag ${S.time.day|1}${S.time.season?' · '+S.time.season:''}`}
-function advanceTime(hours){hours=hours||1;
+function advanceTime(hours){ // legacy hours API — prefer advanceTimeMinutes
+  const h=Math.max(0,+hours||0); if(!h)return advanceTimeMinutes(0);
+  return advanceTimeMinutes(Math.round(h*60), {allowLong:h>=4, reason:'hours'});
+}
+function advanceTimeMinutes(mins, opts){opts=opts||{};
   if(!S.cal)S.cal=Sim.blankCalendar(S.time||{day:1,hour:8});
-  const dayBefore=S.cal.day|0; const yearBefore=S.cal.year|0;
-  Sim.advanceCalendar(S, hours, {hourly:(state,step)=>{try{Sim.runWorldAI(state,Math.max(1,step|0))}catch(_){}}});
-  const daysPassed=Math.max(0,(S.cal.day-dayBefore)+((S.cal.year-yearBefore)*360));
-  if(daysPassed>0){const pb=Sim.progressBuild(S,daysPassed);if(pb?.done){toast('🏠 Bau fertig: '+pb.name);pushSys('🏠 '+pb.name+' (Stufe '+pb.stage+')')}}
-  try{Econ.econHourly(S,hours)}catch(_){}
-  if(S.world?.scene)S.world.scene.zeit=phaseLabel()}
+  if(S.cal.minute==null)S.cal.minute=0;
+  const dayBefore=S.cal.day|0; const yearBefore=S.cal.year|0; const hourBefore=S.cal.hour|0;
+  const r=Cont.advanceMinutes(S, mins, opts);
+  const hoursCrossed=Math.max(0, ((S.cal.day-dayBefore)*24 + (S.cal.hour-hourBefore) + ((S.cal.year-yearBefore)*360*24) ));
+  // light hourly hooks only for crossed whole hours (no multi-hour AI storms)
+  if(hoursCrossed>0){
+    try{Econ.econHourly(S, Math.min(hoursCrossed,12))}catch(_){}
+    const daysPassed=Math.max(0,(S.cal.day-dayBefore)+((S.cal.year-yearBefore)*360));
+    if(daysPassed>0){const pb=Sim.progressBuild(S,daysPassed);if(pb?.done){toast('🏠 Bau fertig: '+pb.name);pushSys('🏠 '+pb.name+' (Stufe '+pb.stage+')')}}
+  }
+  if(S.world?.scene)S.world.scene.zeit=Cont.phaseFromClock(S)+', '+String(S.cal.hour|0).padStart(2,'0')+':'+String(S.cal.minute|0).padStart(2,'0');
+  return r;
+}
+function applyActionDuration(playerText, modelMinutes){
+  const kind=Cont.classifyAction(playerText);
+  if(kind==='sleep')return Cont.sleepUntilMorning(S);
+  const est=Cont.estimateMinutes(playerText, modelMinutes);
+  return advanceTimeMinutes(est.minutes, {allowLong:/travel_far|work|craft/.test(est.kind), reason:est.kind});
+}
 
 /* ---------- migration ---------- */
 function migrate(raw){if(!raw)return null;const s=typeof raw==='string'?JSON.parse(raw):raw;
@@ -436,7 +537,9 @@ function migrate(raw){if(!raw)return null;const s=typeof raw==='string'?JSON.par
  }
  if(s.ver<11){s.ver=11;if(s.imgCache){s.imgCache.ok=s.imgCache.ok||{};s.imgCache.fail=s.imgCache.fail||{};s.imgCache.next=s.imgCache.next||{}}}
  if(s.ver<12){s.ver=12;s.heat=s.heat|0;s.wanted=s.wanted||[];s.dead=s.dead||[];if(s.world){ensureGraph(s);enrichNpcs(s.world)}}
- if(s.ver<13){s.ver=13;try{Sim.migrateToV13(s)}catch(e){console.warn('v13 migrate',e)}}
+ if(s.ver<13){s.ver=14;try{Sim.migrateToV13(s)}catch(e){console.warn('v13 migrate',e)}}
+ if(s.ver<14){s.ver=14;try{Level.ensureProgress(s);Know.ensureKnow(s);Know.migrateKnow(s);s.met=s.met||{};s.romance=s.romance||{}}catch(e){console.warn('v14 migrate',e)}}
+ if(s.ver<131){s.ver=131;try{Cont.ensureCont(s);if(s.cal&&s.cal.minute==null)s.cal.minute=0;s.cfgCatchupOptIn=!!s.cfgCatchupOptIn}catch(e){console.warn('v13.1 migrate',e)}}
  else {try{Sim.migrateToV13(s)}catch(_){}}
  return s}
 
@@ -450,9 +553,7 @@ function buildWorldFromPack(pack,role){const npcs={};
  const graph=pack.locations?JSON.parse(JSON.stringify(pack.locations)):null;if(graph){for(const[name,node]of Object.entries(graph.nodes||{})){if(!orte[name])orte[name]=node.desc||''}} enrichNpcs({npcs});
  return {scene:JSON.parse(JSON.stringify(pack.startScene||{ort:(graph&&graph.start)||'',zeit:'',anwesend:[]})),orte,npcs,graph,genre:pack.genre||S?.genre||null,systems:pack.systems||null,ereignisse:[...(pack.startEvents||[])],lore:{geschichte:pack.geschichte||'',magie:pack.magie||'',kultur:pack.kultur||'',alltag:pack.alltag||'',politik:pack.politik||'',ton:pack.ton||'',conflict:pack.conflict||''}}}
 
-function initRomance(pack,affKeys){const rom={};const names=new Set([...(pack.romanceable||[]),...affKeys]);
- for(const n of names){rom[n]={affection:0,trust:0,stage:0,events:[]}}
- return rom}
+function initRomance(pack,affKeys){/* v14: empty until real interaction */ return {}}
 
 /* ---------- new life / cinematic intro ---------- */
 async function newLife(role,meta,opts){const r=ROLES[role];meta=meta||{lives:0,soul:0,keptSkills:[]};opts=opts||{};const pack=await loadPack(role);
@@ -470,7 +571,7 @@ async function newLife(role,meta,opts){const r=ROLES[role];meta=meta||{lives:0,s
   cls:0,turn:0,hist:[],log:[],flags:Object.assign({},opts.flags||{}),setup:{done:false,beat:0,answers:{}},summary:'',
   time:{day:1,hour:18,phase:'Abend'},imgCache:{scenes:{},portraits:{},ok:{},fail:{},next:{}}};
  S.world=world;S.heat=0;S.wanted=[];S.dead=[];S.ledger=[];S.needs={hunger:20,fatigue:10,ageYears:18};S.home=Sim.blankHome();S.cal=Sim.blankCalendar(S.time);S.saveSeq=0;
- try{Sim.migrateToV13(S);Econ.ensureEcon(S);Codex.ensureCodex(S);WorldMap.ensureSpawn(S)}catch(_){}
+ try{Sim.migrateToV13(S);Econ.ensureEcon(S);Codex.ensureCodex(S);WorldMap.ensureSpawn(S);Level.ensureProgress(S);Know.ensureKnow(S);Know.migrateKnow(S)}catch(_){}
  if(opts.skipSetup){finishSetup(pack);gateOrShow();return}
  // If cinematic already covered death, skip first setup beat when it is 'tod'
  if(opts.fromIntro){S.flags.introDeath=true;S.setup.answers.tod={label:'(Intro)',past:opts.trait||''};S.setup.beat=1}
@@ -661,27 +762,33 @@ function softMemory(trait,bg){const raw=String(trait||bg||'').trim();if(!raw)ret
  if(raw.length<60&&!/ort:|anwesend|hp|mp|status/i.test(raw))return ''; // avoid dumping form answers
  return ''}
 function openingNarration(pack){if(isG())return (S.kind==='darren'?greyIntroDarren():greyIntroOwn());
- const name=S.pc.name&&S.pc.name!=='???'?S.pc.name:'Fremde Seele';
- const ort=(pack.startScene&&pack.startScene.ort)||'';
- const anw=((pack.startScene&&pack.startScene.anwesend)||[]).slice(0,3);
- const ev=((pack.startEvents||[])[0]||'');
- const mem=softMemory(S.pc.trait,S.pc.bg);
- const look=S.pc.look?`In diesem Körper: ${S.pc.look}.`:'';
- const byRole={
-  held:`Fackellicht zittert an alten Steinen. Weihrauch. Metall. Atem, der nicht deiner allein ist.\n\nDu – ${name} – stehst im Beschwörungskreis.${look?'\n'+look:''}${mem?'\n'+mem:''}\n\n${ort?ort+'.':''}\n${anw.length?'Gesichter warten: '+anw.join(', ')+'.':''}\n${ev?ev+'.':''}\n\nNiemand klatscht. Die Welt hält den Atem an – und überlässt dir den nächsten Schritt.`,
-  villainess:`Spiegelglas. Rosenwasser. Das leise Klicken einer Uhr, die bereits gegen dich zählt.\n\nDu – ${name} – öffnest die Augen in einem Leben, das jemand anderes zu Ende schreiben wollte.${look?'\n'+look:''}${mem?'\n'+mem:''}\n\n${ort?ort+'.':''}\n${anw.length?'Im Raum: '+anw.join(', ')+'.':''}\n${ev?ev+'.':''}\n\nEin Skandal wartet nicht auf deine Erlaubnis. Was tust du zuerst?`,
-  daemon:`Knochen. Samt. Eine Krone, die zu schwer ist für höfliche Lügen.\n\nDu – ${name} – sitzt, wo Könige knien lernen.${look?'\n'+look:''}${mem?'\n'+mem:''}\n\n${ort?ort+'.':''}\n${anw.length?'Zu deinen Füßen: '+anw.join(', ')+'.':''}\n${ev?ev+'.':''}\n\nDie Nacht lauscht. Ein Befehl würde reichen – oder eine Frage.`,
-  mensch:`Heu. Morgenluft. Irgendwo kräht etwas, das kein Monster ist.\n\nDu – ${name} – wachst ohne Statusfenster auf. Nur Haut, Atem, Zweifel.${look?'\n'+look:''}${mem?'\n'+mem:''}\n\n${ort?ort+'.':''}\n${anw.length?'In der Nähe: '+anw.join(', ')+'.':''}\n${ev?ev+'.':''}\n\nDie Welt ist klein und gefährlich zugleich. Dein nächster Schritt gehört dir.`
- };
- return byRole[S.role]||byRole.held}
+ const ort=(pack.startScene&&pack.startScene.ort)||(S.world?.scene?.ort)||'ein unbekannter Ort';
+ const zeit=(pack.startScene&&pack.startScene.zeit)||'';
+ let presence='';
+ try{
+   Know.ensureKnow(S);
+   const anw=(pack.startScene&&pack.startScene.anwesend)||S.world?.scene?.anwesend||[];
+   const bits=[];
+   for(const n of anw.slice(0,4)){
+     const npc=S.world?.npcs?.[n]||pack.npcs?.[n];
+     Know.markSeen(S,n,npc);
+     bits.push(Know.displayName(S,n,npc));
+   }
+   if(bits.length)presence=' Du nimmst wahr: '+bits.join('; ')+'.';
+ }catch(_){}
+ const vibe=String(pack.ton||'').slice(0,100);
+ return (`Du öffnest die Augen. ${ort}${zeit?'. '+zeit:''}.${presence} Du kennst niemanden — nur Gestalten und Eindrücke. ${vibe}`).replace(/\s+/g,' ').trim()}
 
-function finishSetup(pack){S.setup.done=true;S._setupChoices=null;S._setupBeat=null;_mode='play';ensureGraph(S);enrichNpcs(S.world);S.heat=S.heat|0;S.wanted=S.wanted||[];S.dead=S.dead||[];try{Sim.migrateToV13(S);Econ.ensureEcon(S);Codex.ensureCodex(S);WorldMap.ensureSpawn(S);S.ver=13}catch(_){};
+function finishSetup(pack){S.setup.done=true;S._setupChoices=null;S._setupBeat=null;_mode='play';ensureGraph(S);enrichNpcs(S.world);S.heat=S.heat|0;S.wanted=S.wanted||[];S.dead=S.dead||[];try{Sim.migrateToV13(S);Econ.ensureEcon(S);Codex.ensureCodex(S);WorldMap.ensureSpawn(S);Level.ensureProgress(S);Know.ensureKnow(S);Know.migrateKnow(S);Cont.ensureCont(S);if(S.cal&&S.cal.minute==null)S.cal.minute=0;S.ver=VER}catch(_){};
  if(wantAI()&&!hasKey()&&cfg.mode!=='webllm'&&cfg.mode!=='api'&&cfg.mode!=='free'){save();showKeyGate();return}
  $('.top-actions').style.visibility='';$('#hud').style.visibility='';
  let bridge=openingNarration(pack);
  S.log=[{k:'n',t:bridge}];S.hist=[{role:'assistant',content:bridge}];S.choices=defChoices();
  maybeSceneFromWorld();maybePortraitsPresent();
- const firstNpc=(S.world?.scene?.anwesend||[])[0];if(firstNpc&&S.world.npcs[firstNpc])setPortrait(firstNpc,S.world.npcs[firstNpc]);
+ try{Know.ensureKnow(S);Know.migrateKnow(S);Level.ensureProgress(S);
+   for(const n of (S.world?.scene?.anwesend||[]))Know.markSeen(S,n,S.world.npcs[n]);
+   const wrap=$('#portraitWrap'); if(wrap)wrap.classList.add('hidden');
+ }catch(_){}
  $('#txt').placeholder='Was tust oder sagst du?';
  typewrite(isG()?'Nebel':'Erzähler',bridge,()=>{hud();renderChoices();save()});
  discover(S.world?.scene?.ort)}
@@ -696,7 +803,7 @@ function discover(place){if(!place)return;if(!S.discovered)S.discovered=[];if(!S
   try{WorldMap.visitPlace(S,place);Codex.recordPlace(S,place,S.world?.orte?.[place]);
   const lore=S.world?.lore||{};
   if(lore.politik)Codex.recordFaction(S,String(lore.politik).slice(0,40),{desc:String(lore.politik).slice(0,160)});
-  let i=0; for(const [nm,n] of Object.entries(S.world?.npcs||{})){if(i++>5)break; try{Codex.recordPerson(S,nm,n)}catch(_){}}
+  /* v14: Codex people only after name known */
 }catch(_){}}
 
 /* ---------- typewriter VN ---------- */
@@ -714,6 +821,7 @@ function typewriteAsync(speaker,text){return new Promise(res=>typewrite(speaker,
 
 /* ---------- relationships / romance ---------- */
 function bumpRel(name,daff,dtrust,toastOn){if(!S.romance)S.romance={};
+ try{Know.markInteracted(S,name); if(!Know.isNameKnown(S,name))Know.learnName(S,name,'interact')}catch(_){}
  let key=Object.keys(S.romance).find(k=>k.toLowerCase()===String(name).toLowerCase())||Object.keys(S.romance).find(k=>k.toLowerCase().includes(String(name).toLowerCase().split(' ').pop()));
  if(!key){key=String(name);S.romance[key]={affection:0,trust:0,stage:0,events:[]}}
  const r=S.romance[key];const old=r.stage;r.affection=Math.max(-100,Math.min(100,(r.affection|0)+(daff|0)));r.trust=Math.max(0,Math.min(100,(r.trust|0)+(dtrust|0)));
@@ -731,8 +839,8 @@ function matchSchedule(entry,phase){if(!entry)return false;const e=String(entry)
  const map={nacht:['nacht','night','mitternacht'],morgen:['morgen','früh','morning'],mittag:['mittag','noon'],nachmittag:['nachmittag'],abend:['abend','evening'],spät:['spät','spaet','late']};
  const keys=map[p]||[p];return keys.some(k=>e.includes(k))}
 function worldTick(){if(!S.world||!S.setup?.done)return;
- advanceTime(rnd(1,3));
- const phase=S.time?.phase||Sim.phaseFromHour(S.cal?.hour||12);
+ // v13.1: do NOT advance hours here — clock moves via applyActionDuration after the reply
+ const phase=Cont.phaseFromClock(S)||S.time?.phase||Sim.phaseFromHour(S.cal?.hour||12);
  const npcs=Object.entries(S.world.npcs||{});if(!npcs.length)return;
  if(S.world.scene?.anwesend)S.world.scene.anwesend=S.world.scene.anwesend.filter(n=>!Sim.isDead(S,n)||S.world.npcs[n]?.undead);
  const present=new Set((S.world.scene.anwesend||[]).map(String));
@@ -775,36 +883,52 @@ function renderChoices(){const c=$('#choices');if(S._setupChoices)return;c.inner
  (S.choices||[]).slice(0,4).forEach(t=>{const b=document.createElement('button');b.type='button';b.textContent=t;b.onclick=()=>act(t);c.appendChild(b)})}
 
 function pushSys(t){if(!S.log)S.log=[];S.log.push({k:'s',t});if(S.log.length>80)S.log.shift();eventToast(t)}
-function add(k,t){S.log.push({k,t});if(S.log.length>80)S.log.shift();
+function add(k,t){
+ if(k==='n'){try{t=revealAndMask(t)}catch(_){}}
+ S.log.push({k,t});if(S.log.length>80)S.log.shift();
  if(k==='n'){const sp=S.flags?.speaker||(isG()?'Nebel':'Erzähler');typewrite(sp,t,()=>{});setPortraitFromSpeaker(S.flags?.speaker)}
  else if(k==='s')eventToast(t)
  else if(k==='p'){/* player line already shown via input */}
  else if(k==='tick')eventToast(t)}
 function setPortraitFromSpeaker(name){if(!name||!S.world?.npcs){$('#portraitWrap').classList.add('hidden');return}
  let key=Object.keys(S.world.npcs).find(k=>k.toLowerCase()===String(name).toLowerCase())||Object.keys(S.world.npcs).find(k=>String(name).toLowerCase().includes(k.toLowerCase().split(' ')[0]));
- if(key)setPortrait(key,S.world.npcs[key]);else $('#portraitWrap').classList.add('hidden')}
+ if(key){try{if(!Know.isNameKnown(S,key)){$('#portraitWrap').classList.add('hidden');return}}catch(_){}
+  setPortrait(key,S.world.npcs[key])}else $('#portraitWrap').classList.add('hidden')}
 
 function enterPlay(){$('#keyGate')&&$('#keyGate').classList.add('hidden');$('#title').classList.add('hidden');
  document.body.classList.toggle('greyw',isG());$('#stage').classList.remove('hidden');
  $('.top-actions').style.visibility='';$('#hud').style.visibility='';
  if(S.setup&&!S.setup.done){_mode='setup';loadPack(S.role).then(p=>{S._setupPack=p;showBeat(p)});return}
  _mode='play';
- try{Sim.migrateToV13(S);Econ.ensureEcon(S);Codex.ensureCodex(S);WorldMap.ensureSpawn(S)}catch(_){}
+ try{Sim.migrateToV13(S);Econ.ensureEcon(S);Codex.ensureCodex(S);WorldMap.ensureSpawn(S);Level.ensureProgress(S);Know.ensureKnow(S);Know.migrateKnow(S)}catch(_){}
  // never replay intro once setup done
  S.flags=S.flags||{}; S.flags.introDone=true;
  try{applyCatchUp()}catch(_){}
  maybeSceneFromWorld();maybePortraitsPresent();
- const last=(S.log||[]).filter(m=>m.k==='n').slice(-1)[0];
- if(last)typewrite(isG()?'Nebel':'Erzähler',last.t,()=>{});else typewrite('','…',()=>{});
+ let last=(S.log||[]).filter(m=>m.k==='n').slice(-1)[0];
+ if(!last||!String(last.t||'').trim()||last.t==='…'){
+   const pack=PACKS[S.role]||S._setupPack||{};
+   const bridge=openingNarration(pack)||'Du öffnest die Augen. Die Welt wartet. Du kennst niemanden.';
+   S.log=[{k:'n',t:bridge}]; last={k:'n',t:bridge};
+   if(!S.hist||!S.hist.length)S.hist=[{role:'assistant',content:bridge}];
+ }
+ try{Level.ensureProgress(S);Level.checkTitles(S);Know.ensureKnow(S);Know.migrateKnow(S);
+   for(const n of (S.world?.scene?.anwesend||[]))Know.markSeen(S,n,S.world.npcs[n]);
+   const wrap=$('#portraitWrap'); if(wrap)wrap.classList.add('hidden');
+ }catch(_){}
+ typewrite(isG()?'Nebel':'Erzähler', last.t, ()=>{});
  hud();renderChoices()}
 
 function show(){enterPlay()}
 
 /* ---------- menu overlays ---------- */
-function openMenu(tab){_menuTab=tab||_menuTab||'status';$('#menu').classList.remove('hidden');
+function openMenu(tab){_menuTab=tab||'hub';$('#menu').classList.remove('hidden');
  $$('#menuTabs button').forEach(b=>b.classList.toggle('on',b.dataset.tab===_menuTab));renderMenu()}
 function closeMenu(){$('#menu').classList.add('hidden')}
 function renderMenu(){const body=$('#menuBody');if(!body||!S)return;body.innerHTML='';
+ const helpers={act,closeMenu,toast,phaseLabel,setSceneImage,imgUrl,openTab:(id)=>{_menuTab=id;$$('#menuTabs button').forEach(x=>x.classList.toggle('on',x.dataset.tab===id));renderMenu()}};
+ if(_menuTab==='hub'||!_menuTab){UI14.openHub(body,S,helpers);return}
+ if(_menuTab==='level'){UI14.renderLevel(body,S,helpers);return}
  if(_menuTab==='status'){const s=S.st;body.innerHTML=`<div class="card"><h3>${ROLES[S.role].e} ${S.pc?.name||ROLES[S.role].name}</h3>
  <p class="meta">${ROLES[S.role].cls[S.cls]} · Leben #${S.lives} · Seele ${S.soul}</p>
  <p>${isG()?`Verstand ${s.hp}/100 · Schuld ${s.ruf}/100`:`Lv ${s.lvl} · HP ${s.hp}/${s.maxhp} · MP ${s.mp}/${s.maxmp} · 🪙 ${s.gold|0}<br>Stärke ${s.str} · Charme ${s.cha} · Ruf ${s.ruf} · XP ${s.xp}/${s.lvl*100}`}</p>
@@ -820,7 +944,7 @@ function renderMenu(){const body=$('#menuBody');if(!body||!S)return;body.innerHT
   <p>${s.desc||''}</p><p class="meta">Stufe ${s.level||1} · ${s.cost||0} MP · CD ${s.cd||0}</p><div class="row"></div></div></div>`;
   const row=card.querySelector('.row');const b=document.createElement('button');b.textContent='Einsetzen';b.disabled=(s._cd|0)>0||((s.cost|0)>0&&S.st.mp<(s.cost|0));
   b.onclick=()=>{useSkill(idx)};row.appendChild(b);body.appendChild(card)});if(!(S.skills||[]).length)body.innerHTML='<div class="card"><p>Keine Fähigkeiten.</p></div>'}
- else if(_menuTab==='rels'){const entries=Object.entries(S.romance||{});if(!entries.length)body.innerHTML='<div class="card"><p>Noch keine Beziehungen.</p></div>';
+ else if(_menuTab==='rels'){const entries=Object.entries(S.romance||{}).filter(([n,r])=>{try{return !!(Know.isNameKnown(S,n)&&(S.know?.people?.[n]?.interacted||(r.affection|0)||(r.stage|0)))}catch(_){return !!((r.affection|0)||(r.stage|0))}});if(!entries.length)body.innerHTML='<div class="card"><p>Noch keine Beziehungen. Unbekannte erscheinen erst nach einer echten Begegnung und wenn du ihren Namen kennst.</p></div>';
   entries.sort((a,b)=>b[1].affection-a[1].affection).forEach(([name,r])=>{const n=S.world?.npcs?.[name];const card=document.createElement('div');card.className='card';
    const mem=(n?.erinnerung||[]).slice(-1)[0]||'–';const portId='rp_'+hashSeed(name);
    card.innerHTML=`<div class="rel-row"><div class="rel-port" id="${portId}">${n?.e||'👤'}</div><div style="flex:1"><h3>${name}</h3>
@@ -830,7 +954,7 @@ function renderMenu(){const body=$('#menuBody');if(!body||!S)return;body.innerHT
    <div class="row"><button type="button">Ansprechen</button></div>`;
    card.querySelector('button').onclick=()=>{closeMenu();act('Ich gehe zu '+name+' und spreche sie/ihn an.')};body.appendChild(card);
    const box=card.querySelector('.rel-port');const col=portColors(name);box.style.setProperty('--port-a',col.a);box.style.setProperty('--port-b',col.b);
-   box.innerHTML=`<span class="port-initial">${initialsOf(name)}</span>`;
+   box.innerHTML=`<span class="port-emoji">${(n&&n.e)||'👤'}</span>`;
    const cache=ensureImgCache();const key='port:'+name;const delay=body.querySelectorAll('.rel-port').length*700;
    if(!window.__FORCE_CSS_SCENES)setTimeout(()=>{
     enqueueImg(()=>{
@@ -887,6 +1011,7 @@ function apply(ch){if(!ch)return;try{ch=Sim.validateChanges(S,ch)}catch(_){}cons
  if(ch.affinity&&typeof ch.affinity==='object')for(const[n,v]of Object.entries(ch.affinity)){const trust=ch.trust&&ch.trust[n]!=null?num(ch.trust[n]):Math.max(0,num(v)/2|0);bumpRel(n,num(v),trust,false);out.push(`💗${n.split(' ').pop()} ${v>0?'+':''}${num(v)}`)}
  if(ch.trust&&typeof ch.trust==='object'&&!ch.affinity)for(const[n,v]of Object.entries(ch.trust))bumpRel(n,0,num(v),false);
  (ch.newSkills||ch.skills||[]).forEach(x=>{const sk=skillFromStr(x);if(!S.skills.some(s=>s.name===sk.name)&&S.skills.length<24){S.skills.push(sk);out.push('Skill: '+sk.name);toast('✨ Neue Fähigkeit: '+sk.name)}});
+ if(ch.xp){try{const lr=Level.grantXp(S,ch.xp|0,'Aktion');if(lr.leveled?.length)toast('⬆ Level '+lr.leveled.join(', '))}catch(_){}}
  (ch.items||ch.addItems||[]).forEach(x=>{const it=itemFromStr(x);if(!it.rarity)it.rarity='uncommon';if(S.inv.length<40){S.inv.push(it);out.push('Item: '+it.name);toast('📦 '+it.name);try{const kind=/waffe|schwert|bogen|axt|dolch|stab|speer|schild|klinge/i.test(it.name+it.type)?'weapon':'item';discoverThing(kind,it.name,{...it,obtained:true,inline:true})}catch(_){}}});
  (ch.removeItems||[]).forEach(x=>{const name=typeof x==='string'?x:x.name;const i=S.inv.findIndex(it=>(typeof it==='string'?it:it.name)===name);if(i>=0)S.inv.splice(i,1)});
  if(Array.isArray(ch.choices)&&ch.choices.length)S.choices=ch.choices.filter(x=>typeof x==='string').map(x=>x.slice(0,50));
@@ -917,15 +1042,15 @@ function reincarnate(msg){const soul=S.soul+Math.max(1,Math.floor(S.st.lvl/2));c
 
 /* ---------- world text lean ---------- */
 function worldText(){const w=S.world;if(!w)return '';
- const scene=w.scene||{};const present=new Set((scene.anwesend||[]).map(String));
- const histTxt=((S.hist||[]).slice(-6).map(h=>h.content).join(' ')+' '+(S.summary||'')).toLowerCase();
- const npcs={};for(const[k,v]of Object.entries(w.npcs||{})){const hit=present.has(k)||k.toLowerCase().split(/[ \/–_-]+/).some(p=>p.length>3&&histTxt.includes(p));if(!hit)continue;
-  const rom=S.romance?.[k];const o={art:String(v.art||'').slice(0,100),stimme:String(v.stimme||'').slice(0,80),beziehung:stageName(rom?.stage||0),ziel:String(v.ziel||'').slice(0,80),furcht:String(v.furcht||'').slice(0,60)};
-  const mem=(v.erinnerung||[]).slice(-2);if(mem.length)o.erinnerung=mem;if(S.turn>=40&&v.geheimnis)o.geheimnis=String(v.geheimnis).slice(0,100);
-  if(rom)o.romance={stage:stageName(rom.stage),affection:rom.affection,trust:rom.trust};npcs[k]=o}
- const orte={};for(const[k,v]of Object.entries(w.orte||{})){const key=k.toLowerCase().split(/[ \/–]/)[0];if(String(scene.ort||'').toLowerCase().includes(key)||histTxt.includes(key)||(S.discovered||[]).includes(k))orte[k]=String(v).slice(0,120)}
- const q=S.quests?.main;const qHint=q?{akt:q.actTitel,ziel:q.ziel,offen:(q.objectives||[]).filter(o=>!(q.done||[]).includes(o)).slice(0,3)}:null;
- return 'WELT (nur Szene):\n'+JSON.stringify({scene,zeit:phaseLabel(),npcs,orte,ereignisse:(w.ereignisse||[]).slice(0,4),quest:qHint,geruechte:(S.ticks?.rumours||[]).slice(-2)})}
+ const scene=w.scene||{};const present=(scene.anwesend||[]).slice(0,6);
+ const npcs={};for(const k of present){const v=w.npcs?.[k];if(!v)continue;
+  const rom=S.romance?.[k];
+  const o={art:String(v.art||'').slice(0,80)};
+  try{if(Know.isNameKnown(S,k)){o.name=k;if(S.know?.people?.[k]?.facts?.job&&v.job)o.job=v.job}else o.label=Know.displayName(S,k,v)}catch(_){o.name=k}
+  if(rom&&(rom.stage|0)>0)o.bez=stageName(rom.stage);
+  const mem=(v.erinnerung||[]).slice(-1);if(mem.length)o.mem=mem[0];
+  npcs[k]=o}
+ return 'WELT-LEAN: '+JSON.stringify({ort:scene.ort,zeit:phaseLabel(),anwesend:present,npcs,heat:S.heat|0}).slice(0,1100)}
 function applyWorld(u){if(!u||!S.world)return;try{u=Sim.validateWorldUpdate(S,u)}catch(_){}try{u=guardNoRegression(u)}catch(_){}const w=S.world;const cut=(x,n)=>String(x||'').slice(0,n);const prevOrt=w.scene?.ort;
  if(u.scene&&u.scene.ort){w.scene={ort:cut(u.scene.ort,80),zeit:cut(u.scene.zeit,60)||phaseLabel(),anwesend:(u.scene.anwesend||[]).slice(0,8).map(x=>cut(x,40)).filter(n=>!Sim.isDead(S,n)||w.npcs[n]?.undead)};discover(w.scene.ort);
   if(w.scene.ort!==prevOrt||u.scenePrompt||u.imagePrompt){S.flags.scenePrompt=u.scenePrompt||u.imagePrompt||scenePromptFor(w.scene.ort,w.scene.zeit);setSceneImage(S.flags.scenePrompt,w.scene.ort)}
@@ -986,7 +1111,7 @@ function parseRomance(a){const t=a.toLowerCase();const who=findNpcTarget(a)||(S.
   return {text:`${who} hält deinen Blick – und nickt. Was folgt, bleibt zwischen euch.\n\n(Die Szene verblasst. Nur Atem, Wärme, Vertrauen.)\n\nAm Morgen ist etwas anders: nicht lauter – aber echter.`,changes:{affinity:{[who]:rnd(8,14)},trust:{[who]:rnd(6,12)},choices:travelChoices()}}}
  if(kiss){bumpRel(who,rnd(5,10),rnd(3,7),true);addMemory(who,'Kuss mit dir.','Romance');n.mood='verliebt';
   return {text:`${who} kommt näher. Ein Kuss – kurz oder lang, aber einvernehmlich. Danach Stille, die nicht peinlich ist.`,changes:{affinity:{[who]:rnd(5,10)},trust:{[who]:rnd(3,7)},choices:travelChoices()}}}
- if(date){bumpRel(who,rnd(6,12),rnd(4,8),true);addMemory(who,`Date/Zeit zu zweit in ${S.world.scene.ort}.`,'Romance');advanceTime(rnd(2,4));
+ if(date){bumpRel(who,rnd(6,12),rnd(4,8),true);addMemory(who,`Date/Zeit zu zweit in ${S.world.scene.ort}.`,'Romance');applyActionDuration('date mit '+who,45);
   return {text:`Ihr nehmt euch Zeit – nur ihr zwei, in ${S.world.scene.ort}. Gespräche, Blicke, ein Lachen, das nicht gespielt wirkt.`,changes:{affinity:{[who]:rnd(6,12)},trust:{[who]:rnd(4,8)},choices:travelChoices()}}}
  if(askRel){rom.stage=Math.max(rom.stage|0,4);bumpRel(who,rnd(10,16),rnd(8,14),true);addMemory(who,'Beziehung offiziell gemacht.','Romance');
   return {text:`„Dann… wir?“ ${who} atmet aus. „Ja. Wenn du es ernst meinst.“ Etwas klickt – nicht als Quest, als Entscheidung.`,changes:{affinity:{[who]:rnd(10,16)},trust:{[who]:rnd(8,14)},choices:travelChoices()}}}
@@ -1110,7 +1235,7 @@ async function startProcedural(genreInput,pcName){const pack=await generateWorld
   quests:buildQuests(pack),discovered:[world.scene.ort].filter(Boolean),ticks:{rumours:[],log:[]},
   cls:0,turn:0,hist:[],log:[],flags:{},setup:{done:true,beat:0,answers:{}},summary:pack.conflict||'',
   time:{day:1,hour:18,phase:'Abend'},imgCache:{scenes:{},portraits:{},ok:{},fail:{},next:{}},heat:0,wanted:[],dead:[],world};
- enrichNpcs(S.world);ensureGraph(S);try{Sim.migrateToV13(S);Econ.ensureEcon(S);Codex.ensureCodex(S);WorldMap.ensureSpawn(S);S.ver=13}catch(_){}if(S.world.systems||S.genre==='zombie')ensureSystems();
+ enrichNpcs(S.world);ensureGraph(S);try{Sim.migrateToV13(S);Econ.ensureEcon(S);Codex.ensureCodex(S);WorldMap.ensureSpawn(S);Level.ensureProgress(S);Know.ensureKnow(S);Know.migrateKnow(S);S.ver=VER}catch(_){}if(S.world.systems||S.genre==='zombie')ensureSystems();
  const bridge=`${pack.titel}.\n\n${pack.conflict||pack.geschichte}\n\nDu – ${S.pc.name} – stehst in ${world.scene.ort}. Die Welt wartet nicht. Wohin du gehst, ist deine Sache.`;
  S.log=[{k:'n',t:bridge}];S.hist=[{role:'assistant',content:bridge}];S.choices=travelChoices(world.scene.ort);
  save();enterPlay();typewrite('Erzähler',bridge,()=>{});hud();renderChoices();
@@ -1180,7 +1305,7 @@ function findAnyNpc(a){const t=a.toLowerCase();return Object.keys(S.world?.npcs|
 
 function offline(a){const q=askNPC(a);if(q)return q;
  const life=parseLifeSim(a);if(life)return {text:life.text,changes:life.changes||{choices:travelChoices()}};
- const beast=parseCreatureEncounter(a);if(beast){const e=discoverThing('creature',beast,{desc:'Begegnung mit '+beast+'.',danger:2,behavior:'aggressiv oder scheu',habitat:S.world?.scene?.ort,inline:true});advanceTime(1);return {text:'Du begegnest '+beast+'. '+(e?Codex.inlineCard(e):''),changes:{xp:8,choices:travelChoices()}}}
+ const beast=parseCreatureEncounter(a);if(beast){const e=discoverThing('creature',beast,{desc:'Begegnung mit '+beast+'.',danger:2,behavior:'aggressiv oder scheu',habitat:S.world?.scene?.ort,inline:true});applyActionDuration('begegne '+beast,15);return {text:'Du begegnest '+beast+'. '+(e?Codex.inlineCard(e):''),changes:{xp:8,choices:travelChoices()}}}
  // crime first
  const crime=parseCrime(a);if(crime){const r=crime.type==='kill'?killNPC(crime.who,a):robNPC(crime.who);if(r.ok){if(crime.type==='kill')addMemory(crime.who,'(tot)','Tod');return {text:r.text,changes:r.changes}}}
  // travel
@@ -1211,7 +1336,8 @@ function offline(a){const q=askNPC(a);if(q)return q;
   addMemory(n, good?`Gutes Gespräch mit dir: „${a.slice(0,60)}“`:`Unangenehmes Gespräch: „${a.slice(0,60)}“`,'Gespräch')}
  else if(/train|üb|lern|magie|zauber|stud/.test(t)){const cost=Math.min(s.mp,rnd(5,15));txt=`Du trainierst. ${R(['Schweiß und Fortschritt.','Ein neues Gefühl.','Mühsam, aber lohnend.'])}`;
   ch={mp:-cost,xp:rnd(20,40),str:Math.random()<.5?1:0};if(Math.random()<.25)ch.newSkills=[{name:R(['Doppelschlag','Schildwall','Giftige Zunge','Schattenportal','Fallenbau','Kräuterkunde','Erste Hilfe']),icon:'✨',desc:'Neu erlernt',level:1,cost:5,cd:0}]}
- else if(/ruh|schlaf|rast|ess|heil/.test(t)){txt='Du ruhst dich aus. Wärme kehrt zurück.';ch={hp:rnd(20,40),mp:rnd(10,25)};advanceTime(rnd(2,6))}
+ else if(/schlaf|übernacht/.test(t)){txt='Du schläfst bis zum Morgen.';ch={hp:rnd(20,40),mp:rnd(10,25)};Cont.sleepUntilMorning(S)}
+ else if(/ruh|rast|ess|heil/.test(t)){txt='Du ruhst dich aus. Wärme kehrt zurück.';ch={hp:rnd(20,40),mp:rnd(10,25)};applyActionDuration(t.includes('ess')?'essen':'kurz ruhen',null)}
  else if(/intrig|lüg|schmied|spion|sabot/.test(t)){const ok=Math.random()<.55;txt=ok?'Dein Plan geht auf.':'Du wirst beinahe erwischt!';ch={xp:25,ruf:ok?rnd(-3,6):-10}}
  else if(/quest|auftrag|mission|hauptgeschichte|nebenquest|hook/.test(t)){const m=S.quests?.main;txt=m?`Du denkst an eine Möglichkeit – keinen Zwang: ${m.ziel}. (Optional.) Offene Haken: ${(m.objectives||[]).filter(o=>!(m.done||[]).includes(o)).join(', ')||'keine'}.`:'Kein Quest zwingt dich. Die Welt liegt offen.';ch={xp:5,choices:defChoices()}}
  else if(/umseh|erkund|schau|untersuch|wohn/.test(t)){const ex=exitsFrom(S.world.scene.ort);txt=`Du siehst dich in ${S.world.scene.ort} um. ${locNode(S.world.scene.ort)?.desc||''}${ex.length?' Wege führen nach: '+ex.slice(0,3).join(', ')+'.':''}`;ch={xp:8,choices:travelChoices()}}
@@ -1244,7 +1370,7 @@ SPOILERSCHUTZ: ${k.spoilerschutz||''}
 ${romanceHint()}
 ${questHint()}
 ERZÄHLREGELN: 1) Erster Satz reagiert direkt. Fragen werden beantwortet. 2) 2. Person, nie Erzähler-Ich. 3) Kein Splatter/Anime-Fenster. 4) NPCs eigenständig (können ablehnen). 5) 4-9 Sätze. 6) Romanzen: zurückhaltend, melancholisch, passend zur Stadt.
-${stream?`AUSGABE: Erzähltext, dann Zeile „${STREAM_DELIM}“, dann JSON: choices[4], changes{verstand,schuld,affinity,trust,xp,items,removeItems}, summary, world{scene,npcUpdates,newLocations,ereignisse,scenePrompt?,speaker?}, speaker, scenePrompt (engl. Bildprompt zur Szene), quests{mainObjectiveDone?,advanceAct?,sideComplete?}, optional ending.`:`JSON mit narration, choices, changes, summary, world, speaker, scenePrompt, quests.`}`}
+${stream?`AUSGABE: Erzähltext, dann Zeile „${STREAM_DELIM}“, dann JSON: choices[4], changes{verstand,schuld,affinity,trust,xp,items,removeItems}, summary, world{scene,npcUpdates,newLocations,ereignisse,scenePrompt?,speaker?}, speaker, scenePrompt (engl. Bildprompt zur Szene), quests{mainObjectiveDone?,advanceAct?,sideComplete?}, durationMin. optional ending.`:`JSON mit narration, choices, changes, summary, durationMin, world, speaker, scenePrompt, quests.`}`}
 function voiceHint(){const pack=PACKS[S.role];if(!pack?.npcs)return '';
  return 'STIMMEN: '+Object.entries(pack.npcs).slice(0,6).map(([k,v])=>k+': '+(v.stimme||v.art||'').slice(0,60)).join(' | ')}
 function sysPrompt(stream=true){if(isG())return greyPrompt(stream);const r=ROLES[S.role]||ROLES.held;const pack=PACKS[S.role]||{};
@@ -1264,7 +1390,7 @@ FREIHEIT (HARTE REGELN):
 5. Romanzen: nur einvernehmlich, nur Erwachsene. NPCs dürfen NEIN sagen (Affection/Trust/Persönlichkeit). Kuss/Date/Beziehung/Nacht möglich; sexuelle Szenen IMMER Fade-to-Black, danach Erinnerung. Nie non-konsensual.
 6. Gewalt/Crime: Töten und Raub möglich (dark-fantasy anime, nicht grafisch). Tote NPCs bleiben tot. Zeugen → Heat, Trauer, Rache, Ermittlung, Kopfgeld.
 7. Erster Satz reagiert DIREKT. 4-9 Sätze, 2. Person. Anime-Mittel sparsam.
-${stream?`AUSGABE: Erzähltext, dann „${STREAM_DELIM}“, dann JSON: choices[4] (ortsbezogen, keine Start-Halle-Zwänge), changes{hp,mp,str,cha,ruf,xp,gold,affinity,trust,items,newSkills,removeItems,killed?,robbed?}, summary, world{scene,npcUpdates,newLocations,ereignisse,scenePrompt?,speaker?}, speaker, scenePrompt, quests{...optional}, optional ending.`:`JSON: narration, choices, changes, summary, world, speaker, scenePrompt, quests.`}`}
+${stream?`AUSGABE: Erzähltext, dann „${STREAM_DELIM}“, dann JSON: choices[4] (ortsbezogen, keine Start-Halle-Zwänge), changes{hp,mp,str,cha,ruf,xp,gold,affinity,trust,items,newSkills,removeItems,killed?,robbed?}, summary, world{scene,npcUpdates,newLocations,ereignisse,scenePrompt?,speaker?}, speaker, scenePrompt, quests{...optional}, durationMin (Minuten dieser Handlung, Gespräch 5-15). optional ending.`:`JSON: narration, choices, changes, summary, durationMin, world, speaker, scenePrompt, quests.`}`}
 function greyDetails(a){const B=GREY||PACKS.grey;if(!B)return '';const txt=(a+' '+JSON.stringify(S.world.scene)+' '+(S.hist||[]).slice(-4).map(h=>h.content).join(' ')).toLowerCase();
  const pick=(obj,force)=>Object.entries(obj||{}).filter(([k])=>(force||[]).includes(k)||k.toLowerCase().split(/[ \/–-]+/).some(w=>w.length>3&&txt.includes(w)));
  const npcs=pick(B.npcs,S.kind==='darren'?['Der Schaffner']:['Der Schaffner','Darren Crowe']).slice(0,5).map(([k,v])=>{const o={rolle:v.rolle,art:v.art,stimme:v.stimme,ziel:v.ziel};if(S.turn>=40&&v.geheim)o.geheim=v.geheim;return k+': '+JSON.stringify(o)});
@@ -1280,12 +1406,26 @@ function leanLore(a){if(isG())return greyDetails(a);const pack=PACKS[S.role];if(
 function stateSum(){const s=S.st;const inv=invNames().slice(0,12).join(', ');const sk=skillNames().slice(0,8).join(', ');
  if(isG())return `STATUS: Verstand ${s.hp}/100, Schuld ${s.ruf}/100 | Inventar: ${inv} | ${romanceHint()} | Zug ${S.turn}`;
  return `STATUS: Lv${s.lvl} HP${s.hp}/${s.maxhp} MP${s.mp} Str${s.str} Cha${s.cha} Ruf${s.ruf} | Skills: ${sk} | Inventar: ${inv} | ${romanceHint()} | Leben #${S.lives}`}
-function msgs(a){let h=(S.hist||[]).slice(-10);if(!h.length){const last=S.log.filter(m=>m.k==='n').slice(-1)[0];if(last)h=[{role:'assistant',content:last.t}]}
- return [{role:'system',content:sysPrompt(false)},...h,{role:'user',content:turnMsg(a)}]}
-function turnMsg(a){const roll=storyRollup();return (leanLore(a)?leanLore(a)+'\n':'')+worldText()+'\n'+memoryHint()+'\n'+heatHint()+'\n'+roll+'\n'+stateSum()+'\n'+questHint()+'\n'+(isG()?'DIE SPIELFIGUR':'DER SPIELER')+' sagt/tut: „'+a+'“\n(Folge der Absicht. Nie Intro/Setup wiederholen. Ort nicht zurücksetzen gegen Spielerwillen. Tote bleiben tot außer Nekromantie. Romance nur Consent; Sex = Fade-to-Black. Zeit/Zuhause/Jobs/Karte zählen.)'}
-function storyRollup(){const hist=(S.hist||[]).slice(-8).map(h=>(h.role==='user'?'SPIELER: ':'')+String(h.content||'').slice(0,180)).join('\n');
-  const scene=S.world?.scene||{}; const dead=(S.dead||[]).slice(-8).join(', ');
-  return `STORY-SO-FAR: ${String(S.summary||'').slice(0,500)}\nLETZTE ZÜGE:\n${hist||'(keine)'}\nJETZT: Ort=${scene.ort||'?'} Zeit=${phaseLabel()} Anwesend=${(scene.anwesend||[]).join(', ')||'–'} Tot=${dead||'–'} Heat=${S.heat|0} Haus=${S.home?.owned?('Stufe '+S.home.stage):'nein'} Turn=${S.turn|0}`;}
+function msgs(a){ // Pollinations / WebLLM / API — same continuity block, compact
+ Cont.ensureCont(S);
+ let h=(S.hist||[]).slice(-8);
+ if(!h.length){const last=(S.log||[]).filter(m=>m.k==='n').slice(-1)[0];if(last)h=[{role:'assistant',content:last.t}]}
+ // hist in messages is short; full verbatim lives in turnMsg scene-last block
+ return [{role:'system',content:sysPrompt(false)},...h.map(m=>({role:m.role,content:String(m.content||'').slice(0,500)})),{role:'user',content:turnMsg(a)}]}
+function turnMsg(a){
+  Cont.ensureCont(S);
+  return Cont.buildTurnUserMessage(S,a,{
+    worldLean:worldText(),
+    memory:String(memoryHint()||'').slice(0,400),
+    heat:heatHint(),
+    state:stateSum(),
+    quest:String(questHint()||'').slice(0,200),
+    leanLore:leanLore(a),
+    isGrey:isG()
+  });
+}
+function storyRollup(){return Cont.compactContinuity(S,'');}
+function lastPromptDump(a){const built=turnMsg(a||S.cont?.lastPlayer||'…');return Cont.dumpPromptForTest(S,a||'',built)}
 function guardNoRegression(u){if(!u?.scene?.ort||!S?.world?.scene?.ort)return u;
   const prev=S.world.scene.ort; const next=u.scene.ort;
   if(S.turn>3 && next!==prev){
@@ -1302,6 +1442,7 @@ function parseStream(raw){const i=raw.indexOf(STREAM_DELIM);if(i<0){const j=raw.
  const nar=raw.slice(0,i).trim();const o=gJSON(raw.slice(i+STREAM_DELIM.length).trim())||{};return packStream(nar||o.narration||'…',o)}
 function packStream(text,o){const ch=Object.assign({},o.changes||{});if(o.choices)ch.choices=o.choices;if(o.summary)ch.summary=o.summary;if(o.world)ch.world=o.world;if(o.ending)ch.ending=o.ending;if(o.quests)ch.quests=o.quests;
  if(o.speaker)ch.speaker=o.speaker;if(o.scenePrompt)ch.scenePrompt=o.scenePrompt;if(o.imagePrompt)ch.scenePrompt=o.imagePrompt;
+ if(o.durationMin!=null)ch.durationMin=o.durationMin; if(o.duration!=null&&ch.durationMin==null)ch.durationMin=o.duration;
  for(const k of ['verstand','schuld','hp','mp','str','cha','ruf','xp','gold','affinity','trust','items','newSkills','removeItems']){if(k in o&&!(k in ch))ch[k]=o[k]}
  return {text:String(text||'…'),changes:ch}}
 
@@ -1333,12 +1474,30 @@ function thinkingCfg(model){const st=gmStore();if(st.noThink&&st.noThink[model])
  if(/2\.5/.test(n))return {thinkingBudget:0};return null}
 function gParse(j){const c=j.candidates?.[0];const t=(c?.content?.parts||[]).filter(p=>!p.thought).map(p=>p.text||'').join('');return {t,fr:c?.finishReason||j.promptFeedback?.blockReason||(c?'':'LEER')}}
 function gJSON(t){if(!t)return null;t=String(t).replace(/^```(?:json)?\s*/i,'').replace(/```\s*$/,'').trim();try{return JSON.parse(t)}catch(_){}const i=t.indexOf('{'),k=t.lastIndexOf('}');if(i>=0&&k>i)try{return JSON.parse(t.slice(i,k+1))}catch(_){}return null}
-function gBody(a){const contents=[];for(const m of (S.hist||[]).slice(-10)){const role=m.role==='assistant'?'model':'user';const last=contents[contents.length-1];
-  if(last&&last.role===role)last.parts[0].text+='\n'+m.content;else contents.push({role,parts:[{text:m.content}]})}
+function gBody(a){Cont.ensureCont(S);const contents=[];
+ for(const m of (S.hist||[]).slice(-12)){
+  const role=m.role==='assistant'?'model':'user';
+  const text=String(m.content||'').slice(0,500);
+  const last=contents[contents.length-1];
+  if(last&&last.role===role)last.parts[0].text+='\n'+text;else contents.push({role,parts:[{text}]});
+ }
  if(contents[0]&&contents[0].role==='model')contents.unshift({role:'user',parts:[{text:'(Spielbeginn)'}]});
  contents.push({role:'user',parts:[{text:turnMsg(a)}]});
- return {systemInstruction:{parts:[{text:sysPrompt(true)}]},contents,generationConfig:{temperature:.9,maxOutputTokens:800},safetySettings:G_SAFE}}
+ // stream-friendly: slightly lower max to first finish JSON faster after prose
+ return {systemInstruction:{parts:[{text:sysPrompt(true)}]},contents,generationConfig:{temperature:.85,maxOutputTokens:700},safetySettings:G_SAFE}}
 function friendlyAIFail(){return 'Die Erzählerin stockt kurz. Versuch es noch einmal – oder spiele ohne sie weiter.'}
+function setNarratorMode(mode){ // gemini | free | offline
+  S._narratorMode=mode||'gemini';
+  let el=$('#narratorBadge');
+  if(!el){el=document.createElement('div');el.id='narratorBadge';el.className='narrator-badge hidden';document.body.appendChild(el)}
+  if(mode&&mode!=='gemini'){el.textContent=mode==='free'?'Fallback: Gratis-KI':'Fallback: Offline';el.classList.remove('hidden')}
+  else el.classList.add('hidden');
+}
+function scheduleAfterReply(tasks){
+  const run=()=>{try{for(const fn of tasks){try{fn()}catch(e){console.warn('afterReply',e)}}}catch(_){}};
+  if(typeof requestIdleCallback==='function')requestIdleCallback(run,{timeout:1200});
+  else setTimeout(run,0);
+}
 function gErr(t){const e=new Error(t);e.gem=1;return e}
 async function fetchWithTimeout(url,opts,ms){const ac=new AbortController();const to=setTimeout(()=>ac.abort(),ms);try{return await fetch(url,{...opts,signal:ac.signal})}finally{clearTimeout(to)}}
 async function readSSE(res,onText){const reader=res.body.getReader();const dec=new TextDecoder();let buf='',raw='';
@@ -1372,7 +1531,8 @@ async function gmProbe(key){const st=await gmFetch(key);const cands=(st.list||G_
  if(best){s2.chosen=best.m;s2.lat[best.m]=best.ms}gmSave(s2);gmUI();return {best,results}}
 
 async function gemini(a,el){const key=(cfg.gkey||'').trim();if(!key)throw gErr(friendlyAIFail());
- const st=await gmFetch(key);const base=gBody(a);const order=gmOrder(st);let last,tried=0;
+ const st=await gmFetch(key);const tPrompt0=performance.now();const base=gBody(a);const order=gmOrder(st);let last,tried=0;
+ S._promptChars=(JSON.stringify(base).length)|0; S._ttft=null; S._turnTotal=null;
  for(const m of order){if(tried>=2)break;tried++;
   el.classList.add('typing');el.textContent='…';
   let think=thinkingCfg(m),attempt=0;
@@ -1380,8 +1540,11 @@ async function gemini(a,el){const key=(cfg.gkey||'').trim();if(!key)throw gErr(f
    if(think)body.generationConfig.thinkingConfig=think;else delete body.generationConfig.thinkingConfig;
    let res;try{res=await fetchWithTimeout(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(m)}:streamGenerateContent?alt=sse`,{method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':key},body:JSON.stringify(body)},G_TIMEOUT)}
    catch(e){last=gErr(friendlyAIFail());break}
-   if(res.ok){let raw='';try{raw=await readSSE(res,r=>showNarration(el,r))}catch(_){last=gErr(friendlyAIFail());break}
-    const packed=parseStream(raw);if(packed&&packed.text&&packed.text!=='…'){const s2=gmStore();s2.chosen=m;if(s2.fail)delete s2.fail[m];gmSave(s2);gmUI();return {...packed,model:m}}
+   if(res.ok){let raw='';const tFetch=performance.now();
+    try{raw=await readSSE(res,r=>{if(S._ttft==null&&r&&r.trim())S._ttft=Math.round(performance.now()-tPrompt0);showNarration(el,r)})}catch(_){last=gErr(friendlyAIFail());break}
+    const packed=parseStream(raw);if(packed&&packed.text&&packed.text!=='…'){const s2=gmStore();s2.chosen=m;if(s2.fail)delete s2.fail[m];gmSave(s2);gmUI();
+     S._turnTotal=Math.round(performance.now()-tPrompt0); setNarratorMode('gemini');
+     return {...packed,model:m,ttft:S._ttft,totalMs:S._turnTotal,promptChars:S._promptChars}}
     last=gErr(friendlyAIFail());break}
    let msg='',errObj=null;try{errObj=await res.json();msg=errObj?.error?.message||''}catch(_){}
    if(res.status===400&&think&&/thinking|Thinking|budget|level/i.test(msg)){const s2=gmStore();s2.noThink=s2.noThink||{};s2.noThink[m]=1;gmSave(s2);think=null;continue}
@@ -1412,8 +1575,12 @@ async function act(a){if(busy||!a.trim())return;
    else if(life){res={text:life.text,changes:life.changes||{choices:travelChoices()}}}
    else if(dest){const tr=travelTo(dest);res={text:tr.text,changes:tr.changes||{choices:travelChoices(tr.to),xp:5}}}
    else {res=parseRomance(a)}
-   if(res){add('p',a);apply(res.changes||{});if(res.changes?.world)applyWorld(res.changes.world);add('n',res.text);S.hist=(S.hist||[]).concat([{role:'user',content:a},{role:'assistant',content:res.text}]).slice(-20);S.turn++;try{worldTick()}catch(_){}
-    S.choices=(res.changes&&res.changes.choices)||travelChoices();hud();renderChoices();save();busy=false;return}}catch(e){console.warn(e)}busy=false}}
+   if(res){add('p',a);apply(res.changes||{});if(res.changes?.world)applyWorld(res.changes.world);add('n',res.text);
+    S.hist=(S.hist||[]).concat([{role:'user',content:'SPIELER: '+a},{role:'assistant',content:res.text}]).slice(-24);
+    Cont.noteExchange(S,a,res.text);S.turn++;
+    // travel/crime already advanced time inside helpers — don't worldTick-hour-jump
+    scheduleAfterReply([()=>{try{worldTick()}catch(_){}},()=>{try{save()}catch(_){}}]);
+    S.choices=(res.changes&&res.changes.choices)||travelChoices();hud();renderChoices();busy=false;return}}catch(e){console.warn(e)}busy=false}}
 
  // Intro free-text
  if(_mode==='intro'){await actIntro(a);return}
@@ -1427,34 +1594,54 @@ async function act(a){if(busy||!a.trim())return;
  const prevSp=$('#speaker').textContent;$('#speaker').textContent='Du';$('#speaker').classList.remove('hidden');$('#vnText').textContent='„'+a+'“';
  S.turn++;S.log.push({k:'p',t:a});
  $('#vnText').innerHTML='<span class="caret">Schreibe</span>';let res;let softFail=false;const el=$('#vnText');
+ let modelSummary,scenePrompt,worldUpdate,questUpdate;
  try{if(cfg.mode==='offline')throw 0;
   if(cfg.mode==='gemini'||(cfg.mode!=='webllm'&&cfg.mode!=='api'&&cfg.mode!=='free'&&hasKey())){
    try{res=await gemini(a,el)}catch(e){softFail=true;el.textContent='…'}}
   if(!res&&(cfg.mode==='free'||softFail||(cfg.mode!=='gemini'&&cfg.mode!=='webllm'&&cfg.mode!=='api'&&cfg.mode!=='offline'))){
-   try{const raw=await aiTurn(a,el,'free');let p=raw.includes(STREAM_DELIM)?parseStream(raw):parse(raw);if(p&&p.text&&p.text!=='…'&&p.text.length>8){res=p;softFail=false}}catch(_){}}
-  if(!res&&cfg.mode!=='gemini'&&cfg.mode!=='free'){const raw=await aiTurn(a,el,cfg.mode);res=parse(raw)}
-  if(!res){res=offline(a);softFail=true}
+   try{const raw=await aiTurn(a,el,'free');let p=raw.includes(STREAM_DELIM)?parseStream(raw):parse(raw);if(p&&p.text&&p.text!=='…'&&p.text.length>8){res=p;softFail=false;setNarratorMode('free')}}catch(_){}}
+  if(!res&&cfg.mode!=='gemini'&&cfg.mode!=='free'){const raw=await aiTurn(a,el,cfg.mode);res=parse(raw);setNarratorMode(cfg.mode)}
+  if(!res){res=offline(a);softFail=true;setNarratorMode('offline')}
   try{if(res.changes)res.changes=Sim.validateChanges(S,res.changes);if(res.changes?.world)res.changes.world=guardNoRegression(Sim.validateWorldUpdate(S,res.changes.world))}catch(_){}
   {const c=res.changes||{},lim={hp:30,mp:30,str:2,cha:2,ruf:5,xp:60,verstand:15,schuld:5,gold:50};for(const k in lim)if(k in c)c[k]=Math.max(-lim[k],Math.min(lim[k],+c[k]||0));if(c.affinity)for(const n in c.affinity)c.affinity[n]=Math.max(-15,Math.min(15,+c.affinity[n]||0));if(c.trust)for(const n in c.trust)c.trust[n]=Math.max(-10,Math.min(10,+c.trust[n]||0))}
+  if(!res.changes)res.changes={};
   if(Array.isArray(res.changes.items))res.changes.items=res.changes.items.filter(x=>{const n=typeof x==='string'?x:x.name;return !invNames().includes(n)});
   if(Array.isArray(res.changes.newSkills))res.changes.newSkills=res.changes.newSkills.filter(x=>{const n=typeof x==='string'?x:x.name;return !skillNames().includes(n)});
-  if(res.changes.summary){S.summary=String(res.changes.summary).slice(0,800);delete res.changes.summary}
+  modelSummary=res.changes.summary; res._durationMin=res.changes.durationMin; delete res.changes.summary; delete res.changes.durationMin;
   if(res.changes.speaker){S.flags.speaker=String(res.changes.speaker).slice(0,40);delete res.changes.speaker}
-  if(res.changes.scenePrompt){S.flags.scenePrompt=String(res.changes.scenePrompt).slice(0,220);setSceneImage(S.flags.scenePrompt,'ai_'+S.turn);delete res.changes.scenePrompt}
-  if(res.changes.world){try{applyWorld(res.changes.world)}catch(_){}delete res.changes.world}
-  if(res.changes.quests){try{applyQuestUpdate(res.changes.quests)}catch(_){}delete res.changes.quests}
-  S.hist=S.hist||[];S.hist.push({role:'user',content:'SPIELER: '+a},{role:'assistant',content:res.text});S.hist=S.hist.slice(-20);
-  if(softFail)res.note=friendlyAIFail()}
- catch(e){res=offline(a);res.note=friendlyAIFail()}
- _dbgMs=Math.round(performance.now()-t0);
+  scenePrompt=res.changes.scenePrompt; delete res.changes.scenePrompt;
+  worldUpdate=res.changes.world; delete res.changes.world;
+  questUpdate=res.changes.quests; delete res.changes.quests;
+  // Continuity: hist first (needed for next turn); keep 24 turns (~12 exchanges)
+  S.hist=S.hist||[];S.hist.push({role:'user',content:'SPIELER: '+a},{role:'assistant',content:res.text});S.hist=S.hist.slice(-24);
+  Cont.noteExchange(S,a,res.text);
+  if(softFail){res.note=friendlyAIFail();setNarratorMode(S._narratorMode||'offline')}
+  else if(!S._narratorMode)setNarratorMode('gemini')}
+ catch(e){res=offline(a);res.changes=res.changes||{};res.note=friendlyAIFail();setNarratorMode('offline')}
+ _dbgMs=Math.round(performance.now()-t0); S._turnTotal=S._turnTotal||_dbgMs;
+ // Time BEFORE showing? No — apply duration after reply starts streaming/typing, still before worldTick
+ try{applyActionDuration(a, res._durationMin)}catch(_){try{applyActionDuration(a,null)}catch(__){}}
  S.log.push({k:'n',t:res.text});if(S.log.length>80)S.log=S.log.slice(-80);
  const sp=S.flags?.speaker||(isG()?'Nebel':'Erzähler');
- setPortraitFromSpeaker(S.flags?.speaker);
+ // Portrait sync can wait — show text first
  await typewriteAsync(sp,res.text);
- if(res.note)pushSys(res.note);apply(res.changes);
- try{worldTick()}catch(_){}
- maybeSceneFromWorld();
- hud();renderChoices();save();setBusy(false);requestAnimationFrame(()=>{const t=$('#txt');if(t)t.focus({preventScroll:true})})}
+ if(res.note)pushSys(res.note);apply(res.changes||{});
+ hud();renderChoices();setBusy(false);
+ requestAnimationFrame(()=>{const t=$('#txt');if(t)t.focus({preventScroll:true})});
+ // AFTER reply: world tick, summary, images, codex, save — never block TTFT
+ const _worldUpdate=worldUpdate, _scenePrompt=scenePrompt, _questUpdate=questUpdate, _modelSummary=modelSummary, _a=a, _text=res.text;
+ scheduleAfterReply([
+  ()=>{try{if(_modelSummary)Cont.ingestModelSummary(S,_modelSummary); else Cont.rollChapterAsync(S)}catch(_){}},
+  ()=>{try{if(_worldUpdate)applyWorld(_worldUpdate)}catch(_){}},
+  ()=>{try{if(_questUpdate)applyQuestUpdate(_questUpdate)}catch(_){}},
+  ()=>{try{if(_scenePrompt){S.flags.scenePrompt=String(_scenePrompt).slice(0,220);setSceneImage(S.flags.scenePrompt,'ai_'+S.turn)}}catch(_){}},
+  ()=>{try{setPortraitFromSpeaker(S.flags?.speaker)}catch(_){}},
+  ()=>{try{worldTick()}catch(_){}},
+  ()=>{try{maybeSceneFromWorld()}catch(_){}},
+  ()=>{try{save()}catch(_){}},
+  ()=>{try{dbgLine()}catch(_){}}
+ ]);
+}
 
 
 /* ---------- title particles + soft music ---------- */
@@ -1494,13 +1681,13 @@ $('#btnContinue').onclick=async()=>{
   if(!S){toast('Kein Spielstand');return}
   try{await loadPack(S.role)}catch(_){}
   if(!S.world&&PACKS[S.role])S.world=buildWorldFromPack(PACKS[S.role],S.role);
-  try{Sim.migrateToV13(S);Econ.ensureEcon(S);Codex.ensureCodex(S);WorldMap.ensureSpawn(S);S.ver=13}catch(_){}
+  try{Sim.migrateToV13(S);Econ.ensureEcon(S);Codex.ensureCodex(S);WorldMap.ensureSpawn(S);Level.ensureProgress(S);Know.ensureKnow(S);Know.migrateKnow(S);S.ver=VER}catch(_){}
   gateOrShow();
 };
 $('#btnMusic').onclick=toggleMusic;
 $('#btnTitleSettings').onclick=openSheet;
 $('#btnSettings').onclick=openSheet;
-$('#btnMenu').onclick=()=>openMenu(_menuTab||'status');
+$('#btnMenu').onclick=()=>openMenu('hub');
 $('#btnMenuClose').onclick=closeMenu;
 $('#menu').addEventListener('click',e=>{if(e.target.id==='menu')closeMenu()});
 $$('#menuTabs button').forEach(b=>b.onclick=()=>{_menuTab=b.dataset.tab;$$('#menuTabs button').forEach(x=>x.classList.toggle('on',x.dataset.tab===_menuTab));renderMenu()});
@@ -1532,13 +1719,13 @@ $('#btnGateSave').onclick=()=>{const gk=$('#gateKey').value.trim();if(!gk){toast
  toast('Alles bereit.');gmFetch(gk,true).then(()=>gmProbe(gk).catch(()=>{}));enterPlay()};
 $('#btnGateSkip').onclick=()=>{cfg.mode='offline';cfg.v2=1;localStorage.setItem(CFG,JSON.stringify(cfg));enterPlay()};
 
-window.__game={discoverThing,showCodexInline,newGrey,greyDetails,loadGrey,loadPack,get S(){return S},act,newLife,gBody,msgs,gmRank,gmProbe,parseStream,thinkingCfg,gmOrder,readSSE,STREAM_DELIM,migrate,worldTick,bumpRel,openMenu,stageName,offline,startIntro,setSceneImage,setPortrait,imgUrl,advanceTime,phaseLabel,typewrite,enterPlay,showTitle,analyzeImage,applySceneTheme,themeFromText,loadValidatedImage,openingNarration,travelTo,parseTravel,killNPC,robNPC,addMemory,memoryHint,startProcedural,offlineGenerateWorld,generateWorldPack,GENRES,travelChoices,ensureGraph,whoHere,parseLifeSim,Sim,Persist,WorldMap,Econ,Codex,UI13,save,loadSave,applyCatchUp,findAnyNpc};
+window.__game={discoverThing,showCodexInline,Level,UI14,Know,Cont,lastPromptDump,advanceTimeMinutes,applyActionDuration,newGrey,greyDetails,loadGrey,loadPack,get S(){return S},act,newLife,gBody,msgs,gmRank,gmProbe,parseStream,thinkingCfg,gmOrder,readSSE,STREAM_DELIM,migrate,worldTick,bumpRel,openMenu,stageName,offline,startIntro,setSceneImage,setPortrait,imgUrl,advanceTime,phaseLabel,typewrite,enterPlay,showTitle,analyzeImage,applySceneTheme,themeFromText,loadValidatedImage,openingNarration,travelTo,parseTravel,killNPC,robNPC,addMemory,memoryHint,startProcedural,offlineGenerateWorld,generateWorldPack,GENRES,travelChoices,ensureGraph,whoHere,parseLifeSim,Sim,Persist,WorldMap,Econ,Codex,UI13,save,loadSave,applyCatchUp,findAnyNpc};
 window.__game.askNPC=a=>askNPC(a);window.__game.gemini=gemini;
 if(cfg.gkey)gmFetch(cfg.gkey.trim()).then(()=>gmProbe(cfg.gkey.trim()).catch(()=>{})).catch(()=>{});
 (function(){const root=document.documentElement;const apply=()=>{try{const vv=window.visualViewport;if(!vv)return;const kb=Math.max(0,window.innerHeight-vv.height-vv.offsetTop);root.style.setProperty('--kb',kb+'px')}catch(_){}};
  if(window.visualViewport){visualViewport.addEventListener('resize',apply);visualViewport.addEventListener('scroll',apply)}
  window.addEventListener('focusin',e=>{if(e.target&&e.target.id==='txt'){setTimeout(()=>{try{e.target.scrollIntoView({block:'end',behavior:'smooth'})}catch(_){};apply()},300)}});
  $('#txt')&&$('#txt').addEventListener('blur',()=>root.style.setProperty('--kb','0px'))})();
-try{if('serviceWorker' in navigator&&navigator.serviceWorker){navigator.serviceWorker.register('./sw.js?v=12').catch(()=>{});
+try{if('serviceWorker' in navigator&&navigator.serviceWorker){navigator.serviceWorker.register('./sw.js?v=13.1').catch(()=>{});
  navigator.serviceWorker.addEventListener('controllerchange',()=>{if(sessionStorage.getItem('isekai_sw_reloaded'))return;sessionStorage.setItem('isekai_sw_reloaded','1');location.reload()})}}catch(_){}
 showTitle();
