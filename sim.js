@@ -316,7 +316,7 @@ function applyNpcAction(S, name, n, pick){
     case 'suche_spieler': {
       n.ort=where; 
       if(S.world.scene&&!S.world.scene.anwesend.includes(name))S.world.scene.anwesend.push(name);
-      line=`${name} sucht dich auf: „${String(pick.detail||'Wir müssen reden.').slice(0,80)}“`; importance=65; emotion='entschlossen'; type='seek_player';
+      line=`${name} sucht dich auf.`; importance=65; emotion='entschlossen'; type='seek_player'; // detail kept in ledger meta, not nested into toast
       S.flags=S.flags||{}; S.flags.npcInit=name;
       break;}
     case 'ermittlung': line=`${name} ermittelt wegen deines Rufs (Heat ${S.heat|0}).`; importance=50; emotion='misstrauisch'; type='investigation'; break;
@@ -328,10 +328,11 @@ function applyNpcAction(S, name, n, pick){
     const hit=n.schedule.find(s=>String(s).toLowerCase().startsWith(phase.toLowerCase())||String(s).toLowerCase().includes(phase.toLowerCase()+':'));
     if(hit){const bit=String(hit).split(':').slice(1).join(':').trim(); if(bit)n.ort=bit}
   }
-  const ev=ledgerPush(S,{type, who:name, what:line, where:n.ort||where, witnesses:[], importance, emotion});
-  return {line, event:ev, seek:pick.act==='suche_spieler'};
+  const ev=ledgerPush(S,{type, who:name, what:line, where:n.ort||where, witnesses:[], importance, emotion, meta:{detail:ImmClean(pick.detail)}});
+  return {line, event:ev, seek:pick.act==='suche_spieler', who:name};
 }
 
+function ImmClean(raw){let t=String(raw||'').replace(/^\[[^\]]+\]\s*/,'').replace(/„[^“]*“/g,' ').replace(/"[^"]*"/g,' ').replace(/\s+/g,' ').trim(); return t.slice(0,80)}
 export function runWorldAI(S, hours=1){
   const notes=[];
   const npcs=Object.entries(S.world?.npcs||{}).filter(([,n])=>!n.dead&&n.alive!==false);

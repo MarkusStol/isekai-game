@@ -8,8 +8,9 @@ import * as Level from './leveling.js';
 import * as UI14 from './ui14.js';
 import * as Know from './know.js';
 import * as Cont from './continuity.js';
+import * as Imm from './immerse.js';
 const $=s=>document.querySelector(s);const $$=s=>[...document.querySelectorAll(s)];const R=a=>a[Math.floor(Math.random()*a.length)];const rnd=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
-const VER=14,CACHE_V='v14';
+const VER=15,CACHE_V='v15';
 const ROLES={
  held:{e:'⚔️',name:'Held mit Status-System',d:'Ein blaues Fenster erscheint: [Status]. Die Welt braucht dich.',world:'Königreich Aldheim',
   base:{hp:100,mp:40,str:12,cha:8,ruf:10,gold:40},cls:['Abenteurer','Ritter','Held','Legendärer Held'],pack:'worlds/held.json',
@@ -188,7 +189,7 @@ function setSceneImage(prompt,key,opts){opts=opts||{};const cache=ensureImgCache
  const locals=tryLocalBg(S?.world?.scene?.ort||k, locNode(S?.world?.scene?.ort)?.bg);
  const tryLocal=async()=>{
   for(const path of locals){try{const r=await fetch(path,{method:'HEAD'});if(r.ok){const img=$('#sceneImg');if(!img)return true;
-   img.crossOrigin='anonymous';img.src=path;img.dataset.key=k;requestAnimationFrame(()=>img.classList.add('on'));cache.ok[k]=1;cache.scenes[k]=path;if(S)save();return true}}catch(_){}}
+   img.crossOrigin='anonymous';img.dataset.key=k;try{await Imm.crossfadeScene(img,path)}catch(_){img.src=path;img.classList.add('on','scene-kenburns')}cache.ok[k]=1;cache.scenes[k]=path;if(S)save();return true}}catch(_){}}
   // also try .svg
   for(const path of locals.map(x=>x.replace(/\.webp$/,'.svg'))){try{const r=await fetch(path,{method:'HEAD'});if(r.ok){const img=$('#sceneImg');img.src=path;img.dataset.key=k;requestAnimationFrame(()=>img.classList.add('on'));cache.ok[k]=1;return true}}catch(_){}}
   return false};
@@ -199,11 +200,12 @@ function setSceneImage(prompt,key,opts){opts=opts||{};const cache=ensureImgCache
  if(!canRetry(cache,k)&&cache.fail[k]){tryLocal().then(ok=>{if(!ok)scheduleRetry('scene',k,()=>setSceneImage(prompt,key,opts))});return}
  enqueueImg(()=>tryLocal().then(ok=>{if(ok)return;return loadValidatedImage(url).then(res=>{
   const img=$('#sceneImg');if(!img)return;
-  if(res.ok){cache.ok[k]=1;delete cache.fail[k];delete cache.next[k];img.src=url;img.dataset.key=k;requestAnimationFrame(()=>img.classList.add('on'));if(S)save()}
+  if(res.ok){cache.ok[k]=1;delete cache.fail[k];delete cache.next[k];img.dataset.key=k;try{Imm.crossfadeScene(img,url)}catch(_){img.src=url;requestAnimationFrame(()=>img.classList.add('on','scene-kenburns'))};if(S)save()}
   else{markFail(cache,k);hideScenePhoto();scheduleRetry('scene',k,()=>setSceneImage(prompt,key,{...opts}));if(S)save()}
  })}) )}
 
 function setPortrait(name,npc){const cache=ensureImgCache();const wrap=$('#portraitWrap'),img=$('#portraitImg');
+ try{wrap.classList.remove('mood-anger','mood-sad','mood-warm','mood-cool','mood-neutral');wrap.classList.add(Imm.portraitMoodClass(npc?.mood));wrap.classList.add('portrait-in')}catch(_){}
  if(!name){wrap&&wrap.classList.add('hidden');return}
  wrap.classList.remove('hidden');applyPortraitFallback(name,npc);hidePortraitPhoto();
  if(window.__FORCE_CSS_SCENES)return;
@@ -263,17 +265,19 @@ function travelTo(dest,opts){opts=opts||{};if(!S?.world)return {ok:false,text:'K
  discover(dest);S.world.scene={ort:cutStr(dest,80),zeit:phaseLabel(),anwesend:whoHere(dest).slice(0,6)};
  applyActionDuration('reise nach '+dest, opts.hours?opts.hours*60:null);return finishTravel(from,dest)}
 function finishTravel(from,to){const node=locNode(to);const bg=node?.bg;
-  const present=S.world.scene.anwesend||[];
-  // NPC return greetings / life updates
+  const present=(S.world.scene?.ort===to && (S.world.scene.anwesend||[]).length)?S.world.scene.anwesend.slice():whoHere(to);
+  S.world.scene={ort:to,zeit:phaseLabel(),anwesend:present.slice()};
   const greets=[];for(const name of present){const n=S.world.npcs[name];if(!n)continue;
+   let label=name; try{label=Know.displayName(S,name,n)}catch(_){}
    const away=S.time.day-(n.lastSeen?.day||S.time.day);
-   if(away>=1&&(n.memories||[]).length){const life=R(n.memories.filter(m=>/Offscreen|Leben|tat|ging|traf|hörte/.test(m))||n.memories);if(life)greets.push(`${name} nickt wiedererkennend: „${String(life).replace(/^\(Offscreen\)\s*/,'')} – und du?\"`)}
-   else if((n.memories||[]).some(m=>/du |Spieler|Versprechen|Geschenk|Beleidig|Kampf/.test(m))){const m=n.memories.filter(m=>/du |Spieler|Versprechen|Geschenk|Beleidig/.test(m)).slice(-1)[0];if(m)greets.push(`${name}: „Ich erinnere mich. ${m}\"`)}
+   if(away>=1&&(n.memories||[]).length){const life=R(n.memories.filter(m=>/Offscreen|Leben|tat|ging|traf|hörte/.test(String(m)))||n.memories); const sn=Imm.cleanSnippet(life); if(sn)greets.push(`${label} nickt wiedererkennend – wegen ${sn}.`)}
+   else if((n.memories||[]).some(m=>/du |Spieler|Versprechen|Geschenk|Beleidig|Kampf/.test(String(m)))){const m=n.memories.filter(m=>/du |Spieler|Versprechen|Geschenk|Beleidig/.test(String(m))).slice(-1)[0]; const sn=Imm.cleanSnippet(m); if(sn)greets.push(`${label}: „Ich erinnere mich an ${sn}.“`)}
    n.lastSeen={ort:to,zeit:phaseLabel(),day:S.time.day}}
   const prompt=scenePromptFor(to,phaseLabel());S.flags.scenePrompt=prompt;
   setSceneImage(prompt, assetBgKey(to,bg), {assetKey:assetBgKey(to,bg)});
-  const exitHint=exitsFrom(to).slice(0,4);
-  const txt=`Du verlässt ${from||'den vorherigen Ort'} und erreichst ${to}.${node?.desc?' '+node.desc:''}${present.length?'\n\nAnwesend: '+present.map(n=>{try{return Know.displayName(S,n)}catch(_){return 'eine Gestalt'}}).join('; ')+'.':'\n\nHier ist niemand, den du kennst – vorerst.'}${greets.length?'\n\n'+greets.slice(0,2).join('\n\n'):''}`;
+  try{const w=Imm.weatherFor(S);S.flags=S.flags||{};S.flags.weather=w;Imm.setWeather(w==='klar'?'none':w);Imm.applyDayNightTint(S)}catch(_){}
+  let arrive=''; try{arrive=Imm.arrivalBlurb(S)}catch(_){arrive=`Du verlässt ${from||'den vorherigen Ort'} und erreichst ${to}.`}
+  const txt=`${arrive}${node?.desc?' '+node.desc:''}${present.length?'\n\nAnwesend: '+present.map(n=>{try{return Know.displayName(S,n)}catch(_){return 'eine Gestalt'}}).join('; ')+'.':'\n\nHier ist niemand, den du kennst – vorerst.'}${greets.length?'\n\n'+greets.slice(0,2).join('\n\n'):''}`;
   const choices=travelChoices(to);
   return {ok:true,text:txt,changes:{xp:5,choices,world:{scene:S.world.scene}},to}}
 function cutStr(x,n){return String(x||'').slice(0,n)}
@@ -477,7 +481,9 @@ function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');clea
 function eventToast(t){const e=$('#eventToast');if(!e)return;e.textContent=t;e.classList.remove('hidden');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.add('hidden'),4200)}
 function hasKey(){return !!(cfg.gkey||'').trim()}
 function wantAI(){return cfg.mode!=='offline'}
-function gateOrShow(){if(S&&S.setup&&!S.setup.done){enterPlay();return}if(wantAI()&&!hasKey()&&cfg.mode!=='webllm'&&cfg.mode!=='api'&&cfg.mode!=='free'){showKeyGate();return}enterPlay()}
+function gateOrShow(){if(S&&S.setup&&!S.setup.done){enterPlay();return}
+ if(!hasKey()&&(cfg.mode==='gemini'||!cfg.mode)){cfg.mode='free';try{localStorage.setItem(CFG,JSON.stringify(cfg))}catch(_){}}
+ if(wantAI()&&!hasKey()&&cfg.mode!=='webllm'&&cfg.mode!=='api'&&cfg.mode!=='free'&&cfg.mode!=='offline'){showKeyGate();return}enterPlay()}
 function showKeyGate(){$('#title').classList.add('hidden');$('#stage').classList.add('hidden');const g=$('#keyGate');if(g){g.classList.remove('hidden');$('#gateKey').value='';setTimeout(()=>$('#gateKey').focus(),50)}}
 function dbgLine(){const el=$('#dbg');if(!el)return;if(!cfg.debug){el.classList.add('hidden');return}el.classList.remove('hidden');el.textContent=_dbgMs?('Zug '+_dbgMs+' ms'+(S?._ttft!=null?(' · TTFT '+S._ttft+' ms'):'')+(S?._promptChars?(' · ~'+Math.round(S._promptChars/3.5)+' tok'):'')):'–'}
 
@@ -549,6 +555,7 @@ function migrate(raw){if(!raw)return null;const s=typeof raw==='string'?JSON.par
  // v13.1 continuity+time always (kept in v14)
  try{Cont.ensureCont(s);if(s.cal&&s.cal.minute==null)s.cal.minute=0;if(s.cfgCatchupOptIn==null)s.cfgCatchupOptIn=false}catch(e){console.warn('cont migrate',e)}
  if(s.ver<14)s.ver=14;
+ if(s.ver<15)s.ver=15;
  else {try{Sim.migrateToV13(s)}catch(_){}}
  return s}
 
@@ -860,13 +867,13 @@ function worldTick(){if(!S.world||!S.setup?.done)return;
     if(!dest&&g.nodes[bit])dest=bit} if(dest)n.ort=dest;else if(!present.has(name)&&Math.random()<.35)n.ort=bit}
   else if(!present.has(name)&&n.home&&Math.random()<.2)n.ort=n.home}
  let aiNotes=[];try{aiNotes=Sim.runWorldAI(S,1)||[]}catch(_){}
- for(const note of aiNotes){if(note?.line){S.ticks.log=(S.ticks.log||[]).concat(note.line).slice(-12);if(note.seek)eventToast(note.line)}}
+ for(const note of aiNotes){if(note?.line){const clean=note.seek?Imm.seekPlayerLine(note.who||note.line.split(' ')[0]):Imm.cleanSnippet(note.line)||note.line; S.ticks.log=(S.ticks.log||[]).concat(clean).slice(-12);if(note.seek)eventToast(clean)}}
  if(S.heat>30&&Math.random()<.4){S.ticks.rumours=(S.ticks.rumours||[]).concat(R(['Wachen fragen nach einem Fremden.','Ein Kopfgeld-Gerücht kursiert.','Jemand hat dein Gesicht skizziert.'])).slice(-10)}
- if(aiNotes.length&&S.turn>0&&S.turn%2===0)eventToast(aiNotes[0].line);
+ if(aiNotes.length&&S.turn>0&&S.turn%2===0){const n0=aiNotes[0]; eventToast(n0.seek?Imm.seekPlayerLine(n0.who||''): (Imm.cleanSnippet(n0.line)||n0.line));}
  if(Math.random()<.28){const here=[...present].filter(p=>S.world.npcs[p]&&!Sim.isDead(S,p));if(here.length){const who=R(here);const n=S.world.npcs[who];
   const mem=(Sim.retrieveMemories(S,{npcNames:[who],limit:1})||[])[0];
   let label=who; try{label=Know.displayName(S,who,n)}catch(_){}
-  const line=mem?`${label}: „Ich denke noch an … ${String(mem.text).slice(0,70)}“`:R([`${((n.e||'')+' '+label).trim()} spricht dich an.`,`${label}: „${R(['Wir müssen reden.','Hast du einen Moment?','Das bleibt nicht so.','Komm. Kurz.'])}“`]);
+  const line=Imm.npcInitiativeLine(label, mem?.text||mem);
   S.flags.npcInit=who;eventToast(line);if(S.choices&&S.choices.length){const speak=Know.isNameKnown(S,who)?`Mit ${who} sprechen`:`Die Gestalt ansprechen`;S.choices=[speak,...S.choices.slice(0,3)]}
   try{if(Know.isNameKnown(S,who))setPortrait(who,n)}catch(_){}}}}
 
@@ -929,7 +936,8 @@ function enterPlay(){$('#keyGate')&&$('#keyGate').classList.add('hidden');$('#ti
    const wrap=$('#portraitWrap'); if(wrap)wrap.classList.add('hidden');
  }catch(_){}
  typewrite(isG()?'Nebel':'Erzähler', last.t, ()=>{});
- hud();renderChoices()}
+ hud();renderChoices();
+ try{const w=Imm.weatherFor(S);S.flags=S.flags||{};S.flags.weather=w;Imm.setWeather(w==='klar'?'none':w);Imm.applyDayNightTint(S);applyGenreTheme(S.genre||S.role)}catch(_){}}
 
 function show(){enterPlay()}
 
@@ -1336,16 +1344,19 @@ function offline(a){const q=askNPC(a);if(q)return q;
  const t=a.toLowerCase(),s=S.st;const npcs=Object.keys(S.world?.npcs||{}).filter(n=>S.world.npcs[n].alive!==false);
  const who=npcs.find(n=>n.toLowerCase().split(/[ _]/).some(p=>p.length>2&&t.includes(p.toLowerCase())));
  let txt,ch={};
- if(/kämpf|kampf|angriff|greif|jag|monster|schlag|armee|befehl/.test(t)&&!/töt|mord|umbring/.test(t)){const foe=R({held:['einen Goblin-Trupp','einen Oger','einen Dämonenspäher'],villainess:['einen Attentäter','eine Rivalin'],daemon:['eine Abenteurergruppe','einen rebellischen Fürsten'],mensch:['ein Wildschwein','einen Wegelagerer','einen Wolf'],zombie:['eine Beißer-Gruppe','zwei Plünderer']}[S.role]||S.genre==='zombie'?['Beißer']:['einen Gegner']);
+ if(/kämpf|kampf|angriff|greif|jag|monster|schlag|armee|befehl/.test(t)&&!/töt|mord|umbring/.test(t)){const foe=R({held:['Goblin-Späher','Oger','Dämonenspäher'],villainess:['Attentäter','Rivalin'],daemon:['Abenteurer','rebellischer Fürst'],mensch:['Wildschwein','Wegelagerer','Wolf'],zombie:['Beißer','Plünderer']}[S.role]||(S.genre==='zombie'?['Beißer']:['Gegner']));
+  const skills=(S.progress?.unlockedSkills||S.skills||[]).slice(0,4).map(x=>typeof x==='string'?{name:x}:x);
+  S.flags._pendingCombat={foe,skills}; // UI opens after reply
   const win=Math.random()<0.45+s.str/80;const dmg=rnd(5,20)+(win?0:15);
-  txt=win?`Du forderst ${foe} heraus und siegst!`:`Du forderst ${foe} heraus und entkommst blutend.`;
-  ch={hp:-dmg,xp:win?rnd(30,60):10,str:win&&Math.random()<.4?1:0,ruf:win?(S.role==='daemon'?-5:5):0};if(win&&Math.random()<.3)ch.items=[{name:R(['Monsterkern','Silbermünzen','Amulett','Heiltrank','Munition']),icon:'💎',desc:'Beute',type:'misc'}]}
- else if(/red|sprech|sag|frag|flirt|hilf|helf|plan|lieb|tee|party|erzähl/.test(t)||who){const n=who||R((S.world.scene.anwesend||[]).filter(x=>S.world.npcs[x]?.alive!==false).concat(npcs));
-  const npc=S.world.npcs[n];const good=Math.random()<0.5+s.cha/50;const memRaw=(npc?.memories||[]).slice(-1)[0];const mem=typeof memRaw==='string'?memRaw:(memRaw?.text||'');
-  const recall=mem&&Math.random()<.6?` „${mem.replace(/^\[[^\]]+\]\s*/,'')}…“`:'';
-  txt=good?`${n} hört dir zu.${recall} ${R(['Ein kleines Lächeln.','„Du bist anders…“','Ihr redet lange.'])}`:`${n} wirkt abweisend.${recall} ${R(['„Was willst du?“','Ein kalter Blick.','Unterbrochen.'])}`;
+  txt=`Der Kampf gegen ${foe} bricht los. Du greifst zur Waffe – Herzschlag laut, die Welt eng. ${Imm.weatherFor(S)==='regen'?'Regen peitscht.':Imm.weatherFor(S)==='nebel'?'Nebel verschluckt Schreie.':'Staub wirbelt auf.'}`;
+  ch={hp:-Math.min(dmg,win?dmg:dmg),xp:win?rnd(30,60):10,str:win&&Math.random()<.4?1:0,ruf:win?(S.role==='daemon'?-5:5):0,_combat:{foe,win,dmg}};if(win&&Math.random()<.3)ch.items=[{name:R(['Monsterkern','Silbermünzen','Amulett','Heiltrank','Munition']),icon:'💎',desc:'Beute',type:'misc'}]}
+ else if(/red|sprech|sag|frag|flirt|hilf|helf|plan|lieb|tee|party|erzähl|gestalt ansprechen|mit .+ sprechen/.test(t)||who){const n=who||R((S.world.scene.anwesend||[]).filter(x=>S.world.npcs[x]?.alive!==false).concat(npcs));
+  const npc=S.world.npcs[n];const good=Math.random()<0.5+s.cha/50;
+  let label=n; try{label=Know.displayName(S,n,npc)}catch(_){}
+  const wx=S.flags?.weather||Imm.weatherFor(S);
+  txt=Imm.richOfflineProse(S,a,{who:n,label,good,weather:wx,phase:phaseLabel()});
   ch={affinity:{[n]:good?rnd(8,18):-rnd(2,8)},trust:{[n]:good?rnd(4,10):-1},xp:15,cha:good&&Math.random()<.3?1:0};
-  addMemory(n, good?`Gutes Gespräch mit dir: „${a.slice(0,60)}“`:`Unangenehmes Gespräch: „${a.slice(0,60)}“`,'Gespräch')}
+  addMemory(n, good?`Gespräch (positiv) über: ${a.slice(0,40)}`:`Gespräch (angespannt) über: ${a.slice(0,40)}`,'Gespräch')}
  else if(/train|üb|lern|magie|zauber|stud/.test(t)){const cost=Math.min(s.mp,rnd(5,15));txt=`Du trainierst. ${R(['Schweiß und Fortschritt.','Ein neues Gefühl.','Mühsam, aber lohnend.'])}`;
   ch={mp:-cost,xp:rnd(20,40),str:Math.random()<.5?1:0};if(Math.random()<.25)ch.newSkills=[{name:R(['Doppelschlag','Schildwall','Giftige Zunge','Schattenportal','Fallenbau','Kräuterkunde','Erste Hilfe']),icon:'✨',desc:'Neu erlernt',level:1,cost:5,cd:0}]}
  else if(/schlaf|übernacht/.test(t)){txt='Du schläfst bis zum Morgen.';ch={hp:rnd(20,40),mp:rnd(10,25)};Cont.sleepUntilMorning(S)}
@@ -1361,7 +1372,7 @@ function offline(a){const q=askNPC(a);if(q)return q;
  return {text:txt,changes:ch}}
 
 /* ---------- AI ---------- */
-if(!cfg.v2){if(cfg.mode==='offline'||!cfg.mode)cfg.mode=hasKey()?'gemini':'gemini';cfg.v2=1;localStorage.setItem(CFG,JSON.stringify(cfg))}
+if(!cfg.v2||(cfg.mode==='gemini'&&!hasKey())){cfg.mode=hasKey()?'gemini':'free';cfg.v2=1;try{localStorage.setItem(CFG,JSON.stringify(cfg))}catch(_){}}
 function parseCreatureEncounter(a){
   const m=String(a||'').match(/(?:kämpfe? gegen|begegne|sehe|jage|töte|erte|angreife?)\s+(?:einen?|die|das)?\s*([A-ZÄÖÜ][\wÄÖÜäöüß\-]{2,30})/i)
     ||String(a||'').match(/\b(Wolf|Schattenwolf|Drache|Goblin|Ork|Skelett|Spinne|Bär|Greif|Dämon|Schleim|Banditen?)\b/i);
@@ -1502,8 +1513,10 @@ function setNarratorMode(mode){ // gemini | free | offline
   S._narratorMode=mode||'gemini';
   let el=$('#narratorBadge');
   if(!el){el=document.createElement('div');el.id='narratorBadge';el.className='narrator-badge hidden';document.body.appendChild(el)}
-  if(mode&&mode!=='gemini'){el.textContent=mode==='free'?'Fallback: Gratis-KI':'Fallback: Offline';el.classList.remove('hidden')}
-  else el.classList.add('hidden');
+  // free is the intended no-key narrator — label softly; offline only if true fallback
+  if(mode==='free'){el.textContent='Erzählerin: Pollinations';el.classList.remove('hidden','is-offline');el.classList.add('is-free')}
+  else if(mode==='offline'){el.textContent='Offline-Erzähler';el.classList.remove('hidden','is-free');el.classList.add('is-offline')}
+  else {el.classList.add('hidden'); el.classList.remove('is-free','is-offline')}
 }
 function scheduleAfterReply(tasks){
   const run=()=>{try{for(const fn of tasks){try{fn()}catch(e){console.warn('afterReply',e)}}}catch(_){}};
@@ -1602,6 +1615,8 @@ async function act(a){if(busy||!a.trim())return;
  }
  if(!S||!S.setup?.done)return;
  setBusy(true);const t0=performance.now();try{await loadPack(S.role)}catch(_){}
+ if(!hasKey()&&cfg.mode==='gemini'){cfg.mode='free';try{localStorage.setItem(CFG,JSON.stringify(cfg))}catch(_){}}
+ try{Imm.uiTick()}catch(_){}
  // show player intent briefly
  const prevSp=$('#speaker').textContent;$('#speaker').textContent='Du';$('#speaker').classList.remove('hidden');$('#vnText').textContent='„'+a+'“';
  S.turn++;S.log.push({k:'p',t:a});
@@ -1651,7 +1666,13 @@ async function act(a){if(busy||!a.trim())return;
   ()=>{try{worldTick()}catch(_){}},
   ()=>{try{maybeSceneFromWorld()}catch(_){}},
   ()=>{try{save()}catch(_){}},
-  ()=>{try{dbgLine()}catch(_){}}
+  ()=>{try{dbgLine()}catch(_){}},
+  ()=>{try{const w=Imm.weatherFor(S);S.flags=S.flags||{};S.flags.weather=w;Imm.setWeather(w==='klar'?'none':w);Imm.applyDayNightTint(S)}catch(_){}},
+  ()=>{try{if(res.changes?._combat){const c=res.changes._combat;delete res.changes._combat;
+    Imm.openCombat({foeName:c.foe,playerHP:S.st.hp,playerMax:S.st.maxhp,foeHP:40,foeMax:40,
+      skills:(S.progress?.unlockedSkills||S.skills||[]).slice(0,4),
+      onSkill:(sk)=>({foeDmg:rnd(8,18),selfDmg:Math.random()<.35?rnd(3,12):0,text:`${sk.name||sk}: Treffer.`}),
+      onClose:(r)=>{if(r&&r.playerHP!=null){S.st.hp=r.playerHP;hud();save()}}})}}catch(_){}}
  ]);
 }
 
@@ -1699,7 +1720,8 @@ $('#btnContinue').onclick=async()=>{
 $('#btnMusic').onclick=toggleMusic;
 $('#btnTitleSettings').onclick=openSheet;
 $('#btnSettings').onclick=openSheet;
-$('#btnMenu').onclick=()=>openMenu('hub');
+$('#btnMenu').onclick=()=>{try{Imm.uiTick()}catch(_){}openMenu('hub')};
+ try{$('#btnAudio').onclick=()=>{const on=Imm.toggleMute();$('#btnAudio').textContent=on?'🔊':'🔇';$('#btnAudio').classList.toggle('is-on',on);if(on)Imm.startAmbient(document.body.className.match(/genre-\w+/)?.[0]||'genre-fantasy');toast(on?'Ambient an':'Ambient stumm')}}catch(_){}
 $('#btnMenuClose').onclick=closeMenu;
 $('#menu').addEventListener('click',e=>{if(e.target.id==='menu')closeMenu()});
 $$('#menuTabs button').forEach(b=>b.onclick=()=>{_menuTab=b.dataset.tab;$$('#menuTabs button').forEach(x=>x.classList.toggle('on',x.dataset.tab===_menuTab));renderMenu()});
@@ -1729,15 +1751,15 @@ $('#btnAdv').onclick=()=>{$('#advBox').classList.toggle('hidden');$('#btnAdv').t
 $('#btnGateSave').onclick=()=>{const gk=$('#gateKey').value.trim();if(!gk){toast('Bitte Schlüssel einfügen');return}
  cfg.gkey=gk;cfg.mode='gemini';cfg.v2=1;localStorage.setItem(CFG,JSON.stringify(cfg));
  toast('Alles bereit.');gmFetch(gk,true).then(()=>gmProbe(gk).catch(()=>{}));enterPlay()};
-$('#btnGateSkip').onclick=()=>{cfg.mode='offline';cfg.v2=1;localStorage.setItem(CFG,JSON.stringify(cfg));enterPlay()};
+$('#btnGateSkip').onclick=()=>{cfg.mode='free';cfg.v2=1;localStorage.setItem(CFG,JSON.stringify(cfg));toast('Erzählerin: Pollinations (ohne Schlüssel)');enterPlay()};
 
-window.__setCfg=o=>{cfg=Object.assign(cfg||{},o||{});try{localStorage.setItem(CFG,JSON.stringify(cfg))}catch(_){}};window.__game={discoverThing,showCodexInline,Level,UI14,Know,Cont,lastPromptDump,advanceTimeMinutes,applyActionDuration,newGrey,greyDetails,loadGrey,loadPack,get S(){return S},act,newLife,gBody,msgs,gmRank,gmProbe,parseStream,thinkingCfg,gmOrder,readSSE,STREAM_DELIM,migrate,worldTick,bumpRel,openMenu,stageName,offline,startIntro,setSceneImage,setPortrait,imgUrl,advanceTime,phaseLabel,typewrite,enterPlay,showTitle,analyzeImage,applySceneTheme,themeFromText,loadValidatedImage,openingNarration,travelTo,parseTravel,killNPC,robNPC,addMemory,memoryHint,startProcedural,offlineGenerateWorld,generateWorldPack,GENRES,travelChoices,ensureGraph,whoHere,parseLifeSim,Sim,Persist,WorldMap,Econ,Codex,UI13,save,loadSave,applyCatchUp,findAnyNpc};
+window.__setCfg=o=>{cfg=Object.assign(cfg||{},o||{});try{localStorage.setItem(CFG,JSON.stringify(cfg))}catch(_){}};window.__game={Imm,discoverThing,showCodexInline,Level,UI14,Know,Cont,lastPromptDump,advanceTimeMinutes,applyActionDuration,newGrey,greyDetails,loadGrey,loadPack,get S(){return S},act,newLife,gBody,msgs,gmRank,gmProbe,parseStream,thinkingCfg,gmOrder,readSSE,STREAM_DELIM,migrate,worldTick,bumpRel,openMenu,stageName,offline,startIntro,setSceneImage,setPortrait,imgUrl,advanceTime,phaseLabel,typewrite,enterPlay,showTitle,analyzeImage,applySceneTheme,themeFromText,loadValidatedImage,openingNarration,travelTo,parseTravel,killNPC,robNPC,addMemory,memoryHint,startProcedural,offlineGenerateWorld,generateWorldPack,GENRES,travelChoices,ensureGraph,whoHere,parseLifeSim,Sim,Persist,WorldMap,Econ,Codex,UI13,save,loadSave,applyCatchUp,findAnyNpc};
 window.__game.askNPC=a=>askNPC(a);window.__game.gemini=gemini;
 if(cfg.gkey)gmFetch(cfg.gkey.trim()).then(()=>gmProbe(cfg.gkey.trim()).catch(()=>{})).catch(()=>{});
 (function(){const root=document.documentElement;const apply=()=>{try{const vv=window.visualViewport;if(!vv)return;const kb=Math.max(0,window.innerHeight-vv.height-vv.offsetTop);root.style.setProperty('--kb',kb+'px')}catch(_){}};
  if(window.visualViewport){visualViewport.addEventListener('resize',apply);visualViewport.addEventListener('scroll',apply)}
  window.addEventListener('focusin',e=>{if(e.target&&e.target.id==='txt'){setTimeout(()=>{try{e.target.scrollIntoView({block:'end',behavior:'smooth'})}catch(_){};apply()},300)}});
  $('#txt')&&$('#txt').addEventListener('blur',()=>root.style.setProperty('--kb','0px'))})();
-try{if('serviceWorker' in navigator&&navigator.serviceWorker){navigator.serviceWorker.register('./sw.js?v=14').catch(()=>{});
+try{if('serviceWorker' in navigator&&navigator.serviceWorker){navigator.serviceWorker.register('./sw.js?v=15').catch(()=>{});
  navigator.serviceWorker.addEventListener('controllerchange',()=>{if(sessionStorage.getItem('isekai_sw_reloaded'))return;sessionStorage.setItem('isekai_sw_reloaded','1');location.reload()})}}catch(_){}
 showTitle();
