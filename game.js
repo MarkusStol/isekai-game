@@ -1,5 +1,11 @@
+import * as Sim from './sim.js';
+import * as Persist from './persist.js';
+import * as WorldMap from './map.js';
+import * as Econ from './econ.js';
+import * as Codex from './codex.js';
+import * as UI13 from './ui13.js';
 const $=s=>document.querySelector(s);const $$=s=>[...document.querySelectorAll(s)];const R=a=>a[Math.floor(Math.random()*a.length)];const rnd=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
-const VER=12,CACHE_V='v12';
+const VER=13,CACHE_V='v13';
 const ROLES={
  held:{e:'⚔️',name:'Held mit Status-System',d:'Ein blaues Fenster erscheint: [Status]. Die Welt braucht dich.',world:'Königreich Aldheim',
   base:{hp:100,mp:40,str:12,cha:8,ruf:10,gold:40},cls:['Abenteurer','Ritter','Held','Legendärer Held'],pack:'worlds/held.json',
@@ -219,7 +225,7 @@ function locKey(name){const g=ensureGraph();if(!g)return name;if(g.nodes[name])r
  return Object.keys(g.nodes||{}).find(k=>k.toLowerCase()===String(name||'').toLowerCase()||String(name||'').toLowerCase().includes(k.toLowerCase().slice(0,10)))||name}
 function exitsFrom(ort){const n=locNode(ort);return (n&&n.exits)||[]}
 function whoHere(ort){ort=ort||S.world?.scene?.ort;const list=[];
- for(const[name,n]of Object.entries(S.world?.npcs||{})){if(n.alive===false)continue;if((n.ort||n.home||'')===ort||(S.world.scene.anwesend||[]).includes(name))list.push(name)}
+ for(const[name,n]of Object.entries(S.world?.npcs||{})){if(n.alive===false||n.dead)continue;if((n.ort||n.home||'')===ort||(S.world.scene.anwesend||[]).includes(name))list.push(name)}
  return list}
 function travelTo(dest,opts){opts=opts||{};if(!S?.world)return {ok:false,text:'Keine Welt.'};
  const g=ensureGraph();const from=S.world.scene.ort;const key=locKey(dest);
@@ -306,14 +312,13 @@ function portAssetKey(name,npc){if(npc?.portrait)return npc.portrait;const map={
   const s=String(name||'').toLowerCase();for(const[k,v]of Object.entries(map)){if(s.includes(k))return v}return slugify(name).split('-')[0]}
 
 /* memories */
-function addMemory(name,text,kind){const n=S.world?.npcs?.[name];if(!n||n.alive===false)return;
-  const line=(kind?`[${kind}] `:'')+cutStr(text,140);n.memories=(n.memories||[]).concat(line).slice(-12);
+function addMemory(name,text,kind){const n=S.world?.npcs?.[name];if(!n||n.alive===false||n.dead)return;
+  const line=(kind?`[${kind}] `:'')+cutStr(text,140);
+  const imp=/Tod|Zeuge|Mord|Rache|Versprechen|untot|Grab/i.test(line)?85:/Romance|Date|Liebe/i.test(line)?55:35;
+  const emotion=/Tod|trau|Mord/i.test(line)?'trauervoll':/Rache|wüt/i.test(line)?'wütend':/Romance|Liebe|Kuss/i.test(line)?'verliebt':'neutral';
+  try{Sim.ledgerPush(S,{type:kind||'memory', who:name, what:line, where:S.world.scene?.ort||n.ort, witnesses:[], importance:imp, emotion, meta:{about:name}})}catch(_){n.memories=(n.memories||[]).concat({text:line,importance:imp,emotion,strength:imp}).slice(-12)}
   n.erinnerung=(n.erinnerung||[]).concat(line).slice(-8);n.lastSeen={ort:S.world.scene?.ort||n.ort,zeit:phaseLabel(),day:S.time?.day||1}}
-function memoryHint(){const present=S.world?.scene?.anwesend||[];const bits=[];
-  for(const name of present){const n=S.world.npcs?.[name];if(!n||n.alive===false)continue;
-   const mem=(n.memories||n.erinnerung||[]).slice(-4);const mood=n.mood||'neutral';const goals=(n.goals||[]).slice(0,2);
-   bits.push(`${name}{mood:${mood};ziele:${goals.join('|')||'–'};erinnerungen:${mem.join(' / ')||'noch keine'};zuletzt:${n.lastSeen?.ort||'?'}}`)}
-  return bits.length?'NPC-GEDÄCHTNIS (nutzen! Bezug nehmen!):\n'+bits.join('\n'):''}
+function memoryHint(){try{return Sim.memoryHintV13(S)}catch(_){return ''}}
 function heatHint(){const h=S.heat|0;const w=(S.wanted||[]).slice(-3);const dead=(S.dead||[]).slice(-5);
   if(!h&&!w.length&&!dead.length)return '';
   return `KONSEQUENZEN: Heat ${h}/100. Fahndung: ${w.join('; ')||'–'}. Tot: ${dead.join(', ')||'–'}. NPCs reagieren (Trauer, Rache, Ermittlung, Kopfgeld).`}
@@ -321,27 +326,44 @@ function heatHint(){const h=S.heat|0;const w=(S.wanted||[]).slice(-3);const dead
 /* crime: kill & rob — dark-fantasy anime, not graphic */
 function findNpcTarget(a){const t=a.toLowerCase();const names=Object.keys(S.world?.npcs||{});
   return names.find(n=>n.alive!==false&&n.toLowerCase().split(/[\s\/]+/).some(p=>p.length>2&&t.includes(p.toLowerCase())))}
-function killNPC(name,ctx){const n=S.world.npcs[name];if(!n||n.alive===false)return {ok:false,text:`${name} ist bereits tot.`};
-  n.alive=false;n.mood='tot';n.ort='—';n.schedule=[];n.plan=[];
-  S.dead=S.dead||[];if(!S.dead.includes(name))S.dead.push(name);
-  // remove from scene
-  if(S.world.scene?.anwesend)S.world.scene.anwesend=S.world.scene.anwesend.filter(x=>x!==name);
-  // kill their side quests
-  if(S.quests?.side)S.quests.side.forEach(q=>{if(q.npc===name&&q.status!=='erledigt'){q.status='gescheitert';q.note='NPC tot'}});
-  delete S.romance[name];
-  // witnesses & world reaction
-  const witnesses=(S.world.scene.anwesend||[]).filter(x=>x!==name&&S.world.npcs[x]?.alive!==false);
+function showCodexInline(entry){
+  if(!entry)return;
+  try{
+    const seed=[...String(entry.id||entry.name)].reduce((a,c)=>a+c.charCodeAt(0),0)||42;
+    const url=imgUrl(entry.imagePrompt||entry.name,256,256,seed,false);
+    const wrap=document.createElement('div'); wrap.className='card codex-inline';
+    wrap.innerHTML='<div style="display:flex;gap:10px;align-items:flex-start"><img src="'+url+'" alt="" width="72" height="72" style="border-radius:10px;object-fit:cover;border:1px solid #f0d59a55"/><div><b>'+(entry.icon||'📜')+' '+entry.name+'</b><br><span class="meta">'+(Codex.DISC_LABEL[entry.level]||entry.level)+'</span><br>'+String(entry.desc||'').slice(0,120)+'</div></div>';
+    const log=$('#log')||document.querySelector('.log'); if(log){log.appendChild(wrap);log.scrollTop=log.scrollHeight}
+    else add('n',Codex.inlineCard(entry));
+  }catch(_){try{add('n',Codex.inlineCard(entry))}catch(__){}}
+}
+function discoverThing(kind,name,opts){
+  opts=opts||{}; let e=null;
+  try{
+    if(kind==='creature'||kind==='animal')e=Codex.recordCreature(S,name,{...opts,danger:opts.danger||2});
+    else if(kind==='weapon')e=Codex.recordWeapon(S,{name,...opts},opts);
+    else if(kind==='item')e=Codex.recordItem(S,{name,...opts},opts);
+    else if(kind==='flora')e=Codex.recordFlora(S,name,opts);
+    else if(kind==='faction')e=Codex.recordFaction(S,name,opts);
+    else if(kind==='place')e=Codex.recordPlace(S,name,opts.desc);
+    else if(kind==='person')e=Codex.recordPerson(S,name,opts.npc||S.world?.npcs?.[name]);
+    if(e&&opts.obtained)Codex.markObtained(S,e.id,opts.where);
+    if(e&&opts.inline!==false)showCodexInline(e);
+  }catch(_){}
+  return e;
+}
+function killNPC(name,ctx){ctx=ctx||{};
+  const r=Sim.killPermanent(S,name,{where:S.world?.scene?.ort, cause:typeof ctx==='string'?String(ctx).slice(0,80):(ctx.cause||'Gewalt'), killer:S.pc?.name||'Du'});
+  if(!r.ok)return r;
+  const witnesses=r.event?.witnesses||[];
   const heatAdd=witnesses.length?rnd(25,45):rnd(8,18);S.heat=Math.min(100,(S.heat|0)+heatAdd);
   const charge=`Mord an ${name}${witnesses.length?' (Zeugen: '+witnesses.join(', ')+')':''}`;S.wanted=(S.wanted||[]).concat(charge).slice(-8);
-  for(const w of witnesses){addMemory(w,`Sah den Tod von ${name}. Schock/Trauer.`, 'Zeuge');S.world.npcs[w].mood=R(['trauervoll','wütend','ängstlich','rachsüchtig']);
-   bumpRel(w,-rnd(20,40),-rnd(15,30),false);if(Math.random()<.5){S.world.npcs[w].goals=(S.world.npcs[w].goals||[]).concat(`Rache für ${name}`).slice(0,4)}}
-  // absent friends react later via rumours
-  for(const[other,on]of Object.entries(S.world.npcs)){if(other===name||on.alive===false)continue;if((on.relations&&on.relations[name])||(n.relations&&n.relations[other])){
-    on.plan=[`trauert um ${name}`,...(on.plan||[])].slice(0,5);addMemory(other,`Hörte vom Tod von ${name}.`,'Leben')}}
+  for(const w of witnesses){bumpRel(w,-rnd(20,40),-rnd(15,30),false)}
   S.ticks.rumours=(S.ticks.rumours||[]).concat(`☠ ${name} ist tot. ${witnesses.length?'Es gab Zeugen.':'Niemand will es gesehen haben.'}`).slice(-10);
   S.st.ruf=(S.st.ruf|0)-(isG()?0:rnd(15,35));S.st.xp=(S.st.xp|0)+rnd(10,25);
   const loot=[{name:R(['Geldbeutel','Persönlicher Anhänger','Schlüssel','Brief']),icon:'🎒',desc:`Von ${name}`,type:'misc',rarity:'uncommon'}];
-  const soft=`Der Kampf endet schnell. ${name} fällt – endgültig. Kein Statusfenster holt sie zurück.${witnesses.length?' Blicke treffen dich. Worte werden folgen.':' Die Stille danach ist laut.'}${S.heat>40?' Fahndungsplakate werden nicht lange auf sich warten lassen.':''}`;
+  const soft=`Der Kampf endet schnell. ${name} fällt – endgültig. Kein Statusfenster holt sie zurück.${witnesses.length?' Blicke treffen dich. Worte werden folgen.':' Die Stille danach ist laut.'}${S.heat>40?' Fahndungsplakate werden nicht lange auf sich warten lassen.':''} 🪦 Ein Grab/Leichnam bleibt in ${S.world.scene?.ort}.`;
+  try{Codex.recordPerson(S,name,S.world.npcs[name]);Codex.discover(S,{cat:'lore',name:'Tod von '+name,desc:soft.slice(0,120),where:S.world.scene?.ort,level:'studied'}) }catch(_){}
   return {ok:true,text:soft,changes:{hp:-rnd(0,10),ruf:-(rnd(15,35)),xp:rnd(10,25),items:loot,choices:travelChoices(),affinity:Object.fromEntries(witnesses.map(w=>[w,-rnd(20,40)]))}}}
 function robNPC(name){const n=S.world.npcs[name];if(!n||n.alive===false)return {ok:false,text:'Kein Ziel.'};
   const witnesses=(S.world.scene.anwesend||[]).filter(x=>x!==name);const seen=witnesses.length&&Math.random()<.7;
@@ -362,7 +384,9 @@ function parseCrime(a){const t=a.toLowerCase();const who=findNpcTarget(a);
 
 
 /* ---------- save / toast / gate ---------- */
-function save(){if(!S)return;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){try{if(S.hist)S.hist=S.hist.slice(-8);if(S.log)S.log=S.log.slice(-40);if(S.summary)S.summary=String(S.summary).slice(0,400);if(S.world&&S.world.npcs)for(const n of Object.values(S.world.npcs))if(n.erinnerung)n.erinnerung=n.erinnerung.slice(-2);localStorage.setItem(KEY,JSON.stringify(S));toast('Speicher gekürzt (wenig Platz)')}catch(_){toast('Speichern fehlgeschlagen – wenig Speicher')}}}
+function save(){if(!S)return;Persist.atomicSave(S,{toast}).then(r=>{if(!r.ok&&r.reason==='stale')toast('⚠ Älterer Stand nicht überschrieben');else if(!r.ok)toast('⚠ Speichern fehlgeschlagen')}).catch(()=>toast('⚠ Speichern fehlgeschlagen'))}
+async function loadSave(){const s=await Persist.loadBest(migrate);return s}
+function applyCatchUp(){if(!S)return null;const r=Persist.catchUp(S,{Sim,econTick:(st,h)=>Econ.econHourly(st,h)});if(r.hours>=1){const lines=['Während du weg warst… ('+r.hours+' Std. Spielzeit)',...(r.summary||[])];pushSys(lines[0]);if(r.summary?.length){const t=r.summary.slice(0,6).join('\n');setTimeout(()=>{try{eventToast(lines[0]);add('n',lines.join('\n'))}catch(_){toast(lines[0])}},400)}save()}return r}
 function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('on'),2600)}
 function eventToast(t){const e=$('#eventToast');if(!e)return;e.textContent=t;e.classList.remove('hidden');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.add('hidden'),4200)}
 function hasKey(){return !!(cfg.gkey||'').trim()}
@@ -380,10 +404,17 @@ function stageOf(aff,trust){let s=0;for(let i=0;i<STAGE_NEED.length;i++){const n
 function stageName(n){return STAGES[Math.max(0,Math.min(5,n|0))]}
 function rarityOf(item){const r=(item&&item.rarity)||'common';return ['common','uncommon','rare','epic','legendary'].includes(r)?r:'common'}
 function hearts(stage){return '♥'.repeat(Math.max(0,Math.min(5,stage|0)))+'♡'.repeat(Math.max(0,5-Math.max(0,stage|0)))}
-function phaseLabel(){if(!S?.time)return '–';return `${S.time.phase||PHASE_H[S.time.hour|0]||'–'} · Tag ${S.time.day|1}`}
-function advanceTime(hours){if(!S.time)S.time={day:1,hour:8,phase:'Morgen'};let h=(S.time.hour|0)+(hours||1);let d=S.time.day|1;
- while(h>=24){h-=24;d++}while(h<0){h+=24;d=Math.max(1,d-1)}S.time.day=d;S.time.hour=h;S.time.phase=PHASE_H[h]||'–';
- if(S.world?.scene)S.world.scene.zeit=`${S.time.phase}, Tag ${d}`}
+function phaseLabel(){if(!S)return '–';
+  if(S.cal){try{return Sim.calLabel(S.cal)}catch(_){}}
+  if(!S.time)return '–';return `${S.time.phase||PHASE_H[S.time.hour|0]||'–'} · Tag ${S.time.day|1}${S.time.season?' · '+S.time.season:''}`}
+function advanceTime(hours){hours=hours||1;
+  if(!S.cal)S.cal=Sim.blankCalendar(S.time||{day:1,hour:8});
+  const dayBefore=S.cal.day|0; const yearBefore=S.cal.year|0;
+  Sim.advanceCalendar(S, hours, {hourly:(state,step)=>{try{Sim.runWorldAI(state,Math.max(1,step|0))}catch(_){}}});
+  const daysPassed=Math.max(0,(S.cal.day-dayBefore)+((S.cal.year-yearBefore)*360));
+  if(daysPassed>0){const pb=Sim.progressBuild(S,daysPassed);if(pb?.done){toast('🏠 Bau fertig: '+pb.name);pushSys('🏠 '+pb.name+' (Stufe '+pb.stage+')')}}
+  try{Econ.econHourly(S,hours)}catch(_){}
+  if(S.world?.scene)S.world.scene.zeit=phaseLabel()}
 
 /* ---------- migration ---------- */
 function migrate(raw){if(!raw)return null;const s=typeof raw==='string'?JSON.parse(raw):raw;
@@ -405,6 +436,8 @@ function migrate(raw){if(!raw)return null;const s=typeof raw==='string'?JSON.par
  }
  if(s.ver<11){s.ver=11;if(s.imgCache){s.imgCache.ok=s.imgCache.ok||{};s.imgCache.fail=s.imgCache.fail||{};s.imgCache.next=s.imgCache.next||{}}}
  if(s.ver<12){s.ver=12;s.heat=s.heat|0;s.wanted=s.wanted||[];s.dead=s.dead||[];if(s.world){ensureGraph(s);enrichNpcs(s.world)}}
+ if(s.ver<13){s.ver=13;try{Sim.migrateToV13(s)}catch(e){console.warn('v13 migrate',e)}}
+ else {try{Sim.migrateToV13(s)}catch(_){}}
  return s}
 
 function buildQuests(pack){const arc=pack.arc||{titel:'Hauptgeschichte',acts:[]};const act0=arc.acts[0]||{id:'a1',titel:'Anfang',ziel:'Ankommen',mile:[]};
@@ -436,7 +469,8 @@ async function newLife(role,meta,opts){const r=ROLES[role];meta=meta||{lives:0,s
   quests:buildQuests(pack),discovered:[world.scene.ort].filter(Boolean),ticks:{rumours:[],log:[]},
   cls:0,turn:0,hist:[],log:[],flags:Object.assign({},opts.flags||{}),setup:{done:false,beat:0,answers:{}},summary:'',
   time:{day:1,hour:18,phase:'Abend'},imgCache:{scenes:{},portraits:{},ok:{},fail:{},next:{}}};
- S.world=world;
+ S.world=world;S.heat=0;S.wanted=[];S.dead=[];S.ledger=[];S.needs={hunger:20,fatigue:10,ageYears:18};S.home=Sim.blankHome();S.cal=Sim.blankCalendar(S.time);S.saveSeq=0;
+ try{Sim.migrateToV13(S);Econ.ensureEcon(S);Codex.ensureCodex(S);WorldMap.ensureSpawn(S)}catch(_){}
  if(opts.skipSetup){finishSetup(pack);gateOrShow();return}
  // If cinematic already covered death, skip first setup beat when it is 'tod'
  if(opts.fromIntro){S.flags.introDeath=true;S.setup.answers.tod={label:'(Intro)',past:opts.trait||''};S.setup.beat=1}
@@ -641,7 +675,7 @@ function openingNarration(pack){if(isG())return (S.kind==='darren'?greyIntroDarr
  };
  return byRole[S.role]||byRole.held}
 
-function finishSetup(pack){S.setup.done=true;S._setupChoices=null;S._setupBeat=null;_mode='play';ensureGraph(S);enrichNpcs(S.world);S.heat=S.heat|0;S.wanted=S.wanted||[];S.dead=S.dead||[];
+function finishSetup(pack){S.setup.done=true;S._setupChoices=null;S._setupBeat=null;_mode='play';ensureGraph(S);enrichNpcs(S.world);S.heat=S.heat|0;S.wanted=S.wanted||[];S.dead=S.dead||[];try{Sim.migrateToV13(S);Econ.ensureEcon(S);Codex.ensureCodex(S);WorldMap.ensureSpawn(S);S.ver=13}catch(_){};
  if(wantAI()&&!hasKey()&&cfg.mode!=='webllm'&&cfg.mode!=='api'&&cfg.mode!=='free'){save();showKeyGate();return}
  $('.top-actions').style.visibility='';$('#hud').style.visibility='';
  let bridge=openingNarration(pack);
@@ -658,7 +692,12 @@ function greyIntroOwn(){return `Der Zug hätte nicht halten dürfen.\n\nDu – $
 function defChoices(){if(S?.world?.scene?.ort)return travelChoices(S.world.scene.ort);
  return ['Umsehen','Mit jemandem sprechen','Wohin gehen?','Ausruhen']}
 
-function discover(place){if(!place)return;if(!S.discovered)S.discovered=[];if(!S.discovered.includes(place)){S.discovered.push(place);if(S.setup?.done)toast('📍 Neu entdeckt: '+place)}}
+function discover(place){if(!place)return;if(!S.discovered)S.discovered=[];if(!S.discovered.includes(place)){S.discovered.push(place);if(S.setup?.done)toast('📍 Neu entdeckt: '+place)}
+  try{WorldMap.visitPlace(S,place);Codex.recordPlace(S,place,S.world?.orte?.[place]);
+  const lore=S.world?.lore||{};
+  if(lore.politik)Codex.recordFaction(S,String(lore.politik).slice(0,40),{desc:String(lore.politik).slice(0,160)});
+  let i=0; for(const [nm,n] of Object.entries(S.world?.npcs||{})){if(i++>5)break; try{Codex.recordPerson(S,nm,n)}catch(_){}}
+}catch(_){}}
 
 /* ---------- typewriter VN ---------- */
 function typewrite(speaker,text,done){_twDone=false;_twFull=text||'';
@@ -693,29 +732,22 @@ function matchSchedule(entry,phase){if(!entry)return false;const e=String(entry)
  const keys=map[p]||[p];return keys.some(k=>e.includes(k))}
 function worldTick(){if(!S.world||!S.setup?.done)return;
  advanceTime(rnd(1,3));
- const phase=S.time.phase;const npcs=Object.entries(S.world.npcs||{});if(!npcs.length)return;
+ const phase=S.time?.phase||Sim.phaseFromHour(S.cal?.hour||12);
+ const npcs=Object.entries(S.world.npcs||{});if(!npcs.length)return;
+ if(S.world.scene?.anwesend)S.world.scene.anwesend=S.world.scene.anwesend.filter(n=>!Sim.isDead(S,n)||S.world.npcs[n]?.undead);
  const present=new Set((S.world.scene.anwesend||[]).map(String));
- // schedule-driven location hints
- for(const[name,n]of npcs){if(n.alive===false)continue;const sch=n.schedule||[];const hit=sch.find(s=>matchSchedule(s,phase));
+ for(const[name,n]of npcs){if(n.alive===false||n.dead)continue;const sch=n.schedule||[];const hit=sch.find(s=>matchSchedule(s,phase));
   if(hit){const bit=String(hit).split(':').slice(1).join(':').trim()||hit;n._schedNow=bit;
-   // move to matching location if it exists on graph
    const g=ensureGraph();let dest=null;if(g){for(const loc of Object.keys(g.nodes)){if(bit.toLowerCase().includes(loc.toLowerCase().slice(0,8))||loc.toLowerCase().includes(bit.toLowerCase().slice(0,8))){dest=loc;break}}
     if(!dest&&g.nodes[bit])dest=bit} if(dest)n.ort=dest;else if(!present.has(name)&&Math.random()<.35)n.ort=bit}
   else if(!present.has(name)&&n.home&&Math.random()<.2)n.ort=n.home}
- const actors=npcs.filter(([k])=>!present.has(k)).sort(()=>Math.random()-.5).slice(0,2);
- const notes=[];
- for(const[name,n]of actors){const plan=n.plan||[];const schedAct=n._schedNow;const act=schedAct||(plan.length?R(plan):null);
-  if(act){const line=`${n.e||'👤'} ${name} handelt abseits: ${act}.`;notes.push(line);n.erinnerung=(n.erinnerung||[]).concat(['(Offscreen) '+act]).slice(-6);
-   if(Math.random()<.4){const rum=`Gerücht: ${name} – ${act}`;S.ticks.rumours=(S.ticks.rumours||[]).concat(rum).slice(-8);S.world.ereignisse=(S.world.ereignisse||[]).concat(rum).slice(0,6)}}
-  if(n.ziel&&Math.random()<.25)S.ticks.rumours.push(`${name} verfolgt weiter: ${String(n.ziel).slice(0,60)}`)}
- // Quests are hooks only — never pull the player back
- if(S.turn%7===0&&Math.random()<.35){const alive=Object.entries(S.world.npcs||{}).filter(([,n])=>n.alive!==false);const a=R(alive),b=R(alive.filter(x=>x[0]!==a[0]));
-  if(a&&b){const line=`${a[0]} und ${b[0]}: ihre Wege kreuzen sich (${R(['Streit','Handel','Geheimnis','Hilfe','Flirt','Misstrauen'])}).`;S.ticks.rumours=(S.ticks.rumours||[]).concat(line).slice(-10);addMemory(a[0],` Traf ${b[0]}.`,'Leben');addMemory(b[0],` Traf ${a[0]}.`,'Leben')}}
- if(S.heat>30&&Math.random()<.4){S.ticks.rumours.push(R(['Wachen fragen nach einem Fremden.','Ein Kopfgeld-Gerücht kursiert.','Jemand hat dein Gesicht skizziert.']));}
- if(notes.length&&S.turn>0&&S.turn%2===0){const t=notes[0];S.ticks.log=(S.ticks.log||[]).concat(t).slice(-10);eventToast(t)}
- // NPC may initiate conversation
- if(Math.random()<.28){const here=[...present].filter(p=>S.world.npcs[p]);if(here.length){const who=R(here);const n=S.world.npcs[who];
-  const line=R([`${n.e||''} ${who} spricht dich an.`.trim(),`${who}: „${R(['Wir müssen reden.','Hast du einen Moment?','Das bleibt nicht so.','Komm. Kurz.'])}“`]);
+ let aiNotes=[];try{aiNotes=Sim.runWorldAI(S,1)||[]}catch(_){}
+ for(const note of aiNotes){if(note?.line){S.ticks.log=(S.ticks.log||[]).concat(note.line).slice(-12);if(note.seek)eventToast(note.line)}}
+ if(S.heat>30&&Math.random()<.4){S.ticks.rumours=(S.ticks.rumours||[]).concat(R(['Wachen fragen nach einem Fremden.','Ein Kopfgeld-Gerücht kursiert.','Jemand hat dein Gesicht skizziert.'])).slice(-10)}
+ if(aiNotes.length&&S.turn>0&&S.turn%2===0)eventToast(aiNotes[0].line);
+ if(Math.random()<.28){const here=[...present].filter(p=>S.world.npcs[p]&&!Sim.isDead(S,p));if(here.length){const who=R(here);const n=S.world.npcs[who];
+  const mem=(Sim.retrieveMemories(S,{npcNames:[who],limit:1})||[])[0];
+  const line=mem?`${who}: „Ich denke noch an … ${String(mem.text).slice(0,70)}“`:R([`${((n.e||'')+' '+who).trim()} spricht dich an.`,`${who}: „${R(['Wir müssen reden.','Hast du einen Moment?','Das bleibt nicht so.','Komm. Kurz.'])}“`]);
   S.flags.npcInit=who;eventToast(line);if(S.choices&&S.choices.length)S.choices=[`Mit ${who} sprechen`,...S.choices.slice(0,3)];
   setPortrait(who,n)}}}
 
@@ -756,7 +788,12 @@ function enterPlay(){$('#keyGate')&&$('#keyGate').classList.add('hidden');$('#ti
  document.body.classList.toggle('greyw',isG());$('#stage').classList.remove('hidden');
  $('.top-actions').style.visibility='';$('#hud').style.visibility='';
  if(S.setup&&!S.setup.done){_mode='setup';loadPack(S.role).then(p=>{S._setupPack=p;showBeat(p)});return}
- _mode='play';maybeSceneFromWorld();maybePortraitsPresent();
+ _mode='play';
+ try{Sim.migrateToV13(S);Econ.ensureEcon(S);Codex.ensureCodex(S);WorldMap.ensureSpawn(S)}catch(_){}
+ // never replay intro once setup done
+ S.flags=S.flags||{}; S.flags.introDone=true;
+ try{applyCatchUp()}catch(_){}
+ maybeSceneFromWorld();maybePortraitsPresent();
  const last=(S.log||[]).filter(m=>m.k==='n').slice(-1)[0];
  if(last)typewrite(isG()?'Nebel':'Erzähler',last.t,()=>{});else typewrite('','…',()=>{});
  hud();renderChoices()}
@@ -819,6 +856,12 @@ function renderMenu(){const body=$('#menuBody');if(!body||!S)return;body.innerHT
   body.appendChild(wrap);
   const lore=document.createElement('div');lore.className='card';lore.innerHTML=`<h3>📚 Lore</h3><p class="meta">${(S.world?.lore?.geschichte||PACKS[S.role]?.geschichte||'').slice(0,280)}</p>`;body.appendChild(lore);
   if(S.ticks?.rumours?.length){body.innerHTML+=`<div class="card"><h3>🗣 Gerüchte</h3>${S.ticks.rumours.slice(-5).map(r=>`<div class="lex-item">${r}</div>`).join('')}</div>`}}
+ else if(_menuTab==='home'){UI13.renderHome(body,S,{act,closeMenu,phaseLabel})}
+ else if(_menuTab==='journal'){UI13.renderJournal(body,S)}
+ else if(_menuTab==='finance'){UI13.renderFinance(body,S,{act,closeMenu})}
+ else if(_menuTab==='kingdom'){UI13.renderKingdom(body,S,{act,closeMenu})}
+ else if(_menuTab==='codex'){UI13.renderCodex(body,S,{setSceneImage,imgUrl})}
+ else if(_menuTab==='atlas'){UI13.renderMap(body,S,{act,closeMenu,toast})}
 }
 function openItemDetail(idx){const item=itemFromStr(S.inv[idx]);const body=$('#menuBody');
  body.innerHTML=`<div class="card"><h3>${item.icon||'📦'} ${item.name}</h3><p>${item.desc||''}</p>
@@ -838,13 +881,13 @@ function useSkill(idx){const sk=skillFromStr(S.skills[idx]);if((sk._cd|0)>0)retu
  S.st.mp-=sk.cost|0;sk._cd=sk.cd|0;S.skills[idx]=sk;toast('✨ '+sk.name);closeMenu();act('Ich setze meine Fähigkeit ein: '+sk.name);hud();save()}
 
 /* ---------- apply changes ---------- */
-function apply(ch){if(!ch)return;const s=S.st,num=v=>Math.max(-200,Math.min(200,Math.round(+v||0)));const out=[];
+function apply(ch){if(!ch)return;try{ch=Sim.validateChanges(S,ch)}catch(_){}const s=S.st,num=v=>Math.max(-200,Math.min(200,Math.round(+v||0)));const out=[];
  const map={verstand:'hp',schuld:'ruf',hp:'hp',mp:'mp',str:'str',staerke:'str',stärke:'str',cha:'cha',charme:'cha',ruf:'ruf',xp:'xp',gold:'gold'};
  for(const[k,v]of Object.entries(ch)){const m=map[k.toLowerCase()];if(m&&v){s[m]=(s[m]|0)+num(v);out.push(`${k} ${v>0?'+':''}${num(v)}`)}}
  if(ch.affinity&&typeof ch.affinity==='object')for(const[n,v]of Object.entries(ch.affinity)){const trust=ch.trust&&ch.trust[n]!=null?num(ch.trust[n]):Math.max(0,num(v)/2|0);bumpRel(n,num(v),trust,false);out.push(`💗${n.split(' ').pop()} ${v>0?'+':''}${num(v)}`)}
  if(ch.trust&&typeof ch.trust==='object'&&!ch.affinity)for(const[n,v]of Object.entries(ch.trust))bumpRel(n,0,num(v),false);
  (ch.newSkills||ch.skills||[]).forEach(x=>{const sk=skillFromStr(x);if(!S.skills.some(s=>s.name===sk.name)&&S.skills.length<24){S.skills.push(sk);out.push('Skill: '+sk.name);toast('✨ Neue Fähigkeit: '+sk.name)}});
- (ch.items||ch.addItems||[]).forEach(x=>{const it=itemFromStr(x);if(!it.rarity)it.rarity='uncommon';if(S.inv.length<40){S.inv.push(it);out.push('Item: '+it.name);toast('📦 '+it.name)}});
+ (ch.items||ch.addItems||[]).forEach(x=>{const it=itemFromStr(x);if(!it.rarity)it.rarity='uncommon';if(S.inv.length<40){S.inv.push(it);out.push('Item: '+it.name);toast('📦 '+it.name);try{const kind=/waffe|schwert|bogen|axt|dolch|stab|speer|schild|klinge/i.test(it.name+it.type)?'weapon':'item';discoverThing(kind,it.name,{...it,obtained:true,inline:true})}catch(_){}}});
  (ch.removeItems||[]).forEach(x=>{const name=typeof x==='string'?x:x.name;const i=S.inv.findIndex(it=>(typeof it==='string'?it:it.name)===name);if(i>=0)S.inv.splice(i,1)});
  if(Array.isArray(ch.choices)&&ch.choices.length)S.choices=ch.choices.filter(x=>typeof x==='string').map(x=>x.slice(0,50));
  if(ch.quests)applyQuestUpdate(ch.quests);
@@ -883,8 +926,8 @@ function worldText(){const w=S.world;if(!w)return '';
  const orte={};for(const[k,v]of Object.entries(w.orte||{})){const key=k.toLowerCase().split(/[ \/–]/)[0];if(String(scene.ort||'').toLowerCase().includes(key)||histTxt.includes(key)||(S.discovered||[]).includes(k))orte[k]=String(v).slice(0,120)}
  const q=S.quests?.main;const qHint=q?{akt:q.actTitel,ziel:q.ziel,offen:(q.objectives||[]).filter(o=>!(q.done||[]).includes(o)).slice(0,3)}:null;
  return 'WELT (nur Szene):\n'+JSON.stringify({scene,zeit:phaseLabel(),npcs,orte,ereignisse:(w.ereignisse||[]).slice(0,4),quest:qHint,geruechte:(S.ticks?.rumours||[]).slice(-2)})}
-function applyWorld(u){if(!u||!S.world)return;const w=S.world;const cut=(x,n)=>String(x||'').slice(0,n);const prevOrt=w.scene?.ort;
- if(u.scene&&u.scene.ort){w.scene={ort:cut(u.scene.ort,80),zeit:cut(u.scene.zeit,60)||phaseLabel(),anwesend:(u.scene.anwesend||[]).slice(0,8).map(x=>cut(x,40))};discover(w.scene.ort);
+function applyWorld(u){if(!u||!S.world)return;try{u=Sim.validateWorldUpdate(S,u)}catch(_){}try{u=guardNoRegression(u)}catch(_){}const w=S.world;const cut=(x,n)=>String(x||'').slice(0,n);const prevOrt=w.scene?.ort;
+ if(u.scene&&u.scene.ort){w.scene={ort:cut(u.scene.ort,80),zeit:cut(u.scene.zeit,60)||phaseLabel(),anwesend:(u.scene.anwesend||[]).slice(0,8).map(x=>cut(x,40)).filter(n=>!Sim.isDead(S,n)||w.npcs[n]?.undead)};discover(w.scene.ort);
   if(w.scene.ort!==prevOrt||u.scenePrompt||u.imagePrompt){S.flags.scenePrompt=u.scenePrompt||u.imagePrompt||scenePromptFor(w.scene.ort,w.scene.zeit);setSceneImage(S.flags.scenePrompt,w.scene.ort)}
   maybePortraitsPresent()}
  if(u.speaker)S.flags.speaker=cut(u.speaker,40);
@@ -1067,14 +1110,77 @@ async function startProcedural(genreInput,pcName){const pack=await generateWorld
   quests:buildQuests(pack),discovered:[world.scene.ort].filter(Boolean),ticks:{rumours:[],log:[]},
   cls:0,turn:0,hist:[],log:[],flags:{},setup:{done:true,beat:0,answers:{}},summary:pack.conflict||'',
   time:{day:1,hour:18,phase:'Abend'},imgCache:{scenes:{},portraits:{},ok:{},fail:{},next:{}},heat:0,wanted:[],dead:[],world};
- enrichNpcs(S.world);ensureGraph(S);if(S.world.systems||S.genre==='zombie')ensureSystems();
+ enrichNpcs(S.world);ensureGraph(S);try{Sim.migrateToV13(S);Econ.ensureEcon(S);Codex.ensureCodex(S);WorldMap.ensureSpawn(S);S.ver=13}catch(_){}if(S.world.systems||S.genre==='zombie')ensureSystems();
  const bridge=`${pack.titel}.\n\n${pack.conflict||pack.geschichte}\n\nDu – ${S.pc.name} – stehst in ${world.scene.ort}. Die Welt wartet nicht. Wohin du gehst, ist deine Sache.`;
  S.log=[{k:'n',t:bridge}];S.hist=[{role:'assistant',content:bridge}];S.choices=travelChoices(world.scene.ort);
  save();enterPlay();typewrite('Erzähler',bridge,()=>{});hud();renderChoices();
  applySceneTheme(themeFromText(pack.genre+' '+world.scene.ort));setSceneImage(scenePromptFor(world.scene.ort,'Abend'),world.scene.ort);
  return S}
 
+
+function parseLifeSim(a){const t=a.toLowerCase();
+  const extras=UI13.parseLifeExtras(a,S,{advanceTime,travelTo,travelChoices,skillFromStr,toast,phaseLabel});
+  if(extras)return extras;
+  if(/aufersteh|erweck|nekroman|toten.*zurück|wiederbele|resurrect/.test(t)){
+    let who=findAnyNpc(a);if(!who||!Sim.isDead(S,who)){who=(S.dead||[]).find(n=>t.includes(n.toLowerCase().split(' ')[0]))||(S.dead||[])[0]}
+    if(!who)return {ok:false,text:'Wen soll die Nekromantie holen?'};
+    const gate=Sim.canResurrect(S,who);
+    if(!gate.ok){
+      const vael=Object.keys(S.world.npcs||{}).find(k=>/nekromant/i.test(k)||/nekromant/i.test(S.world.npcs[k].art||''));
+      if(vael&&!Sim.isDead(S,vael)){if(!S.world.scene.anwesend.includes(vael))S.world.scene.anwesend.push(vael);S.world.npcs[vael].ort=S.world.scene.ort}
+      else if(!(S.skills||[]).some(sk=>/nekromantie|totenerweck/i.test(typeof sk==='string'?sk:sk.name||''))){
+        if(/lerne|fähigkeit|skill|magie/.test(t)){S.skills.push(skillFromStr({name:'Nekromantie',icon:'💀',desc:'Tote als Untote zurückholen.',level:1,cost:40,cd:5}));toast('✨ Nekromantie erlernt')}
+      }
+    }
+    const r=Sim.resurrectNPC(S,who);advanceTime(2);
+    return {ok:r.ok,text:r.ok?(r.text||'Auferstehung.'):('Scheitert: '+(r.text||'Kein Nekromant.')),changes:{choices:travelChoices(),mp:r.ok?-40:0,hp:r.ok?-15:0,xp:r.ok?40:5}}
+  }
+  if(/grundstück|land beanspruch|beanspruch.*land|bauplatz/.test(t)){
+    const r=Sim.claimLand(S,S.world.scene.ort);advanceTime(1);return {ok:r.ok,text:r.text,changes:{xp:10,choices:['Material sammeln','Bauen beginnen','Umsehen','Ausruhen']}}
+  }
+  if(/samm(le|eln)?.*(holz|stein|stoff|nagel)|holz fäll|material/.test(t)){
+    const kind=/stein/.test(t)?'stone':/stoff|tuch|cloth/.test(t)?'cloth':/nagel/.test(t)?'nails':'wood';
+    const amt=rnd(2,5);Sim.gatherMat(S,kind,amt);if(kind==='wood'&&Math.random()<.4)Sim.gatherMat(S,'nails',1);
+    advanceTime(rnd(2,4));const m=S.home.materials;
+    return {ok:true,text:`Du sammelst ${amt}× ${kind}. Vorrat: Holz ${m.wood}, Stein ${m.stone}, Stoff ${m.cloth}, Nägel ${m.nails}.`,changes:{xp:8,choices:['Weiter sammeln','Bauen beginnen','Nach Hause','Ausruhen']}}
+  }
+  if(/bau(en|e)? (haus|zimmer|weiter|stufe)|baubeginn|ausbau|bauen beginnen/.test(t)||t.trim()==='bauen'){
+    if(S.home?.building){advanceTime(8);const pb=Sim.progressBuild(S,1);return {ok:true,text:pb?.done?`Bau fertig: ${pb.name} (Stufe ${pb.stage}).`:`Noch ${S.home.building?.daysLeft} Tag(e).`,changes:{xp:15,choices:travelChoices()}}}
+    const r=Sim.startBuild(S);if(!r.ok)return {ok:false,text:r.reason||'Kein Bau.'};advanceTime(4);return {ok:true,text:r.text,changes:{xp:20,choices:['Weiterbauen (Tag verstreichen)','Material sammeln','Schlafen','Umsehen']}}
+  }
+  if(/weiterbau|tag verstreichen|bau voran/.test(t)){
+    if(!S.home?.building){const r=Sim.startBuild(S);if(!r.ok)return {ok:false,text:r.reason||'Nichts im Bau.'}}
+    advanceTime(24);const pb=Sim.progressBuild(S,1);
+    return {ok:true,text:pb?.done?`Fertig: ${pb.name} (Stufe ${pb.stage}).`:`Noch ${S.home.building?.daysLeft||0} Tag(e).`,changes:{xp:12,choices:['Weiterbauen (Tag verstreichen)','Schlafen','Material sammeln','Umsehen']}}
+  }
+  if(/arbeit(en)? als|tagelöhn|verdien|lohn|handwerk|söldnerarbeit/.test(t)){
+    const job=/söld/.test(t)?'Söldner':/handwerk|schmied/.test(t)?'Handwerk':'Tagelöhner';
+    if(!Sim.shopOpen(S,['markt'])&&job==='Tagelöhner')return {ok:true,text:`Arbeitsplätze zu (Stunde ${S.cal?.hour??'?'}). 8–18 Uhr.`,changes:{choices:['Schlafen','Umsehen','Nach Hause']}};
+    const r=Sim.workJob(S,job);Econ.ensureEcon(S);Econ.deposit(S,r.pay,'wallet');advanceTime(r.hours);
+    return {ok:true,text:r.text+` Hunger ${S.needs?.hunger|0}.`,changes:{xp:10,choices:travelChoices()}}
+  }
+  if(/schlaf|ruhe|nacht verbring|ins bett|übernacht/.test(t)&&!/schlaf(en)? mit/.test(t)){
+    const r=Sim.sleepHome(S);advanceTime(r.hours);return {ok:true,text:r.text,changes:{hp:15,mp:10,choices:travelChoices()}}
+  }
+  if(/einzieh|mitbewohner|zieh .* ein/.test(t)){
+    const who=findNpcTarget(a)||(S.world.scene.anwesend||[])[0];if(!who)return {ok:false,text:'Wen einladen?'};
+    const r=Sim.inviteHousemate(S,who);advanceTime(1);return {ok:r.ok,text:r.text,changes:{xp:r.ok?20:0,choices:travelChoices()}}
+  }
+  if(/nach hause|zuhause|mein haus|heimgehen/.test(t)){
+    if(!S.home?.owned)return {ok:false,text:'Noch kein Zuhause.'};
+    const tr=travelTo(S.home.location,{force:true,hours:rnd(1,3)});
+    return {ok:true,text:(tr.text||'')+`\n\nZuhause Stufe ${S.home.stage}.`,changes:tr.changes||{choices:travelChoices()}}
+  }
+  if(/chronik|journal|was ist passiert|weltgeschichte/.test(t)){
+    const lines=(S.ledger||[]).slice(-8).map(e=>`Tag ${e.t.day} ${e.t.hour}h · ${e.who}: ${e.what}`);
+    return {ok:true,text:'Chronik:\n'+(lines.join('\n')||'leer'),changes:{choices:travelChoices()}}
+  }
+  return null}
+function findAnyNpc(a){const t=a.toLowerCase();return Object.keys(S.world?.npcs||{}).find(n=>n.toLowerCase().split(/[\s\/]+/).some(p=>p.length>2&&t.includes(p.toLowerCase())))}
+
 function offline(a){const q=askNPC(a);if(q)return q;
+ const life=parseLifeSim(a);if(life)return {text:life.text,changes:life.changes||{choices:travelChoices()}};
+ const beast=parseCreatureEncounter(a);if(beast){const e=discoverThing('creature',beast,{desc:'Begegnung mit '+beast+'.',danger:2,behavior:'aggressiv oder scheu',habitat:S.world?.scene?.ort,inline:true});advanceTime(1);return {text:'Du begegnest '+beast+'. '+(e?Codex.inlineCard(e):''),changes:{xp:8,choices:travelChoices()}}}
  // crime first
  const crime=parseCrime(a);if(crime){const r=crime.type==='kill'?killNPC(crime.who,a):robNPC(crime.who);if(r.ok){if(crime.type==='kill')addMemory(crime.who,'(tot)','Tod');return {text:r.text,changes:r.changes}}}
  // travel
@@ -1098,7 +1204,7 @@ function offline(a){const q=askNPC(a);if(q)return q;
   txt=win?`Du forderst ${foe} heraus und siegst!`:`Du forderst ${foe} heraus und entkommst blutend.`;
   ch={hp:-dmg,xp:win?rnd(30,60):10,str:win&&Math.random()<.4?1:0,ruf:win?(S.role==='daemon'?-5:5):0};if(win&&Math.random()<.3)ch.items=[{name:R(['Monsterkern','Silbermünzen','Amulett','Heiltrank','Munition']),icon:'💎',desc:'Beute',type:'misc'}]}
  else if(/red|sprech|sag|frag|flirt|hilf|helf|plan|lieb|tee|party|erzähl/.test(t)||who){const n=who||R((S.world.scene.anwesend||[]).filter(x=>S.world.npcs[x]?.alive!==false).concat(npcs));
-  const npc=S.world.npcs[n];const good=Math.random()<0.5+s.cha/50;const mem=(npc?.memories||[]).slice(-1)[0];
+  const npc=S.world.npcs[n];const good=Math.random()<0.5+s.cha/50;const memRaw=(npc?.memories||[]).slice(-1)[0];const mem=typeof memRaw==='string'?memRaw:(memRaw?.text||'');
   const recall=mem&&Math.random()<.6?` „${mem.replace(/^\[[^\]]+\]\s*/,'')}…“`:'';
   txt=good?`${n} hört dir zu.${recall} ${R(['Ein kleines Lächeln.','„Du bist anders…“','Ihr redet lange.'])}`:`${n} wirkt abweisend.${recall} ${R(['„Was willst du?“','Ein kalter Blick.','Unterbrochen.'])}`;
   ch={affinity:{[n]:good?rnd(8,18):-rnd(2,8)},trust:{[n]:good?rnd(4,10):-1},xp:15,cha:good&&Math.random()<.3?1:0};
@@ -1118,6 +1224,11 @@ function offline(a){const q=askNPC(a);if(q)return q;
 
 /* ---------- AI ---------- */
 if(!cfg.v2){if(cfg.mode==='offline'||!cfg.mode)cfg.mode=hasKey()?'gemini':'gemini';cfg.v2=1;localStorage.setItem(CFG,JSON.stringify(cfg))}
+function parseCreatureEncounter(a){
+  const m=String(a||'').match(/(?:kämpfe? gegen|begegne|sehe|jage|töte|erte|angreife?)\s+(?:einen?|die|das)?\s*([A-ZÄÖÜ][\wÄÖÜäöüß\-]{2,30})/i)
+    ||String(a||'').match(/\b(Wolf|Schattenwolf|Drache|Goblin|Ork|Skelett|Spinne|Bär|Greif|Dämon|Schleim|Banditen?)\b/i);
+  if(!m)return null; return m[1];
+}
 const FREE_URL='https://text.pollinations.ai/openai';
 const STREAM_DELIM='###DATA###';
 function romanceHint(){const lines=[];for(const[n,r]of Object.entries(S.romance||{})){if((r.affection|0)>5||(r.stage|0)>0)lines.push(n+':'+stageName(r.stage)+'(♡'+r.affection+'/T'+r.trust+')')}
@@ -1171,7 +1282,19 @@ function stateSum(){const s=S.st;const inv=invNames().slice(0,12).join(', ');con
  return `STATUS: Lv${s.lvl} HP${s.hp}/${s.maxhp} MP${s.mp} Str${s.str} Cha${s.cha} Ruf${s.ruf} | Skills: ${sk} | Inventar: ${inv} | ${romanceHint()} | Leben #${S.lives}`}
 function msgs(a){let h=(S.hist||[]).slice(-10);if(!h.length){const last=S.log.filter(m=>m.k==='n').slice(-1)[0];if(last)h=[{role:'assistant',content:last.t}]}
  return [{role:'system',content:sysPrompt(false)},...h,{role:'user',content:turnMsg(a)}]}
-function turnMsg(a){return (leanLore(a)?leanLore(a)+'\n':'')+worldText()+'\n'+memoryHint()+'\n'+heatHint()+'\n'+(S.summary?'BISHER: '+S.summary+'\n':'')+stateSum()+'\n'+questHint()+'\n'+(isG()?'DIE SPIELFIGUR':'DER SPIELER')+' sagt/tut: „'+a+'“\n(Folge der Absicht. Bei Reise: scene.ort wechseln. Nie zurückzwingen. NPCs erinnern sich. Romance nur mit Consent; Sex = Fade-to-Black.)'}
+function turnMsg(a){const roll=storyRollup();return (leanLore(a)?leanLore(a)+'\n':'')+worldText()+'\n'+memoryHint()+'\n'+heatHint()+'\n'+roll+'\n'+stateSum()+'\n'+questHint()+'\n'+(isG()?'DIE SPIELFIGUR':'DER SPIELER')+' sagt/tut: „'+a+'“\n(Folge der Absicht. Nie Intro/Setup wiederholen. Ort nicht zurücksetzen gegen Spielerwillen. Tote bleiben tot außer Nekromantie. Romance nur Consent; Sex = Fade-to-Black. Zeit/Zuhause/Jobs/Karte zählen.)'}
+function storyRollup(){const hist=(S.hist||[]).slice(-8).map(h=>(h.role==='user'?'SPIELER: ':'')+String(h.content||'').slice(0,180)).join('\n');
+  const scene=S.world?.scene||{}; const dead=(S.dead||[]).slice(-8).join(', ');
+  return `STORY-SO-FAR: ${String(S.summary||'').slice(0,500)}\nLETZTE ZÜGE:\n${hist||'(keine)'}\nJETZT: Ort=${scene.ort||'?'} Zeit=${phaseLabel()} Anwesend=${(scene.anwesend||[]).join(', ')||'–'} Tot=${dead||'–'} Heat=${S.heat|0} Haus=${S.home?.owned?('Stufe '+S.home.stage):'nein'} Turn=${S.turn|0}`;}
+function guardNoRegression(u){if(!u?.scene?.ort||!S?.world?.scene?.ort)return u;
+  const prev=S.world.scene.ort; const next=u.scene.ort;
+  if(S.turn>3 && next!==prev){
+    const startish=/halle|thron|einführung|tutorial|start|akademie-tor/i.test(next)&&!/halle|thron|tor/i.test(prev);
+    if(startish && !(S.flags&&S.flags.allowReturn)){u={...u,scene:{...u.scene,ort:prev,zeit:u.scene.zeit||phaseLabel()}};
+      try{Sim.ledgerPush(S,{type:'guard',who:'System',what:`Erzähler-Ortrücksprung nach ${next} verhindert.`,where:prev,importance:20,emotion:'neutral'})}catch(_){}}
+  }
+  return u}
+
 function parse(raw){let m=raw.match(/```(?:json)?\s*([\s\S]*?)```/)||raw.match(/(\{[\s\S]*\})\s*$/);let ch=null;
  if(m){try{ch=JSON.parse(m[1].trim())}catch(e){try{ch=JSON.parse(m[1].replace(/,\s*}/g,'}').replace(/'/g,'"'))}catch(_){}}}
  const text=(m?raw.replace(m[0],''):raw).replace(/```[\s\S]*$/,'').replace(/^\s*\d[.)]\s.*$/gm,'').replace(/\n*(Wie|Was) (willst|wirst|tust) du[^\n]*\?\s*$/,'').trim();return {text:text||'…',changes:ch||{xp:10}}}
@@ -1283,9 +1406,10 @@ async function aiTurn(a,el,mode=cfg.mode){if(mode==='webllm'){const e=await load
  throw new Error('offline')}
 function setBusy(on){busy=!!on;const txt=$('#txt'),btn=$('#inputRow button'),ch=$('#choices');if(txt)txt.disabled=on;if(btn)btn.disabled=on;if(ch)ch.querySelectorAll('button').forEach(b=>b.disabled=on);document.body.classList.toggle('busy',on)}
 async function act(a){if(busy||!a.trim())return;
- // Freedom & systems: handle travel / crime / romance offline-first when clear
- if(_mode==='play'&&S?.setup?.done){const dest=parseTravel(a);const crime=parseCrime(a);const isRom=/küss|kuss|date|nacht (mit|zusammen)|bleib(en)? (bei|über)|schlaf(en)? (mit|bei)|flirt|umarmen|geständnis|liebe gestehen|verabredung/.test(a.toLowerCase());
-  if(crime||dest||isRom){busy=true;try{let res=null;if(crime){res=crime.type==='kill'?killNPC(crime.who,a):robNPC(crime.who);res={text:res.text,changes:res.changes}}
+ // Freedom & systems: travel / crime / romance / life-sim offline-first
+ if(_mode==='play'&&S?.setup?.done){const dest=parseTravel(a);const crime=parseCrime(a);const life=parseLifeSim(a);const isRom=/küss|kuss|date|nacht (mit|zusammen)|bleib(en)? (bei|über)|schlaf(en)? (mit|bei)|flirt|umarmen|geständnis|liebe gestehen|verabredung/.test(a.toLowerCase());
+  if(crime||dest||isRom||life){busy=true;try{let res=null;if(crime){res=crime.type==='kill'?killNPC(crime.who,a):robNPC(crime.who);res={text:res.text,changes:res.changes}}
+   else if(life){res={text:life.text,changes:life.changes||{choices:travelChoices()}}}
    else if(dest){const tr=travelTo(dest);res={text:tr.text,changes:tr.changes||{choices:travelChoices(tr.to),xp:5}}}
    else {res=parseRomance(a)}
    if(res){add('p',a);apply(res.changes||{});if(res.changes?.world)applyWorld(res.changes.world);add('n',res.text);S.hist=(S.hist||[]).concat([{role:'user',content:a},{role:'assistant',content:res.text}]).slice(-20);S.turn++;try{worldTick()}catch(_){}
@@ -1310,7 +1434,8 @@ async function act(a){if(busy||!a.trim())return;
    try{const raw=await aiTurn(a,el,'free');let p=raw.includes(STREAM_DELIM)?parseStream(raw):parse(raw);if(p&&p.text&&p.text!=='…'&&p.text.length>8){res=p;softFail=false}}catch(_){}}
   if(!res&&cfg.mode!=='gemini'&&cfg.mode!=='free'){const raw=await aiTurn(a,el,cfg.mode);res=parse(raw)}
   if(!res){res=offline(a);softFail=true}
-  {const c=res.changes,lim={hp:30,mp:30,str:2,cha:2,ruf:5,xp:60,verstand:15,schuld:5,gold:50};for(const k in lim)if(k in c)c[k]=Math.max(-lim[k],Math.min(lim[k],+c[k]||0));if(c.affinity)for(const n in c.affinity)c.affinity[n]=Math.max(-15,Math.min(15,+c.affinity[n]||0));if(c.trust)for(const n in c.trust)c.trust[n]=Math.max(-10,Math.min(10,+c.trust[n]||0))}
+  try{if(res.changes)res.changes=Sim.validateChanges(S,res.changes);if(res.changes?.world)res.changes.world=guardNoRegression(Sim.validateWorldUpdate(S,res.changes.world))}catch(_){}
+  {const c=res.changes||{},lim={hp:30,mp:30,str:2,cha:2,ruf:5,xp:60,verstand:15,schuld:5,gold:50};for(const k in lim)if(k in c)c[k]=Math.max(-lim[k],Math.min(lim[k],+c[k]||0));if(c.affinity)for(const n in c.affinity)c.affinity[n]=Math.max(-15,Math.min(15,+c.affinity[n]||0));if(c.trust)for(const n in c.trust)c.trust[n]=Math.max(-10,Math.min(10,+c.trust[n]||0))}
   if(Array.isArray(res.changes.items))res.changes.items=res.changes.items.filter(x=>{const n=typeof x==='string'?x:x.name;return !invNames().includes(n)});
   if(Array.isArray(res.changes.newSkills))res.changes.newSkills=res.changes.newSkills.filter(x=>{const n=typeof x==='string'?x:x.name;return !skillNames().includes(n)});
   if(res.changes.summary){S.summary=String(res.changes.summary).slice(0,800);delete res.changes.summary}
@@ -1364,8 +1489,14 @@ $('#btnNew').onclick=()=>startIntro();
  if($('#btnGenreGo'))$('#btnGenreGo').onclick=()=>{const v=($('#genreCustom')?.value||'').trim()||$('#genreSelect')?.value||'zombie';const name=($('#genreName')?.value||'Alex').trim()||'Alex';closeGenrePicker();startProcedural(v,name)};
 
 $('#btnGreyBook').onclick=()=>startGreyBook();
-$('#btnContinue').onclick=async()=>{const sv=localStorage.getItem(KEY);if(!sv)return;S=migrate(sv);try{await loadPack(S.role)}catch(_){}
- if(!S.world&&PACKS[S.role])S.world=buildWorldFromPack(PACKS[S.role],S.role);gateOrShow()};
+$('#btnContinue').onclick=async()=>{
+  try{S=await loadSave()}catch(_){const sv=localStorage.getItem(KEY);if(!sv)return;S=migrate(sv)}
+  if(!S){toast('Kein Spielstand');return}
+  try{await loadPack(S.role)}catch(_){}
+  if(!S.world&&PACKS[S.role])S.world=buildWorldFromPack(PACKS[S.role],S.role);
+  try{Sim.migrateToV13(S);Econ.ensureEcon(S);Codex.ensureCodex(S);WorldMap.ensureSpawn(S);S.ver=13}catch(_){}
+  gateOrShow();
+};
 $('#btnMusic').onclick=toggleMusic;
 $('#btnTitleSettings').onclick=openSheet;
 $('#btnSettings').onclick=openSheet;
@@ -1401,7 +1532,7 @@ $('#btnGateSave').onclick=()=>{const gk=$('#gateKey').value.trim();if(!gk){toast
  toast('Alles bereit.');gmFetch(gk,true).then(()=>gmProbe(gk).catch(()=>{}));enterPlay()};
 $('#btnGateSkip').onclick=()=>{cfg.mode='offline';cfg.v2=1;localStorage.setItem(CFG,JSON.stringify(cfg));enterPlay()};
 
-window.__game={newGrey,greyDetails,loadGrey,loadPack,get S(){return S},act,newLife,gBody,msgs,gmRank,gmProbe,parseStream,thinkingCfg,gmOrder,readSSE,STREAM_DELIM,migrate,worldTick,bumpRel,openMenu,stageName,offline,startIntro,setSceneImage,setPortrait,imgUrl,advanceTime,phaseLabel,typewrite,enterPlay,showTitle,analyzeImage,applySceneTheme,themeFromText,loadValidatedImage,openingNarration,travelTo,parseTravel,killNPC,robNPC,addMemory,memoryHint,startProcedural,offlineGenerateWorld,generateWorldPack,GENRES,travelChoices,ensureGraph,whoHere};
+window.__game={discoverThing,showCodexInline,newGrey,greyDetails,loadGrey,loadPack,get S(){return S},act,newLife,gBody,msgs,gmRank,gmProbe,parseStream,thinkingCfg,gmOrder,readSSE,STREAM_DELIM,migrate,worldTick,bumpRel,openMenu,stageName,offline,startIntro,setSceneImage,setPortrait,imgUrl,advanceTime,phaseLabel,typewrite,enterPlay,showTitle,analyzeImage,applySceneTheme,themeFromText,loadValidatedImage,openingNarration,travelTo,parseTravel,killNPC,robNPC,addMemory,memoryHint,startProcedural,offlineGenerateWorld,generateWorldPack,GENRES,travelChoices,ensureGraph,whoHere,parseLifeSim,Sim,Persist,WorldMap,Econ,Codex,UI13,save,loadSave,applyCatchUp,findAnyNpc};
 window.__game.askNPC=a=>askNPC(a);window.__game.gemini=gemini;
 if(cfg.gkey)gmFetch(cfg.gkey.trim()).then(()=>gmProbe(cfg.gkey.trim()).catch(()=>{})).catch(()=>{});
 (function(){const root=document.documentElement;const apply=()=>{try{const vv=window.visualViewport;if(!vv)return;const kb=Math.max(0,window.innerHeight-vv.height-vv.offsetTop);root.style.setProperty('--kb',kb+'px')}catch(_){}};

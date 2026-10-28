@@ -251,3 +251,18 @@ html,body{font-family:var(--font-body);letter-spacing:.01em}
 .portrait-frame img{opacity:0;transition:opacity .45s ease;z-index:2}
 .portrait-frame img.on{opacity:1}
 .portrait-ph{z-index:1}
+
+/* v13 home/journal */
+.menu-tabs button{flex:0 0 auto;white-space:nowrap;font-size:12px;padding:8px 10px}
+.needs-bar{height:6px;background:#ffffff18;border-radius:4px;overflow:hidden;margin:4px 0}
+.needs-bar>i{display:block;height:100%;background:linear-gradient(90deg,#f59e0b,#ef4444)}
+
+/* v13 extras */
+.menu-tabs{overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.menu-tabs::-webkit-scrollbar{display:none}
+.menu-tabs button{flex:0 0 auto}
+#menuBody canvas{max-width:100%;background:#071018}
+.lex-item{padding:6px 0;border-bottom:1px solid #ffffff12;font-size:13px}
+
+.codex-inline{margin:8px 0;clear:both}
+.codex-thumb{background:#0a1620}
