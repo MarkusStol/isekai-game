@@ -267,10 +267,18 @@ function maybePortraitsPresent(){const here=(S?.world?.scene?.anwesend||[]).filt
 
 /* ---------- v12: location graph, travel, NPC memory, crime ---------- */
 function ensureGraph(s){s=s||S;if(!s?.world)return null;const pack=PACKS[s.role]||GREY||{};
- const g=s.world.graph||pack.locations||null;if(!g)return null;
- if(!s.world.graph)s.world.graph=JSON.parse(JSON.stringify(g));
- // sync orte
- for(const[name,node]of Object.entries(s.world.graph.nodes||{})){if(!s.world.orte[name])s.world.orte[name]=node.desc||''}
+ if(!s.world.orte||typeof s.world.orte!=='object') s.world.orte={};
+ let g=s.world.graph||pack.locations||null;
+ // Rebuild graph from pack if save lacked locations (legacy saves)
+ if(!g || !g.nodes){
+   if(pack.locations?.nodes){ g=JSON.parse(JSON.stringify(pack.locations)); s.world.graph=g; }
+   else return null;
+ }
+ if(!s.world.graph) s.world.graph=JSON.parse(JSON.stringify(g));
+ if(!s.world.graph.nodes) s.world.graph.nodes={};
+ for(const[name,node]of Object.entries(s.world.graph.nodes||{})){
+   if(s.world.orte[name]==null) s.world.orte[name]=(node&&node.desc)||'';
+ }
  return s.world.graph}
 function enrichNpcs(world){if(!world?.npcs)return;for(const[k,n]of Object.entries(world.npcs)){
   if(!n.memories)n.memories=[];if(!n.mood)n.mood='neutral';if(!n.goals)n.goals=n.ziel?[String(n.ziel).slice(0,80)]:[];
@@ -288,7 +296,7 @@ function whoHere(ort){ort=ort||S.world?.scene?.ort;const list=[];
 function travelTo(dest,opts){opts=opts||{};if(!S?.world)return {ok:false,text:'Keine Welt.'};
  const g=ensureGraph();const from=S.world.scene.ort;const key=locKey(dest);
  if(g&&!g.nodes[key]&&!opts.force){ // discover dynamic place
-  if(!S.world.orte[dest]){S.world.orte[cutStr(dest,50)]=opts.desc||'Ein neuer Ort, den du entdeckst.';}
+  if(!S.world.orte)S.world.orte={}; if(!S.world.orte[dest]){S.world.orte[cutStr(dest,50)]=opts.desc||'Ein neuer Ort, den du entdeckst.';}
   discover(dest);S.world.scene={ort:cutStr(dest,80),zeit:phaseLabel(),anwesend:[]};{const est=Cont.estimateMinutes('reise nach '+dest, opts.hours?opts.hours*60:null);advanceTimeMinutes(est.minutes,{allowLong:true,reason:est.kind});}
   return finishTravel(from,dest)}
  if(g&&g.nodes[key]){const exits=exitsFrom(from);const known=exits.includes(key)||(S.discovered||[]).includes(key)||opts.force;
@@ -633,8 +641,19 @@ function migrate(raw){if(!raw)return null;const s=typeof raw==='string'?JSON.par
  if(Number(s.ver)<19.1){s.ver=19.1}
  if(Number(s.ver)<20){s.ver=20}
  if(Number(s.ver)<21){s.ver=21}
+ if(Number(s.ver)<21.1){s.ver=21.1}
  // v13.1 continuity+time always (kept in v14)
  try{Cont.ensureCont(s);if(s.cal&&s.cal.minute==null)s.cal.minute=0;if(s.cfgCatchupOptIn==null)s.cfgCatchupOptIn=false}catch(e){console.warn('cont migrate',e)}
+ // Heal incomplete worlds from old saves (missing orte/graph)
+ try{
+   if(s.world){
+     if(!s.world.orte||typeof s.world.orte!=='object') s.world.orte={};
+     if(!s.world.npcs||typeof s.world.npcs!=='object') s.world.npcs={};
+     if(!s.world.scene) s.world.scene={ort:'',zeit:'',anwesend:[]};
+     if(!Array.isArray(s.world.scene.anwesend)) s.world.scene.anwesend=[];
+     ensureGraph(s); enrichNpcs(s.world);
+   }
+ }catch(e){console.warn('world heal',e)}
  if(s.ver<14)s.ver=14;
  if(s.ver<15)s.ver=15;
  if(s.ver<16)s.ver=16;
@@ -2222,9 +2241,13 @@ function parseHostilityOffer(a){
 
 function setBusy(on){busy=!!on;const txt=$('#txt'),btn=$('#inputRow button'),ch=$('#choices');if(txt)txt.disabled=on;if(btn)btn.disabled=on;if(ch)ch.querySelectorAll('button').forEach(b=>b.disabled=on);document.body.classList.toggle('busy',on)}
 async function act(a){if(busy||!a.trim())return;
+ try{ if(S?.world) ensureGraph(S); }catch(_){}
  // Drop stale encounter offers only after a prior turn left them — handled below per-input
  // Freedom & systems: travel / crime / romance / life-sim offline-first
- if(_mode==='play'&&S?.setup?.done){let dest=parseTravel(a);const crime=parseCrime(a);const life=parseLifeSim(a);const isRom=/küss|kuss|date|nacht (mit|zusammen)|bleib(en)? (bei|über)|schlaf(en)? (mit|bei)|flirt|umarm|geständnis|liebe gestehen|verabredung/.test(a.toLowerCase());
+ if(_mode==='play'&&S?.setup?.done){let dest=null,crime=null,life=null,isRom=false;
+  try{
+   dest=parseTravel(a);crime=parseCrime(a);life=parseLifeSim(a);isRom=/küss|kuss|date|nacht (mit|zusammen)|bleib(en)? (bei|über)|schlaf(en)? (mit|bei)|flirt|umarm|geständnis|liebe gestehen|verabredung/.test(a.toLowerCase());
+  }catch(e){ console.warn('pre-act parse',e); dest=null;crime=null;life=null;isRom=false; }
   // Continuity: scene lock blocks travel unless the player clearly leaves
   if(dest){try{if(Cont.isSceneLocked(S)&&!Cont.playerWantsExit(a)) dest=null}catch(_){}}
   if(crime||dest||isRom||life){busy=true;try{let res=null;if(crime){res=crime.type==='kill'?killNPC(crime.who,a):robNPC(crime.who);res={text:res.text,changes:res.changes}}
@@ -2409,6 +2432,7 @@ $('#btnContinue').onclick=async()=>{
   if(!S){toast('Kein Spielstand');return}
   try{await loadPack(S.role)}catch(_){}
   if(!S.world&&PACKS[S.role])S.world=buildWorldFromPack(PACKS[S.role],S.role);
+  try{ if(S.world){ if(!S.world.orte)S.world.orte={}; ensureGraph(S); enrichNpcs(S.world);} }catch(_){}
   try{Sim.migrateToV13(S);Econ.ensureEcon(S);Codex.ensureCodex(S);WorldMap.ensureSpawn(S);Level.ensureProgress(S);Know.ensureKnow(S);Know.migrateKnow(S);Jobs.ensureJobs(S);Gems.ensureGems(S);Summons.ensureSummons(S);Equip.ensureEquip(S);S.ver=VER}catch(_){}
   gateOrShow();
 };
