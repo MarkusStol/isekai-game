@@ -506,3 +506,273 @@ body.genre-grey .vn-box{font-family:Georgia,'Times New Roman',serif}
 .tiny.accent{background:linear-gradient(90deg,#7c3aed,#db2777);border:none;color:#fff}
 .tiny.on{border-color:#f0d59a;background:#7c3aed44}
 .tiny.ghost{opacity:.8}
+
+
+/* ========== v18 ART DIRECTION — VN / mobile anime ========== */
+:root{
+  --ink:#f4efe6;
+  --ink-dim:#c9c0b4;
+  --paper:#0c0a10ee;
+  --paper-solid:#121018;
+  --line:#e8d5a833;
+  --accent:#e8c47a;
+  --accent-2:#c9a0ff;
+  --danger:#e86a7a;
+  --hud-fade:0.92;
+  --font-ui:"Noto Sans",system-ui,sans-serif;
+  --font-vn:"Noto Serif JP","Noto Serif",Georgia,serif;
+  --font-display:"Cinzel","Noto Serif JP",serif;
+}
+body{font-family:var(--font-ui);color:var(--ink);background:#05040a}
+#app{max-width:430px}
+
+/* Title — key-art splash */
+#title{
+  justify-content:flex-end;align-items:stretch;
+  background:#05040a center/cover no-repeat;
+  background-image:linear-gradient(180deg,#0000 30%,#05040af2 78%),url('assets/ui/title-held.webp');
+}
+#title .title-veil{background:linear-gradient(180deg,transparent 40%,#05040ae8 82%)}
+.title-inner{gap:12px;padding:28px 22px calc(32px + env(safe-area-inset-bottom))}
+.title-badge{font-family:var(--font-display);letter-spacing:.18em;opacity:.7;border-color:var(--line);color:var(--accent);background:#0006}
+.logo{font-family:var(--font-display);font-size:40px;line-height:1.08;font-weight:700;
+  background:linear-gradient(120deg,#fff8e7,#e8c47a 45%,#c9a0ff);-webkit-background-clip:text;background-clip:text;color:transparent;
+  text-shadow:none;filter:drop-shadow(0 2px 18px #e8c47a44)}
+.logo span{font-size:22px;font-weight:500;letter-spacing:.08em;opacity:.85}
+.tagline{font-family:var(--font-vn);font-size:14px;opacity:.75;color:var(--ink-dim);font-style:italic}
+/* Icon / text buttons — no candy gradients */
+button{font-family:var(--font-ui);border-radius:12px;padding:12px 16px;background:#ffffff12;border:1px solid #ffffff28;color:var(--ink);font-weight:600;box-shadow:none}
+button.big{width:100%;padding:14px;font-size:15px;letter-spacing:.02em;background:#ffffff10;border:1px solid var(--line)}
+button.big.glow{background:linear-gradient(180deg,#2a2438,#1a1528);border-color:var(--accent);color:var(--accent);box-shadow:0 0 0 1px #e8c47a22,0 12px 28px #0008}
+button.alt{background:#ffffff08;border-color:#ffffff22}
+button.book{background:#14161c;border-color:#8a8f9a44;font-family:var(--font-vn)}
+button.ghost{background:transparent;border-color:#ffffff30}
+button.tiny{padding:7px 11px;font-size:12px;font-weight:500}
+.icon-btn{background:#00000055;border:1px solid #ffffff22;border-radius:50%;width:38px;height:38px;backdrop-filter:blur(10px)}
+
+/* Stage */
+#stage{background:#05040a}
+.scene-grad{background:linear-gradient(180deg,#0007 0%,transparent 20%,transparent 48%,#05040acc 70%,#05040af5 100%)}
+.topbar{padding:calc(6px + env(safe-area-inset-top)) 10px 0;opacity:var(--hud-fade);transition:opacity .35s ease}
+body.hud-dim .topbar{opacity:.15}
+body.hud-dim .topbar:hover,body.hud-dim .topbar:focus-within{opacity:1}
+.hud{background:#00000055;border:1px solid #ffffff14;border-radius:12px;padding:6px 9px;font-size:10.5px;backdrop-filter:blur(12px)}
+.hud-top{font-size:11px}
+.bar{height:4px;border-radius:4px;background:#ffffff14}
+.chip{background:#ffffff10;font-size:10px;border-radius:6px;padding:1px 5px}
+
+/* ===== VN standing bust — large, no square box ===== */
+.vn-wrap{
+  position:relative;z-index:3;margin-top:auto;padding:0 12px 0;
+  display:flex;flex-direction:column;align-items:stretch;gap:0;flex-shrink:0;
+}
+.portrait-wrap{
+  position:absolute;left:50%;bottom:calc(100% - 8px);transform:translateX(-50%);
+  width:min(88vw,360px);height:min(58vh,520px);
+  border:0;border-radius:0;background:transparent;box-shadow:none;overflow:visible;
+  pointer-events:none;z-index:2;
+}
+.portrait-wrap.hidden{display:none!important}
+.portrait-frame{position:absolute;inset:0;border:0;background:transparent}
+.portrait-ph{display:none} /* no ugly initial box */
+.portrait-wrap img{
+  position:absolute;left:50%;bottom:0;transform:translateX(-50%);
+  width:100%;height:100%;object-fit:contain;object-position:center bottom;
+  opacity:0;transition:opacity .55s ease;
+  /* fade feet into dialogue — VN standing cut-in */
+  -webkit-mask-image:linear-gradient(180deg,#000 55%,transparent 96%);
+  mask-image:linear-gradient(180deg,#000 55%,transparent 96%);
+  filter:drop-shadow(0 8px 24px #000a);
+}
+.portrait-wrap img.on{opacity:1}
+.portrait-wrap.portrait-in{animation:portIn .55s ease}
+@keyframes portIn{from{opacity:0;transform:translateX(-50%) translateY(12px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+
+/* Dialogue box — elegant, minimal, genre ornament */
+.vn-box{
+  position:relative;z-index:3;
+  flex:none;width:100%;min-height:132px;max-height:36vh;
+  background:linear-gradient(180deg,#121018f2,#0a0910f8);
+  border:1px solid var(--line);border-radius:4px 4px 14px 14px;
+  padding:14px 16px 16px;backdrop-filter:blur(14px);
+  box-shadow:0 12px 40px #000a, inset 0 1px 0 #ffffff10;
+  overflow:hidden;
+}
+.vn-frame{
+  position:absolute;inset:6px;border:1px solid #e8d5a818;border-radius:2px 2px 10px 10px;pointer-events:none;
+}
+.vn-frame::before,.vn-frame::after{
+  content:'✧';position:absolute;font-size:10px;color:var(--accent);opacity:.55;
+}
+.vn-frame::before{top:-2px;left:10px}
+.vn-frame::after{top:-2px;right:10px}
+.speaker,.nameplate{
+  display:inline-block;font-family:var(--font-display);font-size:13px;font-weight:700;
+  letter-spacing:.06em;color:var(--accent);
+  background:transparent;padding:0 0 6px;border-radius:0;margin-bottom:4px;
+  border-bottom:1px solid #e8c47a44;
+}
+.vn-text{
+  font-family:var(--font-vn);font-size:16px;line-height:1.65;color:var(--ink);
+  min-height:4.2em;max-height:26vh;overflow-y:auto;-webkit-overflow-scrolling:touch;
+}
+.vn-text .caret{opacity:.5}
+.vn-tap{color:var(--accent);opacity:.65}
+
+/* Choices — VN list, not gradient pills */
+.choices{
+  position:relative;z-index:3;display:flex;flex-direction:column;gap:6px;
+  padding:8px 14px 4px;flex-shrink:0;
+}
+.choices button{
+  flex:none;width:100%;text-align:left;font-size:14px;font-weight:500;
+  font-family:var(--font-vn);
+  background:#0e0c14cc;border:1px solid #ffffff18;border-radius:10px;
+  padding:12px 14px;color:var(--ink);
+  transition:border-color .15s, background .15s;
+}
+.choices button::before{content:'› ';color:var(--accent);opacity:.7}
+.choices button:active, .choices button:hover{border-color:var(--accent);background:#1a1624ee}
+
+.input-row{padding:4px 12px calc(10px + env(safe-area-inset-bottom))}
+.input-row input{border-radius:10px;border-color:#ffffff28;background:#00000070;font-size:15px}
+.input-row button{min-width:44px;border-radius:50%;background:#ffffff12;border:1px solid var(--line);color:var(--accent)}
+
+/* Menu cleaner */
+.menu-panel{background:linear-gradient(180deg,#16121f,#0c0a12);border-color:#ffffff18}
+.menu-tabs button{background:#ffffff08;border-color:#ffffff14;border-radius:8px;font-weight:600}
+.menu-tabs button.on{background:#e8c47a22;border-color:var(--accent);color:var(--accent)}
+.card{background:#ffffff08;border-color:#ffffff14;border-radius:12px}
+.hub-tile{background:#ffffff0a;border:1px solid #ffffff16;border-radius:14px}
+.hub-tile:active{border-color:var(--accent)}
+
+/* Genre ornaments */
+body.genre-held .vn-box{border-color:#e8d5a844}
+body.genre-cyberpunk .vn-box{border-color:#5ce1ff44}
+body.genre-cyberpunk .speaker{color:#5ce1ff;border-bottom-color:#5ce1ff44}
+body.genre-zombie .vn-box{border-color:#8fbc8f44}
+body.genre-zombie .speaker{color:#a8d5a2;border-bottom-color:#8fbc8f44}
+body.greyw .vn-box{background:linear-gradient(180deg,#1a1c22f2,#101218f8);border-color:#8a8f9a44;font-family:Georgia,serif}
+body.greyw .speaker{color:#c9ced6;border-bottom-color:#8a8f9a55}
+
+/* Beat / streaming feel */
+.vn-text.typing{opacity:.92}
+
+/* ========== v18 iter2 — hard override candy mid-rules, VN polish ========== */
+.portrait-frame{
+  width:auto!important;height:auto!important;inset:0;border:0!important;border-radius:0!important;
+  box-shadow:none!important;background:transparent!important;overflow:visible!important;
+}
+.portrait-wrap.portrait-bust{
+  width:min(92vw,380px)!important;height:min(62vh,560px)!important;
+  border:0!important;border-radius:0!important;background:transparent!important;
+  overflow:visible!important;filter:none;
+}
+.portrait-wrap.portrait-bust img{
+  width:100%!important;height:100%!important;object-fit:contain!important;object-position:center bottom!important;
+  -webkit-mask-image:linear-gradient(180deg,#000 48%,#000c 78%,transparent 100%)!important;
+  mask-image:linear-gradient(180deg,#000 48%,#000c 78%,transparent 100%)!important;
+  filter:drop-shadow(0 12px 28px #000c);
+}
+.speaker,.nameplate{
+  background:transparent!important;border:0!important;border-radius:0!important;
+  box-shadow:none!important;padding:0 0 6px!important;color:var(--accent)!important;
+  border-bottom:1px solid #e8c47a55!important;margin-bottom:6px!important;
+}
+.vn-box{
+  background:linear-gradient(180deg,#14111af5,#09080ef8)!important;
+  border:1px solid #e8d5a838!important;border-radius:2px 2px 16px 16px!important;
+  box-shadow:0 16px 48px #000c, inset 0 1px 0 #ffffff12!important;
+  padding:16px 18px 18px!important;
+}
+.vn-box::before{display:none!important} /* kill candy top gold bar */
+.vn-frame{inset:8px;border-color:#e8d5a814;border-radius:1px 1px 12px 12px;box-shadow:none}
+.vn-text{font-size:16.5px;line-height:1.7;color:#f6f1e8;text-shadow:0 1px 2px #0006;font-family:var(--font-vn)!important}
+.choices{flex-direction:column!important;flex-wrap:nowrap!important;gap:7px}
+.choices button{
+  flex:none!important;width:100%!important;text-align:left!important;
+  background:#0c0a12d8!important;border:1px solid #ffffff16!important;border-radius:12px!important;
+  box-shadow:none!important;color:var(--ink)!important;padding:13px 14px!important;
+  font-family:var(--font-vn)!important;font-weight:500!important;
+}
+.choices button:hover,.choices button:focus{border-color:var(--accent)!important;box-shadow:0 0 0 1px #e8c47a33!important}
+button.big.glow{
+  background:linear-gradient(180deg,#2a2438,#1a1528)!important;
+  border:1px solid var(--accent)!important;color:var(--accent)!important;
+  box-shadow:0 0 0 1px #e8c47a22,0 12px 28px #0008!important;
+}
+.title-badge{
+  background:#0008!important;border:1px solid var(--line)!important;
+  box-shadow:none!important;color:var(--accent)!important;
+}
+
+/* ========== v18 iter3 — letterbox immersion, quieter HUD, title cinematic ========== */
+#title canvas#particles{opacity:.35}
+.scene-grad{
+  background:
+    linear-gradient(180deg,#05040acc 0%,transparent 18%),
+    linear-gradient(180deg,transparent 42%,#05040ab8 68%,#05040af8 100%)!important;
+}
+.scene-bg::after{
+  content:'';pointer-events:none;position:absolute;inset:0;z-index:1;
+  background:radial-gradient(ellipse at 50% 40%,transparent 40%,#05040a88 100%);
+}
+.vn-wrap{padding:0 14px 0!important;gap:0!important;align-items:stretch!important;flex-direction:column!important}
+.topbar{opacity:.55}
+body.hud-dim .topbar{opacity:.22}
+body.hud-dim .topbar:hover,body.hud-dim .topbar:focus-within{opacity:1}
+.input-row input{
+  border-radius:999px!important;border:1px solid #ffffff22!important;
+  background:#00000066!important;padding:12px 16px!important;
+}
+.input-row button{
+  width:44px;height:44px;min-width:44px;border-radius:50%!important;
+  background:#e8c47a18!important;border:1px solid #e8c47a44!important;color:var(--accent)!important;
+}
+.logo{
+  background:linear-gradient(120deg,#fffaf0,#e8c47a 50%,#d4b0ff)!important;
+  -webkit-background-clip:text!important;background-clip:text!important;color:transparent!important;
+  filter:drop-shadow(0 2px 20px #e8c47a33)!important;
+}
+
+/* ========== v18 iter4 — true VN stage: scene visible, bust above box ========== */
+.portrait-wrap.portrait-bust,
+#portraitWrap.portrait-bust{
+  width:min(78vw,300px)!important;
+  height:min(42vh,380px)!important;
+  bottom:calc(100% - 18px)!important;
+  left:50%!important;transform:translateX(-50%)!important;
+}
+.portrait-wrap.portrait-bust img,
+#portraitWrap.portrait-bust img{
+  object-fit:cover!important;object-position:center 18%!important;
+  -webkit-mask-image:linear-gradient(180deg,#000 40%,#0009 72%,transparent 100%)!important;
+  mask-image:linear-gradient(180deg,#000 40%,#0009 72%,transparent 100%)!important;
+  border-radius:0!important;
+}
+.speaker,.nameplate,#speaker{
+  color:#e8c47a!important;
+  background:transparent!important;
+  border:0!important;border-radius:0!important;box-shadow:none!important;
+  border-bottom:1px solid #e8c47a55!important;
+  font-family:var(--font-display)!important;
+  letter-spacing:.08em!important;text-transform:uppercase;font-size:12px!important;
+}
+.choices button{
+  color:#f4efe6!important;
+}
+.choices button::before{content:'› ';color:#e8c47a;opacity:.85}
+body.genre-held .speaker,body.genre-held #speaker{color:#e8c47a!important;border-bottom-color:#e8c47a55!important}
+body.genre-held .vn-box{border-color:#e8d5a844!important}
+/* ensure scene art visible under bust */
+#sceneImg.on, #sceneImg[src]{opacity:1!important}
+.scene-art{opacity:.95}
+
+/* ========== v18 iter5 — scene photo always readable under VN ========== */
+#sceneImg{
+  position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+  opacity:0;transition:opacity .6s ease;z-index:0;pointer-events:none;
+}
+#sceneImg.on, #sceneImg[src]:not([src=""]){opacity:1}
+.scene-placeholder{opacity:.15}
+.scene-bg{background-size:cover;background-position:center}

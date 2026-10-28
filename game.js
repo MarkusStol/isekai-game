@@ -18,7 +18,7 @@ import * as Summons from './summons.js';
 import * as Equip from './equip.js';
 import * as Jrpg from './jrpg.js';
 const $=s=>document.querySelector(s);const $$=s=>[...document.querySelectorAll(s)];const R=a=>a[Math.floor(Math.random()*a.length)];const rnd=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
-const VER='17.2',CACHE_V='v17.2';
+const VER='18',CACHE_V='v18';
 const ROLES={
  held:{e:'⚔️',name:'Held mit Status-System',d:'Ein blaues Fenster erscheint: [Status]. Die Welt braucht dich.',world:'Königreich Aldheim',
   base:{hp:100,mp:40,str:12,cha:8,ruf:10,gold:40},cls:['Abenteurer','Ritter','Held','Legendärer Held'],pack:'worlds/held.json',
@@ -58,12 +58,12 @@ let _musicOn=false,_audioCtx=null,_musicNodes=null;
 
 
 /* ---------- images: CSS themes + validated Pollinations (reject placards) ---------- */
-const IMG_STYLE='anime style, detailed illustration, cinematic lighting, vibrant colors, high quality, ';
+const IMG_STYLE='anime visual novel style, Makoto Shinkai lighting, painterly cel-shade, sharp focus, masterpiece, consistent character design, no text, no watermark, ';
 const IMG_STYLE_GREY='atmospheric literary illustration, muted colors, fog, victorian, painterly, ';
 function hashSeed(str){let h=2166136261>>>0;for(let i=0;i<str.length;i++){h^=str.charCodeAt(i);h=Math.imul(h,16777619)}return (h>>>0)%100000}
 function imgUrl(prompt,w,h,seed,grey){const style=grey?IMG_STYLE_GREY:IMG_STYLE;
  const p=encodeURIComponent(style+String(prompt||'fantasy scene').slice(0,200));
- return `https://image.pollinations.ai/prompt/${p}?width=${w||512}&height=${h||896}&nologo=true&seed=${seed||42}&referrer=${encodeURIComponent('https://markusstol.github.io/isekai-game/')}`}
+ return `https://image.pollinations.ai/prompt/${p}?width=${w||768}&height=${h||1344}&nologo=true&seed=${seed||42}&enhance=true&referrer=${encodeURIComponent('https://markusstol.github.io/isekai-game/')}`}
 let _imgQ=Promise.resolve(),_imgBusy=false;
 function enqueueImg(loadFn){_imgQ=_imgQ.then(()=>loadFn(),()=>loadFn());return _imgQ}
 let _imgTmp={scenes:{},portraits:{},ok:{},fail:{},next:{}};
@@ -72,7 +72,7 @@ function ensureImgCache(){const c=S?(S.imgCache||(S.imgCache={scenes:{},portrait
 function scenePromptFor(ort,extra){const base=ort||'fantasy place';const tone=isG()?'foggy mysterious':'anime fantasy';
  return `${tone} scene, ${base}${extra?', '+extra:''}, environment establishing shot, no text`}
 function portraitPromptFor(name,npc){const art=(npc&&npc.art)||'';const g=npc&&npc.geschlecht?npc.geschlecht+' ':'';
- return `character portrait bust, ${g}${name}, ${String(art).slice(0,100)}, looking at viewer, soft background, no text`}
+ return `anime visual novel standing bust portrait, ${g}${name}, ${String(art).slice(0,100)}, upper body, looking at viewer, soft vignette background, sharp face, no text, no watermark`}
 
 function themeFromText(txt){const s=String(txt||'').toLowerCase();
  if(/zombie|beißer|safehouse|horde|apocalypse|parkplatz/.test(s))return 'zombie';
@@ -136,9 +136,9 @@ function applySceneTheme(theme){const bg=$('#sceneBg');if(!bg)return;const th=th
   document.body.classList.add(map[genre]||'genre-fantasy');
 }
 function applyGenreTheme(genre){const g=String(genre||S?.genre||S?.role||'held').toLowerCase(); document.body.dataset.genre=g;
-  document.body.classList.remove('genre-zombie','genre-cyberpunk','genre-darkfantasy','genre-fantasy','genre-postapoc','genre-grey');
-  const map={zombie:'genre-zombie',cyberpunk:'genre-cyberpunk',darkfantasy:'genre-darkfantasy',dark:'genre-darkfantasy',postapoc:'genre-postapoc',grey:'genre-grey',held:'genre-fantasy',villainess:'genre-fantasy',daemon:'genre-darkfantasy',mensch:'genre-fantasy'};
-  document.body.classList.add(map[g]||'genre-fantasy');
+  document.body.classList.remove('genre-zombie','genre-cyberpunk','genre-darkfantasy','genre-fantasy','genre-postapoc','genre-grey','genre-held');
+  const map={zombie:'genre-zombie',cyberpunk:'genre-cyberpunk',darkfantasy:'genre-darkfantasy',dark:'genre-darkfantasy',postapoc:'genre-postapoc',grey:'genre-grey',held:'genre-held',villainess:'genre-held',daemon:'genre-darkfantasy',mensch:'genre-held',fantasy:'genre-held'};
+  document.body.classList.add(map[g]||'genre-held');
 }
 
 function portColors(name){const h=hashSeed(String(name||'x'));const hues=[[255,111,181],[123,107,255],[110,200,255],[255,180,100],[160,255,180],[255,120,140],[200,160,255]];
@@ -203,7 +203,7 @@ function setSceneImage(prompt,key,opts){opts=opts||{};const cache=ensureImgCache
   return false};
  if(window.__SKIP_REMOTE_IMG){tryLocal();return}
  const seed=hashSeed('scene:'+k+(S?.role||'')+(S?.genre||''));
- const url=imgUrl(prompt||scenePromptFor(k),512,896,seed,isG());
+ const url=imgUrl(prompt||scenePromptFor(k),768,1344,seed,isG());
  cache.scenes[k]=url;
  if(!canRetry(cache,k)&&cache.fail[k]){tryLocal().then(ok=>{if(!ok)scheduleRetry('scene',k,()=>setSceneImage(prompt,key,opts))});return}
  enqueueImg(()=>tryLocal().then(ok=>{if(ok)return;return loadValidatedImage(url).then(res=>{
@@ -219,7 +219,7 @@ function setPortrait(name,npc){const cache=ensureImgCache();const wrap=$('#portr
  if(window.__FORCE_CSS_SCENES)return;
  const slug=portAssetKey(name,npc);const local=`assets/port/${slug}.webp`;const localSvg=`assets/port/${slug}.svg`;
  const seed=hashSeed('port:'+name+(S?.role||''));
- const url=imgUrl(portraitPromptFor(name,npc),192,192,seed,isG());
+ const url=imgUrl(portraitPromptFor(name,npc),768,1152,seed,isG());
  cache.portraits[name]=url;const key='port:'+name;
  const showLocal=async()=>{for(const path of[local,localSvg]){try{const r=await fetch(path,{method:'HEAD'});if(r.ok){img.crossOrigin='anonymous';img.src=path;img.dataset.name=name;requestAnimationFrame(()=>img.classList.add('on'));cache.ok[key]=1;return true}}catch(_){}}return false};
  if(!canRetry(cache,key)&&cache.fail[key]){showLocal().then(ok=>{if(!ok)scheduleRetry('port',key,()=>setPortrait(name,npc))});if(S)save();return}
@@ -563,6 +563,7 @@ function migrate(raw){if(!raw)return null;const s=typeof raw==='string'?JSON.par
  if(Number(s.ver)<17){s.ver=17;try{Jobs.ensureJobs(s);Gems.ensureGems(s);Summons.ensureSummons(s);Equip.ensureEquip(s);s.cfgBattleDiff=s.cfgBattleDiff||'normal';s.cfgAtbMode=s.cfgAtbMode||'active'}catch(e){console.warn('v17 migrate',e)}}
  if(Number(s.ver)<17.1){s.ver=17.1;try{Jobs.ensureJobs(s);Gems.ensureGems(s);Summons.ensureSummons(s);Equip.ensureEquip(s);s.battle=s.battle||{};s.battle.gambitMap=s.battle.gambitMap||{}}catch(e){console.warn('v17.1 migrate',e)}}
  if(Number(s.ver)<17.2){s.ver=17.2;try{Cont.ensureCont(s);Cont.updateStoryStand(s);if(s.world?.scene)Cont.lockScene(s,'migrate')}catch(e){console.warn('v17.2 migrate',e)}}
+ if(Number(s.ver)<18){s.ver=18}
  // v13.1 continuity+time always (kept in v14)
  try{Cont.ensureCont(s);if(s.cal&&s.cal.minute==null)s.cal.minute=0;if(s.cfgCatchupOptIn==null)s.cfgCatchupOptIn=false}catch(e){console.warn('cont migrate',e)}
  if(s.ver<14)s.ver=14;
@@ -835,7 +836,7 @@ function discover(place){if(!place)return;if(!S.discovered)S.discovered=[];if(!S
 }catch(_){}}
 
 /* ---------- typewriter VN ---------- */
-function typewrite(speaker,text,done){_twDone=false;_twFull=String(text||'').trim()||'…';
+function typewrite(speaker,text,done){_twDone=false;_twFull=String(text||'').trim()||'…';try{document.body.classList.add('hud-dim')}catch(_){};
  const sp=$('#speaker'),el=$('#vnText'),tap=$('#vnTap');
  if(speaker){sp.textContent=speaker;sp.classList.remove('hidden')}else sp.classList.add('hidden');
  // never leave the dialogue box empty (v14 empty-box fix)
@@ -914,7 +915,7 @@ function hudG(){const s=S.st;
  <div style="flex:1"><div class="bar-lab">⚖️ Schuld ${s.ruf}/100</div>${bar(s.ruf,100,'#8a5a5a')}</div></div>
  <div class="chips"><span class="chip">📍${(S.world?.scene?.ort||'').slice(0,22)}</span><span class="chip">🕐${phaseLabel()}</span></div>`}
 
-function renderChoices(){const c=$('#choices');if(S._setupChoices)return;c.innerHTML='';
+function renderChoices(){const c=$('#choices');if(S._setupChoices)return;c.innerHTML='';try{document.body.classList.remove('hud-dim')}catch(_){};
  (S.choices||[]).slice(0,4).forEach(t=>{const b=document.createElement('button');b.type='button';b.textContent=t;b.onclick=()=>act(t);c.appendChild(b)})}
 
 function pushSys(t){if(!S.log)S.log=[];S.log.push({k:'s',t});if(S.log.length>80)S.log.shift();eventToast(t)}
