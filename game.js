@@ -9,8 +9,10 @@ import * as UI14 from './ui14.js';
 import * as Know from './know.js';
 import * as Cont from './continuity.js';
 import * as Imm from './immerse.js';
+import * as Battle from './battle.js';
+import { pickEncounter, battleBgFor, enemyById } from './enemies.js';
 const $=s=>document.querySelector(s);const $$=s=>[...document.querySelectorAll(s)];const R=a=>a[Math.floor(Math.random()*a.length)];const rnd=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
-const VER=15,CACHE_V='v15';
+const VER=16,CACHE_V='v16';
 const ROLES={
  held:{e:'⚔️',name:'Held mit Status-System',d:'Ein blaues Fenster erscheint: [Status]. Die Welt braucht dich.',world:'Königreich Aldheim',
   base:{hp:100,mp:40,str:12,cha:8,ruf:10,gold:40},cls:['Abenteurer','Ritter','Held','Legendärer Held'],pack:'worlds/held.json',
@@ -556,6 +558,7 @@ function migrate(raw){if(!raw)return null;const s=typeof raw==='string'?JSON.par
  try{Cont.ensureCont(s);if(s.cal&&s.cal.minute==null)s.cal.minute=0;if(s.cfgCatchupOptIn==null)s.cfgCatchupOptIn=false}catch(e){console.warn('cont migrate',e)}
  if(s.ver<14)s.ver=14;
  if(s.ver<15)s.ver=15;
+ if(s.ver<16)s.ver=16;
  else {try{Sim.migrateToV13(s)}catch(_){}}
  return s}
 
@@ -1344,12 +1347,11 @@ function offline(a){const q=askNPC(a);if(q)return q;
  const t=a.toLowerCase(),s=S.st;const npcs=Object.keys(S.world?.npcs||{}).filter(n=>S.world.npcs[n].alive!==false);
  const who=npcs.find(n=>n.toLowerCase().split(/[ _]/).some(p=>p.length>2&&t.includes(p.toLowerCase())));
  let txt,ch={};
- if(/kämpf|kampf|angriff|greif|jag|monster|schlag|armee|befehl/.test(t)&&!/töt|mord|umbring/.test(t)){const foe=R({held:['Goblin-Späher','Oger','Dämonenspäher'],villainess:['Attentäter','Rivalin'],daemon:['Abenteurer','rebellischer Fürst'],mensch:['Wildschwein','Wegelagerer','Wolf'],zombie:['Beißer','Plünderer']}[S.role]||(S.genre==='zombie'?['Beißer']:['Gegner']));
-  const skills=(S.progress?.unlockedSkills||S.skills||[]).slice(0,4).map(x=>typeof x==='string'?{name:x}:x);
-  S.flags._pendingCombat={foe,skills}; // UI opens after reply
-  const win=Math.random()<0.45+s.str/80;const dmg=rnd(5,20)+(win?0:15);
-  txt=`Der Kampf gegen ${foe} bricht los. Du greifst zur Waffe – Herzschlag laut, die Welt eng. ${Imm.weatherFor(S)==='regen'?'Regen peitscht.':Imm.weatherFor(S)==='nebel'?'Nebel verschluckt Schreie.':'Staub wirbelt auf.'}`;
-  ch={hp:-Math.min(dmg,win?dmg:dmg),xp:win?rnd(30,60):10,str:win&&Math.random()<.4?1:0,ruf:win?(S.role==='daemon'?-5:5):0,_combat:{foe,win,dmg}};if(win&&Math.random()<.3)ch.items=[{name:R(['Monsterkern','Silbermünzen','Amulett','Heiltrank','Munition']),icon:'💎',desc:'Beute',type:'misc'}]}
+ if(/kämpf|kampf|angriff|greif|jag|monster|schlag|armee|befehl/.test(t)&&!/töt|mord|umbring/.test(t)){
+  const foes=pickEncounter(S,{noBoss:true,count: /armee|gruppe|trupp/.test(t)?2:1});
+  S.flags._offerEncounter={foes, blurb:`Feindseligkeit. ${foes.map(f=>f.name).join(", ")} — du entscheidest.`, forceAttack:/angriff|greif|schlag/.test(t)};
+  txt=`Du spürst den Konflikt mit ${foes.map(f=>f.name).join(", ")}. Kämpfen, reden, drohen, schleichen oder fliehen — deine Wahl.`;
+  ch={xp:5, choices:["Kämpfen","Reden / Überzeugen","Einschüchtern","Schleichen","Fliehen"]}}
  else if(/red|sprech|sag|frag|flirt|hilf|helf|plan|lieb|tee|party|erzähl|gestalt ansprechen|mit .+ sprechen/.test(t)||who){const n=who||R((S.world.scene.anwesend||[]).filter(x=>S.world.npcs[x]?.alive!==false).concat(npcs));
   const npc=S.world.npcs[n];const good=Math.random()<0.5+s.cha/50;
   let label=n; try{label=Know.displayName(S,n,npc)}catch(_){}
@@ -1592,6 +1594,69 @@ async function aiTurn(a,el,mode=cfg.mode){if(mode==='webllm'){const e=await load
    if(!res.ok){const e=new Error('Gratis-KI '+res.status);e.ra=+res.headers.get('Retry-After')||0;throw e}const j=await res.json();const mm=j.choices?.[0]?.message||{};let t=(mm.content||'').trim()||(mm.reasoning_content||'').trim();if(!t){const e=new Error('leere Antwort');e.ra=1;throw e}showNarration(el,t);return t}
   catch(e){err=e;if(i<1){el.textContent='…';await new Promise(r=>setTimeout(r,Math.min(3,e.ra||1)*1000))}}}throw err}
  throw new Error('offline')}
+
+/* ---------- v16 encounter (choice-first, never forced) ---------- */
+function allyWouldRefuseFight(name){
+  try{
+    const r=S.romance?.[name]; const npc=S.world?.npcs?.[name];
+    if(!npc||npc.alive===false) return true;
+    if(r && ((r.stage|0)>=3 || (r.affection|0)>=40) && !(S.flags?.forceHostile||[]).includes(name)) return true;
+    return false;
+  }catch(_){return false}
+}
+async function openPendingEncounter(res){
+  if(Battle.isActive())return;
+  const offer=S.flags?._offerEncounter;
+  const combatFlag=res?.changes?._combat||res?.changes?.combat||S.flags?.narratorCombat;
+  if(S.flags){ delete S.flags._offerEncounter; delete S.flags.narratorCombat }
+  if(!offer && !combatFlag)return;
+  let foes=(offer?.foes&&offer.foes.length)?offer.foes.slice():pickEncounter(S,{noBoss:true});
+  foes=foes.filter(f=>{
+    if(f._storyNpc && allyWouldRefuseFight(f._storyNpc)) return false;
+    if(f.human && S.world?.npcs?.[f.name] && allyWouldRefuseFight(f.name)) return false;
+    return true;
+  });
+  if(!foes.length){ pushSys('Ein Verbündeter weigert sich zu kämpfen.'); return }
+  const result=await Battle.offerEncounter(S,{
+    enemies:foes,
+    blurb:offer?.blurb||(`Konflikt mit ${foes.map(f=>f.name).join(', ')}. Deine Entscheidung.`),
+    bg:battleBgFor(S)
+  });
+  if(result) await afterEncounterResolved(result);
+}
+async function afterEncounterResolved(result){
+  const sum=result.summary||{};
+  const text=sum.text||'Die Begegnung endet.';
+  add('n', text);
+  try{Cont.noteExchange(S, S.cont?.lastPlayer||'(Begegnung)', text)}catch(_){}
+  S.choices=travelChoices();
+  hud(); renderChoices();
+  typewrite(isG()?'Nebel':'Erzähler', text, ()=>{});
+  try{save()}catch(_){}
+}
+function parseHostilityOffer(a){
+  const t=String(a||'').toLowerCase();
+  if(!/^(ich )?(greif|schlage|attackiere|kämpfe gegen|töt|ermorde)/.test(t) && !/angriff auf|ziehe (die |meine )?waffe|kämpfen gegen/.test(t)) return null;
+  const beast=parseCreatureEncounter(a);
+  let foes;
+  if(beast){
+    const id=['goblin','orc','wolf','slime','skeleton','bandit','walker','runner','drone','looter'].find(k=>beast.toLowerCase().includes(k));
+    foes=id?[enemyById(id)]:pickEncounter(S,{noBoss:true,count:1});
+    if(foes[0] && !id) foes[0].name=beast;
+  } else {
+    const who=(typeof findAnyNpc==='function'?findAnyNpc(a):null);
+    if(who && allyWouldRefuseFight(who)){
+      return {block:true, text:`${who} steht dir zu nah für einen Kampf. Rede, drohe oder geh.`};
+    }
+    if(who && S.world?.npcs?.[who]){
+      const base=enemyById('bandit')||pickEncounter(S,{noBoss:true})[0];
+      if(base){ base.name=who; base.human=true; base._storyNpc=who; foes=[base] }
+    } else foes=pickEncounter(S,{noBoss:true});
+  }
+  return {foes, forceAttack:true, blurb:'Du willst angreifen — du kannst trotzdem noch reden, drohen oder fliehen.'};
+}
+
+
 function setBusy(on){busy=!!on;const txt=$('#txt'),btn=$('#inputRow button'),ch=$('#choices');if(txt)txt.disabled=on;if(btn)btn.disabled=on;if(ch)ch.querySelectorAll('button').forEach(b=>b.disabled=on);document.body.classList.toggle('busy',on)}
 async function act(a){if(busy||!a.trim())return;
  // Freedom & systems: travel / crime / romance / life-sim offline-first
@@ -1614,6 +1679,26 @@ async function act(a){if(busy||!a.trim())return;
    const pack=S._setupPack;const beat=S._setupBeat;if(beat){pickSetup({label:a.trim(),past:a.trim().slice(0,80)});return}
  }
  if(!S||!S.setup?.done)return;
+ if(_mode==='play'&&S.setup?.done){
+  const hos=parseHostilityOffer(a);
+  if(hos){
+   if(hos.block){add('p',a);add('n',hos.text);S.choices=['Reden','Gehen','Entschuldigen','Status prüfen'];hud();renderChoices();typewrite(isG()?'Nebel':'Erzähler',hos.text,()=>{});return}
+   S.flags._offerEncounter={foes:hos.foes,blurb:hos.blurb,forceAttack:!!hos.forceAttack};
+   add('p',a); add('n',hos.blurb||'Konflikt.');
+   setBusy(true); try{await openPendingEncounter({changes:{}})}finally{setBusy(false)} return;
+  }
+  if(S.flags?._offerEncounter){
+   const low=a.trim().toLowerCase();
+   if(/kämpfen|reden|überzeugen|einschüchtern|bestechen|schleichen|fliehen|ergeben|kapitul/.test(low)){
+    add('p',a); setBusy(true);
+    try{
+     const foes=S.flags._offerEncounter.foes; const blurb=S.flags._offerEncounter.blurb;
+     const result=await Battle.offerEncounter(S,{enemies:foes,blurb:blurb||'Deine Entscheidung.',bg:battleBgFor(S)});
+     if(result) await afterEncounterResolved(result);
+    }finally{setBusy(false)} return;
+   }
+  }
+ }
  setBusy(true);const t0=performance.now();try{await loadPack(S.role)}catch(_){}
  if(!hasKey()&&cfg.mode==='gemini'){cfg.mode='free';try{localStorage.setItem(CFG,JSON.stringify(cfg))}catch(_){}}
  try{Imm.uiTick()}catch(_){}
@@ -1668,11 +1753,7 @@ async function act(a){if(busy||!a.trim())return;
   ()=>{try{save()}catch(_){}},
   ()=>{try{dbgLine()}catch(_){}},
   ()=>{try{const w=Imm.weatherFor(S);S.flags=S.flags||{};S.flags.weather=w;Imm.setWeather(w==='klar'?'none':w);Imm.applyDayNightTint(S)}catch(_){}},
-  ()=>{try{if(res.changes?._combat){const c=res.changes._combat;delete res.changes._combat;
-    Imm.openCombat({foeName:c.foe,playerHP:S.st.hp,playerMax:S.st.maxhp,foeHP:40,foeMax:40,
-      skills:(S.progress?.unlockedSkills||S.skills||[]).slice(0,4),
-      onSkill:(sk)=>({foeDmg:rnd(8,18),selfDmg:Math.random()<.35?rnd(3,12):0,text:`${sk.name||sk}: Treffer.`}),
-      onClose:(r)=>{if(r&&r.playerHP!=null){S.st.hp=r.playerHP;hud();save()}}})}}catch(_){}}
+  ()=>{try{openPendingEncounter(res)}catch(_){}}
  ]);
 }
 
@@ -1753,13 +1834,13 @@ $('#btnGateSave').onclick=()=>{const gk=$('#gateKey').value.trim();if(!gk){toast
  toast('Alles bereit.');gmFetch(gk,true).then(()=>gmProbe(gk).catch(()=>{}));enterPlay()};
 $('#btnGateSkip').onclick=()=>{cfg.mode='free';cfg.v2=1;localStorage.setItem(CFG,JSON.stringify(cfg));toast('Erzählerin: Pollinations (ohne Schlüssel)');enterPlay()};
 
-window.__setCfg=o=>{cfg=Object.assign(cfg||{},o||{});try{localStorage.setItem(CFG,JSON.stringify(cfg))}catch(_){}};window.__game={Imm,discoverThing,showCodexInline,Level,UI14,Know,Cont,lastPromptDump,advanceTimeMinutes,applyActionDuration,newGrey,greyDetails,loadGrey,loadPack,get S(){return S},act,newLife,gBody,msgs,gmRank,gmProbe,parseStream,thinkingCfg,gmOrder,readSSE,STREAM_DELIM,migrate,worldTick,bumpRel,openMenu,stageName,offline,startIntro,setSceneImage,setPortrait,imgUrl,advanceTime,phaseLabel,typewrite,enterPlay,showTitle,analyzeImage,applySceneTheme,themeFromText,loadValidatedImage,openingNarration,travelTo,parseTravel,killNPC,robNPC,addMemory,memoryHint,startProcedural,offlineGenerateWorld,generateWorldPack,GENRES,travelChoices,ensureGraph,whoHere,parseLifeSim,Sim,Persist,WorldMap,Econ,Codex,UI13,save,loadSave,applyCatchUp,findAnyNpc};
+window.__setCfg=o=>{cfg=Object.assign(cfg||{},o||{});try{localStorage.setItem(CFG,JSON.stringify(cfg))}catch(_){}};window.__game={Battle,openPendingEncounter,Imm,discoverThing,showCodexInline,Level,UI14,Know,Cont,lastPromptDump,advanceTimeMinutes,applyActionDuration,newGrey,greyDetails,loadGrey,loadPack,get S(){return S},act,newLife,gBody,msgs,gmRank,gmProbe,parseStream,thinkingCfg,gmOrder,readSSE,STREAM_DELIM,migrate,worldTick,bumpRel,openMenu,stageName,offline,startIntro,setSceneImage,setPortrait,imgUrl,advanceTime,phaseLabel,typewrite,enterPlay,showTitle,analyzeImage,applySceneTheme,themeFromText,loadValidatedImage,openingNarration,travelTo,parseTravel,killNPC,robNPC,addMemory,memoryHint,startProcedural,offlineGenerateWorld,generateWorldPack,GENRES,travelChoices,ensureGraph,whoHere,parseLifeSim,Sim,Persist,WorldMap,Econ,Codex,UI13,save,loadSave,applyCatchUp,findAnyNpc};
 window.__game.askNPC=a=>askNPC(a);window.__game.gemini=gemini;
 if(cfg.gkey)gmFetch(cfg.gkey.trim()).then(()=>gmProbe(cfg.gkey.trim()).catch(()=>{})).catch(()=>{});
 (function(){const root=document.documentElement;const apply=()=>{try{const vv=window.visualViewport;if(!vv)return;const kb=Math.max(0,window.innerHeight-vv.height-vv.offsetTop);root.style.setProperty('--kb',kb+'px')}catch(_){}};
  if(window.visualViewport){visualViewport.addEventListener('resize',apply);visualViewport.addEventListener('scroll',apply)}
  window.addEventListener('focusin',e=>{if(e.target&&e.target.id==='txt'){setTimeout(()=>{try{e.target.scrollIntoView({block:'end',behavior:'smooth'})}catch(_){};apply()},300)}});
  $('#txt')&&$('#txt').addEventListener('blur',()=>root.style.setProperty('--kb','0px'))})();
-try{if('serviceWorker' in navigator&&navigator.serviceWorker){navigator.serviceWorker.register('./sw.js?v=15').catch(()=>{});
+try{if('serviceWorker' in navigator&&navigator.serviceWorker){navigator.serviceWorker.register('./sw.js?v=16').catch(()=>{});
  navigator.serviceWorker.addEventListener('controllerchange',()=>{if(sessionStorage.getItem('isekai_sw_reloaded'))return;sessionStorage.setItem('isekai_sw_reloaded','1');location.reload()})}}catch(_){}
 showTitle();

@@ -213,3 +213,5 @@ export function summary(S){
 }
 
 export default {ATTRS,ATTR_LABEL,CLASSES,BRANCH,TITLES,SKILL_TREE,ACQUIRE_PATHS,blankProgress,ensureProgress,grantXp,spendAttr,setClass,chooseBranch,unlockSkill,checkTitles,titleName,summary,xpToNext};
+
+export function grantXP(S,amount,reason){return grantXp(S,amount,reason)}

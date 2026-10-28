@@ -1,0 +1,980 @@
+/** v16 JRPG battle — local/instant, ATB-lite turn order, full command set */
+import { ENEMIES, ELEM_LABEL, enemyById, pickEncounter, battleBgFor } from './enemies.js';
+
+const R=a=>a[Math.floor(Math.random()*a.length)];
+const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
+
+/* ---- Skill catalog (maps leveling tree + combat skills) ---- */
+export const COMBAT_SKILLS={
+  Hieb:{name:'Hieb',mp:0,pow:1.15,elem:'phys',tree:'kampf'},
+  Parade:{name:'Parade',mp:0,pow:0,defend:1.5,tree:'kampf'},
+  Komboschlag:{name:'Komboschlag',mp:4,pow:1.45,elem:'phys',tree:'kampf'},
+  Finisher:{name:'Finisher',mp:8,pow:2.0,elem:'phys',critBonus:.25,tree:'kampf'},
+  Funke:{name:'Funke',mp:5,pow:1.35,elem:'feuer',tree:'magie'},
+  Schild:{name:'Schild',mp:6,pow:0,status:'schild',self:true,tree:'magie'},
+  Nova:{name:'Nova',mp:14,pow:1.55,elem:'licht',aoe:true,tree:'magie'},
+  Teleport:{name:'Teleport',mp:8,pow:0,fleeBonus:.35,tree:'magie'},
+  Inspiration:{name:'Inspiration',mp:6,pow:0,status:'staerkung',self:true,aoeParty:true,tree:'sozial'},
+  'Erste Hilfe':{name:'Erste Hilfe',mp:4,heal:32,tree:'ueberleben'},
+  Einschüchtern:{name:'Einschüchtern',mp:3,pow:0,status:'betaeubt',statusChance:.4,tree:'sozial'},
+  // Limit
+  Overdrive:{name:'Overdrive',mp:0,limit:true,pow:2.6,elem:'phys',aoe:true},
+  Arkaner_Limit:{name:'Arkaner Limit',mp:0,limit:true,pow:2.4,elem:'licht',aoe:true},
+};
+
+function skillFromProgress(S){
+  const list=[];
+  for(const sk of (S.progress?.unlockedSkills||[])){
+    const name=typeof sk==='string'?sk:sk.name;
+    const def=COMBAT_SKILLS[name]||{name,mp:sk.cost||5,pow:1.2,elem:'phys'};
+    list.push({...def,name});
+  }
+  for(const sk of (S.skills||[])){
+    const name=typeof sk==='string'?sk:sk.name;
+    if(list.some(x=>x.name===name))continue;
+    const def=COMBAT_SKILLS[name]||{name,mp:(typeof sk==='object'?sk.cost:5)||5,pow:1.2,elem:'phys'};
+    list.push({...def,name});
+  }
+  if(!list.length) list.push({...COMBAT_SKILLS.Hieb},{...COMBAT_SKILLS.Funke});
+  return list.slice(0,8);
+}
+
+/* ---- Party helpers ---- */
+export function buildParty(S){
+  const p=S.progress||{};
+  const attrs=p.attrs||{str:5,dex:5,int:5,wil:5,cha:5,vit:5};
+  const hero={
+    id:'hero', kind:'hero', name:S.pc?.name||'Du',
+    hp:S.st.hp|0, maxhp:S.st.maxhp|100, mp:S.st.mp|0, maxmp:S.st.maxmp|40,
+    atk:8+(attrs.str|0)+(S.st.str|0)/3|0,
+    def:5+(attrs.vit|0)/2|0,
+    mag:6+(attrs.int|0),
+    spd:8+(attrs.dex|0)/2|0,
+    limit:S.battle?.limit|0, maxLimit:100,
+    skills:skillFromProgress(S),
+    portrait:null, // filled by UI from current portrait cache
+    statuses:[], guard:1, alive:true, aggro:1
+  };
+  const comps=[];
+  const romance=S.romance||{};
+  const known=Object.keys(S.world?.npcs||{}).filter(n=>{
+    const r=romance[n];
+    return r && ((r.stage|0)>=2 || (r.affection|0)>=25) && S.world.npcs[n]?.alive!==false;
+  }).slice(0,2);
+  // also party flag
+  for(const n of (S.party||[]).concat(known)){
+    if(comps.some(c=>c.name===n)||n===hero.name)continue;
+    const npc=S.world.npcs[n]; if(!npc||npc.alive===false)continue;
+    const aff=(romance[n]?.affection|0);
+    comps.push({
+      id:'c_'+n, kind:'companion', name:n,
+      hp:60+Math.min(40,aff), maxhp:60+Math.min(40,aff),
+      mp:20+Math.min(20,aff/2|0), maxmp:20+Math.min(20,aff/2|0),
+      atk:8+Math.min(10,aff/10|0), def:5, mag:7, spd:9,
+      limit:0, maxLimit:100,
+      skills:companionSkills(npc),
+      portrait:null, npcRef:n,
+      statuses:[], guard:1, alive:true, aggro:0.8
+    });
+    if(comps.length>=2)break;
+  }
+  return [hero,...comps];
+}
+
+function companionSkills(npc){
+  const art=String(npc?.art||npc?.stimme||'').toLowerCase();
+  if(/mag|zauber|hex/.test(art)) return [{name:'Funke',...COMBAT_SKILLS.Funke},{name:'Schild',...COMBAT_SKILLS.Schild}];
+  if(/heil|priester|arzt/.test(art)) return [{name:'Erste Hilfe',...COMBAT_SKILLS['Erste Hilfe']},{name:'Schild',...COMBAT_SKILLS.Schild}];
+  if(/dieb|assass|schleich/.test(art)) return [{name:'Hieb',...COMBAT_SKILLS.Hieb},{name:'Komboschlag',...COMBAT_SKILLS.Komboschlag}];
+  return [{name:'Hieb',...COMBAT_SKILLS.Hieb},{name:'Inspiration',...COMBAT_SKILLS.Inspiration}];
+}
+
+function spawnFoes(defs){
+  return defs.map((d,i)=>({
+    ...d,
+    _iid:d._iid||(d.id+'_'+i),
+    hp:d.hp, maxhp:d.hp, mp:d.mp|0, maxmp:d.mp|0,
+    statuses:[], guard:1, alive:true, analyzed:false,
+    atb:Math.random()*40, phaseIdx:0, aggroMap:{}
+  }));
+}
+
+/* ---- Damage / status ---- */
+function elemMult(target, elem){
+  if(!elem||elem==='phys'){
+    if(target.weak?.includes('phys')) return 1.5;
+    if(target.resist?.includes('phys')) return 0.6;
+    return 1;
+  }
+  if(target.immune?.includes(elem)) return 0;
+  if(target.weak?.includes(elem)) return 1.75;
+  if(target.resist?.includes(elem)) return 0.5;
+  return 1;
+}
+
+function rollDamage(attacker, target, skill){
+  const pow=skill.pow||1;
+  const mag=/feuer|eis|blitz|wind|licht|schatten|gift|techno/.test(skill.elem||'');
+  const base=mag?(attacker.mag||6):(attacker.atk||8);
+  const def=mag?(target.def||4)*0.6:(target.def||4);
+  let raw=(base*pow - def*0.5) * (0.9+Math.random()*0.25);
+  raw*=elemMult(target, skill.elem);
+  raw*=(target.guard||1);
+  if(attacker.statuses?.some(s=>s.id==='staerkung')) raw*=1.25;
+  const critChance=.08+(skill.critBonus||0)+(attacker.spd||0)/200;
+  const crit=Math.random()<critChance;
+  if(crit) raw*=1.75;
+  const dmg=Math.max(1, Math.round(raw));
+  return {dmg, crit, weak:elemMult(target,skill.elem)>=1.5, immune:elemMult(target,skill.elem)===0};
+}
+
+function applyStatus(unit, id, turns=3){
+  if(!id)return;
+  if(unit.immune?.includes(id))return;
+  unit.statuses=unit.statuses||[];
+  const ex=unit.statuses.find(s=>s.id===id);
+  if(ex) ex.turns=Math.max(ex.turns,turns);
+  else unit.statuses.push({id,turns});
+}
+
+function tickStatuses(unit, log){
+  if(!unit.alive)return;
+  unit.statuses=(unit.statuses||[]).map(s=>{
+    if(s.id==='gift'){ const d=Math.max(1,unit.maxhp*0.06|0); unit.hp=Math.max(0,unit.hp-d); log(`${unit.name} erleidet Gift (${d}).`); }
+    if(s.id==='brand'){ const d=Math.max(1,unit.maxhp*0.07|0); unit.hp=Math.max(0,unit.hp-d); log(`${unit.name} brennt (${d}).`); }
+    if(s.id==='blutung'){ const d=Math.max(1,unit.maxhp*0.05|0); unit.hp=Math.max(0,unit.hp-d); log(`${unit.name} blutet (${d}).`); }
+    if(s.id==='regeneration'){ const h=Math.max(1,unit.maxhp*0.08|0); unit.hp=Math.min(unit.maxhp,unit.hp+h); }
+    s.turns--; return s;
+  }).filter(s=>s.turns>0);
+  if(unit.hp<=0){unit.alive=false; unit.hp=0; log(`${unit.name} fällt!`);}
+  unit.guard=1;
+}
+
+function canAct(unit){
+  if(!unit.alive)return false;
+  if((unit.statuses||[]).some(s=>s.id==='schlaf'||s.id==='betaeubt')) return false;
+  return true;
+}
+
+/* ---- Battle state machine ---- */
+let _B=null; // active battle
+let _music=null;
+
+export function isActive(){return !!_B && !_B.done}
+export function getBattle(){return _B}
+
+export function startBattle(S, opts={}){
+  const foes=opts.enemies?.length?spawnFoes(opts.enemies):spawnFoes(pickEncounter(S,{count:opts.count,boss:opts.boss,noBoss:opts.noBoss}));
+  if(!foes.length) return null;
+  const party=buildParty(S);
+  // sync portrait urls if provided
+  if(opts.heroPortrait) party[0].portrait=opts.heroPortrait;
+  if(opts.companionPortraits){
+    for(const c of party){ if(c.npcRef && opts.companionPortraits[c.npcRef]) c.portrait=opts.companionPortraits[c.npcRef]}
+  }
+  for(const f of foes){ if(!f.art || f.art.startsWith('assets/')){ /* keep */ } }
+  _B={
+    S, party, foes,
+    bg:opts.bg||battleBgFor(S),
+    turn:0, done:false, result:null,
+    log:[`Kampf gegen ${foes.map(f=>f.name).join(', ')}!`],
+    queue:[], // CTB readiness
+    selecting:null, // {actor, mode, skill?}
+    escaped:false, analyzed:{},
+    onEnd:opts.onEnd||null,
+    startedAt:Date.now()
+  };
+  // init ATB
+  for(const u of [...party,...foes]) u.atb=Math.random()*30+(u.spd||8);
+  renderBattleUI();
+  startBattleMusic(S);
+  advanceUntilPlayer();
+  return _B;
+}
+
+function allUnits(){return [..._B.party,..._B.foes]}
+function living(side){return side.filter(u=>u.alive)}
+
+function advanceUntilPlayer(){
+  if(!_B||_B.done)return;
+  // tick ATB until someone ready
+  let guard=0;
+  while(guard++<200){
+    if(_B.done)return;
+    // find ready
+    const ready=allUnits().filter(u=>u.alive && (u.atb|0)>=100).sort((a,b)=>b.atb-a.atb);
+    if(ready.length){
+      const actor=ready[0];
+      actor.atb=0;
+      if(actor.kind==='hero'||actor.kind==='companion'){
+        if(!canAct(actor)){
+          _B.log.push(`${actor.name} kann nicht handeln.`);
+          // consume sleep/stun turn
+          for(const s of (actor.statuses||[])){ if(s.id==='schlaf'||s.id==='betaeubt') s.turns-- }
+          actor.statuses=(actor.statuses||[]).filter(s=>s.turns>0);
+          tickStatuses(actor, m=>_B.log.push(m));
+          refreshUI();
+          continue;
+        }
+        if(actor.kind==='companion'){
+          aiCompanion(actor);
+          afterAction();
+          continue;
+        }
+        // player
+        _B.selecting={actor, mode:'main'};
+        refreshUI();
+        return;
+      } else {
+        aiEnemy(actor);
+        afterAction();
+        continue;
+      }
+    }
+    // advance clocks
+    for(const u of allUnits()){
+      if(!u.alive)continue;
+      u.atb=(u.atb||0)+Math.max(3,(u.spd||8)*0.85);
+    }
+  }
+}
+
+function afterAction(){
+  if(!_B)return;
+  // status ticks on all at end of action lightly
+  checkEnd();
+  if(_B.done)return;
+  refreshUI();
+  // small delay feel via rAF chain
+  requestAnimationFrame(()=>setTimeout(()=>advanceUntilPlayer(),180));
+}
+
+function checkEnd(){
+  if(!_B||_B.done)return;
+  if(!living(_B.foes).length){ finish('win'); return }
+  if(!living(_B.party).length || !_B.party[0].alive){ finish('lose'); return }
+}
+
+function finish(result){
+  if(!_B||_B.done)return;
+  _B.done=true; _B.result=result;
+  stopBattleMusic();
+  const summary=buildSummary(result);
+  showEndScreen(result, summary);
+  // apply to S after short delay so UI shows
+  const B=_B;
+  setTimeout(()=>{
+    applyRewards(B, result, summary);
+    const cb=B.onEnd;
+    hideBattleUI();
+    _B=null;
+    if(cb) cb(summary);
+  }, result==='flee'?600:1600);
+}
+
+function buildSummary(result){
+  const B=_B;
+  const killed=B.foes.filter(f=>!f.alive && f._ended!=='spared' && f._ended!=='surrender' && f._ended!=='fled' && f._ended!=='auto_flee' && !f._surrendered && (f.hp<=0));
+  const spared=B.foes.filter(f=>f._ended==='spared'||f._surrendered||f._ended==='surrender'||f._ended==='fled');
+  const humans=killed.filter(f=>f.human);
+  const xp=killed.reduce((s,f)=>s+(f.exp||0),0);
+  const gold=killed.reduce((s,f)=>s+(f.gold||0),0);
+  const loot=[];
+  for(const f of killed){
+    for(const L of (f.loot||[])){
+      if(Math.random()<(L.chance||0.3)) loot.push({name:L.name,icon:L.icon||'📦',desc:'Beute',type:L.type||'misc',rarity:'uncommon'});
+    }
+  }
+  return {
+    result,
+    text: result==='win'?`Sieg! ${killed.map(f=>f.name).join(', ')||'Gegner'} besiegt.${spared.length?' (Verschont: '+spared.map(f=>f.name).join(', ')+')':''}`
+      : result==='surrender'?`Ihr kapituliert.`
+      : result==='flee'?`Der Konflikt endet ohne Blutbad.${spared.length?' '+spared.map(f=>f.name).join(', ')+'.':''}`
+      : `Niederlage. Die Gruppe sinkt zu Boden.`,
+    xp, gold, loot, killed:killed.map(f=>({id:f.id,name:f.name,human:!!f.human})),
+    humansKilled:humans.map(f=>f.name),
+    analyzed:Object.keys(B.analyzed||{}), spared:spared.map(f=>({id:f.id,name:f.name,human:!!f.human,ended:f._ended})),
+    partyHP:B.party.map(p=>({name:p.name,hp:p.hp,maxhp:p.maxhp,alive:p.alive,npcRef:p.npcRef})),
+    log:B.log.slice(-12),
+    durationMs:Date.now()-B.startedAt
+  };
+}
+
+function applyRewards(B, result, summary){
+  const S=B.S; if(!S)return;
+  S.battle=S.battle||{};
+  S.battle.limit=B.party[0]?.limit|0;
+  // sync hero HP/MP
+  const hero=B.party[0];
+  if(hero){
+    S.st.hp=Math.max(1, hero.hp|0); // keep at least 1 unless story death elsewhere
+    if(result==='lose') S.st.hp=Math.max(1, Math.floor((S.st.maxhp||100)*0.15));
+    S.st.mp=clamp(hero.mp|0,0,S.st.maxmp|40);
+  }
+  // companions KO — not permadeath unless human enemy kill story; companions faint
+  for(const c of B.party.slice(1)){
+    if(c.npcRef && S.world?.npcs?.[c.npcRef]){
+      S.world.npcs[c.npcRef]._battleHp=c.hp;
+      if(!c.alive) S.world.npcs[c.npcRef].mood='erschöpft';
+    }
+  }
+  if(result==='win'){
+    S.st.gold=(S.st.gold|0)+(summary.gold|0);
+    S.st.xp=(S.st.xp|0)+(summary.xp|0);
+    // leveling hook
+    try{
+      const Level=window.__game?.Level;
+      if(Level?.grantXP) Level.grantXP(S, summary.xp, 'Kampf'); else if(Level?.grantXp) Level.grantXp(S, summary.xp, 'Kampf');
+      else {
+        while(S.st.xp>=(S.st.lvl||1)*100){ S.st.xp-=(S.st.lvl||1)*100; S.st.lvl=(S.st.lvl||1)+1; }
+      }
+    }catch(_){}
+    for(const it of summary.loot){ S.inv=S.inv||[]; S.inv.push(it) }
+    // skill-use XP already via grant
+    try{
+      const Codex=window.__game?.Codex;
+      for(const k of summary.killed){
+        if(Codex?.recordCreature) Codex.recordCreature(S,k.name,{danger:2,behavior:'im Kampf besiegt',habitat:S.world?.scene?.ort,imagePrompt:`anime JRPG enemy ${k.id||k.name}`,level:'studied'});
+      }
+      for(const id of summary.analyzed){
+        const e=ENEMIES[id]; if(e&&Codex?.study) Codex.study(S,e.name,'bestiary');
+      }
+    }catch(_){}
+    // crime for human kills
+    try{
+      const Sim=window.__game?.Sim;
+      for(const name of summary.humansKilled){
+        // Do NOT call killNPC / do not mark world NPCs dead here — story death stays on killNPC path only.
+        // Crime heat still rises for killing humanoid foes in battle (bandits etc.).
+        if(S.world?.npcs?.[name]){
+          // Story NPC survived mechanically unless player used kill verb outside — mark wound only
+          S.world.npcs[name].mood='verletzt';
+          Sim?.ledgerPush?.(S,{type:'battle',who:S.pc?.name||'Du',what:`Im Kampf besiegt (nicht getötet): ${name}.`,where:S.world?.scene?.ort,importance:55,emotion:'angespannt',meta:{battle:true,storyNpc:true}});
+        } else {
+          if(Sim?.ledgerPush) Sim.ledgerPush(S,{type:'kill',who:S.pc?.name||'Du',what:`Im Kampf getötet: ${name}.`,where:S.world?.scene?.ort,importance:80,emotion:'kalt',meta:{battle:true,human:true}});
+          S.heat=(S.heat|0)+8;
+          S.wanted=S.wanted||[]; if(!S.wanted.includes(name)) S.wanted.push(name);
+        }
+      }
+      if(summary.killed.length && Sim?.ledgerPush){
+        Sim.ledgerPush(S,{type:'battle',who:S.pc?.name||'Du',what:summary.text,where:S.world?.scene?.ort,importance:50,emotion:'entschlossen',meta:{xp:summary.xp,loot:summary.loot.map(x=>x.name)}});
+      }
+    }catch(_){}
+  } else if(result==='flee'){
+    try{ window.__game?.Sim?.ledgerPush(S,{type:'battle',who:S.pc?.name||'Du',what:'Flucht aus dem Kampf.',where:S.world?.scene?.ort,importance:25,emotion:'angespannt'}) }catch(_){}
+  } else {
+    try{ window.__game?.Sim?.ledgerPush(S,{type:'battle',who:S.pc?.name||'Du',what:'Im Kampf unterlegen.',where:S.world?.scene?.ort,importance:60,emotion:'schmerz'}) }catch(_){}
+  }
+}
+
+/* ---- Actions ---- */
+export function playerCommand(cmd, payload={}){
+  if(!_B||_B.done||!_B.selecting)return;
+  const actor=_B.selecting.actor;
+  if(cmd==='menu'){ _B.selecting={actor, mode:payload.mode||'main'}; refreshUI(); return }
+  if(cmd==='attack'){ return doAttack(actor, payload.targetId) }
+  if(cmd==='skill'){ return doSkill(actor, payload.skill, payload.targetId) }
+  if(cmd==='item'){ return doItem(actor, payload.item, payload.targetId) }
+  if(cmd==='defend'){ return doDefend(actor) }
+  if(cmd==='flee'){ return doFlee(actor) }
+  if(cmd==='analyze'){ return doAnalyze(actor, payload.targetId) }
+  if(cmd==='limit'){ return doLimit(actor, payload.targetId) }
+  if(cmd==='talk'){ return doTalk(actor, payload) }
+  if(cmd==='spare'){ return doSpare(actor, payload.targetId) }
+  if(cmd==='surrender'){ return doSurrender(actor) }
+  if(cmd==='threaten'){ return doThreaten(actor, payload.targetId) }
+  if(cmd==='auto'){ return doAutoResolve(actor) }
+  if(cmd==='freetext'){ return doFreeText(actor, payload.text||'') }
+}
+
+function pickTarget(id, enemies=true){
+  const side=enemies?_B.foes:_B.party;
+  if(id){ const t=side.find(u=>u._iid===id||u.id===id||u.name===id); if(t&&t.alive)return t }
+  return living(side)[0]||null;
+}
+
+function doAttack(actor, targetId){
+  const t=pickTarget(targetId,true); if(!t)return;
+  const skill={name:'Angriff',pow:1.0,elem:'phys'};
+  resolveHit(actor,t,skill);
+  afterAction();
+}
+function doSkill(actor, skill, targetId){
+  if(!skill)return;
+  const sk=typeof skill==='string'?(COMBAT_SKILLS[skill]||actor.skills.find(s=>s.name===skill)||{name:skill,pow:1.2,mp:4}):skill;
+  if((sk.mp|0)>(actor.mp|0)){ _B.log.push('Nicht genug MP!'); refreshUI(); return }
+  actor.mp-=sk.mp|0;
+  if(sk.fleeBonus){ doFlee(actor, sk.fleeBonus); return }
+  if(sk.defend){ doDefend(actor, sk.defend); return }
+  if(sk.heal){
+    const t=pickTarget(targetId,false)||actor;
+    const h=sk.heal|0; t.hp=Math.min(t.maxhp,t.hp+h);
+    _B.log.push(`${actor.name}: ${sk.name} — ${t.name} +${h} HP.`);
+    popNumber(t,'+'+h,'heal'); flashUnit(t,'heal');
+    afterAction(); return;
+  }
+  if(sk.self && sk.status){
+    applyStatus(actor, sk.status, 3);
+    if(sk.aoeParty) for(const p of living(_B.party)) applyStatus(p, sk.status, 3);
+    _B.log.push(`${actor.name}: ${sk.name}!`);
+    afterAction(); return;
+  }
+  const targets=sk.aoe?living(_B.foes):[pickTarget(targetId,true)].filter(Boolean);
+  for(const t of targets) resolveHit(actor,t,sk);
+  // skill-use XP
+  try{ window.__game?.Level?.grantXP?.(_B.S, 2, 'Skill: '+sk.name) }catch(_){}
+  afterAction();
+}
+function doItem(actor, itemName){
+  const S=_B.S; const inv=S.inv||[];
+  const idx=inv.findIndex(i=>(typeof i==='string'?i:i.name)===itemName);
+  if(idx<0){ _B.log.push('Kein Item.'); refreshUI(); return }
+  const it=inv[idx]; const name=typeof it==='string'?it:it.name;
+  inv.splice(idx,1);
+  let healed=0;
+  if(/trank|heil|med|stim/i.test(name)){ healed=40; actor.hp=Math.min(actor.maxhp,actor.hp+healed) }
+  else if(/mana|ether|mp/i.test(name)){ actor.mp=Math.min(actor.maxmp,actor.mp+25); _B.log.push(`${actor.name} nutzt ${name} (+MP).`); afterAction(); return }
+  else { healed=20; actor.hp=Math.min(actor.maxhp,actor.hp+healed) }
+  _B.log.push(`${actor.name} nutzt ${name} (+${healed} HP).`);
+  popNumber(actor,'+'+healed,'heal');
+  afterAction();
+}
+function doDefend(actor, mult=0.5){
+  actor.guard=mult; actor.limit=Math.min(actor.maxLimit,(actor.limit|0)+8);
+  _B.log.push(`${actor.name} verteidigt sich.`);
+  afterAction();
+}
+function doFlee(actor, bonus=0){
+  const avgSpd=living(_B.foes).reduce((s,f)=>s+f.spd,0)/Math.max(1,living(_B.foes).length);
+  const chance=clamp(0.35+((actor.spd||8)-avgSpd)/40+bonus,0.15,0.85);
+  if(Math.random()<chance){ _B.log.push('Flucht gelungen!'); finish('flee') }
+  else { _B.log.push('Flucht gescheitert!'); afterAction() }
+}
+function doAnalyze(actor, targetId){
+  const t=pickTarget(targetId,true); if(!t)return;
+  t.analyzed=true; _B.analyzed[t.id]=1;
+  try{ window.__game?.Codex?.recordCreature?.(_B.S,t.name,{danger:Math.ceil((t.maxhp||40)/40),behavior:t.ai,habitat:_B.S.world?.scene?.ort,stats:{hp:t.maxhp,weak:t.weak,resist:t.resist},level:'studied',imagePrompt:`anime JRPG enemy ${t.id}`}) }catch(_){}
+  _B.log.push(`${actor.name} analysiert ${t.name}: Schwäche ${(t.weak||['—']).join('/')}, Resistenz ${(t.resist||['—']).join('/')||'—'}.`);
+  afterAction();
+}
+function doLimit(actor, targetId){
+  if((actor.limit|0)<100){ _B.log.push('Limit nicht bereit.'); refreshUI(); return }
+  actor.limit=0;
+  const sk=actor.mag>=actor.atk?COMBAT_SKILLS.Arkaner_Limit:COMBAT_SKILLS.Overdrive;
+  const targets=living(_B.foes);
+  for(const t of targets) resolveHit(actor,t,sk);
+  _B.log.push(`✦ ${actor.name}: ${sk.name}!`);
+  shakeScreen();
+  afterAction();
+}
+
+function resolveHit(attacker, target, skill){
+  if(!target||!target.alive)return;
+  if((target.statuses||[]).some(s=>s.id==='schlaf')){
+    target.statuses=target.statuses.filter(s=>s.id!=='schlaf');
+    _B.log.push(`${target.name} erwacht!`);
+  }
+  const {dmg,crit,weak,immune}=rollDamage(attacker,target,skill);
+  if(immune){ _B.log.push(`${target.name} ist immun gegen ${ELEM_LABEL[skill.elem]||skill.elem}!`); popNumber(target,'IMMUN','miss'); return }
+  target.hp=Math.max(0,target.hp-dmg);
+  // aggro
+  if(target.aggroMap) target.aggroMap[attacker.id]=(target.aggroMap[attacker.id]|0)+dmg;
+  attacker.limit=Math.min(attacker.maxLimit,(attacker.limit|0)+Math.min(20,4+dmg/8|0));
+  let note=`${attacker.name} → ${target.name}: ${dmg}${crit?' KRIT!':''}${weak?' (Schwach!)':''}`;
+  if(skill.name) note=`${attacker.name} (${skill.name}) → ${target.name}: ${dmg}${crit?' KRIT!':''}${weak?' (Schwach!)':''}`;
+  _B.log.push(note);
+  popNumber(target, String(dmg), crit?'crit':(weak?'weak':'dmg'));
+  flashUnit(target,'hit');
+  if(skill.status && Math.random()<(skill.statusChance||0.35)){ applyStatus(target, skill.status, 3); _B.log.push(`${target.name}: ${skill.status}!`) }
+  if(target.hp<=0){
+    target.alive=false; target.hp=0; _B.log.push(`${target.name} besiegt!`);
+    // boss phases before death already handled when crossing thresholds
+  } else if(target.boss && target.phases){
+    const ratio=target.hp/target.maxhp;
+    while(target.phaseIdx<target.phases.length && ratio<=target.phases[target.phaseIdx].at){
+      const ph=target.phases[target.phaseIdx++];
+      if(ph.announce) _B.log.push(ph.announce);
+      if(ph.buff){ for(const[k,v] of Object.entries(ph.buff)) target[k]=Math.round((target[k]||1)*v) }
+      shakeScreen();
+    }
+  }
+}
+
+
+/* ---- Social / non-lethal ---- */
+function doTalk(actor, payload={}){
+  const foes=living(_B.foes); if(!foes.length)return;
+  const t=payload.targetId?pickTarget(payload.targetId,true):foes[0];
+  const text=String(payload.text||'').trim();
+  const S=_B.S;
+  let chance=0.25+(actor.mag||0)/80+(S.st?.cha||0)/120;
+  if(t.human) chance+=0.1;
+  if(/bitte|frieden|freund|reden|spar|verschon|kapitul/i.test(text)) chance+=0.2;
+  if(/droh|töt|umbring|hass/i.test(text)) chance-=0.25;
+  if((S.flags?.spared||[]).includes(t.id)||(S.flags?.sparedNames||[]).includes(t.name)) chance+=0.25;
+  _B.log.push(`${actor.name} spricht ${t.name} an${text?': „'+text.slice(0,60)+'“':''}.`);
+  if(Math.random()<clamp(chance,0.05,0.9)){
+    t.hp=Math.max(1,t.hp); t._surrendered=true; t._ended='surrender'; t.alive=false;
+    _B.log.push(`${t.name} lässt die Waffe sinken.`);
+    rememberSocial(S,t,'talk');
+    checkSocialEnd();
+  } else {
+    _B.log.push(`${t.name} hört nicht zu.`);
+    if(t.aggroMap) t.aggroMap[actor.id]=(t.aggroMap[actor.id]|0)+5;
+  }
+  afterAction();
+}
+function doSpare(actor, targetId){
+  const t=pickTarget(targetId,true)||living(_B.foes)[0]; if(!t)return;
+  if(t.hp>t.maxhp*0.45 && !t._surrendered){ _B.log.push(`${t.name} ist noch zu kampffähig — erst schwächen oder reden.`); refreshUI(); return }
+  t.alive=false; t.hp=Math.max(1, Math.floor(t.hp)); t._ended='spared';
+  _B.log.push(`${actor.name} verschont ${t.name}.`);
+  rememberSocial(_B.S,t,'spare');
+  checkSocialEnd();
+  afterAction();
+}
+function doSurrender(actor){
+  _B.log.push(`${actor.name} kapituliert.`);
+  rememberSocial(_B.S, living(_B.foes)[0],'surrender_player');
+  finish('surrender');
+}
+function doThreaten(actor, targetId){
+  const t=pickTarget(targetId,true)||living(_B.foes)[0]; if(!t)return;
+  const S=_B.S;
+  const chance=clamp(0.2+(S.st?.str||0)/80+(S.st?.ruf<0?0.15:0)+(actor.atk||0)/100,0.05,0.75);
+  _B.log.push(`${actor.name} droht ${t.name}.`);
+  if(Math.random()<chance){
+    t.alive=false; t._ended='fled'; t.hp=Math.max(1,t.hp);
+    _B.log.push(`${t.name} flieht!`);
+    rememberSocial(S,t,'threaten');
+    checkSocialEnd();
+  } else {
+    applyStatus(t,'betaeubt',1);
+    _B.log.push(`${t.name} zuckt — greift dann härter an.`);
+    t.atk=Math.round((t.atk||10)*1.15);
+  }
+  afterAction();
+}
+function doFreeText(actor, text){
+  const t=String(text||'').toLowerCase();
+  if(/verschon|begnad|lass(t)? leben|schon/.test(t)) return doSpare(actor);
+  if(/kapitul|ergeb|aufgebe|surrender/.test(t)) return doSurrender(actor);
+  if(/droh|einschüchter|schreck/.test(t)) return doThreaten(actor);
+  if(/flucht|renn|weg/.test(t)) return doFlee(actor);
+  if(/auto|schnell|überspring|narrativ/.test(t)) return doAutoResolve(actor);
+  return doTalk(actor,{text});
+}
+function doAutoResolve(actor){
+  const foeHP=living(_B.foes).reduce((s,f)=>s+f.hp,0);
+  const partyPow=_B.party.filter(p=>p.alive).reduce((s,p)=>s+p.atk+p.mag,0);
+  const trivial=foeHP < partyPow*6 && !_B.foes.some(f=>f.boss);
+  if(!trivial && !(_B.S.flags?.allowAutoBattle)){
+    _B.log.push('Zu gefährlich für Auto — kämpfe oder rede.');
+    refreshUI(); return;
+  }
+  const S=_B.S;
+  const winChance=clamp(0.45+(S.st?.str||0)/100+(S.st?.cha||0)/120+(partyPow/100),0.2,0.92);
+  _B.log.push('Auto-Auflösung…');
+  if(Math.random()<winChance){
+    for(const f of living(_B.foes)){ f.hp=0; f.alive=false; f._ended='auto_win' }
+    _B.log.push('Der Konflikt endet schnell zu euren Gunsten.');
+    finish('win');
+  } else if(Math.random()<0.5){
+    for(const f of living(_B.foes)){ f._ended='auto_flee'; f.alive=false; f.hp=Math.max(1,f.hp) }
+    _B.log.push('Ihr zerstreut euch — niemand stirbt.');
+    finish('flee');
+  } else {
+    const hero=_B.party[0]; hero.hp=Math.max(1, Math.floor(hero.hp*0.4));
+    _B.log.push('Es geht schief — ihr müsst weichen.');
+    finish('flee');
+  }
+}
+function checkSocialEnd(){
+  if(!living(_B.foes).length){
+    const allMercy=_B.foes.every(f=>f._ended==='spared'||f._ended==='surrender'||f._ended==='fled'||f._surrendered);
+    if(allMercy) finish('flee');
+    else finish('win');
+  }
+}
+function rememberSocial(S, foe, kind){
+  if(!S||!foe)return;
+  S.flags=S.flags||{};
+  S.flags.spared=S.flags.spared||[];
+  S.flags.sparedNames=S.flags.sparedNames||[];
+  if(kind==='spare'||kind==='talk'){
+    if(foe.id&&!S.flags.spared.includes(foe.id)) S.flags.spared.push(foe.id);
+    if(foe.name&&!S.flags.sparedNames.includes(foe.name)) S.flags.sparedNames.push(foe.name);
+  }
+  try{
+    const Sim=window.__game?.Sim;
+    const what=kind==='spare'?`Verschont: ${foe.name}.`:kind==='talk'?`Verhandelt mit ${foe.name}.`:kind==='threaten'?`Eingeschüchtert: ${foe.name}.`:kind==='surrender_player'?`Kapitulation.`:`Sozial: ${kind} / ${foe.name}`;
+    Sim?.ledgerPush?.(S,{type:'battle_social',who:S.pc?.name||'Du',what,where:S.world?.scene?.ort,importance:40,emotion:kind==='threaten'?'kalt':'hoffnungsvoll',meta:{foe:foe.id||foe.name,kind,human:!!foe.human}});
+  }catch(_){}
+}
+
+/* ---- AI ---- */
+function aiEnemy(e){
+  if(!canAct(e)){ _B.log.push(`${e.name} ist handlungsunfähig.`); tickStatuses(e,m=>_B.log.push(m)); return }
+  tickStatuses(e,m=>_B.log.push(m));
+  if(!e.alive)return;
+  const party=living(_B.party);
+  if(!party.length)return;
+  // target by aggro
+  let target=party[0];
+  if(e.aggroMap && Object.keys(e.aggroMap).length){
+    const best=Object.entries(e.aggroMap).sort((a,b)=>b[1]-a[1])[0];
+    const t=party.find(p=>p.id===best[0]); if(t) target=t;
+  } else if(e.ai==='cautious'){ target=party.slice().sort((a,b)=>a.hp-b.hp)[0] }
+  else if(e.ai==='aggro'||e.ai==='boss'){ target=party.slice().sort((a,b)=>b.aggro-a.aggro||b.hp-a.hp)[0] }
+
+  const skills=e.skills||[];
+  let skill=null;
+  if(e.ai==='healer' && living(_B.foes).some(f=>f.hp<f.maxhp*0.5)){
+    skill=skills.find(s=>s.heal)||null;
+    if(skill && (e.mp|0)>=(skill.mp|0)){
+      e.mp-=skill.mp|0; const ally=living(_B.foes).sort((a,b)=>a.hp-b.hp)[0];
+      ally.hp=Math.min(ally.maxhp,ally.hp+(skill.heal|0));
+      _B.log.push(`${e.name}: ${skill.name} (+${skill.heal})`); return;
+    }
+  }
+  if(e.ai==='caster'||e.ai==='boss'){
+    const cast=skills.filter(s=>(s.mp|0)<=(e.mp|0) && (s.pow||s.status));
+    if(cast.length && Math.random()<.7) skill=R(cast);
+  }
+  if(!skill && skills.length && Math.random()<.45){
+    const aff=skills.filter(s=>(s.mp|0)<=(e.mp|0)); if(aff.length) skill=R(aff);
+  }
+  skill=skill||{name:'Angriff',pow:1.0,elem:e.element||'phys'};
+  if(skill.mp) e.mp-=skill.mp|0;
+  if(skill.heal){ e.hp=Math.min(e.maxhp,e.hp+skill.heal); _B.log.push(`${e.name}: ${skill.name}`); return }
+  if(skill.summon){ _B.log.push(`${e.name} ruft Verstärkung!`); /* simplified: self buff */ applyStatus(e,'staerkung',2); return }
+  if(skill.aoe){ for(const t of party) resolveHit(e,t,skill) }
+  else resolveHit(e,target,skill);
+}
+
+function aiCompanion(c){
+  if(!canAct(c)){ tickStatuses(c,m=>_B.log.push(m)); return }
+  tickStatuses(c,m=>_B.log.push(m));
+  if(!c.alive)return;
+  const foes=living(_B.foes); if(!foes.length)return;
+  // heal hero if low
+  if(_B.party[0].hp<_B.party[0].maxhp*0.4 && c.skills.some(s=>s.heal) && c.mp>=4){
+    doSkill(c, c.skills.find(s=>s.heal), _B.party[0].id); return;
+  }
+  const sk=c.skills.find(s=>s.pow&&(s.mp|0)<=c.mp)||{name:'Angriff',pow:1.0,elem:'phys'};
+  if(sk.mp) c.mp-=sk.mp|0;
+  resolveHit(c, R(foes), sk);
+}
+
+/* ---- UI ---- */
+function el(id){return document.getElementById(id)}
+
+function ensureRoot(){
+  let root=el('battleRoot');
+  if(!root){
+    root=document.createElement('div'); root.id='battleRoot'; root.className='battle-root hidden';
+    document.body.appendChild(root);
+  }
+  return root;
+}
+
+export function renderBattleUI(){
+  const root=ensureRoot();
+  if(!_B){ root.classList.add('hidden'); return }
+  root.classList.remove('hidden');
+  const B=_B;
+  root.innerHTML=`
+  <div class="battle-bg" id="battleBg" style="background-image:url('${B.bg}')"></div>
+  <div class="battle-veil"></div>
+  <div class="battle-timeline" id="battleTL"></div>
+  <div class="battle-foes" id="battleFoes"></div>
+  <div class="battle-fx" id="battleFx" aria-hidden="true"></div>
+  <div class="battle-party" id="battleParty"></div>
+  <div class="battle-log" id="battleLog"></div>
+  <div class="battle-cmd" id="battleCmd"></div>
+  <div class="battle-end hidden" id="battleEnd"></div>`;
+  refreshUI();
+}
+
+function refreshUI(){
+  if(!_B)return;
+  const B=_B;
+  // timeline
+  const tl=el('battleTL');
+  if(tl){
+    const units=allUnits().filter(u=>u.alive).map(u=>({u,pct:clamp((u.atb||0),0,100)}))
+      .sort((a,b)=>b.pct-a.pct).slice(0,8);
+    tl.innerHTML=units.map(({u,pct})=>`<div class="tl-item ${u.kind==='hero'||u.kind==='companion'?'ally':'foe'}" title="${u.name}"><i style="height:${pct}%"></i><span>${(u.name||'?').slice(0,1)}</span></div>`).join('');
+  }
+  // foes
+  const foes=el('battleFoes');
+  if(foes){
+    foes.innerHTML=B.foes.map(f=>`
+      <button type="button" class="foe-card ${f.alive?'':'dead'} ${B.selecting&&needsTarget()?(_B._hover===f._iid?'target':''):''}" data-iid="${f._iid}" ${f.alive?'':'disabled'}>
+        <div class="foe-art-wrap"><img class="foe-art" src="${f.art}" alt="${f.name}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/><div class="foe-fallback" style="display:none">${f.icon||'👹'}</div></div>
+        <div class="foe-name">${f.name}${f.analyzed?' · ✦':''}${f.boss?' · BOSS':''}</div>
+        <div class="bar foe-hp"><i style="width:${Math.max(0,f.hp/f.maxhp*100)}%"></i></div>
+        ${f.analyzed?`<div class="foe-weak">${(f.weak||[]).map(w=>ELEM_LABEL[w]||w).join(' · ')||'—'}</div>`:''}
+        <div class="status-row">${(f.statuses||[]).map(s=>`<em>${s.id}</em>`).join('')}</div>
+      </button>`).join('');
+    foes.querySelectorAll('.foe-card').forEach(btn=>{
+      btn.onclick=()=>{
+        if(!_B.selecting)return;
+        const iid=btn.dataset.iid;
+        const mode=_B.selecting.mode;
+        if(mode==='attack') playerCommand('attack',{targetId:iid});
+        else if(mode==='skill') playerCommand('skill',{skill:_B.selecting.skill,targetId:iid});
+        else if(mode==='analyze') playerCommand('analyze',{targetId:iid});
+        else if(mode==='limit') playerCommand('limit',{targetId:iid});
+        else if(mode==='talk') playerCommand('talk',{targetId:iid});
+        else if(mode==='spare') playerCommand('spare',{targetId:iid});
+        else if(mode==='threaten') playerCommand('threaten',{targetId:iid});
+        else { _B.selecting={..._B.selecting, mode:'attack'}; playerCommand('attack',{targetId:iid}) }
+      };
+    });
+  }
+  // party
+  const party=el('battleParty');
+  if(party){
+    party.innerHTML=B.party.map(p=>`
+      <div class="party-card ${p.alive?'':'dead'} ${B.selecting?.actor===p?'active':''}">
+        <div class="party-port">${p.portrait?`<img src="${p.portrait}" alt="" loading="lazy"/>`:`<span>${(p.name||'?')[0]}</span>`}</div>
+        <div class="party-meta">
+          <b>${p.name}</b>
+          <div class="bar hp"><i style="width:${Math.max(0,p.hp/p.maxhp*100)}%"></i></div>
+          <div class="bar mp"><i style="width:${Math.max(0,p.mp/Math.max(1,p.maxmp)*100)}%"></i></div>
+          <div class="bar lim"><i style="width:${Math.max(0,(p.limit||0)/100*100)}%"></i></div>
+        </div>
+      </div>`).join('');
+  }
+  // log
+  const log=el('battleLog');
+  if(log) log.innerHTML=B.log.slice(-4).map(l=>`<div>${l}</div>`).join('');
+  // commands
+  const cmd=el('battleCmd');
+  if(cmd){
+    if(B.done){ cmd.innerHTML=''; return }
+    const sel=B.selecting;
+    if(!sel||sel.actor.kind!=='hero'){ cmd.innerHTML=`<div class="battle-wait">…</div>`; return }
+    if(sel.mode==='main'){
+      cmd.innerHTML=`
+        <button type="button" class="bcm" data-c="attack">Angriff</button>
+        <button type="button" class="bcm" data-c="skills">Skills</button>
+        <button type="button" class="bcm" data-c="items">Items</button>
+        <button type="button" class="bcm" data-c="defend">Verteidigen</button>
+        <button type="button" class="bcm" data-c="analyze">Analysieren</button>
+        <button type="button" class="bcm social" data-c="talk">Reden</button>
+        <button type="button" class="bcm social" data-c="spare">Verschonen</button>
+        <button type="button" class="bcm social" data-c="threaten">Drohen</button>
+        <button type="button" class="bcm accent" data-c="limit" ${(sel.actor.limit|0)<100?'disabled':''}>Limit</button>
+        <button type="button" class="bcm ghost" data-c="auto">Auto</button>
+        <button type="button" class="bcm ghost" data-c="surrender">Kapitulieren</button>
+        <button type="button" class="bcm ghost" data-c="flee">Flucht</button>
+        <form class="battle-free" id="battleFree"><input name="t" placeholder="Freitext: reden, drohen…" autocomplete="off"/><button type="submit">➤</button></form>`;
+      cmd.querySelectorAll('.bcm').forEach(b=>b.onclick=()=>{
+        const c=b.dataset.c;
+        if(c==='attack'){ _B.selecting={actor:sel.actor,mode:'attack'}; refreshUI(); toastPick() }
+        else if(c==='skills'){ _B.selecting={actor:sel.actor,mode:'skills'}; refreshUI() }
+        else if(c==='items'){ _B.selecting={actor:sel.actor,mode:'items'}; refreshUI() }
+        else if(c==='defend') playerCommand('defend')
+        else if(c==='analyze'){ _B.selecting={actor:sel.actor,mode:'analyze'}; refreshUI(); toastPick() }
+        else if(c==='talk'){ _B.selecting={actor:sel.actor,mode:'talk'}; if(living(_B.foes).length===1) playerCommand('talk',{targetId:living(_B.foes)[0]._iid}); else { refreshUI(); toastPick() } }
+        else if(c==='spare'){ _B.selecting={actor:sel.actor,mode:'spare'}; if(living(_B.foes).length===1) playerCommand('spare',{targetId:living(_B.foes)[0]._iid}); else { refreshUI(); toastPick() } }
+        else if(c==='threaten'){ _B.selecting={actor:sel.actor,mode:'threaten'}; if(living(_B.foes).length===1) playerCommand('threaten',{targetId:living(_B.foes)[0]._iid}); else { refreshUI(); toastPick() } }
+        else if(c==='limit'){ _B.selecting={actor:sel.actor,mode:'limit'}; if(living(_B.foes).length===1) playerCommand('limit',{targetId:living(_B.foes)[0]._iid}); else { refreshUI(); toastPick() } }
+        else if(c==='auto') playerCommand('auto')
+        else if(c==='surrender') playerCommand('surrender')
+        else if(c==='flee') playerCommand('flee')
+      });
+      const bf=cmd.querySelector('#battleFree');
+      if(bf) bf.onsubmit=(ev)=>{ev.preventDefault(); const v=bf.t.value.trim(); if(v) playerCommand('freetext',{text:v}); bf.t.value=''};
+    } else if(sel.mode==='skills'){
+      const skills=sel.actor.skills||[];
+      cmd.innerHTML=`<button type="button" class="bcm ghost" data-c="back">◀</button>`+
+        skills.map((s,i)=>`<button type="button" class="bcm" data-i="${i}" ${(s.mp|0)>(sel.actor.mp|0)?'disabled':''}>${s.name}<small>${s.mp?s.mp+' MP':''}${s.elem?' · '+(ELEM_LABEL[s.elem]||s.elem):''}</small></button>`).join('');
+      cmd.querySelector('[data-c=back]').onclick=()=>{_B.selecting={actor:sel.actor,mode:'main'};refreshUI()};
+      cmd.querySelectorAll('[data-i]').forEach(b=>b.onclick=()=>{
+        const sk=skills[+b.dataset.i];
+        if(sk.heal||sk.self||sk.defend||sk.fleeBonus){ playerCommand('skill',{skill:sk}); return }
+        if(sk.aoe){ playerCommand('skill',{skill:sk}); return }
+        _B.selecting={actor:sel.actor,mode:'skill',skill:sk}; refreshUI(); toastPick();
+      });
+    } else if(sel.mode==='items'){
+      const items=(_B.S.inv||[]).slice(0,8);
+      cmd.innerHTML=`<button type="button" class="bcm ghost" data-c="back">◀</button>`+
+        (items.length?items.map((it,i)=>{const n=typeof it==='string'?it:it.name;return `<button type="button" class="bcm" data-i="${i}">${n}</button>`}).join(''):'<span class="meta">Kein Item</span>');
+      cmd.querySelector('[data-c=back]').onclick=()=>{_B.selecting={actor:sel.actor,mode:'main'};refreshUI()};
+      cmd.querySelectorAll('[data-i]').forEach(b=>b.onclick=()=>{
+        const it=items[+b.dataset.i]; const n=typeof it==='string'?it:it.name;
+        playerCommand('item',{item:n});
+      });
+    } else if(['attack','skill','analyze','limit','talk','spare','threaten'].includes(sel.mode)){
+      cmd.innerHTML=`<div class="battle-pick">Ziel wählen</div><button type="button" class="bcm ghost" data-c="back">◀ Zurück</button>`;
+      cmd.querySelector('[data-c=back]').onclick=()=>{_B.selecting={actor:sel.actor,mode:'main'};refreshUI()};
+    }
+  }
+}
+
+function needsTarget(){const m=_B?.selecting?.mode; return ['attack','skill','analyze','limit','talk','spare','threaten'].includes(m)}
+function toastPick(){ /* visual only via cmd label */ }
+
+function showEndScreen(result, summary){
+  const end=el('battleEnd'); if(!end)return;
+  end.classList.remove('hidden');
+  end.innerHTML=`<div class="battle-end-card ${result}">
+    <h2>${result==='win'?'SIEG':result==='flee'?'ENTKOMMEN':result==='surrender'?'KAPITULATION':'NIEDERLAGE'}</h2>
+    <p>${summary.text}</p>
+    ${result==='win'?`<p class="meta">+${summary.xp} XP · +${summary.gold} Gold${summary.loot.length?' · '+summary.loot.map(l=>l.name).join(', '):''}</p>`:''}
+  </div>`;
+}
+
+function hideBattleUI(){
+  const root=el('battleRoot'); if(root) root.classList.add('hidden');
+}
+
+function popNumber(unit, text, kind){
+  const fx=el('battleFx'); if(!fx)return;
+  const d=document.createElement('div'); d.className='dmg-pop '+kind; d.textContent=text;
+  d.style.left=(20+Math.random()*60)+'%'; d.style.top=(20+Math.random()*40)+'%';
+  fx.appendChild(d); setTimeout(()=>d.remove(),900);
+}
+function flashUnit(unit, kind){
+  const root=el('battleRoot'); if(!root)return;
+  root.classList.add('flash-'+kind); setTimeout(()=>root.classList.remove('flash-'+kind),180);
+  if(kind==='hit'){
+    const card=[...document.querySelectorAll('.foe-card')].find(c=>c.dataset.iid===unit._iid);
+    if(card){ card.classList.add('hit'); setTimeout(()=>card.classList.remove('hit'),220) }
+  }
+}
+function shakeScreen(){
+  const root=el('battleRoot'); if(!root)return;
+  root.classList.add('shake'); setTimeout(()=>root.classList.remove('shake'),400);
+}
+
+/* ---- Music ---- */
+function startBattleMusic(S){
+  try{
+    stopBattleMusic();
+    const AC=window.AudioContext||window.webkitAudioContext; if(!AC)return;
+    const ctx=new AC(); const master=ctx.createGain(); master.gain.value=0.04; master.connect(ctx.destination);
+    const oscs=[];
+    const base=/zombie/.test(S.genre||'')?[55,82,110]:/cyber/.test(S.genre||'')?[98,147,220]:[130.81,164.81,196];
+    base.forEach((f,i)=>{
+      const o=ctx.createOscillator(); const g=ctx.createGain();
+      o.type=i===0?'sawtooth':'square'; o.frequency.value=f;
+      g.gain.value=0.08/(i+1);
+      const lfo=ctx.createOscillator(); const lg=ctx.createGain();
+      lfo.frequency.value=4+i; lg.gain.value=f*0.02; lfo.connect(lg); lg.connect(o.frequency); lfo.start();
+      o.connect(g); g.connect(master); o.start(); oscs.push(o,lfo);
+    });
+    _music={ctx,master,oscs};
+  }catch(_){}
+}
+function stopBattleMusic(){
+  if(!_music)return;
+  try{_music.oscs.forEach(o=>{try{o.stop()}catch(_){}});_music.master.disconnect();_music.ctx.close()}catch(_){}
+  _music=null;
+}
+
+/** Encounter trigger helper for exploration */
+export function maybeRandomEncounter(S, opts={}){
+  if(isActive())return false;
+  const chance=opts.chance??0.12;
+  if(Math.random()>chance)return false;
+  return true;
+}
+
+
+/** Pre-battle choice sheet — never auto-starts combat */
+export function offerEncounter(S, opts={}){
+  const foes=opts.enemies?.length?opts.enemies:pickEncounter(S,{count:opts.count,boss:opts.boss,noBoss:opts.noBoss!==false});
+  if(!foes.length) return null;
+  const root=ensureRoot();
+  return new Promise(resolve=>{
+    root.classList.remove('hidden');
+    const names=foes.map(f=>f.name+(f.boss?' (Boss)':'')).join(', ');
+    root.innerHTML=`<div class="battle-bg" style="background-image:url('${opts.bg||battleBgFor(S)}')"></div>
+      <div class="battle-veil"></div>
+      <div class="encounter-sheet">
+        <div class="encounter-badge">Begegnung</div>
+        <div class="encounter-foes">${foes.map(f=>`<div class="enc-foe"><img src="${f.art}" alt="" onerror="this.remove()"/><span>${f.icon||''} ${f.name}</span></div>`).join('')}</div>
+        <p class="encounter-desc">${opts.blurb||('Ihr trefft auf '+names+'. Was tust du?')}</p>
+        <div class="encounter-cmds">
+          <button type="button" data-a="fight" class="bcm accent">Kämpfen</button>
+          <button type="button" data-a="talk" class="bcm social">Reden / Überzeugen</button>
+          <button type="button" data-a="intimidate" class="bcm social">Einschüchtern</button>
+          <button type="button" data-a="bribe" class="bcm">Bestechen</button>
+          <button type="button" data-a="sneak" class="bcm">Schleichen</button>
+          <button type="button" data-a="surrender" class="bcm ghost">Ergeben</button>
+          <button type="button" data-a="flee" class="bcm ghost">Fliehen</button>
+        </div>
+        <form class="battle-free" id="encFree"><input name="t" placeholder="Freitext…" autocomplete="off"/><button type="submit">➤</button></form>
+      </div>`;
+    const done=(choice, text='')=>{
+      root.classList.add('hidden');
+      if(choice==='fight' || choice==='attack'){
+        startBattle(S,{...opts, enemies:foes, onEnd:(sum)=>resolve({choice:'fight', summary:sum, foes})});
+        return;
+      }
+      // non-combat resolutions
+      const summary=resolveNonCombat(S, foes, choice, text);
+      resolve({choice, summary, foes});
+    };
+    root.querySelectorAll('[data-a]').forEach(b=>b.onclick=()=>done(b.dataset.a));
+    const f=root.querySelector('#encFree');
+    if(f) f.onsubmit=(ev)=>{
+      ev.preventDefault(); const text=f.t.value.trim();
+      const low=text.toLowerCase();
+      let choice='talk';
+      if(/angriff|kampf|schlag|töt|attack/.test(low)) choice='fight';
+      else if(/droh|einschüchter|schreck/.test(low)) choice='intimidate';
+      else if(/bestech|kauf|gold|geld/.test(low)) choice='bribe';
+      else if(/schleich|versteck|umgeh/.test(low)) choice='sneak';
+      else if(/ergeb|kapitul/.test(low)) choice='surrender';
+      else if(/flieh|flucht|renn|weg/.test(low)) choice='flee';
+      else if(/red|überzeug|frieden|bitte/.test(low)) choice='talk';
+      done(choice, text);
+    };
+  });
+}
+function resolveNonCombat(S, foes, choice, text){
+  const names=foes.map(f=>f.name).join(', ');
+  let textOut='', xp=0, gold=0, heat=0, spared=[];
+  const cha=(S.st?.cha||0), str=(S.st?.str||0), goldHave=S.st?.gold|0;
+  if(choice==='talk'){
+    const ok=Math.random()<clamp(0.4+cha/80,0.2,0.9);
+    textOut=ok?`Durch Worte entspannt sich die Lage mit ${names}.`:`${names} bleibt misstrauisch, greift aber nicht sofort an.`;
+    if(ok){ xp=8; spared=foes.map(f=>f.name); for(const f of foes) rememberSocial(S,f,'talk') }
+  } else if(choice==='intimidate'){
+    const ok=Math.random()<clamp(0.35+str/70,0.15,0.85);
+    textOut=ok?`${names} weicht zurück.`:`Deine Drohung verpufft — die Lage bleibt angespannt.`;
+    if(ok){ xp=10; spared=foes.map(f=>f.name); for(const f of foes) rememberSocial(S,f,'threaten') }
+  } else if(choice==='bribe'){
+    const cost=Math.min(goldHave, 10+foes.length*8);
+    if(goldHave>=cost && cost>0){ S.st.gold-=cost; textOut=`Du zahlst ${cost} Gold. ${names} lässt euch passieren.`; xp=5; spared=foes.map(f=>f.name) }
+    else textOut=`Nicht genug Gold — ${names} lacht höhnisch.`;
+  } else if(choice==='sneak'){
+    const ok=Math.random()<clamp(0.4+(S.progress?.attrs?.dex||5)/30,0.2,0.85);
+    textOut=ok?`Ihr schleicht an ${names} vorbei.`:`Entdeckung! Noch könnt ihr wählen…`;
+    if(ok) xp=6;
+  } else if(choice==='surrender'){
+    textOut=`Ihr ergibt euch vor ${names}.`; heat-=2;
+  } else if(choice==='flee'){
+    const ok=Math.random()<0.7;
+    textOut=ok?`Ihr entkommt ${names}.`:`Flucht misslingt — ${names} stellt sich in den Weg.`;
+  } else {
+    textOut=`Begegnung mit ${names} endet unklar.`;
+  }
+  if(text) textOut += ` („${String(text).slice(0,80)}“)`;
+  try{
+    window.__game?.Sim?.ledgerPush?.(S,{type:'encounter',who:S.pc?.name||'Du',what:textOut,where:S.world?.scene?.ort,importance:35,emotion:'angespannt',meta:{choice,foes:foes.map(f=>f.id),spared}});
+  }catch(_){}
+  if(xp){ S.st.xp=(S.st.xp|0)+xp; try{window.__game?.Level?.grantXP?.(S,xp,'Begegnung')}catch(_){} }
+  return {result:choice, text:textOut, xp, gold, loot:[], killed:[], humansKilled:[], spared:spared.map(n=>({name:n})), log:[textOut], nonCombat:true};
+}
+
+export default {
+  startBattle, isActive, getBattle, playerCommand, buildParty, renderBattleUI,
+  maybeRandomEncounter, offerEncounter, COMBAT_SKILLS
+};
+
