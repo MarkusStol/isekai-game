@@ -441,3 +441,10 @@ body.genre-grey .vn-box{font-family:Georgia,'Times New Roman',serif}
 @media (prefers-reduced-motion:reduce){
   .dmg-pop,.battle-root.shake,.foe-card.hit{animation:none}
 }
+
+
+/* v16.1 mercy choice at 0 HP for story NPCs */
+.mercy-sheet{position:absolute;inset:0;z-index:8;display:flex;align-items:center;justify-content:center;padding:16px;background:#0008;backdrop-filter:blur(2px)}
+.mercy-card{background:linear-gradient(180deg,#2a1838f2,#0e0a1cf5);border:1px solid #f8717166;border-radius:22px;padding:16px;max-width:380px;width:100%;box-shadow:0 20px 60px #000c}
+.mercy-card .bcm.accent{background:linear-gradient(90deg,#b91c1c,#ef4444)}
+.mercy-card .meta{opacity:.75;font-size:.85rem;margin-top:8px}

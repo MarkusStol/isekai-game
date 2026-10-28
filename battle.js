@@ -1,4 +1,4 @@
-/** v16 JRPG battle — local/instant, ATB-lite turn order, full command set */
+/** v16.1 JRPG battle — local/instant, ATB-lite turn order, full command set */
 import { ENEMIES, ELEM_LABEL, enemyById, pickEncounter, battleBgFor } from './enemies.js';
 
 const R=a=>a[Math.floor(Math.random()*a.length)];
@@ -99,6 +99,155 @@ function spawnFoes(defs){
   }));
 }
 
+/** Story NPCs in world.npcs (or tagged _storyNpc) get a mercy choice at 0 HP. Generic monsters die. */
+export function storyNpcName(foe){
+  if(!foe) return null;
+  if(foe._storyNpc) return foe._storyNpc;
+  return foe.name||null;
+}
+export function isStoryNpcFoe(foe, S){
+  const name=storyNpcName(foe);
+  if(!name) return false;
+  if(foe._storyNpc) return true;
+  const npc=S?.world?.npcs?.[name];
+  return !!(npc && npc.alive!==false && !npc.dead);
+}
+export function mercyNeeded(foe, S){
+  return !!(foe && isStoryNpcFoe(foe,S) && !foe._mercyResolved);
+}
+
+/**
+ * Apply Finish / Spare / Knock-out. Finish → killNPC (permanent death, crime, grief, ledger).
+ * Never auto-called; only after player choice.
+ */
+export function applyMercyDecision(S, foe, choice, hooks={}){
+  if(!foe) return {ok:false};
+  const name=storyNpcName(foe);
+  const ch=String(choice||'').toLowerCase();
+  const killFn=hooks.killNPC||(typeof window!=='undefined'?window.__game?.killNPC:null);
+  const addMem=hooks.addMemory||(typeof window!=='undefined'?window.__game?.addMemory:null);
+  const Sim=hooks.Sim||(typeof window!=='undefined'?window.__game?.Sim:null);
+  const npc=name && S?.world?.npcs?.[name];
+
+  if(ch==='finish'||ch==='kill'||ch==='töten'||ch==='toeten'){
+    foe._ended='killed'; foe.alive=false; foe.hp=0; foe._mercyResolved=true;
+    let killOk=false;
+    if(name && killFn){
+      try{
+        const r=killFn(name,{cause:'Im Kampf getötet'});
+        killOk=!!(r&&r.ok!==false);
+        foe._killApplied=killOk;
+        if(killOk) try{addMem?.(name,'(tot)','Tod')}catch(_){}
+      }catch(e){ foe._killApplied=false }
+    } else if(name && Sim?.killPermanent){
+      try{
+        const r=Sim.killPermanent(S,name,{where:S.world?.scene?.ort, cause:'Im Kampf getötet', killer:S.pc?.name||'Du'});
+        killOk=!!r?.ok; foe._killApplied=killOk;
+      }catch(_){}
+    }
+    try{Sim?.ledgerPush?.(S,{type:'battle_mercy',who:S.pc?.name||'Du',what:`Im Kampf getötet (Finish): ${name||foe.name}.`,where:S.world?.scene?.ort,importance:85,emotion:'kalt',meta:{mercy:'finish',foe:name||foe.name}})}catch(_){}
+    return {ok:true, choice:'finish', killed:true, name, killOk};
+  }
+
+  if(ch==='spare'||ch==='verschonen'||ch==='begnadigen'){
+    foe._ended='spared'; foe.alive=false; foe.hp=Math.max(1, foe.hp|0); foe._mercyResolved=true;
+    if(npc){ npc.mood='verschont'; npc.alive=true; delete npc.dead }
+    rememberSocial(S, foe, 'spare');
+    try{addMem?.(name, 'Du hast mich im Kampf verschont.', 'Gnade')}catch(_){}
+    try{Sim?.ledgerPush?.(S,{type:'battle_mercy',who:S.pc?.name||'Du',what:`Verschont: ${name||foe.name}.`,where:S.world?.scene?.ort,importance:55,emotion:'hoffnungsvoll',meta:{mercy:'spare',foe:name||foe.name}})}catch(_){}
+    return {ok:true, choice:'spare', killed:false, name};
+  }
+
+  // default: knock out
+  foe._ended='ko'; foe.alive=false; foe.hp=Math.max(1, foe.hp|0); foe._mercyResolved=true;
+  if(npc){ npc.mood='bewusstlos'; npc.alive=true; delete npc.dead }
+  rememberSocial(S, foe, 'ko');
+  try{addMem?.(name, 'Du hast mich bewusstlos geschlagen — ich lebe noch.', 'Kampf')}catch(_){}
+  try{Sim?.ledgerPush?.(S,{type:'battle_mercy',who:S.pc?.name||'Du',what:`Niedergeschlagen (KO): ${name||foe.name}.`,where:S.world?.scene?.ort,importance:45,emotion:'angespannt',meta:{mercy:'ko',foe:name||foe.name}})}catch(_){}
+  return {ok:true, choice:'ko', killed:false, name};
+}
+
+function enqueueMercy(foe){
+  if(!_B||!foe||foe._mercyResolved) return;
+  _B.mercyQueue=_B.mercyQueue||[];
+  if(!_B.mercyQueue.includes(foe._iid)) _B.mercyQueue.push(foe._iid);
+  foe._downed=true;
+}
+
+function drainMercyQueue(){
+  if(!_B||_B.done) return false;
+  const q=_B.mercyQueue||[];
+  while(q.length){
+    const iid=q[0];
+    const foe=_B.foes.find(f=>f._iid===iid);
+    if(!foe || foe._mercyResolved){ q.shift(); continue }
+    showMercySheet(foe);
+    return true;
+  }
+  return false;
+}
+
+function showMercySheet(foe){
+  if(!_B) return;
+  _B.mercyActive=true;
+  _B.selecting=null;
+  const name=storyNpcName(foe)||foe.name;
+  const cmd=el('battleCmd');
+  const log=el('battleLog');
+  if(log){
+    _B.log.push(`${name} liegt am Boden — du entscheidest.`);
+    log.innerHTML=_B.log.slice(-4).map(l=>`<div>${l}</div>`).join('');
+  }
+  // overlay card on battle root
+  let sheet=el('mercySheet');
+  const root=ensureRoot();
+  if(!sheet){
+    sheet=document.createElement('div');
+    sheet.id='mercySheet';
+    root.appendChild(sheet);
+  }
+  sheet.className='mercy-sheet';
+  sheet.innerHTML=`
+    <div class="mercy-card">
+      <div class="encounter-badge">Entscheidung</div>
+      <p><b>${name}</b> ist kampfunfähig. Was tust du?</p>
+      <div class="encounter-cmds">
+        <button type="button" class="bcm accent" data-m="finish">Finish — töten</button>
+        <button type="button" class="bcm social" data-m="spare">Verschonen</button>
+        <button type="button" class="bcm" data-m="ko">Niederschlagen (KO)</button>
+      </div>
+      <form class="battle-free" id="mercyFree"><input name="t" placeholder="Freitext: töten, verschonen, KO…" autocomplete="off"/><button type="submit">➤</button></form>
+      <p class="meta">Permanenter Tod nur bei Finish — Zeugen, Trauer, Ledger, Fahndung.</p>
+    </div>`;
+  if(cmd) cmd.innerHTML=`<div class="battle-pick">Entscheidung über ${name}</div>`;
+  const pick=(choice)=>{
+    applyMercyDecision(_B.S, foe, choice);
+    const label=choice==='finish'?'getötet (Finish)':choice==='spare'?'verschont':'niedergeschlagen (KO)';
+    _B.log.push(`${name}: ${label}.`);
+    sheet.remove();
+    _B.mercyActive=false;
+    (_B.mercyQueue||[]).shift();
+    refreshUI();
+    if(drainMercyQueue()) return;
+    checkEnd();
+    if(_B && !_B.done){
+      refreshUI();
+      requestAnimationFrame(()=>setTimeout(()=>advanceUntilPlayer(),180));
+    }
+  };
+  sheet.querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>pick(b.dataset.m));
+  const f=sheet.querySelector('#mercyFree');
+  if(f) f.onsubmit=(ev)=>{
+    ev.preventDefault();
+    const t=f.t.value.trim().toLowerCase();
+    let c='ko';
+    if(/töt|kill|finish|hinricht|mord|umbring|ersterche/.test(t)) c='finish';
+    else if(/verschon|begnad|lass(t)? leben|schon|spare/.test(t)) c='spare';
+    else if(/ko|knock|bewusstlos|niederschlag|betäub/.test(t)) c='ko';
+    pick(c);
+  };
+}
+
 /* ---- Damage / status ---- */
 function elemMult(target, elem){
   if(!elem||elem==='phys'){
@@ -146,7 +295,16 @@ function tickStatuses(unit, log){
     if(s.id==='regeneration'){ const h=Math.max(1,unit.maxhp*0.08|0); unit.hp=Math.min(unit.maxhp,unit.hp+h); }
     s.turns--; return s;
   }).filter(s=>s.turns>0);
-  if(unit.hp<=0){unit.alive=false; unit.hp=0; log(`${unit.name} fällt!`);}
+  if(unit.hp<=0){
+    unit.alive=false; unit.hp=0;
+    if(_B && mercyNeeded(unit, _B.S) && unit.kind!=='hero' && unit.kind!=='companion'){
+      log(`${unit.name} fällt — Entscheidung steht aus.`);
+      enqueueMercy(unit);
+    } else {
+      if(!unit._ended) unit._ended='killed';
+      log(`${unit.name} fällt!`);
+    }
+  }
   unit.guard=1;
 }
 
@@ -241,16 +399,17 @@ function advanceUntilPlayer(){
 
 function afterAction(){
   if(!_B)return;
-  // status ticks on all at end of action lightly
+  if(_B.mercyActive) return;
+  if(drainMercyQueue()) return;
   checkEnd();
   if(_B.done)return;
   refreshUI();
-  // small delay feel via rAF chain
   requestAnimationFrame(()=>setTimeout(()=>advanceUntilPlayer(),180));
 }
 
 function checkEnd(){
   if(!_B||_B.done)return;
+  if(_B.mercyActive || (_B.mercyQueue&&_B.mercyQueue.length)) return;
   if(!living(_B.foes).length){ finish('win'); return }
   if(!living(_B.party).length || !_B.party[0].alive){ finish('lose'); return }
 }
@@ -274,9 +433,9 @@ function finish(result){
 
 function buildSummary(result){
   const B=_B;
-  const killed=B.foes.filter(f=>!f.alive && f._ended!=='spared' && f._ended!=='surrender' && f._ended!=='fled' && f._ended!=='auto_flee' && !f._surrendered && (f.hp<=0));
-  const spared=B.foes.filter(f=>f._ended==='spared'||f._surrendered||f._ended==='surrender'||f._ended==='fled');
-  const humans=killed.filter(f=>f.human);
+  const killed=B.foes.filter(f=>!f.alive && (f._ended==='killed'||f._ended==='auto_win'||(!f._ended && (f.hp<=0))) && f._ended!=='spared' && f._ended!=='ko' && f._ended!=='surrender' && f._ended!=='fled' && f._ended!=='auto_flee' && !f._surrendered);
+  const spared=B.foes.filter(f=>f._ended==='spared'||f._ended==='ko'||f._surrendered||f._ended==='surrender'||f._ended==='fled');
+  const humans=killed.filter(f=>f.human||f._storyNpc);
   const xp=killed.reduce((s,f)=>s+(f.exp||0),0);
   const gold=killed.reduce((s,f)=>s+(f.gold||0),0);
   const loot=[];
@@ -340,17 +499,13 @@ function applyRewards(B, result, summary){
         const e=ENEMIES[id]; if(e&&Codex?.study) Codex.study(S,e.name,'bestiary');
       }
     }catch(_){}
-    // crime for human kills
+    // Story NPC Finish already ran killNPC during mercy. Generic humanoids get heat. KO/spare already ledgered.
     try{
       const Sim=window.__game?.Sim;
-      for(const name of summary.humansKilled){
-        // Do NOT call killNPC / do not mark world NPCs dead here — story death stays on killNPC path only.
-        // Crime heat still rises for killing humanoid foes in battle (bandits etc.).
-        if(S.world?.npcs?.[name]){
-          // Story NPC survived mechanically unless player used kill verb outside — mark wound only
-          S.world.npcs[name].mood='verletzt';
-          Sim?.ledgerPush?.(S,{type:'battle',who:S.pc?.name||'Du',what:`Im Kampf besiegt (nicht getötet): ${name}.`,where:S.world?.scene?.ort,importance:55,emotion:'angespannt',meta:{battle:true,storyNpc:true}});
-        } else {
+      for(const f of B.foes){
+        const name=storyNpcName(f)||f.name;
+        if(f._ended==='killed' && f._killApplied) continue; // permanent death via killNPC done
+        if(f._ended==='killed' && (f.human||f._storyNpc) && !S.world?.npcs?.[name]){
           if(Sim?.ledgerPush) Sim.ledgerPush(S,{type:'kill',who:S.pc?.name||'Du',what:`Im Kampf getötet: ${name}.`,where:S.world?.scene?.ort,importance:80,emotion:'kalt',meta:{battle:true,human:true}});
           S.heat=(S.heat|0)+8;
           S.wanted=S.wanted||[]; if(!S.wanted.includes(name)) S.wanted.push(name);
@@ -385,6 +540,23 @@ export function playerCommand(cmd, payload={}){
   if(cmd==='threaten'){ return doThreaten(actor, payload.targetId) }
   if(cmd==='auto'){ return doAutoResolve(actor) }
   if(cmd==='freetext'){ return doFreeText(actor, payload.text||'') }
+  if(cmd==='mercy'){ return doMercyCmd(payload.choice, payload.targetId) }
+}
+function doMercyCmd(choice, targetId){
+  if(!_B) return;
+  const foe=_B.foes.find(f=>f._iid===targetId||f.id===targetId||f.name===targetId)
+    || _B.foes.find(f=>f._downed && !f._mercyResolved);
+  if(!foe) return;
+  applyMercyDecision(_B.S, foe, choice);
+  const sheet=el('mercySheet'); if(sheet) sheet.remove();
+  _B.mercyActive=false;
+  (_B.mercyQueue||[]).shift();
+  if(drainMercyQueue()) return;
+  checkEnd();
+  if(_B && !_B.done){
+    refreshUI();
+    requestAnimationFrame(()=>setTimeout(()=>advanceUntilPlayer(),180));
+  }
 }
 
 function pickTarget(id, enemies=true){
@@ -487,8 +659,14 @@ function resolveHit(attacker, target, skill){
   flashUnit(target,'hit');
   if(skill.status && Math.random()<(skill.statusChance||0.35)){ applyStatus(target, skill.status, 3); _B.log.push(`${target.name}: ${skill.status}!`) }
   if(target.hp<=0){
-    target.alive=false; target.hp=0; _B.log.push(`${target.name} besiegt!`);
-    // boss phases before death already handled when crossing thresholds
+    target.alive=false; target.hp=0;
+    if(mercyNeeded(target, _B.S) && target.kind!=='hero' && target.kind!=='companion'){
+      _B.log.push(`${target.name} liegt am Boden!`);
+      enqueueMercy(target);
+    } else {
+      target._ended=target._ended||'killed';
+      _B.log.push(`${target.name} besiegt!`);
+    }
   } else if(target.boss && target.phases){
     const ratio=target.hp/target.maxhp;
     while(target.phaseIdx<target.phases.length && ratio<=target.phases[target.phaseIdx].at){
@@ -576,8 +754,15 @@ function doAutoResolve(actor){
   const winChance=clamp(0.45+(S.st?.str||0)/100+(S.st?.cha||0)/120+(partyPow/100),0.2,0.92);
   _B.log.push('Auto-Auflösung…');
   if(Math.random()<winChance){
-    for(const f of living(_B.foes)){ f.hp=0; f.alive=false; f._ended='auto_win' }
-    _B.log.push('Der Konflikt endet schnell zu euren Gunsten.');
+    for(const f of living(_B.foes)){
+      if(isStoryNpcFoe(f, S)){
+        // Auto never finishes a story NPC — KO only (player must choose Finish for permadeath)
+        applyMercyDecision(S, f, 'ko');
+      } else {
+        f.hp=0; f.alive=false; f._ended='auto_win';
+      }
+    }
+    _B.log.push('Der Konflikt endet schnell zu euren Gunsten (Story-NPCs: KO, nicht getötet).');
     finish('win');
   } else if(Math.random()<0.5){
     for(const f of living(_B.foes)){ f._ended='auto_flee'; f.alive=false; f.hp=Math.max(1,f.hp) }
@@ -975,6 +1160,7 @@ function resolveNonCombat(S, foes, choice, text){
 
 export default {
   startBattle, isActive, getBattle, playerCommand, buildParty, renderBattleUI,
-  maybeRandomEncounter, offerEncounter, COMBAT_SKILLS
+  maybeRandomEncounter, offerEncounter, COMBAT_SKILLS,
+  isStoryNpcFoe, storyNpcName, mercyNeeded, applyMercyDecision
 };
 
