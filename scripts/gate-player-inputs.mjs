@@ -108,7 +108,7 @@ const report={paths:{}, samples:{}};
 let server, browser, page;
 
 async function boot(role, name){
-  await page.goto(`http://127.0.0.1:${PORT}/index.html?v=20.1&gate=1`,{waitUntil:'domcontentloaded',timeout:60000});
+  await page.goto(`http://127.0.0.1:${PORT}/index.html?v=21&gate=1`,{waitUntil:'domcontentloaded',timeout:60000});
   await page.evaluate(()=>localStorage.clear());
   await page.reload({waitUntil:'networkidle0',timeout:60000});
   await page.waitForFunction(()=>window.__game&&window.__game.newLife,{timeout:30000});
@@ -118,7 +118,7 @@ async function boot(role, name){
     const g=window.__game;
     await g.newLife(role,{lives:0,soul:0,keptSkills:[]},{skipSetup:true,name});
     if(g.S.setup&&!g.S.setup.done){g.S.setup.done=true; try{g.enterPlay()}catch(_){}}
-    g.S.ver='20.1'; g.S.romance={}; g.S.turn=Math.min(g.S.turn|0,5);
+    g.S.ver='21'; g.S.romance={}; g.S.turn=Math.min(g.S.turn|0,5);
     const sc=g.S.world?.scene;
     if(sc&&(!sc.anwesend||!sc.anwesend.length)){
       const names=Object.keys(g.S.world.npcs||{}).filter(n=>g.S.world.npcs[n].alive!==false).slice(0,3);

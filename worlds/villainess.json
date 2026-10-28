@@ -1,595 +1,763 @@
 {
- "id": "villainess",
- "titel": "Akademie von Lumière",
- "ton": "Otome-Isekai: Intrigen, Teepartys, scharfe Dialoge, System-Romanwissen. Elegant, spannungsgeladen, mit Momenten von Verletzlichkeit.",
- "geschichte": "Das Kaiserreich Solenne wird vom Kaiserhaus und sieben Herzogsfamilien gelenkt. Die Akademie von Lumière erzieht Erben. Im Roman 'Rosen & Guillotine' stirbt Lady Rosalind Ashcroft nach einem Skandaljahr – hingerichtet im Ballsaal. Du kennst das Ende.",
- "magie": "Hofmagie: Etikette als Ritual, Vertragszauber, leichte Illusionskunst. Romanwissen ist eine einzigartige Fähigkeit: Du erinnerst Szenen, Namen, Wendungen – aber Abweichungen kosten Klarheit.",
- "kultur": "Fächer, Handküsse, Duellkodex. Tee um 15 Uhr. Gerüchte sind Währung. Die Kirche der Lilie segnet Verlobungen und Verurteilungen.",
- "alltag": "Vorlesungen, Reitstunden, Teepartys, Nachtbriefe. Diener wissen mehr als Professoren. Strafen: Hausarrest, Duell, Verbannung.",
- "regionen": {
-  "Akademie-Campus": "Rosenstein, Hörsäle, Bibliothek mit verbotener Galerie.",
-  "Rosengarten": "Ort der Teepartys und Skandale. Weiße Rosen für Unschuld, rote für Warnung.",
-  "Ballsaal": "In 365 Tagen: Verurteilung. Kristalllüster, Guillotinen-Gerücht ist Metapher – und Drohung.",
-  "Ashcroft-Villa": "Rosalinds Familie: Schulden, Stolz, kalte Mütter.",
-  "Hauptstadt Solenne": "Kaiserpalast, Zeitung 'Lilienblatt', Unterwelt der Informanten.",
-  "Nordkloster": "Zuflucht oder Verbannung für gefallene Ladies."
- },
- "politik": "Kaiserin-Witwe gegen Kronprinz Julian. Herzog Ashcroft braucht die Verlobung. Mira ist 'die Heilige des Volkes' – politisch nützlich.",
- "setup": [
-  {
-   "id": "tod",
-   "titel": "Lastwagen & Light Novel",
-   "text": "Ein Knall. Das Letzte, was du denkst, während die Scheinwerfer dich füllen…",
-   "choices": [
+  "id": "villainess",
+  "titel": "Akademie von Lumière",
+  "ton": "Otome-Isekai: Intrigen, Teepartys, scharfe Dialoge, System-Romanwissen. Elegant, spannungsgeladen, mit Momenten von Verletzlichkeit.",
+  "geschichte": "Das Kaiserreich Solenne wird vom Kaiserhaus und sieben Herzogsfamilien gelenkt. Die Akademie von Lumière erzieht Erben. Im Roman 'Rosen & Guillotine' stirbt Lady Rosalind Ashcroft nach einem Skandaljahr – hingerichtet im Ballsaal. Du kennst das Ende.",
+  "magie": "Hofmagie: Etikette als Ritual, Vertragszauber, leichte Illusionskunst. Romanwissen ist eine einzigartige Fähigkeit: Du erinnerst Szenen, Namen, Wendungen – aber Abweichungen kosten Klarheit.",
+  "kultur": "Fächer, Handküsse, Duellkodex. Tee um 15 Uhr. Gerüchte sind Währung. Die Kirche der Lilie segnet Verlobungen und Verurteilungen.",
+  "alltag": "Vorlesungen, Reitstunden, Teepartys, Nachtbriefe. Diener wissen mehr als Professoren. Strafen: Hausarrest, Duell, Verbannung.",
+  "regionen": {
+    "Akademie-Campus": "Rosenstein, Hörsäle, Bibliothek mit verbotener Galerie.",
+    "Rosengarten": "Ort der Teepartys und Skandale. Weiße Rosen für Unschuld, rote für Warnung.",
+    "Ballsaal": "In 365 Tagen: Verurteilung. Kristalllüster, Guillotinen-Gerücht ist Metapher – und Drohung.",
+    "Ashcroft-Villa": "Rosalinds Familie: Schulden, Stolz, kalte Mütter.",
+    "Hauptstadt Solenne": "Kaiserpalast, Zeitung 'Lilienblatt', Unterwelt der Informanten.",
+    "Nordkloster": "Zuflucht oder Verbannung für gefallene Ladies."
+  },
+  "politik": "Kaiserin-Witwe gegen Kronprinz Julian. Herzog Ashcroft braucht die Verlobung. Mira ist 'die Heilige des Volkes' – politisch nützlich.",
+  "setup": [
     {
-     "id": "otome",
-     "label": "„Ich hab' das Otome-Spiel nicht durchgespielt“",
-     "past": "Du kanntest den Plot nur bis Kapitel 12."
+      "id": "tod",
+      "titel": "Lastwagen & Light Novel",
+      "text": "Ein Knall. Das Letzte, was du denkst, während die Scheinwerfer dich füllen…",
+      "choices": [
+        {
+          "id": "otome",
+          "label": "„Ich hab' das Otome-Spiel nicht durchgespielt“",
+          "past": "Du kanntest den Plot nur bis Kapitel 12."
+        },
+        {
+          "id": "hate",
+          "label": "„Die Villainess wurde unfair behandelt“",
+          "past": "Du fandest Rosalind immer missverstanden."
+        },
+        {
+          "id": "mira",
+          "label": "„Mira war zu perfect – verdächtig“",
+          "past": "Du misstrautest der Heldin schon im Buch."
+        },
+        {
+          "id": "meta",
+          "label": "„Bitte kein Isekai…“",
+          "past": "Du hast genau das befürchtet – und bist mittendrin."
+        }
+      ]
     },
     {
-     "id": "hate",
-     "label": "„Die Villainess wurde unfair behandelt“",
-     "past": "Du fandest Rosalind immer missverstanden."
+      "id": "erwachen",
+      "titel": "Spiegel",
+      "text": "Goldrahmen. Blutrote Locken. Ein arroganter Mund. In der Hand: ein Seidenfächer.\n\n[SYSTEM] Romanwissen · Tage bis Untergang: 365\n\nWas prüfst du zuerst?",
+      "choices": [
+        {
+          "id": "face",
+          "label": "Das Gesicht im Spiegel",
+          "focus": "identität"
+        },
+        {
+          "id": "system",
+          "label": "Das Systemfenster",
+          "focus": "system"
+        },
+        {
+          "id": "room",
+          "label": "Das Gemach nach Hinweisen",
+          "focus": "umgebung"
+        },
+        {
+          "id": "memory",
+          "label": "Romanwissen nach Kapitel 1",
+          "focus": "plot"
+        }
+      ]
     },
     {
-     "id": "mira",
-     "label": "„Mira war zu perfect – verdächtig“",
-     "past": "Du misstrautest der Heldin schon im Buch."
+      "id": "name",
+      "titel": "Wer bist du?",
+      "text": "Du bist Lady Rosalind – äußerlich. Innerlich du. Wie trittst du auf?",
+      "choices": [
+        {
+          "id": "rosa",
+          "label": "Als Rosalind spielen (Maske)",
+          "nameMode": "mask"
+        },
+        {
+          "id": "honest",
+          "label": "So ehrlich wie möglich sein",
+          "nameMode": "honest"
+        },
+        {
+          "id": "rewrite",
+          "label": "Den Roman umschreiben",
+          "nameMode": "rewrite"
+        }
+      ]
     },
     {
-     "id": "meta",
-     "label": "„Bitte kein Isekai…“",
-     "past": "Du hast genau das befürchtet – und bist mittendrin."
+      "id": "npc",
+      "titel": "Kapitel 1 – der Tee",
+      "text": "Die Tür fliegt auf. Kronprinz Julian, hinter ihm Mira mit verschüttetem Tee.\n„Rosalind! Hast du Mira schon WIEDER gestoßen? Erklär dich – sofort.“\n(Exakt die Szene, mit der alles schiefgeht.)",
+      "choices": [
+        {
+          "id": "apologize",
+          "label": "Sich entschuldigen und Mira helfen",
+          "impression": "anders",
+          "aff": {
+            "Heldin Mira": 10,
+            "Kronprinz Julian": -5
+          }
+        },
+        {
+          "id": "truth",
+          "label": "Sagen, dass Mira gestolpert ist (Romanwissen)",
+          "impression": "schlau",
+          "aff": {
+            "Ritter Cedric": 5,
+            "Kronprinz Julian": -8
+          }
+        },
+        {
+          "id": "deflect",
+          "label": "Mit Eleganz ablenken",
+          "impression": "hof",
+          "aff": {
+            "Kronprinz Julian": 2,
+            "Lady Vivienne": 5
+          }
+        },
+        {
+          "id": "silence",
+          "label": "Schweigen und den Fächer heben",
+          "impression": "kalt",
+          "aff": {
+            "Kronprinz Julian": -10,
+            "Ritter Cedric": 3
+          }
+        }
+      ]
     }
-   ]
+  ],
+  "arc": {
+    "titel": "Rosen gegen die Guillotine",
+    "acts": [
+      {
+        "id": "a1",
+        "titel": "365 Tage",
+        "ziel": "Den ersten Skandal überleben und Verbündete finden",
+        "mile": [
+          "Teeszene entschärft",
+          "Cedric als Anker",
+          "Romanwissen genutzt"
+        ],
+        "twist": "Mira erinnert sich an 'Träume' – Fragmente des Romans."
+      },
+      {
+        "id": "a2",
+        "titel": "Salon und Dolch",
+        "ziel": "Die Intrige der Lady Vivienne entlarven",
+        "mile": [
+          "Ball der Lilien",
+          "Beweisstück",
+          "Julian zweifelt"
+        ],
+        "twist": "Ashcroft-Schulden wurden absichtlich erzeugt."
+      },
+      {
+        "id": "a3",
+        "titel": "Die Heilige",
+        "ziel": "Miras Geheimnis verstehen – Feindin oder Spiegel?",
+        "mile": [
+          "Nachtgespräch",
+          "Kirche mischt sich ein",
+          "Duellforderung"
+        ],
+        "twist": "Mira ist keine reine Heldin; jemand schreibt an ihrem Ruf."
+      },
+      {
+        "id": "a4",
+        "titel": "Ballsaal",
+        "ziel": "Verurteilung verhindern oder umdeuten",
+        "mile": [
+          "Öffentliche Rede",
+          "Kaiserin-Witwe",
+          "Neues Ende"
+        ],
+        "twist": "Das 'System' ist ein Fluch der ersten Villainess – und will Wiederholung."
+      }
+    ]
   },
-  {
-   "id": "erwachen",
-   "titel": "Spiegel",
-   "text": "Goldrahmen. Blutrote Locken. Ein arroganter Mund. In der Hand: ein Seidenfächer.\n\n[SYSTEM] Romanwissen · Tage bis Untergang: 365\n\nWas prüfst du zuerst?",
-   "choices": [
+  "sideQuests": [
     {
-     "id": "face",
-     "label": "Das Gesicht im Spiegel",
-     "focus": "identität"
+      "id": "sq_cedric",
+      "titel": "Schatten des Ritters",
+      "ziel": "Erfahre Cedrics Schwur",
+      "npc": "Ritter Cedric"
     },
     {
-     "id": "system",
-     "label": "Das Systemfenster",
-     "focus": "system"
+      "id": "sq_viv",
+      "titel": "Giftige Lilie",
+      "ziel": "Stoppe Viviennes Gerüchteküche",
+      "npc": "Lady Vivienne"
     },
     {
-     "id": "room",
-     "label": "Das Gemach nach Hinweisen",
-     "focus": "umgebung"
+      "id": "sq_prof",
+      "titel": "Verbotene Galerie",
+      "ziel": "Finde die Ursprungsausgabe des Romans",
+      "npc": "Professor Alden"
     },
     {
-     "id": "memory",
-     "label": "Romanwissen nach Kapitel 1",
-     "focus": "plot"
+      "id": "sq_mira",
+      "titel": "Zu nette Lügen",
+      "ziel": "Hilf Mira bei einem echten Problem",
+      "npc": "Heldin Mira"
     }
-   ]
-  },
-  {
-   "id": "name",
-   "titel": "Wer bist du?",
-   "text": "Du bist Lady Rosalind – äußerlich. Innerlich du. Wie trittst du auf?",
-   "choices": [
-    {
-     "id": "rosa",
-     "label": "Als Rosalind spielen (Maske)",
-     "nameMode": "mask"
+  ],
+  "romanceable": [
+    "Ritter Cedric",
+    "Kronprinz Julian",
+    "Heldin Mira",
+    "Professor Alden"
+  ],
+  "npcs": {
+    "Kronprinz Julian": {
+      "e": "🗡️",
+      "art": "Kalt, selbstgerecht, scharfe Zunge; unter Druck weicher als er zeigt.",
+      "stimme": "Schneidend: „Rosalind!“ „Erklär dich – sofort.“",
+      "ziel": "Die Verlobung lösen, ohne den Hof zu demütigen.",
+      "furcht": "Eine Marionette der Kaiserin-Witwe zu bleiben.",
+      "geheim": "Hasst die arrangierte Politik mehr als Rosalind selbst.",
+      "ort": "Akademie / Palast",
+      "plan": [
+        "Dich bloßstellen",
+        "Mira schützen",
+        "Sich dem Rat widersetzen"
+      ],
+      "meinung": {
+        "Heldin Mira": "idealisierte Zuflucht",
+        "Ritter Cedric": "zu loyal zu Rosalind",
+        "Lady Vivienne": "nützliche Zunge"
+      },
+      "romance": true,
+      "geschlecht": "m",
+      "schedule": [
+        "Morgen: Akademie / Palast",
+        "Mittag: Akademie / Palast",
+        "Abend: Akademie / Palast",
+        "Nacht: ruht nahe Akademie "
+      ],
+      "adult": true,
+      "backstory": "Kalt, selbstgerecht, scharfe Zunge; unter Druck weicher als er zeigt.",
+      "samples": [
+        "Rosalind!“ "
+      ]
     },
-    {
-     "id": "honest",
-     "label": "So ehrlich wie möglich sein",
-     "nameMode": "honest"
+    "Heldin Mira": {
+      "e": "🌸",
+      "art": "Überfreundlich, tollpatschig, entschuldigt sich; beobachtet mehr, als sie zeigt.",
+      "stimme": "Weich: „Es tut mir so leid!“ „Wir können Freundinnen sein… oder?“",
+      "ziel": "Von allen gemocht werden – und überleben.",
+      "furcht": "Dass Liebe und Hass dasselbe Kostüm tragen.",
+      "geheim": "Träumt Szenen aus dem Roman; weiß nicht, warum.",
+      "ort": "Campus / Rosengarten",
+      "plan": [
+        "Sich entschuldigen",
+        "Dich meiden oder annähern",
+        "Bei Julian Schutz suchen"
+      ],
+      "meinung": {
+        "Kronprinz Julian": "schwärmt",
+        "Lady Vivienne": "fürchtet sie",
+        "Ritter Cedric": "respektiert"
+      },
+      "romance": true,
+      "geschlecht": "w",
+      "schedule": [
+        "Morgen: Campus / Rosengarten",
+        "Mittag: Campus / Rosengarten",
+        "Abend: Campus / Rosengarten",
+        "Nacht: ruht nahe Campus "
+      ],
+      "adult": true,
+      "backstory": "Überfreundlich, tollpatschig, entschuldigt sich; beobachtet mehr, als sie zeigt.",
+      "samples": [
+        "Es tut mir so leid!“ "
+      ]
     },
-    {
-     "id": "rewrite",
-     "label": "Den Roman umschreiben",
-     "nameMode": "rewrite"
+    "Ritter Cedric": {
+      "e": "🛡️",
+      "art": "Still, kurze Sätze, immer einen Schritt hinter dir. Loyal bis zum Ruin.",
+      "stimme": "Leise: „Zu Befehl.“ „Ich bin hier.“",
+      "ziel": "Rosalind beschützen, egal was der Hof sagt.",
+      "furcht": "Versagen wie bei einem früheren Schützling.",
+      "geheim": "Schwärmt heimlich; sein Schwur bindet ihn magisch.",
+      "ort": "Deine Nähe",
+      "plan": [
+        "Wache",
+        "Warnen",
+        "Für dich kämpfen"
+      ],
+      "meinung": {
+        "Kronprinz Julian": "misstraut",
+        "Heldin Mira": "neutral-warm"
+      },
+      "romance": true,
+      "geschlecht": "m",
+      "schedule": [
+        "Morgen: Deine Nähe",
+        "Mittag: Deine Nähe",
+        "Abend: Deine Nähe",
+        "Nacht: ruht nahe Deine Nähe"
+      ],
+      "adult": true,
+      "backstory": "Still, kurze Sätze, immer einen Schritt hinter dir. Loyal bis zum Ruin.",
+      "samples": [
+        "Zu Befehl.“ "
+      ]
+    },
+    "Lady Vivienne": {
+      "e": "🦚",
+      "art": "Lächelnde Rivalin, sammelt Geheimnisse wie Schmuck.",
+      "stimme": "Süß-giftig: „Oh, Rosalind… was für ein Kleid.“",
+      "ziel": "Ashcroft ersetzen und Julian beeinflussen.",
+      "furcht": "Selbst Skandalopfer zu werden.",
+      "geheim": "Erpresst einen Professor mit Liebesbriefen.",
+      "ort": "Salons",
+      "plan": [
+        "Gerüchte",
+        "Teeparty-Fallen",
+        "Dich isolieren"
+      ],
+      "meinung": {
+        "Heldin Mira": "Werkzeug",
+        "Kronprinz Julian": "Trophäe"
+      },
+      "romance": false,
+      "geschlecht": "w",
+      "schedule": [
+        "Morgen: Salons",
+        "Mittag: Salons",
+        "Abend: Salons",
+        "Nacht: ruht nahe Salons"
+      ],
+      "adult": true,
+      "backstory": "Lächelnde Rivalin, sammelt Geheimnisse wie Schmuck."
+    },
+    "Professor Alden": {
+      "e": "📚",
+      "art": "Zerstreuter Literaturdozent, liebt Fußnoten mehr als Menschen.",
+      "stimme": "Akademisch: „Interessant. Laut Ausgabe B…“",
+      "ziel": "Die Ursprungsausgabe von 'Rosen & Guillotine' finden.",
+      "furcht": "Dass Geschichten Menschen töten können.",
+      "geheim": "Besitzt eine Seite, die deinen Namen in moderner Schrift trägt.",
+      "ort": "Bibliothek",
+      "plan": [
+        "Forschen",
+        "Dich befragen",
+        "Vivienne ausweichen"
+      ],
+      "meinung": {
+        "Lady Vivienne": "Gefahr"
+      },
+      "romance": true,
+      "geschlecht": "m",
+      "schedule": [
+        "Morgen: Bibliothek",
+        "Mittag: Bibliothek",
+        "Abend: Bibliothek",
+        "Nacht: ruht nahe Bibliothek"
+      ],
+      "adult": true,
+      "backstory": "Zerstreuter Literaturdozent, liebt Fußnoten mehr als Menschen."
+    },
+    "Herzogin Ashcroft": {
+      "e": "💍",
+      "art": "Kalte Mutter, rechnet in Mitgiften und Allianzen.",
+      "stimme": "Eisig: „Eine Ashcroft entschuldigt sich nicht. Sie korrigiert.“",
+      "ziel": "Die Verlobung retten.",
+      "furcht": "Ruins und Spott.",
+      "geheim": "Hat Schulden an die Kirche der Lilie verkauft.",
+      "ort": "Villa / Briefe",
+      "plan": [
+        "Dich unter Druck setzen",
+        "Julian umwerben"
+      ],
+      "meinung": {
+        "Kronprinz Julian": "Notwendigkeit"
+      },
+      "romance": false,
+      "geschlecht": "w",
+      "schedule": [
+        "Morgen: Villa / Briefe",
+        "Mittag: Villa / Briefe",
+        "Abend: Villa / Briefe",
+        "Nacht: ruht nahe Villa "
+      ],
+      "adult": true,
+      "backstory": "Kalte Mutter, rechnet in Mitgiften und Allianzen."
+    },
+    "Dienerin Lotte": {
+      "e": "🕯️",
+      "art": "Ruhig, hört alles, sagt wenig. Kennt geheime Gänge.",
+      "stimme": "Demütig: „Milady… es gibt etwas.“",
+      "ziel": "Dich am Leben halten – aus Zuneigung und Angst.",
+      "furcht": "Mit dir zu fallen.",
+      "geheim": "Arbeitete kurz für Vivienne als Informantin, hat gewechselt.",
+      "ort": "Dein Gemach",
+      "plan": [
+        "Warnen",
+        "Tee bringen",
+        "Briefe abfangen"
+      ],
+      "meinung": {
+        "Ritter Cedric": "vertraut"
+      },
+      "romance": false,
+      "geschlecht": "w",
+      "schedule": [
+        "Morgen: Dein Gemach",
+        "Mittag: Dein Gemach",
+        "Abend: Dein Gemach",
+        "Nacht: ruht nahe Dein Gemach"
+      ],
+      "adult": true,
+      "backstory": "Ruhig, hört alles, sagt wenig. Kennt geheime Gänge."
+    },
+    "Kaiserin-Witwe": {
+      "e": "👑",
+      "art": "Selten sichtbar, immer spürbar. Politik als Schach.",
+      "stimme": "Ruhig: „Das Reich braucht eine Geschichte. Sei sie.“",
+      "ziel": "Julian formbar halten.",
+      "furcht": "Einen unkontrollierbaren Heldenmythos.",
+      "geheim": "Kennt das 'System' als alten Fluch.",
+      "ort": "Palast",
+      "plan": [
+        "Beobachten",
+        "Urteile vorbereiten"
+      ],
+      "meinung": {
+        "Kronprinz Julian": "Enkel/Schützling-komplex"
+      },
+      "romance": false,
+      "geschlecht": "w",
+      "schedule": [
+        "Morgen: Palast",
+        "Mittag: Palast",
+        "Abend: Palast",
+        "Nacht: ruht nahe Palast"
+      ],
+      "adult": true,
+      "backstory": "Selten sichtbar, immer spürbar. Politik als Schach."
+    },
+    "Gouvernante Madame Pell": {
+      "e": "👒",
+      "art": "Streng, altmodisch, weiß jedes Gerücht drei Tage früher.",
+      "stimme": "„Haltung, Mademoiselle.“",
+      "ziel": "Dich hofgeeignet machen.",
+      "furcht": "Skandal.",
+      "geheim": "War selbst eine Skandalnudel.",
+      "ort": "Salon der Rose",
+      "plan": [
+        "Erziehen",
+        "Korrigieren"
+      ],
+      "meinung": {},
+      "romance": false,
+      "geschlecht": "w",
+      "backstory": "Diente drei Kaiserinnen.",
+      "wound": "Verlorene Liebe am Hof.",
+      "desire": "Eine würdige Schülerin",
+      "need": "Respekt",
+      "samples": [
+        "Haltung, Mademoiselle."
+      ]
+    },
+    "Schneiderin Faye": {
+      "e": "🧵",
+      "art": "Leise, genial mit Nadel, hört beim Maßnehmen mehr als erlaubt.",
+      "stimme": "„Stoff hält länger als Versprechen.“",
+      "ziel": "Das Ballkleid das den Hof stoppt.",
+      "furcht": "Schulden.",
+      "geheim": "Näht Geheimtaschen für Spione.",
+      "ort": "Stadtgasse",
+      "plan": [
+        "Nähen",
+        "Zuhören"
+      ],
+      "meinung": {},
+      "romance": false,
+      "geschlecht": "w",
+      "backstory": "Aus der Unterstadt.",
+      "wound": "Fingervernarbung.",
+      "desire": "Eigene Boutique",
+      "need": "Seide",
+      "samples": [
+        "Stoff hält länger als Versprechen."
+      ]
+    },
+    "Journalist Renard": {
+      "e": "📰",
+      "art": "Charmant, gefährlich neugierig, lächelt zu viel.",
+      "stimme": "„Nur ein Zitat – anonym natürlich.“",
+      "ziel": "Die Story die den Hof sprengt.",
+      "furcht": "Zensur mit Klinge.",
+      "geheim": "Bezahlt von Ashcroft.",
+      "ort": "Akademiehof Lumière",
+      "plan": [
+        "Fragen",
+        "Drucken"
+      ],
+      "meinung": {
+        "Herzogin Ashcroft": "Auftraggeberin"
+      },
+      "romance": true,
+      "geschlecht": "m",
+      "backstory": "Ex-Student, rausgeworfen.",
+      "wound": "Schlag auf die Pressefreiheit.",
+      "desire": "Wahrheit die verkauft",
+      "need": "Quellen",
+      "samples": [
+        "Nur ein Zitat – anonym natürlich."
+      ]
+    },
+    "Kammerdiener Otto Voss": {
+      "e": "🪞",
+      "art": "Unsichtbar bis er gebraucht wird, dann unersetzlich.",
+      "stimme": "„Wie der Herr wünscht.“",
+      "ziel": "Überleben indem er nützlich bleibt.",
+      "furcht": "Überflüssig werden.",
+      "geheim": "Kennt Julians geheime Briefe.",
+      "ort": "Speisesaal",
+      "plan": [
+        "Dienen",
+        "Beobachten"
+      ],
+      "meinung": {
+        "Kronprinz Julian": "loyal"
+      },
+      "romance": false,
+      "geschlecht": "m",
+      "backstory": "Seit Kindheit im Palast.",
+      "wound": "Keine.",
+      "desire": "Ruhestand mit Pension",
+      "need": "Unsichtbarkeit",
+      "samples": [
+        "Wie der Herr wünscht."
+      ]
+    },
+    "Rivalin Lady Seraphine": {
+      "e": "💎",
+      "art": "Strahlend, giftig, sammelt Allianzen wie Schmuck.",
+      "stimme": "„Was für ein… mutiges Kleid.“",
+      "ziel": "Julian und den Thron-Einfluss.",
+      "furcht": "Dich.",
+      "geheim": "Erpresst Mira.",
+      "ort": "Ballsaal",
+      "plan": [
+        "Lächeln",
+        "Stoßen"
+      ],
+      "meinung": {
+        "Heldin Mira": "Nebenbuhlerin",
+        "Kronprinz Julian": "Ziel"
+      },
+      "romance": false,
+      "geschlecht": "w",
+      "backstory": "Haus Seraphine, verschuldet.",
+      "wound": "Öffentliche Blamage vor drei Jahren.",
+      "desire": "Krone neben der Krone",
+      "need": "Skandale über andere",
+      "samples": [
+        "Was für ein… mutiges Kleid."
+      ]
     }
-   ]
   },
-  {
-   "id": "npc",
-   "titel": "Kapitel 1 – der Tee",
-   "text": "Die Tür fliegt auf. Kronprinz Julian, hinter ihm Mira mit verschüttetem Tee.\n„Rosalind! Hast du Mira schon WIEDER gestoßen? Erklär dich – sofort.“\n(Exakt die Szene, mit der alles schiefgeht.)",
-   "choices": [
+  "startItems": [
     {
-     "id": "apologize",
-     "label": "Sich entschuldigen und Mira helfen",
-     "impression": "anders",
-     "aff": {
-      "Heldin Mira": 10,
-      "Kronprinz Julian": -5
-     }
+      "id": "fan",
+      "name": "Seidenfächer",
+      "icon": "🪭",
+      "desc": "Waffe der Etikette. Kann blenden oder schlagen.",
+      "type": "weapon",
+      "equip": true
     },
     {
-     "id": "truth",
-     "label": "Sagen, dass Mira gestolpert ist (Romanwissen)",
-     "impression": "schlau",
-     "aff": {
-      "Ritter Cedric": 5,
-      "Kronprinz Julian": -8
-     }
+      "id": "diary",
+      "name": "Tagebuch der Zukunft",
+      "icon": "📔",
+      "desc": "Romanwissen: Stichpunkte zu kommenden Szenen.",
+      "type": "key"
     },
     {
-     "id": "deflect",
-     "label": "Mit Eleganz ablenken",
-     "impression": "hof",
-     "aff": {
-      "Kronprinz Julian": 2,
-      "Lady Vivienne": 5
-     }
-    },
-    {
-     "id": "silence",
-     "label": "Schweigen und den Fächer heben",
-     "impression": "kalt",
-     "aff": {
-      "Kronprinz Julian": -10,
-      "Ritter Cedric": 3
-     }
+      "id": "tea_set",
+      "name": "Porzellantasse",
+      "icon": "🍵",
+      "desc": "Für Entschuldigungen und Giftprüfungen.",
+      "type": "tool"
     }
-   ]
+  ],
+  "startSkills": [
+    {
+      "id": "roman",
+      "name": "Romanwissen",
+      "icon": "📖",
+      "desc": "Einmal pro Szene: Hinweis auf Plot-Wende.",
+      "level": 1,
+      "cost": 10,
+      "cd": 1
+    },
+    {
+      "id": "fan_strike",
+      "name": "Eleganter Fächerhieb",
+      "icon": "🪭",
+      "desc": "Überrascht Adlige und Attentäter.",
+      "level": 1,
+      "cost": 5,
+      "cd": 0
+    }
+  ],
+  "startScene": {
+    "ort": "Salon der Rose",
+    "zeit": "Morgen, Sonnenlicht durch Spitzenvorhänge",
+    "anwesend": [
+      "Kronprinz Julian",
+      "Heldin Mira"
+    ]
+  },
+  "startEvents": [
+    "365 Tage bis zur Verurteilung im Ballsaal",
+    "Gerücht: Rosalind habe Mira gestoßen",
+    "Ashcroft-Schulden steigen"
+  ],
+  "locations": {
+    "nodes": {
+      "Salon der Rose": {
+        "desc": "Spiegel, Rosenwasser, tickende Uhren.",
+        "tags": [
+          "akademie",
+          "innen"
+        ],
+        "exits": [
+          "Akademiehof Lumière",
+          "Bibliothek",
+          "Rosengarten"
+        ],
+        "bg": "salon"
+      },
+      "Akademiehof Lumière": {
+        "desc": "Marmorbrunnen, Schüler in Uniform.",
+        "tags": [
+          "akademie",
+          "außen"
+        ],
+        "exits": [
+          "Salon der Rose",
+          "Bibliothek",
+          "Speisesaal",
+          "Stadtgasse"
+        ],
+        "bg": "akademie"
+      },
+      "Bibliothek": {
+        "desc": "Staubige Folianten, heimliche Notizen.",
+        "tags": [
+          "akademie",
+          "innen"
+        ],
+        "exits": [
+          "Akademiehof Lumière",
+          "Salon der Rose"
+        ],
+        "bg": "salon"
+      },
+      "Speisesaal": {
+        "desc": "Lange Tafeln, Flüstern, Blicke.",
+        "tags": [
+          "akademie",
+          "innen"
+        ],
+        "exits": [
+          "Akademiehof Lumière"
+        ],
+        "bg": "salon"
+      },
+      "Rosengarten": {
+        "desc": "Mondlicht, Dornen, geheime Treffen.",
+        "tags": [
+          "akademie",
+          "außen"
+        ],
+        "exits": [
+          "Salon der Rose",
+          "Stadtgasse"
+        ],
+        "bg": "garten"
+      },
+      "Stadtgasse": {
+        "desc": "Kutschen, Händler, Gerüchte über dich.",
+        "tags": [
+          "stadt",
+          "außen"
+        ],
+        "exits": [
+          "Akademiehof Lumière",
+          "Rosengarten",
+          "Ballsaal"
+        ],
+        "bg": "akademie"
+      },
+      "Ballsaal": {
+        "desc": "Kristalllüster, Masken, Intrigen.",
+        "tags": [
+          "stadt",
+          "innen"
+        ],
+        "exits": [
+          "Stadtgasse"
+        ],
+        "bg": "salon"
+      }
+    },
+    "start": "Salon der Rose"
+  },
+  "orte": {
+    "Salon der Rose": "Spiegel, Rosenwasser, tickende Uhren.",
+    "Akademiehof Lumière": "Marmorbrunnen, Schüler in Uniform.",
+    "Bibliothek": "Staubige Folianten, heimliche Notizen.",
+    "Speisesaal": "Lange Tafeln, Flüstern, Blicke.",
+    "Rosengarten": "Mondlicht, Dornen, geheime Treffen.",
+    "Stadtgasse": "Kutschen, Händler, Gerüchte über dich.",
+    "Ballsaal": "Kristalllüster, Masken, Intrigen.",
+    "Akademie-Campus": "Rosenstein, Hörsäle, Bibliothek mit verbotener Galerie.",
+    "Ashcroft-Villa": "Rosalinds Familie: Schulden, Stolz, kalte Mütter.",
+    "Hauptstadt Solenne": "Kaiserpalast, Zeitung 'Lilienblatt', Unterwelt der Informanten.",
+    "Nordkloster": "Zuflucht oder Verbannung für gefallene Ladies.",
+    "Nähstube Faye": "Seide, Kreide, Geheimnisse in den Säumen.",
+    "Pressehaus Lumière": "Tinte, Zensurstempel, feuchte Keller.",
+    "Seraphines Salon": "Spiegel, Süßwein, Fallen aus Komplimenten.",
+    "Julians Arbeitszimmer": "Karten, Siegel, ein Brief den er nicht sendet.",
+    "Akademie-Gewächshaus": "Feucht, grün, Küsse und Komplotte.",
+    "Damenlounge": "Fächer, Gelächter das schneidet.",
+    "Herrenclub": "Rauch, Wetten, Politik ohne Protokoll.",
+    "Opernloge": "Samt, Musik, Blicke die töten.",
+    "Studentenkneipe": "Billig, laut, echte Meinungen.",
+    "Hofapotheke": "Pulver, Gerüchte, Gift das Medizin heißt.",
+    "Reitstall der Akademie": "Pferde, Fluchtwege, heimliche Treffen.",
+    "Kapelle der Kaiserin": "Stille, Kerzen, Beichten mit Preis.",
+    "Archivturm": "Akten über Skandale die nie gedruckt wurden.",
+    "Balkon der Rosen": "Nachtluft, Intrigen im Flüstern.",
+    "Teehaus Chrysantheme": "Zeremonie, Gift in der Höflichkeit.",
+    "Ballvorbereitungsraum": "Puder, Panik, letzte Anpassungen.",
+    "Gartengeheimweg": "Hecken, Schritte die man nicht hören soll.",
+    "Professorenzimmer Alden": "Bücher, Kreide, väterliche Warnungen.",
+    "Kaiserinnen-Galerie": "Porträts die dich anstarren.",
+    "Schuldenbüro": "Zahlen, Schweiß, Seraphines Schatten.",
+    "Nachtmarkt der Akademiker": "Verbotene Bücher, billiger Wein.",
+    "Dachetage Bibliothek": "Staub, Mondlicht, Zuflucht.",
+    "Waschküche": "Dampf, Dienerklatsch, Wahrheit.",
+    "Duellwiese": "Nebel, Ehre, Blut das niemand sieht.",
+    "Botschafterpavillon": "Fremde Flaggen, teure Lügen.",
+    "Konservatorium": "Musik die zu ehrlich ist.",
+    "Iris' früheres Gemach": "Leer, Echo, was du warst.",
+    "Gerüchtebrunnen": "Münzen, Wünsche, Lügen die plätschern.",
+    "Tor zur Unterstadt": "Wo Titel weicher werden."
   }
- ],
- "arc": {
-  "titel": "Rosen gegen die Guillotine",
-  "acts": [
-   {
-    "id": "a1",
-    "titel": "365 Tage",
-    "ziel": "Den ersten Skandal überleben und Verbündete finden",
-    "mile": [
-     "Teeszene entschärft",
-     "Cedric als Anker",
-     "Romanwissen genutzt"
-    ],
-    "twist": "Mira erinnert sich an 'Träume' – Fragmente des Romans."
-   },
-   {
-    "id": "a2",
-    "titel": "Salon und Dolch",
-    "ziel": "Die Intrige der Lady Vivienne entlarven",
-    "mile": [
-     "Ball der Lilien",
-     "Beweisstück",
-     "Julian zweifelt"
-    ],
-    "twist": "Ashcroft-Schulden wurden absichtlich erzeugt."
-   },
-   {
-    "id": "a3",
-    "titel": "Die Heilige",
-    "ziel": "Miras Geheimnis verstehen – Feindin oder Spiegel?",
-    "mile": [
-     "Nachtgespräch",
-     "Kirche mischt sich ein",
-     "Duellforderung"
-    ],
-    "twist": "Mira ist keine reine Heldin; jemand schreibt an ihrem Ruf."
-   },
-   {
-    "id": "a4",
-    "titel": "Ballsaal",
-    "ziel": "Verurteilung verhindern oder umdeuten",
-    "mile": [
-     "Öffentliche Rede",
-     "Kaiserin-Witwe",
-     "Neues Ende"
-    ],
-    "twist": "Das 'System' ist ein Fluch der ersten Villainess – und will Wiederholung."
-   }
-  ]
- },
- "sideQuests": [
-  {
-   "id": "sq_cedric",
-   "titel": "Schatten des Ritters",
-   "ziel": "Erfahre Cedrics Schwur",
-   "npc": "Ritter Cedric"
-  },
-  {
-   "id": "sq_viv",
-   "titel": "Giftige Lilie",
-   "ziel": "Stoppe Viviennes Gerüchteküche",
-   "npc": "Lady Vivienne"
-  },
-  {
-   "id": "sq_prof",
-   "titel": "Verbotene Galerie",
-   "ziel": "Finde die Ursprungsausgabe des Romans",
-   "npc": "Professor Alden"
-  },
-  {
-   "id": "sq_mira",
-   "titel": "Zu nette Lügen",
-   "ziel": "Hilf Mira bei einem echten Problem",
-   "npc": "Heldin Mira"
-  }
- ],
- "romanceable": [
-  "Ritter Cedric",
-  "Kronprinz Julian",
-  "Heldin Mira",
-  "Professor Alden"
- ],
- "npcs": {
-  "Kronprinz Julian": {
-   "e": "🗡️",
-   "art": "Kalt, selbstgerecht, scharfe Zunge; unter Druck weicher als er zeigt.",
-   "stimme": "Schneidend: „Rosalind!“ „Erklär dich – sofort.“",
-   "ziel": "Die Verlobung lösen, ohne den Hof zu demütigen.",
-   "furcht": "Eine Marionette der Kaiserin-Witwe zu bleiben.",
-   "geheim": "Hasst die arrangierte Politik mehr als Rosalind selbst.",
-   "ort": "Akademie / Palast",
-   "plan": [
-    "Dich bloßstellen",
-    "Mira schützen",
-    "Sich dem Rat widersetzen"
-   ],
-   "meinung": {
-    "Heldin Mira": "idealisierte Zuflucht",
-    "Ritter Cedric": "zu loyal zu Rosalind",
-    "Lady Vivienne": "nützliche Zunge"
-   },
-   "romance": true,
-   "geschlecht": "m",
-   "schedule": [
-    "Morgen: Akademie / Palast",
-    "Mittag: Akademie / Palast",
-    "Abend: Akademie / Palast",
-    "Nacht: ruht nahe Akademie "
-   ],
-   "adult": true
-  },
-  "Heldin Mira": {
-   "e": "🌸",
-   "art": "Überfreundlich, tollpatschig, entschuldigt sich; beobachtet mehr, als sie zeigt.",
-   "stimme": "Weich: „Es tut mir so leid!“ „Wir können Freundinnen sein… oder?“",
-   "ziel": "Von allen gemocht werden – und überleben.",
-   "furcht": "Dass Liebe und Hass dasselbe Kostüm tragen.",
-   "geheim": "Träumt Szenen aus dem Roman; weiß nicht, warum.",
-   "ort": "Campus / Rosengarten",
-   "plan": [
-    "Sich entschuldigen",
-    "Dich meiden oder annähern",
-    "Bei Julian Schutz suchen"
-   ],
-   "meinung": {
-    "Kronprinz Julian": "schwärmt",
-    "Lady Vivienne": "fürchtet sie",
-    "Ritter Cedric": "respektiert"
-   },
-   "romance": true,
-   "geschlecht": "w",
-   "schedule": [
-    "Morgen: Campus / Rosengarten",
-    "Mittag: Campus / Rosengarten",
-    "Abend: Campus / Rosengarten",
-    "Nacht: ruht nahe Campus "
-   ],
-   "adult": true
-  },
-  "Ritter Cedric": {
-   "e": "🛡️",
-   "art": "Still, kurze Sätze, immer einen Schritt hinter dir. Loyal bis zum Ruin.",
-   "stimme": "Leise: „Zu Befehl.“ „Ich bin hier.“",
-   "ziel": "Rosalind beschützen, egal was der Hof sagt.",
-   "furcht": "Versagen wie bei einem früheren Schützling.",
-   "geheim": "Schwärmt heimlich; sein Schwur bindet ihn magisch.",
-   "ort": "Deine Nähe",
-   "plan": [
-    "Wache",
-    "Warnen",
-    "Für dich kämpfen"
-   ],
-   "meinung": {
-    "Kronprinz Julian": "misstraut",
-    "Heldin Mira": "neutral-warm"
-   },
-   "romance": true,
-   "geschlecht": "m",
-   "schedule": [
-    "Morgen: Deine Nähe",
-    "Mittag: Deine Nähe",
-    "Abend: Deine Nähe",
-    "Nacht: ruht nahe Deine Nähe"
-   ],
-   "adult": true
-  },
-  "Lady Vivienne": {
-   "e": "🦚",
-   "art": "Lächelnde Rivalin, sammelt Geheimnisse wie Schmuck.",
-   "stimme": "Süß-giftig: „Oh, Rosalind… was für ein Kleid.“",
-   "ziel": "Ashcroft ersetzen und Julian beeinflussen.",
-   "furcht": "Selbst Skandalopfer zu werden.",
-   "geheim": "Erpresst einen Professor mit Liebesbriefen.",
-   "ort": "Salons",
-   "plan": [
-    "Gerüchte",
-    "Teeparty-Fallen",
-    "Dich isolieren"
-   ],
-   "meinung": {
-    "Heldin Mira": "Werkzeug",
-    "Kronprinz Julian": "Trophäe"
-   },
-   "romance": false,
-   "geschlecht": "w",
-   "schedule": [
-    "Morgen: Salons",
-    "Mittag: Salons",
-    "Abend: Salons",
-    "Nacht: ruht nahe Salons"
-   ],
-   "adult": true
-  },
-  "Professor Alden": {
-   "e": "📚",
-   "art": "Zerstreuter Literaturdozent, liebt Fußnoten mehr als Menschen.",
-   "stimme": "Akademisch: „Interessant. Laut Ausgabe B…“",
-   "ziel": "Die Ursprungsausgabe von 'Rosen & Guillotine' finden.",
-   "furcht": "Dass Geschichten Menschen töten können.",
-   "geheim": "Besitzt eine Seite, die deinen Namen in moderner Schrift trägt.",
-   "ort": "Bibliothek",
-   "plan": [
-    "Forschen",
-    "Dich befragen",
-    "Vivienne ausweichen"
-   ],
-   "meinung": {
-    "Lady Vivienne": "Gefahr"
-   },
-   "romance": true,
-   "geschlecht": "m",
-   "schedule": [
-    "Morgen: Bibliothek",
-    "Mittag: Bibliothek",
-    "Abend: Bibliothek",
-    "Nacht: ruht nahe Bibliothek"
-   ],
-   "adult": true
-  },
-  "Herzogin Ashcroft": {
-   "e": "💍",
-   "art": "Kalte Mutter, rechnet in Mitgiften und Allianzen.",
-   "stimme": "Eisig: „Eine Ashcroft entschuldigt sich nicht. Sie korrigiert.“",
-   "ziel": "Die Verlobung retten.",
-   "furcht": "Ruins und Spott.",
-   "geheim": "Hat Schulden an die Kirche der Lilie verkauft.",
-   "ort": "Villa / Briefe",
-   "plan": [
-    "Dich unter Druck setzen",
-    "Julian umwerben"
-   ],
-   "meinung": {
-    "Kronprinz Julian": "Notwendigkeit"
-   },
-   "romance": false,
-   "geschlecht": "w",
-   "schedule": [
-    "Morgen: Villa / Briefe",
-    "Mittag: Villa / Briefe",
-    "Abend: Villa / Briefe",
-    "Nacht: ruht nahe Villa "
-   ],
-   "adult": true
-  },
-  "Dienerin Lotte": {
-   "e": "🕯️",
-   "art": "Ruhig, hört alles, sagt wenig. Kennt geheime Gänge.",
-   "stimme": "Demütig: „Milady… es gibt etwas.“",
-   "ziel": "Dich am Leben halten – aus Zuneigung und Angst.",
-   "furcht": "Mit dir zu fallen.",
-   "geheim": "Arbeitete kurz für Vivienne als Informantin, hat gewechselt.",
-   "ort": "Dein Gemach",
-   "plan": [
-    "Warnen",
-    "Tee bringen",
-    "Briefe abfangen"
-   ],
-   "meinung": {
-    "Ritter Cedric": "vertraut"
-   },
-   "romance": false,
-   "geschlecht": "w",
-   "schedule": [
-    "Morgen: Dein Gemach",
-    "Mittag: Dein Gemach",
-    "Abend: Dein Gemach",
-    "Nacht: ruht nahe Dein Gemach"
-   ],
-   "adult": true
-  },
-  "Kaiserin-Witwe": {
-   "e": "👑",
-   "art": "Selten sichtbar, immer spürbar. Politik als Schach.",
-   "stimme": "Ruhig: „Das Reich braucht eine Geschichte. Sei sie.“",
-   "ziel": "Julian formbar halten.",
-   "furcht": "Einen unkontrollierbaren Heldenmythos.",
-   "geheim": "Kennt das 'System' als alten Fluch.",
-   "ort": "Palast",
-   "plan": [
-    "Beobachten",
-    "Urteile vorbereiten"
-   ],
-   "meinung": {
-    "Kronprinz Julian": "Enkel/Schützling-komplex"
-   },
-   "romance": false,
-   "geschlecht": "w",
-   "schedule": [
-    "Morgen: Palast",
-    "Mittag: Palast",
-    "Abend: Palast",
-    "Nacht: ruht nahe Palast"
-   ],
-   "adult": true
-  }
- },
- "startItems": [
-  {
-   "id": "fan",
-   "name": "Seidenfächer",
-   "icon": "🪭",
-   "desc": "Waffe der Etikette. Kann blenden oder schlagen.",
-   "type": "weapon",
-   "equip": true
-  },
-  {
-   "id": "diary",
-   "name": "Tagebuch der Zukunft",
-   "icon": "📔",
-   "desc": "Romanwissen: Stichpunkte zu kommenden Szenen.",
-   "type": "key"
-  },
-  {
-   "id": "tea_set",
-   "name": "Porzellantasse",
-   "icon": "🍵",
-   "desc": "Für Entschuldigungen und Giftprüfungen.",
-   "type": "tool"
-  }
- ],
- "startSkills": [
-  {
-   "id": "roman",
-   "name": "Romanwissen",
-   "icon": "📖",
-   "desc": "Einmal pro Szene: Hinweis auf Plot-Wende.",
-   "level": 1,
-   "cost": 10,
-   "cd": 1
-  },
-  {
-   "id": "fan_strike",
-   "name": "Eleganter Fächerhieb",
-   "icon": "🪭",
-   "desc": "Überrascht Adlige und Attentäter.",
-   "level": 1,
-   "cost": 5,
-   "cd": 0
-  }
- ],
- "startScene": {
-  "ort": "Salon der Rose",
-  "zeit": "Morgen, Sonnenlicht durch Spitzenvorhänge",
-  "anwesend": [
-   "Kronprinz Julian",
-   "Heldin Mira"
-  ]
- },
- "startEvents": [
-  "365 Tage bis zur Verurteilung im Ballsaal",
-  "Gerücht: Rosalind habe Mira gestoßen",
-  "Ashcroft-Schulden steigen"
- ],
- "locations": {
-  "nodes": {
-   "Salon der Rose": {
-    "desc": "Spiegel, Rosenwasser, tickende Uhren.",
-    "tags": [
-     "akademie",
-     "innen"
-    ],
-    "exits": [
-     "Akademiehof Lumière",
-     "Bibliothek",
-     "Rosengarten"
-    ],
-    "bg": "salon"
-   },
-   "Akademiehof Lumière": {
-    "desc": "Marmorbrunnen, Schüler in Uniform.",
-    "tags": [
-     "akademie",
-     "außen"
-    ],
-    "exits": [
-     "Salon der Rose",
-     "Bibliothek",
-     "Speisesaal",
-     "Stadtgasse"
-    ],
-    "bg": "akademie"
-   },
-   "Bibliothek": {
-    "desc": "Staubige Folianten, heimliche Notizen.",
-    "tags": [
-     "akademie",
-     "innen"
-    ],
-    "exits": [
-     "Akademiehof Lumière",
-     "Salon der Rose"
-    ],
-    "bg": "salon"
-   },
-   "Speisesaal": {
-    "desc": "Lange Tafeln, Flüstern, Blicke.",
-    "tags": [
-     "akademie",
-     "innen"
-    ],
-    "exits": [
-     "Akademiehof Lumière"
-    ],
-    "bg": "salon"
-   },
-   "Rosengarten": {
-    "desc": "Mondlicht, Dornen, geheime Treffen.",
-    "tags": [
-     "akademie",
-     "außen"
-    ],
-    "exits": [
-     "Salon der Rose",
-     "Stadtgasse"
-    ],
-    "bg": "garten"
-   },
-   "Stadtgasse": {
-    "desc": "Kutschen, Händler, Gerüchte über dich.",
-    "tags": [
-     "stadt",
-     "außen"
-    ],
-    "exits": [
-     "Akademiehof Lumière",
-     "Rosengarten",
-     "Ballsaal"
-    ],
-    "bg": "akademie"
-   },
-   "Ballsaal": {
-    "desc": "Kristalllüster, Masken, Intrigen.",
-    "tags": [
-     "stadt",
-     "innen"
-    ],
-    "exits": [
-     "Stadtgasse"
-    ],
-    "bg": "salon"
-   }
-  },
-  "start": "Salon der Rose"
- },
- "orte": {
-  "Salon der Rose": "Spiegel, Rosenwasser, tickende Uhren.",
-  "Akademiehof Lumière": "Marmorbrunnen, Schüler in Uniform.",
-  "Bibliothek": "Staubige Folianten, heimliche Notizen.",
-  "Speisesaal": "Lange Tafeln, Flüstern, Blicke.",
-  "Rosengarten": "Mondlicht, Dornen, geheime Treffen.",
-  "Stadtgasse": "Kutschen, Händler, Gerüchte über dich.",
-  "Ballsaal": "Kristalllüster, Masken, Intrigen.",
-  "Akademie-Campus": "Rosenstein, Hörsäle, Bibliothek mit verbotener Galerie.",
-  "Ashcroft-Villa": "Rosalinds Familie: Schulden, Stolz, kalte Mütter.",
-  "Hauptstadt Solenne": "Kaiserpalast, Zeitung 'Lilienblatt', Unterwelt der Informanten.",
-  "Nordkloster": "Zuflucht oder Verbannung für gefallene Ladies."
- }
 }

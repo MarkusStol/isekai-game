@@ -1,778 +1,1026 @@
 {
- "id": "held",
- "titel": "Königreich Aldheim",
- "ton": "Anime-Isekai mit Statusfenster, Eile vor der Belagerung, Heldentum und Zweifel. Episch, aber mit Alltag und Politik dazwischen.",
- "geschichte": "Vor 300 Jahren siegte der erste Held über den Dämonenkönig. Seitdem regieren die Nachfahren der Linie von König Alaric II. Die Elfen zogen sich nach dem Blutpakt von Sylvaris zurück. Vor drei Monden erwachte Nocturna erneut – und Aldheim rief in Panik nach einem neuen Helden.",
- "magie": "Mana fließt in Adern. Statusfenster zeigt nur dem Beschworenen echte Zahlen. Skills brauchen MP oder Abklingzeit. Kirche von Solari nennt Magie 'Gnade', Elfen nennen sie 'Atem'.",
- "kultur": "Ritterorden, Gilden, Marktstände mit Gewürzen aus dem Süden. Adel spricht Hochaldheimisch förmlich; Söldner fluchen in Gassenmundart. Abends Glocken, Fackelwachen, Bierstuben.",
- "alltag": "Brot, Käse, dünne Suppe für Arme; Wildbraten und Wein für Hof. Wachen wechseln um Mitternacht. Gildengebühr: 2 Silbermünzen/Woche.",
- "regionen": {
-  "Hauptstadt Aldheim": "Weiße Mauern, Königsburg auf dem Hügel, Unterstadt mit Gilden und Märkten. Geruch von Brot und Eisen.",
-  "Nordwall": "Drei Tagesmärsche nördlich. Steinmauer, Wachtürme, Ruß vom Dämonenheer jenseits der Ebene.",
-  "Elfenwald Sylvaris": "Silberne Blätter, Pfade die sich ändern. Fremde ohne Geleit verlieren den Weg.",
-  "Söldnergilde": "Laute Halle am Osttor. Aufträge an der Tafel, Wirtstische, Blut und Würfel.",
-  "Hafen von Myr": "Handelsschiffe, Schmuggler, Gerüchte über Nocturna.",
-  "Dorf Weidenau": "Getreidefelder vor den Mauern, Zuflucht für Flüchtlinge."
- },
- "politik": "König Alaric II. starb bei der Heldenbeschwörung (geheim). Elise regiert kommissarisch; der Adelsrat zweifelt. Kirche will den Helden unter Aufsicht. Söldnergilde verkauft Loyalität.",
- "setup": [
-  {
-   "id": "tod",
-   "titel": "Letzter Moment",
-   "text": "Hupen. Scheinwerfer. Der Asphalt kommt auf dich zu.\n\nIn dem Moment vor dem Aufprall – was hältst du fest?",
-   "choices": [
+  "id": "held",
+  "titel": "Königreich Aldheim",
+  "ton": "Anime-Isekai mit Statusfenster, Eile vor der Belagerung, Heldentum und Zweifel. Episch, aber mit Alltag und Politik dazwischen.",
+  "geschichte": "Vor 300 Jahren siegte der erste Held über den Dämonenkönig. Seitdem regieren die Nachfahren der Linie von König Alaric II. Die Elfen zogen sich nach dem Blutpakt von Sylvaris zurück. Vor drei Monden erwachte Nocturna erneut – und Aldheim rief in Panik nach einem neuen Helden.",
+  "magie": "Mana fließt in Adern. Statusfenster zeigt nur dem Beschworenen echte Zahlen. Skills brauchen MP oder Abklingzeit. Kirche von Solari nennt Magie 'Gnade', Elfen nennen sie 'Atem'.",
+  "kultur": "Ritterorden, Gilden, Marktstände mit Gewürzen aus dem Süden. Adel spricht Hochaldheimisch förmlich; Söldner fluchen in Gassenmundart. Abends Glocken, Fackelwachen, Bierstuben.",
+  "alltag": "Brot, Käse, dünne Suppe für Arme; Wildbraten und Wein für Hof. Wachen wechseln um Mitternacht. Gildengebühr: 2 Silbermünzen/Woche.",
+  "regionen": {
+    "Hauptstadt Aldheim": "Weiße Mauern, Königsburg auf dem Hügel, Unterstadt mit Gilden und Märkten. Geruch von Brot und Eisen.",
+    "Nordwall": "Drei Tagesmärsche nördlich. Steinmauer, Wachtürme, Ruß vom Dämonenheer jenseits der Ebene.",
+    "Elfenwald Sylvaris": "Silberne Blätter, Pfade die sich ändern. Fremde ohne Geleit verlieren den Weg.",
+    "Söldnergilde": "Laute Halle am Osttor. Aufträge an der Tafel, Wirtstische, Blut und Würfel.",
+    "Hafen von Myr": "Handelsschiffe, Schmuggler, Gerüchte über Nocturna.",
+    "Dorf Weidenau": "Getreidefelder vor den Mauern, Zuflucht für Flüchtlinge."
+  },
+  "politik": "König Alaric II. starb bei der Heldenbeschwörung (geheim). Elise regiert kommissarisch; der Adelsrat zweifelt. Kirche will den Helden unter Aufsicht. Söldnergilde verkauft Loyalität.",
+  "setup": [
     {
-     "id": "family",
-     "label": "Ein Gesicht, das du liebst",
-     "past": "Du dachtest an jemanden, den du zurücklässt."
+      "id": "tod",
+      "titel": "Letzter Moment",
+      "text": "Hupen. Scheinwerfer. Der Asphalt kommt auf dich zu.\n\nIn dem Moment vor dem Aufprall – was hältst du fest?",
+      "choices": [
+        {
+          "id": "family",
+          "label": "Ein Gesicht, das du liebst",
+          "past": "Du dachtest an jemanden, den du zurücklässt."
+        },
+        {
+          "id": "regret",
+          "label": "Einen ungelösten Streit",
+          "past": "Du dachtest an Worte, die du nie gesagt hast."
+        },
+        {
+          "id": "dream",
+          "label": "Einen Traum, den du nie gelebt hast",
+          "past": "Du dachtest an das Leben, das du noch führen wolltest."
+        },
+        {
+          "id": "joke",
+          "label": "Einen dummen Witz",
+          "past": "Du dachtest etwas Absurdes – und das rettet später dein Lachen."
+        }
+      ]
     },
     {
-     "id": "regret",
-     "label": "Einen ungelösten Streit",
-     "past": "Du dachtest an Worte, die du nie gesagt hast."
+      "id": "erwachen",
+      "titel": "Erwachen",
+      "text": "Kalter Marmor unter deinen Handflächen. Weihrauch. Ein Kreis aus blauem Licht erlischt um dich.\n\nEin Fenster schwebt vor deinem Gesicht:\n[STATUS] Name: ??? · Klasse: Abenteurer · Lv 1 · Fähigkeit: Status-Fenster\n\nWas nimmst du zuerst wahr?",
+      "choices": [
+        {
+          "id": "window",
+          "label": "Das blaue Statusfenster",
+          "focus": "system"
+        },
+        {
+          "id": "smell",
+          "label": "Weihrauch und Angstschweiß",
+          "focus": "sinne"
+        },
+        {
+          "id": "people",
+          "label": "Die starrenden Ritter",
+          "focus": "menschen"
+        },
+        {
+          "id": "body",
+          "label": "Deinen neuen Körper",
+          "focus": "körper"
+        }
+      ]
     },
     {
-     "id": "dream",
-     "label": "Einen Traum, den du nie gelebt hast",
-     "past": "Du dachtest an das Leben, das du noch führen wolltest."
+      "id": "name",
+      "titel": "Name",
+      "text": "Hofmagier Orren flüstert: „Der Kreis verlangt einen Namen aus dieser Welt – oder wir nennen dich 'Fremdling'.“\n\nWie willst du genannt werden?",
+      "choices": [
+        {
+          "id": "keep",
+          "label": "Meinen alten Vornamen behalten",
+          "nameMode": "keep"
+        },
+        {
+          "id": "hero",
+          "label": "Einen Heldnamen wählen",
+          "nameMode": "hero"
+        },
+        {
+          "id": "silence",
+          "label": "Schweigen – sie sollen raten",
+          "nameMode": "mystery"
+        }
+      ],
+      "needsName": true
     },
     {
-     "id": "joke",
-     "label": "Einen dummen Witz",
-     "past": "Du dachtest etwas Absurdes – und das rettet später dein Lachen."
+      "id": "npc",
+      "titel": "Erste Begegnung",
+      "text": "Prinzessin Elise tritt vor. Silberne Tiara, eisiger Blick, zitternde Hände.\n„Endlich … der Held aus der anderen Welt.“ Sie mustert deine Kleidung. „Das Dämonenheer steht drei Tage vor unseren Mauern. Sag mir – kannst du kämpfen?“",
+      "choices": [
+        {
+          "id": "brave",
+          "label": "„Ich werde kämpfen.“",
+          "impression": "tapfer",
+          "aff": {
+            "Prinzessin Elise": 5
+          }
+        },
+        {
+          "id": "honest",
+          "label": "„Ich weiß es nicht – aber ich lerne.“",
+          "impression": "ehrlich",
+          "aff": {
+            "Prinzessin Elise": 8,
+            "Hofmagier Orren": 3
+          }
+        },
+        {
+          "id": "joke2",
+          "label": "Einen Witz über Lastwagen machen",
+          "impression": "bizarr",
+          "aff": {
+            "Prinzessin Elise": -2,
+            "Garrick": 5
+          }
+        },
+        {
+          "id": "demand",
+          "label": "Zuerst Infos und Ausrüstung verlangen",
+          "impression": "pragmatisch",
+          "aff": {
+            "Prinzessin Elise": 2,
+            "Lyra": 3
+          }
+        }
+      ]
     }
-   ]
+  ],
+  "arc": {
+    "titel": "Der Fall und die Flamme Aldheims",
+    "acts": [
+      {
+        "id": "a1",
+        "titel": "Drei Tage",
+        "ziel": "Als Held anerkannt werden und den Nordwall erreichen",
+        "mile": [
+          "Status erklärt",
+          "Gilde beitreten oder Hofdienst",
+          "Erste Patrouille am Nordwall"
+        ],
+        "twist": "Orren hat möglicherweise den falschen Helden beschworen – Alaric starb dafür."
+      },
+      {
+        "id": "a2",
+        "titel": "Risse in der Mauer",
+        "ziel": "Die Belagerung überstehen und Verrat aufdecken",
+        "mile": [
+          "Erste Schlacht überleben",
+          "Spion Kael entlarven oder nutzen",
+          "Elise vertraut dir ein Geheimnis an"
+        ],
+        "twist": "Ein Adelsrat-Mitglied verkauft Passwörter an Nocturna."
+      },
+      {
+        "id": "a3",
+        "titel": "Der Preis des Lichts",
+        "ziel": "Sylvaris um Hilfe bitten oder allein stehen",
+        "mile": [
+          "Elfenwald betreten",
+          "Lyra's Bruder-Spur",
+          "Allianz oder Absage"
+        ],
+        "twist": "Der Blutpakt verbietet Elfen, Aldheim direkt zu retten – es gibt einen Ausweg."
+      },
+      {
+        "id": "a4",
+        "titel": "Gegen die Nacht",
+        "ziel": "Den Dämonenvorstoß stoppen oder die Stadt evakuieren",
+        "mile": [
+          "Finale am Nordwall",
+          "Entscheidung: Thron, Flucht, oder Opfer"
+        ],
+        "twist": "Der wahre Feind ist nicht nur das Heer – sondern was der erste Held vor 300 Jahren versiegelt hat."
+      }
+    ]
   },
-  {
-   "id": "erwachen",
-   "titel": "Erwachen",
-   "text": "Kalter Marmor unter deinen Handflächen. Weihrauch. Ein Kreis aus blauem Licht erlischt um dich.\n\nEin Fenster schwebt vor deinem Gesicht:\n[STATUS] Name: ??? · Klasse: Abenteurer · Lv 1 · Fähigkeit: Status-Fenster\n\nWas nimmst du zuerst wahr?",
-   "choices": [
+  "sideQuests": [
     {
-     "id": "window",
-     "label": "Das blaue Statusfenster",
-     "focus": "system"
+      "id": "sq_garrick",
+      "titel": "Garricks letzte Rechnung",
+      "ziel": "Finde heraus, warum Garrick desertierte",
+      "npc": "Garrick",
+      "ort": "Söldnergilde"
     },
     {
-     "id": "smell",
-     "label": "Weihrauch und Angstschweiß",
-     "focus": "sinne"
+      "id": "sq_lyra",
+      "titel": "Silberne Spur",
+      "ziel": "Hilf Lyra, ihren Bruder zu finden",
+      "npc": "Lyra",
+      "ort": "Elfenwald Sylvaris"
     },
     {
-     "id": "people",
-     "label": "Die starrenden Ritter",
-     "focus": "menschen"
+      "id": "sq_otto",
+      "titel": "Flüchtlinge von Weidenau",
+      "ziel": "Bringe Vorräte zum Dorf",
+      "npc": "Bauer Otto",
+      "ort": "Dorf Weidenau"
     },
     {
-     "id": "body",
-     "label": "Deinen neuen Körper",
-     "focus": "körper"
+      "id": "sq_seris",
+      "titel": "Verbotene Glyphe",
+      "ziel": "Untersuche Seris' geheimes Ritual",
+      "npc": "Magierin Seris",
+      "ort": "Hauptstadt Aldheim"
     }
-   ]
-  },
-  {
-   "id": "name",
-   "titel": "Name",
-   "text": "Hofmagier Orren flüstert: „Der Kreis verlangt einen Namen aus dieser Welt – oder wir nennen dich 'Fremdling'.“\n\nWie willst du genannt werden?",
-   "choices": [
-    {
-     "id": "keep",
-     "label": "Meinen alten Vornamen behalten",
-     "nameMode": "keep"
+  ],
+  "romanceable": [
+    "Lyra",
+    "Prinzessin Elise",
+    "Magierin Seris"
+  ],
+  "npcs": {
+    "Prinzessin Elise": {
+      "e": "👑",
+      "art": "Kühl, stolz, förmlich; hinter der Fassade verzweifelt und jung. Trägt Trauer unter der Tiara.",
+      "stimme": "Hochaldheimisch, knapp: „Der Held aus der anderen Welt.“ „Zweifel ist ein Luxus, den wir nicht haben.“",
+      "ziel": "Aldheim retten, ohne den Thron an den Rat zu verlieren.",
+      "furcht": "Dass der Held versagt und alles umsonst war.",
+      "geheim": "Die Beschwörung hat König Alaric das Leben gekostet – sie hat zugestimmt.",
+      "ort": "Königsburg / Thronsaal",
+      "plan": [
+        "Hof halten",
+        "Mit Orren beraten",
+        "Dich prüfen"
+      ],
+      "meinung": {
+        "Hofmagier Orren": "braucht ihn, traut ihm nicht ganz",
+        "Lyra": "nützlich, aber fremd",
+        "Garrick": "ordinär, aber ehrlich"
+      },
+      "romance": true,
+      "geschlecht": "w",
+      "schedule": [
+        "Morgen: Thronsaal von Aldheim",
+        "Mittag: Thronsaal von Aldheim",
+        "Nachmittag: Palastgarten",
+        "Abend: Beschwörungshalle im Königspalast von Aldheim",
+        "Nacht: Thronsaal von Aldheim"
+      ],
+      "home": "Thronsaal von Aldheim",
+      "portrait": "elise",
+      "mood": "angespannt",
+      "goals": [
+        "Aldheim retten",
+        "Rat kontrollieren"
+      ],
+      "relations": {
+        "Hofmagier Orren": "vertraut",
+        "Kapitän Rhett": "respekt"
+      },
+      "adult": true,
+      "backstory": "Kühl, stolz, förmlich; hinter der Fassade verzweifelt und jung. Trägt Trauer unter der Tiara.",
+      "speechStyle": "Hochaldheimisch, knapp",
+      "samples": [
+        "Der Held aus der anderen Welt.“ "
+      ]
     },
-    {
-     "id": "hero",
-     "label": "Einen Heldnamen wählen",
-     "nameMode": "hero"
+    "Lyra": {
+      "e": "🏹",
+      "art": "Elfische Bogenschützin, wortkarg, spöttisch, beobachtet länger als sie spricht.",
+      "stimme": "Leise, spitz: „Interessant.“ „Lauf nicht in meinen Schuss.“",
+      "ziel": "Ihren verschollenen Bruder Fael finden.",
+      "furcht": "Dass der Elfenrat sie als Verräterin brandmarkt.",
+      "geheim": "Sie ist Spionin des Elfenrats – und beginnt, Zweifel an ihrem Auftrag zu haben.",
+      "ort": "Söldnergilde / Mauern",
+      "plan": [
+        "Dich beobachten",
+        "Berichte schreiben",
+        "Nach Fael suchen"
+      ],
+      "meinung": {
+        "Prinzessin Elise": "zu steif",
+        "Garrick": "laut, aber brauchbar",
+        "Hofmagier Orren": "nervös und gefährlich"
+      },
+      "romance": true,
+      "geschlecht": "w",
+      "schedule": [
+        "Morgen: Elfenwald Sylvaris",
+        "Mittag: Waldweg nach Sylvaris",
+        "Nachmittag: Unterstadt-Markt",
+        "Abend: Taverne Zum Silberfuchs",
+        "Nacht: Elfenwald Sylvaris"
+      ],
+      "home": "Elfenwald Sylvaris",
+      "portrait": "lyra",
+      "mood": "wachsam",
+      "goals": [
+        "Bruder Fael finden"
+      ],
+      "relations": {
+        "Garrick": "toleriert"
+      },
+      "adult": true,
+      "backstory": "Elfische Bogenschützin, wortkarg, spöttisch, beobachtet länger als sie spricht.",
+      "speechStyle": "Leise, spitz",
+      "samples": [
+        "Interessant.“ "
+      ]
     },
-    {
-     "id": "silence",
-     "label": "Schweigen – sie sollen raten",
-     "nameMode": "mystery"
+    "Garrick": {
+      "e": "🪓",
+      "art": "Polternder Söldner, lacht laut, redet derb, trinkt zu viel, kämpft fair.",
+      "stimme": "Brüllend: „HA! Noch ein Becher!“ „Gold zuerst, Heldentum später.“",
+      "ziel": "Genug Gold für einen ruhigen Abgang – und einen letzten großen Kampf.",
+      "furcht": "Als Feigling zu sterben wie damals.",
+      "geheim": "Desertierte aus der Königsarmee, nachdem ein Befehl Zivilisten traf.",
+      "ort": "Söldnergilde",
+      "plan": [
+        "Saufen",
+        "Aufträge annehmen",
+        "Dich anheuern oder verarschen"
+      ],
+      "meinung": {
+        "Prinzessin Elise": "Adelskram",
+        "Lyra": "kalte Schönheit",
+        "Bauer Otto": "ehrlicher Mann"
+      },
+      "romance": false,
+      "geschlecht": "m",
+      "schedule": [
+        "Morgen: Söldnergilde",
+        "Mittag: Taverne Zum Silberfuchs",
+        "Nachmittag: Unterstadt-Markt",
+        "Abend: Taverne Zum Silberfuchs",
+        "Nacht: Söldnergilde"
+      ],
+      "home": "Söldnergilde",
+      "portrait": "garrick",
+      "mood": "laut",
+      "goals": [
+        "Gold",
+        "einen letzten Kampf"
+      ],
+      "relations": {
+        "Lyra": "neckt"
+      },
+      "adult": true,
+      "backstory": "Polternder Söldner, lacht laut, redet derb, trinkt zu viel, kämpft fair.",
+      "speechStyle": "Brüllend",
+      "samples": [
+        "HA! Noch ein Becher!“ "
+      ]
+    },
+    "Hofmagier Orren": {
+      "e": "🔮",
+      "art": "Alt, nervös, murmelt Formeln, Finger immer rußig von Kreide.",
+      "stimme": "Zerstreut: „Der Kreis… der Kreis war korrekt. Fast.“",
+      "ziel": "Seinen Fehler vertuschen und dich funktionsfähig halten.",
+      "furcht": "Enthüllt zu werden.",
+      "geheim": "Er vermutet, den falschen Helden beschworen zu haben – die Resonanz war 'zu modern'.",
+      "ort": "Beschwörungshalle / Turm",
+      "plan": [
+        "Dich messen",
+        "Elise beruhigen",
+        "Alte Schriftrollen prüfen"
+      ],
+      "meinung": {
+        "Prinzessin Elise": "seine Königin",
+        "Lyra": "magieempfindlich, unheimlich"
+      },
+      "romance": false,
+      "geschlecht": "m",
+      "schedule": [
+        "Morgen: Beschwörungshalle im Königspalast von Aldheim",
+        "Mittag: Kirche von Solari",
+        "Nachmittag: Beschwörungshalle im Königspalast von Aldheim",
+        "Abend: Thronsaal von Aldheim",
+        "Nacht: Beschwörungshalle im Königspalast von Aldheim"
+      ],
+      "home": "Beschwörungshalle im Königspalast von Aldheim",
+      "portrait": "orren",
+      "mood": "erschöpft",
+      "goals": [
+        "Kreis stabilisieren",
+        "Elise schützen"
+      ],
+      "relations": {
+        "Prinzessin Elise": "loyal",
+        "Magierin Seris": "rival"
+      },
+      "adult": true,
+      "backstory": "Alt, nervös, murmelt Formeln, Finger immer rußig von Kreide.",
+      "speechStyle": "Zerstreut"
+    },
+    "Magierin Seris": {
+      "e": "✨",
+      "art": "Junge Hofmagierin, neugierig, zu ehrlich, sammelt verbotene Glyphen.",
+      "stimme": "Schnell, begeistert: „Darf ich dein Statusfenster anfassen? Im übertragenen Sinne!“",
+      "ziel": "Verstehen, wie Fremdwelt-Seelen Mana binden.",
+      "furcht": "Von der Kirche als Ketzerin gebranntmarkt zu werden.",
+      "geheim": "Arbeitet an einer Glyphe, die Statusfenster spiegeln könnte.",
+      "ort": "Magierturm",
+      "plan": [
+        "Dich studieren",
+        "Bücher stehlen",
+        "Mit Orren streiten"
+      ],
+      "meinung": {
+        "Hofmagier Orren": "Lehrer und Hemmschuh",
+        "Prinzessin Elise": "respektiert sie"
+      },
+      "romance": true,
+      "geschlecht": "w",
+      "schedule": [
+        "Morgen: Kirche von Solari",
+        "Mittag: Unterstadt-Markt",
+        "Nachmittag: Kirche von Solari",
+        "Abend: Thronsaal von Aldheim",
+        "Nacht: Kirche von Solari"
+      ],
+      "home": "Kirche von Solari",
+      "portrait": "seris",
+      "mood": "kühl",
+      "goals": [
+        "Kirche stärken"
+      ],
+      "relations": {
+        "Hofmagier Orren": "rival"
+      },
+      "adult": true,
+      "backstory": "Junge Hofmagierin, neugierig, zu ehrlich, sammelt verbotene Glyphen.",
+      "speechStyle": "Schnell, begeistert"
+    },
+    "Kapitän Rhett": {
+      "e": "🛡️",
+      "art": "Disziplinierter Mauerkommandant, graue Schläfen, schläft wenig.",
+      "stimme": "Militärisch: „Report.“ „Der Wall hält – noch.“",
+      "ziel": "Den Nordwall halten, bis Verstärkung kommt.",
+      "furcht": "Seine Leute zu opfern für Politik.",
+      "geheim": "Kennt den Verräter im Rat – schweigt, bis er Beweise hat.",
+      "ort": "Nordwall",
+      "plan": [
+        "Patrouillen",
+        "Dich testen",
+        "Vorräte zählen"
+      ],
+      "meinung": {
+        "Garrick": "Deserteur, aber Kämpfer",
+        "Prinzessin Elise": "loyal"
+      },
+      "romance": false,
+      "geschlecht": "m",
+      "schedule": [
+        "Morgen: Königsburg-Hof",
+        "Mittag: Nordwall",
+        "Nachmittag: Nordwall",
+        "Abend: Königsburg-Hof",
+        "Nacht: Nordwall"
+      ],
+      "home": "Königsburg-Hof",
+      "portrait": "rhett",
+      "mood": "pflichtbewusst",
+      "goals": [
+        "Mauer halten"
+      ],
+      "relations": {
+        "Prinzessin Elise": "loyal"
+      },
+      "adult": true,
+      "backstory": "Disziplinierter Mauerkommandant, graue Schläfen, schläft wenig.",
+      "speechStyle": "Militärisch",
+      "samples": [
+        "Report.“ "
+      ]
+    },
+    "Bauer Otto": {
+      "e": "🌾",
+      "art": "Breitschultrig, gutmütig, gibt das letzte Brot weg.",
+      "stimme": "Dialekt: „Komm rein, Junge. Suppe is' da.“",
+      "ziel": "Seine Familie und die Flüchtlinge durchbringen.",
+      "furcht": "Dass die Stadt sie vergisst.",
+      "geheim": "Versteckt einen verwundeten Deserteur aus Nocturna, der reden will.",
+      "ort": "Dorf Weidenau",
+      "plan": [
+        "Ernten",
+        "Flüchtlinge versorgen",
+        "Dich um Hilfe bitten"
+      ],
+      "meinung": {
+        "Garrick": "hat ihm einmal geholfen"
+      },
+      "romance": false,
+      "geschlecht": "m",
+      "schedule": [
+        "Morgen: Dorf Weidenau",
+        "Mittag: Dorf Weidenau",
+        "Nachmittag: Osttor",
+        "Abend: Dorf Weidenau",
+        "Nacht: Dorf Weidenau"
+      ],
+      "home": "Dorf Weidenau",
+      "portrait": "otto",
+      "mood": "müde",
+      "goals": [
+        "Flüchtlinge füttern"
+      ],
+      "relations": {},
+      "adult": true,
+      "backstory": "Breitschultrig, gutmütig, gibt das letzte Brot weg.",
+      "speechStyle": "Dialekt"
+    },
+    "Spion Kael": {
+      "e": "🗡️",
+      "art": "Charmant, wechselnde Verkleidung, lächelt zu viel.",
+      "stimme": "Samtig: „Nur ein Gerücht… außer es ist wahr.“",
+      "ziel": "Informationen verkaufen – an beide Seiten.",
+      "furcht": "Erkannt zu werden.",
+      "geheim": "Arbeitet für den Adelsrat UND Nocturna.",
+      "ort": "Unterstadt / Schatten",
+      "plan": [
+        "Gerüchte streuen",
+        "Dich anbaggern oder erpressen"
+      ],
+      "meinung": {
+        "Prinzessin Elise": "Ziel",
+        "Lyra": "gefährlich aufmerksam"
+      },
+      "romance": false,
+      "geschlecht": "m",
+      "schedule": [
+        "Morgen: Hafen von Myr",
+        "Mittag: Unterstadt-Markt",
+        "Nachmittag: Taverne Zum Silberfuchs",
+        "Abend: Hafen von Myr",
+        "Nacht: Nebel – unterwegs"
+      ],
+      "home": "Hafen von Myr",
+      "portrait": "rhett",
+      "mood": "verschlossen",
+      "goals": [
+        "Geheimnisse verkaufen"
+      ],
+      "relations": {},
+      "adult": true,
+      "backstory": "Charmant, wechselnde Verkleidung, lächelt zu viel.",
+      "speechStyle": "Samtig"
+    },
+    "Händlerin Mira Vale": {
+      "e": "🧺",
+      "art": "Pragmatisch, warm, rechnet schnell im Kopf. Kennt jeden Preis in der Unterstadt.",
+      "stimme": "Markt-Aldheimisch: „Frisches Brot, kein Ratgeber.“ „Gold spricht lauter als Titel.“",
+      "ziel": "Die Gilde klein halten und ihre Tochter durch den Winter bringen.",
+      "furcht": "Plünderung wenn die Belagerung kommt.",
+      "geheim": "Schmuggelt Medizin an die Front – gegen den Rat.",
+      "ort": "Unterstadt-Markt",
+      "plan": [
+        "Verkaufen",
+        "Gerüchte sammeln",
+        "Dich einschätzen"
+      ],
+      "meinung": {
+        "Bauer Otto": "lieferant",
+        "Spion Kael": "zu neugierig",
+        "Prinzessin Elise": "zahlt pünktlich"
+      },
+      "romance": false,
+      "geschlecht": "w",
+      "backstory": "Witwe eines Wachmanns; hat den Stand allein aufgebaut.",
+      "wound": "Mann gefallen am Ostwall.",
+      "desire": "Sicherheit für ihre Tochter Nila",
+      "need": "Schutz für den Stand",
+      "contradiction": "Hasst den Adel, akzeptiert Elise als Kundin.",
+      "speechStyle": "Kurz, preisbewusst, selten weich.",
+      "quirk": "Klopft dreimal auf die Theke vor einem Deal.",
+      "samples": [
+        "Frisches Brot, kein Ratgeber.",
+        "Gold spricht lauter als Titel."
+      ]
+    },
+    "Schmied Torvald": {
+      "e": "⚒️",
+      "art": "Derb, ehrlich, Hände voller Narben. Respektiert Können, nicht Rang.",
+      "stimme": "Brummig: „Stahl lügt nicht.“ „Komm wieder, wenn du weißt was du willst.“",
+      "ziel": "Die beste Klinge Aldheims schmieden bevor die Stadt fällt.",
+      "furcht": "Dass seine Waffen nur Leichen produzieren.",
+      "geheim": "Hat einmal für Rebellen geschmiedet.",
+      "ort": "Schmiede am Wall",
+      "plan": [
+        "Schmieden",
+        "Prüfen",
+        "Schweigen"
+      ],
+      "meinung": {
+        "Garrick": "guter Kunde",
+        "Kapitän Rhett": "respektiert ihn",
+        "Hofmagier Orren": "zu viel Theorie"
+      },
+      "romance": false,
+      "geschlecht": "m",
+      "backstory": "Lehrling unter dem alten Hofschmied, ging in die Unterstadt aus Stolz.",
+      "wound": "Verlor zwei Finger links.",
+      "desire": "Ein Meisterstück das bleibt",
+      "need": "Kohle und Ruhe",
+      "contradiction": "Hasst Krieg, lebt vom Krieg.",
+      "speechStyle": "Einsilbig bis jemand Stahl nennt.",
+      "quirk": "Wäscht Hände bevor er spricht.",
+      "samples": [
+        "Stahl lügt nicht.",
+        "Komm wieder, wenn du weißt was du willst."
+      ]
+    },
+    "Heilerin Ysolde": {
+      "e": "🌿",
+      "art": "Ruhig, streng, riecht nach Kräutern und Rauch.",
+      "stimme": "Leise: „Schmerz ist ehrlich.“ „Ich heile, ich richte nicht.“",
+      "ziel": "Möglichst viele durch den Winter bringen.",
+      "furcht": "Seuche in den Flüchtlingslagern.",
+      "geheim": "Kennt ein Gift das wie Krankheit aussieht.",
+      "ort": "Kirche von Solari",
+      "plan": [
+        "Heilen",
+        "Kräuter",
+        "Dich beobachten"
+      ],
+      "meinung": {
+        "Bauer Otto": "dankbar",
+        "Prinzessin Elise": "respektvoll distanziert",
+        "Spion Kael": "misstraut"
+      },
+      "romance": true,
+      "geschlecht": "w",
+      "backstory": "Tempelnovizin die desertierte um Feldlazarette zu führen.",
+      "wound": "Zu viele Tote unter ihren Händen.",
+      "desire": "Ein Tag ohne Blut",
+      "need": "Vorräte",
+      "contradiction": "Pazifistin die Verwundete für die Front flickt.",
+      "speechStyle": "Ruhig, medizinisch präzise.",
+      "quirk": "Zählt den Puls bevor sie antwortet.",
+      "samples": [
+        "Schmerz ist ehrlich.",
+        "Ich heile, ich richte nicht."
+      ]
+    },
+    "Wirtin Hella": {
+      "e": "🍺",
+      "art": "Laut, mütterlich, hört alles was in der Taverne fällt.",
+      "stimme": "Herzhaft: „Erst trinken, dann reden.“ „Hier gibt’s keine Könige – nur Gäste.“",
+      "ziel": "Die Taverne offen halten wenn die Stadt wackelt.",
+      "furcht": "Requisition durch den Rat.",
+      "geheim": "Versteckt Deserteure im Keller.",
+      "ort": "Taverne Zum Silberfuchs",
+      "plan": [
+        "Ausschank",
+        "Zuhören",
+        "Dich anfunken"
+      ],
+      "meinung": {
+        "Lyra": "trinkt wenig",
+        "Garrick": "Stammgast",
+        "Spion Kael": "kennt ihn"
+      },
+      "romance": false,
+      "geschlecht": "w",
+      "backstory": "Ex-Söldnerin, tauschte Schild gegen Zapfhahn.",
+      "wound": "Narbe über der Lippe.",
+      "desire": "Ein volles Haus das lacht",
+      "need": "Bier und Frieden",
+      "contradiction": "Hasst Soldaten, liebt Garrick als Gast.",
+      "speechStyle": "Laut, bildreich, unterbricht.",
+      "quirk": "Wißt mit dem Handtuch während sie droht.",
+      "samples": [
+        "Erst trinken, dann reden.",
+        "Hier gibt’s keine Könige – nur Gäste."
+      ]
+    },
+    "Flüchtling Nila": {
+      "e": "🧒",
+      "art": "Wachsam, zu jung für den Markt, zu alt für Spiele.",
+      "stimme": "Leise: „Mama sagt, nicht starren.“ „Hast du Brot?“",
+      "ziel": "Mutter helfen und unsichtbar bleiben.",
+      "furcht": "Soldaten die fragen.",
+      "geheim": "Hat eine Karte der geheimen Tunnel gesehen.",
+      "ort": "Unterstadt-Markt",
+      "plan": [
+        "Helfen",
+        "Beobachten",
+        "Verschwinden"
+      ],
+      "meinung": {
+        "Händlerin Mira Vale": "mama",
+        "Kapitän Rhett": "Angst",
+        "Bauer Otto": "nett"
+      },
+      "romance": false,
+      "geschlecht": "w",
+      "backstory": "Tochter Miras, kennt jeden Winkel der Unterstadt.",
+      "wound": "Vater tot.",
+      "desire": "Ein Dach das nicht tropft",
+      "need": "Essen",
+      "contradiction": "Will helfen und will weg.",
+      "speechStyle": "Kurz, kindlich klar.",
+      "quirk": "Zählt Münzen laut.",
+      "samples": [
+        "Mama sagt, nicht starren.",
+        "Hast du Brot?"
+      ]
     }
-   ],
-   "needsName": true
   },
-  {
-   "id": "npc",
-   "titel": "Erste Begegnung",
-   "text": "Prinzessin Elise tritt vor. Silberne Tiara, eisiger Blick, zitternde Hände.\n„Endlich … der Held aus der anderen Welt.“ Sie mustert deine Kleidung. „Das Dämonenheer steht drei Tage vor unseren Mauern. Sag mir – kannst du kämpfen?“",
-   "choices": [
+  "startItems": [
     {
-     "id": "brave",
-     "label": "„Ich werde kämpfen.“",
-     "impression": "tapfer",
-     "aff": {
-      "Prinzessin Elise": 5
-     }
+      "id": "bronze_sword",
+      "name": "Bronzeschwert",
+      "icon": "⚔️",
+      "desc": "Schwer und ehrlich. +Kampf.",
+      "type": "weapon",
+      "equip": true
     },
     {
-     "id": "honest",
-     "label": "„Ich weiß es nicht – aber ich lerne.“",
-     "impression": "ehrlich",
-     "aff": {
-      "Prinzessin Elise": 8,
-      "Hofmagier Orren": 3
-     }
+      "id": "heal_potion",
+      "name": "Heiltrank",
+      "icon": "🧪",
+      "desc": "Stellt 30 HP wieder her.",
+      "type": "consumable",
+      "use": "heal:30"
     },
     {
-     "id": "joke2",
-     "label": "Einen Witz über Lastwagen machen",
-     "impression": "bizarr",
-     "aff": {
-      "Prinzessin Elise": -2,
-      "Garrick": 5
-     }
-    },
-    {
-     "id": "demand",
-     "label": "Zuerst Infos und Ausrüstung verlangen",
-     "impression": "pragmatisch",
-     "aff": {
-      "Prinzessin Elise": 2,
-      "Lyra": 3
-     }
+      "id": "status_shard",
+      "name": "Status-Splitter",
+      "icon": "📱",
+      "desc": "Ein Splitter des Fensters – beweist, dass du 'der Held' bist.",
+      "type": "key"
     }
-   ]
+  ],
+  "startSkills": [
+    {
+      "id": "status",
+      "name": "Status-Fenster",
+      "icon": "📊",
+      "desc": "Siehst HP, Skills und Schwächen (manchmal).",
+      "level": 1,
+      "cost": 0,
+      "cd": 0
+    },
+    {
+      "id": "slash",
+      "name": "Schwertschlag",
+      "icon": "⚔️",
+      "desc": "Grundangriff. Kostet wenig MP.",
+      "level": 1,
+      "cost": 5,
+      "cd": 0
+    }
+  ],
+  "startScene": {
+    "ort": "Beschwörungshalle im Königspalast von Aldheim",
+    "zeit": "Abend, Fackellicht",
+    "anwesend": [
+      "Prinzessin Elise",
+      "Hofmagier Orren",
+      "ein Dutzend Ritter"
+    ]
+  },
+  "startEvents": [
+    "Das Dämonenheer steht drei Tage vor dem Nordwall",
+    "Der Adel zweifelt an der Beschwörung",
+    "König Alaric ist 'erkrankt' (tot – geheim)"
+  ],
+  "locations": {
+    "nodes": {
+      "Beschwörungshalle im Königspalast von Aldheim": {
+        "desc": "Marmor, Weihrauch, erloschener Beschwörungskreis.",
+        "tags": [
+          "palast",
+          "innen"
+        ],
+        "exits": [
+          "Thronsaal von Aldheim",
+          "Palastgarten",
+          "Unterstadt-Markt"
+        ],
+        "bg": "beschwoerungshalle"
+      },
+      "Thronsaal von Aldheim": {
+        "desc": "Purpurne Banner, leerer Thron, flüsternde Räte.",
+        "tags": [
+          "palast",
+          "innen"
+        ],
+        "exits": [
+          "Beschwörungshalle im Königspalast von Aldheim",
+          "Palastgarten",
+          "Königsburg-Hof"
+        ],
+        "bg": "thron"
+      },
+      "Palastgarten": {
+        "desc": "Geschnittene Hecken, Springbrunnen, Wachen an den Toren.",
+        "tags": [
+          "palast",
+          "außen"
+        ],
+        "exits": [
+          "Thronsaal von Aldheim",
+          "Königsburg-Hof",
+          "Unterstadt-Markt"
+        ],
+        "bg": "dorf"
+      },
+      "Königsburg-Hof": {
+        "desc": "Waffenständer, Übungsring, Fahnen im Wind.",
+        "tags": [
+          "palast",
+          "außen"
+        ],
+        "exits": [
+          "Palastgarten",
+          "Unterstadt-Markt",
+          "Nordwall"
+        ],
+        "bg": "nordwall"
+      },
+      "Unterstadt-Markt": {
+        "desc": "Stände, Gewürzduft, Gildenbanner.",
+        "tags": [
+          "stadt",
+          "außen"
+        ],
+        "exits": [
+          "Königsburg-Hof",
+          "Söldnergilde",
+          "Taverne Zum Silberfuchs",
+          "Osttor",
+          "Kirche von Solari"
+        ],
+        "bg": "markt"
+      },
+      "Taverne Zum Silberfuchs": {
+        "desc": "Warmes Feuer, Bier, Gerüchte.",
+        "tags": [
+          "stadt",
+          "innen",
+          "taverne"
+        ],
+        "exits": [
+          "Unterstadt-Markt",
+          "Söldnergilde"
+        ],
+        "bg": "taverne"
+      },
+      "Söldnergilde": {
+        "desc": "Auftragstafel, Würfel, Blut und Gold.",
+        "tags": [
+          "stadt",
+          "innen"
+        ],
+        "exits": [
+          "Unterstadt-Markt",
+          "Taverne Zum Silberfuchs",
+          "Osttor"
+        ],
+        "bg": "soeldnergilde"
+      },
+      "Kirche von Solari": {
+        "desc": "Goldenes Licht, Weihrauch, strenge Priester.",
+        "tags": [
+          "stadt",
+          "innen"
+        ],
+        "exits": [
+          "Unterstadt-Markt"
+        ],
+        "bg": "beschwoerungshalle"
+      },
+      "Osttor": {
+        "desc": "Wachtürme, Wartende Karawanen.",
+        "tags": [
+          "stadt",
+          "außen"
+        ],
+        "exits": [
+          "Unterstadt-Markt",
+          "Dorf Weidenau",
+          "Hafen von Myr",
+          "Elfenwald Sylvaris"
+        ],
+        "bg": "markt"
+      },
+      "Dorf Weidenau": {
+        "desc": "Getreidefelder, Flüchtlingszelte, sanfte Hügel.",
+        "tags": [
+          "dorf",
+          "außen"
+        ],
+        "exits": [
+          "Osttor",
+          "Waldweg nach Sylvaris"
+        ],
+        "bg": "dorf"
+      },
+      "Waldweg nach Sylvaris": {
+        "desc": "Silberne Blätter am Wegesrand, Pfade die sich drehen.",
+        "tags": [
+          "wald",
+          "außen"
+        ],
+        "exits": [
+          "Dorf Weidenau",
+          "Elfenwald Sylvaris"
+        ],
+        "bg": "elfenwald"
+      },
+      "Elfenwald Sylvaris": {
+        "desc": "Wechselnde Pfade, Elfenwachen, Licht ohne Sonne.",
+        "tags": [
+          "wald",
+          "außen"
+        ],
+        "exits": [
+          "Waldweg nach Sylvaris"
+        ],
+        "bg": "elfenwald"
+      },
+      "Hafen von Myr": {
+        "desc": "Schiffe, Salz, Schmugglerflüstern.",
+        "tags": [
+          "hafen",
+          "außen"
+        ],
+        "exits": [
+          "Osttor"
+        ],
+        "bg": "hafen"
+      },
+      "Nordwall": {
+        "desc": "Steinmauer, Ruß, Dämonenheere in der Ferne.",
+        "tags": [
+          "front",
+          "außen"
+        ],
+        "exits": [
+          "Königsburg-Hof"
+        ],
+        "bg": "nordwall"
+      }
+    },
+    "start": "Beschwörungshalle im Königspalast von Aldheim",
+    "Schmiede am Wall": "Glut, Hammerklang, der Wall wirft Schatten über den Amboss.",
+    "Flüchtlingslager Ost": "Zelte, Rauch, Kinderstimmen zwischen Wäscheleinen.",
+    "Ratssaal": "Dunkles Holz, Siegel, Stimmen die zu leise sind für Ehrlichkeit.",
+    "Ostwall-Zinne": "Wind, Fernfeuer der Feinde, Fahnen die reißen wollen.",
+    "Kräuterhof Ysolde": "Beete, getrocknete Bündel, der Geruch von Minze und Wermut.",
+    "Gildenkeller": "Niedrige Decke, Würfelklang, Verträge die niemand vorliest.",
+    "Kanalbrücke": "Feucht, glitschig, ein guter Ort um ungesehen zu wechseln.",
+    "Tempelinnenhof": "Sonnenscheiben aus Glas, leise Gebete, Opferkerzen.",
+    "Lagerhaus der Gilde": "Kisten, Siegelwachs, ein Hund der nicht schläft.",
+    "Außenposten Nord": "Palissaden, müde Wachen, der Geruch von nassem Leder.",
+    "Bibliotheksturm": "Staub, Leitern, Karten die älter sind als der Krieg.",
+    "Badehaus der Unterstadt": "Dampf, Klatsch, ein Ort wo Ränge weich werden.",
+    "Friedhof der Solari": "Steine, Namen, Kränze die der Wind stiehlt.",
+    "Weinfeld vor dem Tor": "Reben, frühreif, Soldaten zelten zwischen den Stocken.",
+    "Botschaftszelt": "Seide, fremde Akzente, Tee der zu höflich schmeckt.",
+    "Trainingsplatz der Gilde": "Sand, Schweiß, Holzschwerter die splittern.",
+    "Elises Privatkapelle": "Klein, kalt, ein Altar nur für sie.",
+    "Tunnel unter dem Markt": "Nass, eng, Fackeln die spucken.",
+    "Mühlenwehr": "Rauschen, Mehlstaub, ein Treffpunkt für Schmuggel.",
+    "Aussichtspunkt Königshügel": "Die ganze Stadt liegt unter dir – und die Belagerungslinien.",
+    "Archiv des Rates": "Akten, Siegel, Wahrheit die jemand einsperren wollte.",
+    "Stallungen": "Pferde, Heu, Flüstern von Botenreitern.",
+    "Zollhaus am Fluss": "Barken, Stempel, Beamte die hungrig auf Bestechung schauen.",
+    "Nachtwache-Baracke": "Schnarchen, Rüstungen, Karten auf dem Tisch.",
+    "Sonnentor": "Das große Stadttor – offen bei Tag, verriegelt bei Gerücht.",
+    "Krämergasse": "Eng, bunt, Taschen die leichter werden.",
+    "Ballsaal (geschlossen)": "Staubtücher über Kronleuchtern, Musik die fehlt.",
+    "Hofküche": "Hitze, Befehle, Gerüchte die mit der Suppe kochen.",
+    "Prügelfeld hinter der Gilde": "Blut im Sand, Wetten, Regeln die niemand schreibt.",
+    "Heilzelt am Ostwall": "Verbände, Stöhnen, Ysoldes zweite Front."
+  },
+  "orte": {
+    "Beschwörungshalle im Königspalast von Aldheim": "Marmor, Weihrauch, erloschener Beschwörungskreis.",
+    "Thronsaal von Aldheim": "Purpurne Banner, leerer Thron, flüsternde Räte.",
+    "Palastgarten": "Geschnittene Hecken, Springbrunnen, Wachen an den Toren.",
+    "Königsburg-Hof": "Waffenständer, Übungsring, Fahnen im Wind.",
+    "Unterstadt-Markt": "Stände, Gewürzduft, Gildenbanner.",
+    "Taverne Zum Silberfuchs": "Warmes Feuer, Bier, Gerüchte.",
+    "Söldnergilde": "Auftragstafel, Würfel, Blut und Gold.",
+    "Kirche von Solari": "Goldenes Licht, Weihrauch, strenge Priester.",
+    "Osttor": "Wachtürme, Wartende Karawanen.",
+    "Dorf Weidenau": "Getreidefelder, Flüchtlingszelte, sanfte Hügel.",
+    "Waldweg nach Sylvaris": "Silberne Blätter am Wegesrand, Pfade die sich drehen.",
+    "Elfenwald Sylvaris": "Wechselnde Pfade, Elfenwachen, Licht ohne Sonne.",
+    "Hafen von Myr": "Schiffe, Salz, Schmugglerflüstern.",
+    "Nordwall": "Steinmauer, Ruß, Dämonenheere in der Ferne.",
+    "Hauptstadt Aldheim": "Weiße Mauern, Königsburg auf dem Hügel, Unterstadt mit Gilden und Märkten. Geruch von Brot und Eisen.",
+    "Schmiede am Wall": "Glut, Hammerklang, der Wall wirft Schatten über den Amboss.",
+    "Flüchtlingslager Ost": "Zelte, Rauch, Kinderstimmen zwischen Wäscheleinen.",
+    "Ratssaal": "Dunkles Holz, Siegel, Stimmen die zu leise sind für Ehrlichkeit.",
+    "Ostwall-Zinne": "Wind, Fernfeuer der Feinde, Fahnen die reißen wollen.",
+    "Kräuterhof Ysolde": "Beete, getrocknete Bündel, der Geruch von Minze und Wermut.",
+    "Gildenkeller": "Niedrige Decke, Würfelklang, Verträge die niemand vorliest.",
+    "Kanalbrücke": "Feucht, glitschig, ein guter Ort um ungesehen zu wechseln.",
+    "Tempelinnenhof": "Sonnenscheiben aus Glas, leise Gebete, Opferkerzen.",
+    "Lagerhaus der Gilde": "Kisten, Siegelwachs, ein Hund der nicht schläft.",
+    "Außenposten Nord": "Palissaden, müde Wachen, der Geruch von nassem Leder.",
+    "Bibliotheksturm": "Staub, Leitern, Karten die älter sind als der Krieg.",
+    "Badehaus der Unterstadt": "Dampf, Klatsch, ein Ort wo Ränge weich werden.",
+    "Friedhof der Solari": "Steine, Namen, Kränze die der Wind stiehlt.",
+    "Weinfeld vor dem Tor": "Reben, frühreif, Soldaten zelten zwischen den Stocken.",
+    "Botschaftszelt": "Seide, fremde Akzente, Tee der zu höflich schmeckt.",
+    "Trainingsplatz der Gilde": "Sand, Schweiß, Holzschwerter die splittern.",
+    "Elises Privatkapelle": "Klein, kalt, ein Altar nur für sie.",
+    "Tunnel unter dem Markt": "Nass, eng, Fackeln die spucken.",
+    "Mühlenwehr": "Rauschen, Mehlstaub, ein Treffpunkt für Schmuggel.",
+    "Aussichtspunkt Königshügel": "Die ganze Stadt liegt unter dir – und die Belagerungslinien.",
+    "Archiv des Rates": "Akten, Siegel, Wahrheit die jemand einsperren wollte.",
+    "Stallungen": "Pferde, Heu, Flüstern von Botenreitern.",
+    "Zollhaus am Fluss": "Barken, Stempel, Beamte die hungrig auf Bestechung schauen.",
+    "Nachtwache-Baracke": "Schnarchen, Rüstungen, Karten auf dem Tisch.",
+    "Sonnentor": "Das große Stadttor – offen bei Tag, verriegelt bei Gerücht.",
+    "Krämergasse": "Eng, bunt, Taschen die leichter werden.",
+    "Ballsaal (geschlossen)": "Staubtücher über Kronleuchtern, Musik die fehlt.",
+    "Hofküche": "Hitze, Befehle, Gerüchte die mit der Suppe kochen.",
+    "Prügelfeld hinter der Gilde": "Blut im Sand, Wetten, Regeln die niemand schreibt.",
+    "Heilzelt am Ostwall": "Verbände, Stöhnen, Ysoldes zweite Front."
   }
- ],
- "arc": {
-  "titel": "Der Fall und die Flamme Aldheims",
-  "acts": [
-   {
-    "id": "a1",
-    "titel": "Drei Tage",
-    "ziel": "Als Held anerkannt werden und den Nordwall erreichen",
-    "mile": [
-     "Status erklärt",
-     "Gilde beitreten oder Hofdienst",
-     "Erste Patrouille am Nordwall"
-    ],
-    "twist": "Orren hat möglicherweise den falschen Helden beschworen – Alaric starb dafür."
-   },
-   {
-    "id": "a2",
-    "titel": "Risse in der Mauer",
-    "ziel": "Die Belagerung überstehen und Verrat aufdecken",
-    "mile": [
-     "Erste Schlacht überleben",
-     "Spion Kael entlarven oder nutzen",
-     "Elise vertraut dir ein Geheimnis an"
-    ],
-    "twist": "Ein Adelsrat-Mitglied verkauft Passwörter an Nocturna."
-   },
-   {
-    "id": "a3",
-    "titel": "Der Preis des Lichts",
-    "ziel": "Sylvaris um Hilfe bitten oder allein stehen",
-    "mile": [
-     "Elfenwald betreten",
-     "Lyra's Bruder-Spur",
-     "Allianz oder Absage"
-    ],
-    "twist": "Der Blutpakt verbietet Elfen, Aldheim direkt zu retten – es gibt einen Ausweg."
-   },
-   {
-    "id": "a4",
-    "titel": "Gegen die Nacht",
-    "ziel": "Den Dämonenvorstoß stoppen oder die Stadt evakuieren",
-    "mile": [
-     "Finale am Nordwall",
-     "Entscheidung: Thron, Flucht, oder Opfer"
-    ],
-    "twist": "Der wahre Feind ist nicht nur das Heer – sondern was der erste Held vor 300 Jahren versiegelt hat."
-   }
-  ]
- },
- "sideQuests": [
-  {
-   "id": "sq_garrick",
-   "titel": "Garricks letzte Rechnung",
-   "ziel": "Finde heraus, warum Garrick desertierte",
-   "npc": "Garrick",
-   "ort": "Söldnergilde"
-  },
-  {
-   "id": "sq_lyra",
-   "titel": "Silberne Spur",
-   "ziel": "Hilf Lyra, ihren Bruder zu finden",
-   "npc": "Lyra",
-   "ort": "Elfenwald Sylvaris"
-  },
-  {
-   "id": "sq_otto",
-   "titel": "Flüchtlinge von Weidenau",
-   "ziel": "Bringe Vorräte zum Dorf",
-   "npc": "Bauer Otto",
-   "ort": "Dorf Weidenau"
-  },
-  {
-   "id": "sq_seris",
-   "titel": "Verbotene Glyphe",
-   "ziel": "Untersuche Seris' geheimes Ritual",
-   "npc": "Magierin Seris",
-   "ort": "Hauptstadt Aldheim"
-  }
- ],
- "romanceable": [
-  "Lyra",
-  "Prinzessin Elise",
-  "Magierin Seris"
- ],
- "npcs": {
-  "Prinzessin Elise": {
-   "e": "👑",
-   "art": "Kühl, stolz, förmlich; hinter der Fassade verzweifelt und jung. Trägt Trauer unter der Tiara.",
-   "stimme": "Hochaldheimisch, knapp: „Der Held aus der anderen Welt.“ „Zweifel ist ein Luxus, den wir nicht haben.“",
-   "ziel": "Aldheim retten, ohne den Thron an den Rat zu verlieren.",
-   "furcht": "Dass der Held versagt und alles umsonst war.",
-   "geheim": "Die Beschwörung hat König Alaric das Leben gekostet – sie hat zugestimmt.",
-   "ort": "Königsburg / Thronsaal",
-   "plan": [
-    "Hof halten",
-    "Mit Orren beraten",
-    "Dich prüfen"
-   ],
-   "meinung": {
-    "Hofmagier Orren": "braucht ihn, traut ihm nicht ganz",
-    "Lyra": "nützlich, aber fremd",
-    "Garrick": "ordinär, aber ehrlich"
-   },
-   "romance": true,
-   "geschlecht": "w",
-   "schedule": [
-    "Morgen: Thronsaal von Aldheim",
-    "Mittag: Thronsaal von Aldheim",
-    "Nachmittag: Palastgarten",
-    "Abend: Beschwörungshalle im Königspalast von Aldheim",
-    "Nacht: Thronsaal von Aldheim"
-   ],
-   "home": "Thronsaal von Aldheim",
-   "portrait": "elise",
-   "mood": "angespannt",
-   "goals": [
-    "Aldheim retten",
-    "Rat kontrollieren"
-   ],
-   "relations": {
-    "Hofmagier Orren": "vertraut",
-    "Kapitän Rhett": "respekt"
-   },
-   "adult": true
-  },
-  "Lyra": {
-   "e": "🏹",
-   "art": "Elfische Bogenschützin, wortkarg, spöttisch, beobachtet länger als sie spricht.",
-   "stimme": "Leise, spitz: „Interessant.“ „Lauf nicht in meinen Schuss.“",
-   "ziel": "Ihren verschollenen Bruder Fael finden.",
-   "furcht": "Dass der Elfenrat sie als Verräterin brandmarkt.",
-   "geheim": "Sie ist Spionin des Elfenrats – und beginnt, Zweifel an ihrem Auftrag zu haben.",
-   "ort": "Söldnergilde / Mauern",
-   "plan": [
-    "Dich beobachten",
-    "Berichte schreiben",
-    "Nach Fael suchen"
-   ],
-   "meinung": {
-    "Prinzessin Elise": "zu steif",
-    "Garrick": "laut, aber brauchbar",
-    "Hofmagier Orren": "nervös und gefährlich"
-   },
-   "romance": true,
-   "geschlecht": "w",
-   "schedule": [
-    "Morgen: Elfenwald Sylvaris",
-    "Mittag: Waldweg nach Sylvaris",
-    "Nachmittag: Unterstadt-Markt",
-    "Abend: Taverne Zum Silberfuchs",
-    "Nacht: Elfenwald Sylvaris"
-   ],
-   "home": "Elfenwald Sylvaris",
-   "portrait": "lyra",
-   "mood": "wachsam",
-   "goals": [
-    "Bruder Fael finden"
-   ],
-   "relations": {
-    "Garrick": "toleriert"
-   },
-   "adult": true
-  },
-  "Garrick": {
-   "e": "🪓",
-   "art": "Polternder Söldner, lacht laut, redet derb, trinkt zu viel, kämpft fair.",
-   "stimme": "Brüllend: „HA! Noch ein Becher!“ „Gold zuerst, Heldentum später.“",
-   "ziel": "Genug Gold für einen ruhigen Abgang – und einen letzten großen Kampf.",
-   "furcht": "Als Feigling zu sterben wie damals.",
-   "geheim": "Desertierte aus der Königsarmee, nachdem ein Befehl Zivilisten traf.",
-   "ort": "Söldnergilde",
-   "plan": [
-    "Saufen",
-    "Aufträge annehmen",
-    "Dich anheuern oder verarschen"
-   ],
-   "meinung": {
-    "Prinzessin Elise": "Adelskram",
-    "Lyra": "kalte Schönheit",
-    "Bauer Otto": "ehrlicher Mann"
-   },
-   "romance": false,
-   "geschlecht": "m",
-   "schedule": [
-    "Morgen: Söldnergilde",
-    "Mittag: Taverne Zum Silberfuchs",
-    "Nachmittag: Unterstadt-Markt",
-    "Abend: Taverne Zum Silberfuchs",
-    "Nacht: Söldnergilde"
-   ],
-   "home": "Söldnergilde",
-   "portrait": "garrick",
-   "mood": "laut",
-   "goals": [
-    "Gold",
-    "einen letzten Kampf"
-   ],
-   "relations": {
-    "Lyra": "neckt"
-   },
-   "adult": true
-  },
-  "Hofmagier Orren": {
-   "e": "🔮",
-   "art": "Alt, nervös, murmelt Formeln, Finger immer rußig von Kreide.",
-   "stimme": "Zerstreut: „Der Kreis… der Kreis war korrekt. Fast.“",
-   "ziel": "Seinen Fehler vertuschen und dich funktionsfähig halten.",
-   "furcht": "Enthüllt zu werden.",
-   "geheim": "Er vermutet, den falschen Helden beschworen zu haben – die Resonanz war 'zu modern'.",
-   "ort": "Beschwörungshalle / Turm",
-   "plan": [
-    "Dich messen",
-    "Elise beruhigen",
-    "Alte Schriftrollen prüfen"
-   ],
-   "meinung": {
-    "Prinzessin Elise": "seine Königin",
-    "Lyra": "magieempfindlich, unheimlich"
-   },
-   "romance": false,
-   "geschlecht": "m",
-   "schedule": [
-    "Morgen: Beschwörungshalle im Königspalast von Aldheim",
-    "Mittag: Kirche von Solari",
-    "Nachmittag: Beschwörungshalle im Königspalast von Aldheim",
-    "Abend: Thronsaal von Aldheim",
-    "Nacht: Beschwörungshalle im Königspalast von Aldheim"
-   ],
-   "home": "Beschwörungshalle im Königspalast von Aldheim",
-   "portrait": "orren",
-   "mood": "erschöpft",
-   "goals": [
-    "Kreis stabilisieren",
-    "Elise schützen"
-   ],
-   "relations": {
-    "Prinzessin Elise": "loyal",
-    "Magierin Seris": "rival"
-   },
-   "adult": true
-  },
-  "Magierin Seris": {
-   "e": "✨",
-   "art": "Junge Hofmagierin, neugierig, zu ehrlich, sammelt verbotene Glyphen.",
-   "stimme": "Schnell, begeistert: „Darf ich dein Statusfenster anfassen? Im übertragenen Sinne!“",
-   "ziel": "Verstehen, wie Fremdwelt-Seelen Mana binden.",
-   "furcht": "Von der Kirche als Ketzerin gebranntmarkt zu werden.",
-   "geheim": "Arbeitet an einer Glyphe, die Statusfenster spiegeln könnte.",
-   "ort": "Magierturm",
-   "plan": [
-    "Dich studieren",
-    "Bücher stehlen",
-    "Mit Orren streiten"
-   ],
-   "meinung": {
-    "Hofmagier Orren": "Lehrer und Hemmschuh",
-    "Prinzessin Elise": "respektiert sie"
-   },
-   "romance": true,
-   "geschlecht": "w",
-   "schedule": [
-    "Morgen: Kirche von Solari",
-    "Mittag: Unterstadt-Markt",
-    "Nachmittag: Kirche von Solari",
-    "Abend: Thronsaal von Aldheim",
-    "Nacht: Kirche von Solari"
-   ],
-   "home": "Kirche von Solari",
-   "portrait": "seris",
-   "mood": "kühl",
-   "goals": [
-    "Kirche stärken"
-   ],
-   "relations": {
-    "Hofmagier Orren": "rival"
-   },
-   "adult": true
-  },
-  "Kapitän Rhett": {
-   "e": "🛡️",
-   "art": "Disziplinierter Mauerkommandant, graue Schläfen, schläft wenig.",
-   "stimme": "Militärisch: „Report.“ „Der Wall hält – noch.“",
-   "ziel": "Den Nordwall halten, bis Verstärkung kommt.",
-   "furcht": "Seine Leute zu opfern für Politik.",
-   "geheim": "Kennt den Verräter im Rat – schweigt, bis er Beweise hat.",
-   "ort": "Nordwall",
-   "plan": [
-    "Patrouillen",
-    "Dich testen",
-    "Vorräte zählen"
-   ],
-   "meinung": {
-    "Garrick": "Deserteur, aber Kämpfer",
-    "Prinzessin Elise": "loyal"
-   },
-   "romance": false,
-   "geschlecht": "m",
-   "schedule": [
-    "Morgen: Königsburg-Hof",
-    "Mittag: Nordwall",
-    "Nachmittag: Nordwall",
-    "Abend: Königsburg-Hof",
-    "Nacht: Nordwall"
-   ],
-   "home": "Königsburg-Hof",
-   "portrait": "rhett",
-   "mood": "pflichtbewusst",
-   "goals": [
-    "Mauer halten"
-   ],
-   "relations": {
-    "Prinzessin Elise": "loyal"
-   },
-   "adult": true
-  },
-  "Bauer Otto": {
-   "e": "🌾",
-   "art": "Breitschultrig, gutmütig, gibt das letzte Brot weg.",
-   "stimme": "Dialekt: „Komm rein, Junge. Suppe is' da.“",
-   "ziel": "Seine Familie und die Flüchtlinge durchbringen.",
-   "furcht": "Dass die Stadt sie vergisst.",
-   "geheim": "Versteckt einen verwundeten Deserteur aus Nocturna, der reden will.",
-   "ort": "Dorf Weidenau",
-   "plan": [
-    "Ernten",
-    "Flüchtlinge versorgen",
-    "Dich um Hilfe bitten"
-   ],
-   "meinung": {
-    "Garrick": "hat ihm einmal geholfen"
-   },
-   "romance": false,
-   "geschlecht": "m",
-   "schedule": [
-    "Morgen: Dorf Weidenau",
-    "Mittag: Dorf Weidenau",
-    "Nachmittag: Osttor",
-    "Abend: Dorf Weidenau",
-    "Nacht: Dorf Weidenau"
-   ],
-   "home": "Dorf Weidenau",
-   "portrait": "otto",
-   "mood": "müde",
-   "goals": [
-    "Flüchtlinge füttern"
-   ],
-   "relations": {},
-   "adult": true
-  },
-  "Spion Kael": {
-   "e": "🗡️",
-   "art": "Charmant, wechselnde Verkleidung, lächelt zu viel.",
-   "stimme": "Samtig: „Nur ein Gerücht… außer es ist wahr.“",
-   "ziel": "Informationen verkaufen – an beide Seiten.",
-   "furcht": "Erkannt zu werden.",
-   "geheim": "Arbeitet für den Adelsrat UND Nocturna.",
-   "ort": "Unterstadt / Schatten",
-   "plan": [
-    "Gerüchte streuen",
-    "Dich anbaggern oder erpressen"
-   ],
-   "meinung": {
-    "Prinzessin Elise": "Ziel",
-    "Lyra": "gefährlich aufmerksam"
-   },
-   "romance": false,
-   "geschlecht": "m",
-   "schedule": [
-    "Morgen: Hafen von Myr",
-    "Mittag: Unterstadt-Markt",
-    "Nachmittag: Taverne Zum Silberfuchs",
-    "Abend: Hafen von Myr",
-    "Nacht: Nebel – unterwegs"
-   ],
-   "home": "Hafen von Myr",
-   "portrait": "rhett",
-   "mood": "verschlossen",
-   "goals": [
-    "Geheimnisse verkaufen"
-   ],
-   "relations": {},
-   "adult": true
-  }
- },
- "startItems": [
-  {
-   "id": "bronze_sword",
-   "name": "Bronzeschwert",
-   "icon": "⚔️",
-   "desc": "Schwer und ehrlich. +Kampf.",
-   "type": "weapon",
-   "equip": true
-  },
-  {
-   "id": "heal_potion",
-   "name": "Heiltrank",
-   "icon": "🧪",
-   "desc": "Stellt 30 HP wieder her.",
-   "type": "consumable",
-   "use": "heal:30"
-  },
-  {
-   "id": "status_shard",
-   "name": "Status-Splitter",
-   "icon": "📱",
-   "desc": "Ein Splitter des Fensters – beweist, dass du 'der Held' bist.",
-   "type": "key"
-  }
- ],
- "startSkills": [
-  {
-   "id": "status",
-   "name": "Status-Fenster",
-   "icon": "📊",
-   "desc": "Siehst HP, Skills und Schwächen (manchmal).",
-   "level": 1,
-   "cost": 0,
-   "cd": 0
-  },
-  {
-   "id": "slash",
-   "name": "Schwertschlag",
-   "icon": "⚔️",
-   "desc": "Grundangriff. Kostet wenig MP.",
-   "level": 1,
-   "cost": 5,
-   "cd": 0
-  }
- ],
- "startScene": {
-  "ort": "Beschwörungshalle im Königspalast von Aldheim",
-  "zeit": "Abend, Fackellicht",
-  "anwesend": [
-   "Prinzessin Elise",
-   "Hofmagier Orren",
-   "ein Dutzend Ritter"
-  ]
- },
- "startEvents": [
-  "Das Dämonenheer steht drei Tage vor dem Nordwall",
-  "Der Adel zweifelt an der Beschwörung",
-  "König Alaric ist 'erkrankt' (tot – geheim)"
- ],
- "locations": {
-  "nodes": {
-   "Beschwörungshalle im Königspalast von Aldheim": {
-    "desc": "Marmor, Weihrauch, erloschener Beschwörungskreis.",
-    "tags": [
-     "palast",
-     "innen"
-    ],
-    "exits": [
-     "Thronsaal von Aldheim",
-     "Palastgarten",
-     "Unterstadt-Markt"
-    ],
-    "bg": "beschwoerungshalle"
-   },
-   "Thronsaal von Aldheim": {
-    "desc": "Purpurne Banner, leerer Thron, flüsternde Räte.",
-    "tags": [
-     "palast",
-     "innen"
-    ],
-    "exits": [
-     "Beschwörungshalle im Königspalast von Aldheim",
-     "Palastgarten",
-     "Königsburg-Hof"
-    ],
-    "bg": "thron"
-   },
-   "Palastgarten": {
-    "desc": "Geschnittene Hecken, Springbrunnen, Wachen an den Toren.",
-    "tags": [
-     "palast",
-     "außen"
-    ],
-    "exits": [
-     "Thronsaal von Aldheim",
-     "Königsburg-Hof",
-     "Unterstadt-Markt"
-    ],
-    "bg": "dorf"
-   },
-   "Königsburg-Hof": {
-    "desc": "Waffenständer, Übungsring, Fahnen im Wind.",
-    "tags": [
-     "palast",
-     "außen"
-    ],
-    "exits": [
-     "Palastgarten",
-     "Unterstadt-Markt",
-     "Nordwall"
-    ],
-    "bg": "nordwall"
-   },
-   "Unterstadt-Markt": {
-    "desc": "Stände, Gewürzduft, Gildenbanner.",
-    "tags": [
-     "stadt",
-     "außen"
-    ],
-    "exits": [
-     "Königsburg-Hof",
-     "Söldnergilde",
-     "Taverne Zum Silberfuchs",
-     "Osttor",
-     "Kirche von Solari"
-    ],
-    "bg": "markt"
-   },
-   "Taverne Zum Silberfuchs": {
-    "desc": "Warmes Feuer, Bier, Gerüchte.",
-    "tags": [
-     "stadt",
-     "innen",
-     "taverne"
-    ],
-    "exits": [
-     "Unterstadt-Markt",
-     "Söldnergilde"
-    ],
-    "bg": "taverne"
-   },
-   "Söldnergilde": {
-    "desc": "Auftragstafel, Würfel, Blut und Gold.",
-    "tags": [
-     "stadt",
-     "innen"
-    ],
-    "exits": [
-     "Unterstadt-Markt",
-     "Taverne Zum Silberfuchs",
-     "Osttor"
-    ],
-    "bg": "soeldnergilde"
-   },
-   "Kirche von Solari": {
-    "desc": "Goldenes Licht, Weihrauch, strenge Priester.",
-    "tags": [
-     "stadt",
-     "innen"
-    ],
-    "exits": [
-     "Unterstadt-Markt"
-    ],
-    "bg": "beschwoerungshalle"
-   },
-   "Osttor": {
-    "desc": "Wachtürme, Wartende Karawanen.",
-    "tags": [
-     "stadt",
-     "außen"
-    ],
-    "exits": [
-     "Unterstadt-Markt",
-     "Dorf Weidenau",
-     "Hafen von Myr",
-     "Elfenwald Sylvaris"
-    ],
-    "bg": "markt"
-   },
-   "Dorf Weidenau": {
-    "desc": "Getreidefelder, Flüchtlingszelte, sanfte Hügel.",
-    "tags": [
-     "dorf",
-     "außen"
-    ],
-    "exits": [
-     "Osttor",
-     "Waldweg nach Sylvaris"
-    ],
-    "bg": "dorf"
-   },
-   "Waldweg nach Sylvaris": {
-    "desc": "Silberne Blätter am Wegesrand, Pfade die sich drehen.",
-    "tags": [
-     "wald",
-     "außen"
-    ],
-    "exits": [
-     "Dorf Weidenau",
-     "Elfenwald Sylvaris"
-    ],
-    "bg": "elfenwald"
-   },
-   "Elfenwald Sylvaris": {
-    "desc": "Wechselnde Pfade, Elfenwachen, Licht ohne Sonne.",
-    "tags": [
-     "wald",
-     "außen"
-    ],
-    "exits": [
-     "Waldweg nach Sylvaris"
-    ],
-    "bg": "elfenwald"
-   },
-   "Hafen von Myr": {
-    "desc": "Schiffe, Salz, Schmugglerflüstern.",
-    "tags": [
-     "hafen",
-     "außen"
-    ],
-    "exits": [
-     "Osttor"
-    ],
-    "bg": "hafen"
-   },
-   "Nordwall": {
-    "desc": "Steinmauer, Ruß, Dämonenheere in der Ferne.",
-    "tags": [
-     "front",
-     "außen"
-    ],
-    "exits": [
-     "Königsburg-Hof"
-    ],
-    "bg": "nordwall"
-   }
-  },
-  "start": "Beschwörungshalle im Königspalast von Aldheim"
- },
- "orte": {
-  "Beschwörungshalle im Königspalast von Aldheim": "Marmor, Weihrauch, erloschener Beschwörungskreis.",
-  "Thronsaal von Aldheim": "Purpurne Banner, leerer Thron, flüsternde Räte.",
-  "Palastgarten": "Geschnittene Hecken, Springbrunnen, Wachen an den Toren.",
-  "Königsburg-Hof": "Waffenständer, Übungsring, Fahnen im Wind.",
-  "Unterstadt-Markt": "Stände, Gewürzduft, Gildenbanner.",
-  "Taverne Zum Silberfuchs": "Warmes Feuer, Bier, Gerüchte.",
-  "Söldnergilde": "Auftragstafel, Würfel, Blut und Gold.",
-  "Kirche von Solari": "Goldenes Licht, Weihrauch, strenge Priester.",
-  "Osttor": "Wachtürme, Wartende Karawanen.",
-  "Dorf Weidenau": "Getreidefelder, Flüchtlingszelte, sanfte Hügel.",
-  "Waldweg nach Sylvaris": "Silberne Blätter am Wegesrand, Pfade die sich drehen.",
-  "Elfenwald Sylvaris": "Wechselnde Pfade, Elfenwachen, Licht ohne Sonne.",
-  "Hafen von Myr": "Schiffe, Salz, Schmugglerflüstern.",
-  "Nordwall": "Steinmauer, Ruß, Dämonenheere in der Ferne.",
-  "Hauptstadt Aldheim": "Weiße Mauern, Königsburg auf dem Hügel, Unterstadt mit Gilden und Märkten. Geruch von Brot und Eisen."
- }
 }

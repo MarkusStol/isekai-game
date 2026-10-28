@@ -1,557 +1,689 @@
 {
- "id": "mensch",
- "titel": "Dorf Kleinbach",
- "ton": "Slice-of-life Isekai ohne Cheats: Arbeit, Gerüchte, leise Magie am Waldrand. Wärme, Mud, Hoffnung.",
- "geschichte": "Kleinbach liegt am Dunkelwald, steuerpflichtig an Baron Feldreich. Vor Jahren verschwanden Leute im Wald. Die Hexe Morgana gilt als Fluch und Segen. Du bist ohne Statusfenster angekommen – modern gebildet, magisch nackt.",
- "magie": "Kaum. Kräuter, Flüche, Waldgeister. Morganas Rituale. Dein Vorteil: Wissen aus einer anderen Welt (Hygiene, Hebel, Schrift).",
- "kultur": "Festtage am Brunnen, Erntebier, Misstrauen gegen Fremde. Kirche kommt selten. Jäger und Bauern bestimmen den Ton.",
- "alltag": "Holz, Wasser, Eintopf. Arbeit gegen Bett und Brot. Abends Geschichten. Wölfe in Vollmondnächten.",
- "regionen": {
-  "Dorfplatz": "Brunnen, Schwarzes Brett, Klatsch.",
-  "Taverne Zum Krummen Kessel": "Hannas Reich. Wärme, Gerüchte, Jobs.",
-  "Dunkelwald": "Pfade, Morganas Hütte, Dinge die Namen flüstern.",
-  "Felder": "Getreide, Steuermarkierungen, Vogelscheuchen die zu gut stehen.",
-  "Mühle": "Lärm, Mehlstaub, heimliche Treffen.",
-  "Baronssitz Feldreich": "Einen Tagesritt entfernt – Steuern und Urteile."
- },
- "politik": "Baron Feldreich erhöht Steuern. Steuereintreiber in einer Woche. Manche wollen Morgana vertreiben; Hanna schützt das Dorf mit Schüsseln und Schimpfen.",
- "setup": [
-  {
-   "id": "tod",
-   "titel": "Quietschen",
-   "text": "Bremsen. Dunkelheit. Was nimmst du mit in den nächsten Atemzug?",
-   "choices": [
+  "id": "mensch",
+  "titel": "Dorf Kleinbach",
+  "ton": "Slice-of-life Isekai ohne Cheats: Arbeit, Gerüchte, leise Magie am Waldrand. Wärme, Mud, Hoffnung.",
+  "geschichte": "Kleinbach liegt am Dunkelwald, steuerpflichtig an Baron Feldreich. Vor Jahren verschwanden Leute im Wald. Die Hexe Morgana gilt als Fluch und Segen. Du bist ohne Statusfenster angekommen – modern gebildet, magisch nackt.",
+  "magie": "Kaum. Kräuter, Flüche, Waldgeister. Morganas Rituale. Dein Vorteil: Wissen aus einer anderen Welt (Hygiene, Hebel, Schrift).",
+  "kultur": "Festtage am Brunnen, Erntebier, Misstrauen gegen Fremde. Kirche kommt selten. Jäger und Bauern bestimmen den Ton.",
+  "alltag": "Holz, Wasser, Eintopf. Arbeit gegen Bett und Brot. Abends Geschichten. Wölfe in Vollmondnächten.",
+  "regionen": {
+    "Dorfplatz": "Brunnen, Schwarzes Brett, Klatsch.",
+    "Taverne Zum Krummen Kessel": "Hannas Reich. Wärme, Gerüchte, Jobs.",
+    "Dunkelwald": "Pfade, Morganas Hütte, Dinge die Namen flüstern.",
+    "Felder": "Getreide, Steuermarkierungen, Vogelscheuchen die zu gut stehen.",
+    "Mühle": "Lärm, Mehlstaub, heimliche Treffen.",
+    "Baronssitz Feldreich": "Einen Tagesritt entfernt – Steuern und Urteile."
+  },
+  "politik": "Baron Feldreich erhöht Steuern. Steuereintreiber in einer Woche. Manche wollen Morgana vertreiben; Hanna schützt das Dorf mit Schüsseln und Schimpfen.",
+  "setup": [
     {
-     "id": "skill",
-     "label": "Ein praktisches Wissen",
-     "past": "Du kannst etwas Nützliches (Reparatur, Kochen, Erste Hilfe)."
+      "id": "tod",
+      "titel": "Quietschen",
+      "text": "Bremsen. Dunkelheit. Was nimmst du mit in den nächsten Atemzug?",
+      "choices": [
+        {
+          "id": "skill",
+          "label": "Ein praktisches Wissen",
+          "past": "Du kannst etwas Nützliches (Reparatur, Kochen, Erste Hilfe)."
+        },
+        {
+          "id": "kind",
+          "label": "Die Erinnerung, gut zu sein",
+          "past": "Du willst hier niemandem schaden."
+        },
+        {
+          "id": "curious",
+          "label": "Neugier auf Magie",
+          "past": "Du suchst Erklärungen – und findest den Wald."
+        },
+        {
+          "id": "tired",
+          "label": "Nur den Wunsch nach Ruhe",
+          "past": "Du willst erstmal überleben und schlafen."
+        }
+      ]
     },
     {
-     "id": "kind",
-     "label": "Die Erinnerung, gut zu sein",
-     "past": "Du willst hier niemandem schaden."
+      "id": "erwachen",
+      "titel": "Heu",
+      "text": "Vogelgezwitscher. Ein Stock in den Rippen. Fachwerk, Matsch, Schild: „Kleinbach“.\nKein blaues Fenster. Keine Göttin.\n\nWas tust du zuerst?",
+      "choices": [
+        {
+          "id": "hands",
+          "label": "Hände prüfen – bin ich verletzt?",
+          "focus": "körper"
+        },
+        {
+          "id": "look",
+          "label": "Dich umsehen",
+          "focus": "umgebung"
+        },
+        {
+          "id": "speak",
+          "label": "Den Mann mit dem Bogen ansprechen",
+          "focus": "sozial"
+        },
+        {
+          "id": "pocket",
+          "label": "Taschen nach Moderne absuchen",
+          "focus": "inventar"
+        }
+      ]
     },
     {
-     "id": "curious",
-     "label": "Neugier auf Magie",
-     "past": "Du suchst Erklärungen – und findest den Wald."
+      "id": "name",
+      "titel": "Wer bist du?",
+      "text": "Tom kneift die Augen zusammen: „Namen. Und keine Lügen – ich riech' die.“",
+      "choices": [
+        {
+          "id": "real",
+          "label": "Deinen echten Namen sagen",
+          "nameMode": "real"
+        },
+        {
+          "id": "nick",
+          "label": "Einen Spitznamen erfinden",
+          "nameMode": "nick"
+        },
+        {
+          "id": "lost",
+          "label": "„Ich weiß es nicht mehr“",
+          "nameMode": "lost"
+        }
+      ],
+      "needsName": true
     },
     {
-     "id": "tired",
-     "label": "Nur den Wunsch nach Ruhe",
-     "past": "Du willst erstmal überleben und schlafen."
+      "id": "npc",
+      "titel": "Willkommen?",
+      "text": "Jäger Tom piekst noch einmal. „Lebst du noch? Komische Kleidung. Wegelagerer – oder hat dich die Hexe ausgespuckt?“\nAus der Taverne: „Tom! Lass den armen Kerl und bring ihn rein!“",
+      "choices": [
+        {
+          "id": "honest",
+          "label": "Die Wahrheit andeuten (andere Welt)",
+          "impression": "seltsam",
+          "aff": {
+            "Jäger Tom": -2,
+            "Wirtin Hanna": 5,
+            "Hexe Morgana": 5
+          }
+        },
+        {
+          "id": "lie",
+          "label": "Behaupten, du seist Reisender",
+          "impression": "vorsichtig",
+          "aff": {
+            "Jäger Tom": 3
+          }
+        },
+        {
+          "id": "help",
+          "label": "Sofort Arbeit anbieten",
+          "impression": "nützlich",
+          "aff": {
+            "Wirtin Hanna": 10,
+            "Jäger Tom": 5
+          }
+        },
+        {
+          "id": "witch",
+          "label": "Nach der Hexe fragen",
+          "impression": "neugierig",
+          "aff": {
+            "Jäger Tom": -5,
+            "Hexe Morgana": 8
+          }
+        }
+      ]
     }
-   ]
+  ],
+  "arc": {
+    "titel": "Was der Wald behält",
+    "acts": [
+      {
+        "id": "a1",
+        "titel": "Ankommen",
+        "ziel": "Unterkunft, Arbeit, Vertrauen im Dorf",
+        "mile": [
+          "Bei Hanna unterkommen",
+          "Erste Arbeit",
+          "Tom akzeptiert dich notdürftig"
+        ],
+        "twist": "Etwas im Wald kennt deinen modernen Namen."
+      },
+      {
+        "id": "a2",
+        "titel": "Steuer und Wölfe",
+        "ziel": "Die Krise mit Eintreiber und Wölfen überstehen",
+        "mile": [
+          "Vorräte",
+          "Falle oder Verhandlung",
+          "Dorfversammlung"
+        ],
+        "twist": "Die 'Wölfe' sind nicht nur Tiere."
+      },
+      {
+        "id": "a3",
+        "titel": "Die Hexe",
+        "ziel": "Morganas Ritual verstehen – helfen oder stoppen",
+        "mile": [
+          "Hütte finden",
+          "Wahrheit über Verschwundene",
+          "Wahl"
+        ],
+        "twist": "Morgana hat dich hergerufen – nicht aus Güte allein."
+      },
+      {
+        "id": "a4",
+        "titel": "Baron und Brunnen",
+        "ziel": "Kleinbachs Zukunft entscheiden",
+        "mile": [
+          "Konfrontation Feldreich",
+          "Waldgrenze",
+          "Bleiben oder weiterziehen"
+        ],
+        "twist": "Dein 'modernes Wissen' kann das Dorf retten oder zerstören."
+      }
+    ]
   },
-  {
-   "id": "erwachen",
-   "titel": "Heu",
-   "text": "Vogelgezwitscher. Ein Stock in den Rippen. Fachwerk, Matsch, Schild: „Kleinbach“.\nKein blaues Fenster. Keine Göttin.\n\nWas tust du zuerst?",
-   "choices": [
+  "sideQuests": [
     {
-     "id": "hands",
-     "label": "Hände prüfen – bin ich verletzt?",
-     "focus": "körper"
+      "id": "sq_hanna",
+      "titel": "Eintopf und Schulden",
+      "ziel": "Hilf Hanna, die Taverne über den Winter zu bringen",
+      "npc": "Wirtin Hanna"
     },
     {
-     "id": "look",
-     "label": "Dich umsehen",
-     "focus": "umgebung"
+      "id": "sq_tom",
+      "titel": "Jagdpfad",
+      "ziel": "Begleite Tom und lerne den Wald",
+      "npc": "Jäger Tom"
     },
     {
-     "id": "speak",
-     "label": "Den Mann mit dem Bogen ansprechen",
-     "focus": "sozial"
+      "id": "sq_lena",
+      "titel": "Briefe der Müllerin",
+      "ziel": "Finde Lenás verschwundenen Bruder",
+      "npc": "Müllerin Lena"
     },
     {
-     "id": "pocket",
-     "label": "Taschen nach Moderne absuchen",
-     "focus": "inventar"
+      "id": "sq_pete",
+      "titel": "Kaputte Mühle",
+      "ziel": "Repariere die Mühle mit Vorwissen",
+      "npc": "Müller Pete"
     }
-   ]
-  },
-  {
-   "id": "name",
-   "titel": "Wer bist du?",
-   "text": "Tom kneift die Augen zusammen: „Namen. Und keine Lügen – ich riech' die.“",
-   "choices": [
-    {
-     "id": "real",
-     "label": "Deinen echten Namen sagen",
-     "nameMode": "real"
+  ],
+  "romanceable": [
+    "Wirtin Hanna",
+    "Jäger Tom",
+    "Hexe Morgana",
+    "Müllerin Lena"
+  ],
+  "npcs": {
+    "Wirtin Hanna": {
+      "e": "🍲",
+      "art": "Gutmütig, resolut, mütterlich; schimpft aus Sorge.",
+      "stimme": "Warm-streng: „Rein mit dir.“ „Essen zuerst, Dramen später.“",
+      "ziel": "Die Taverne und das Dorf über den Winter bringen.",
+      "furcht": "Noch jemanden an den Wald zu verlieren.",
+      "geheim": "Ihr Mann verschwand im Dunkelwald; sie sucht noch Zeichen.",
+      "ort": "Taverne",
+      "plan": [
+        "Kochen",
+        "Dich anstellen",
+        "Tom zurechtweisen"
+      ],
+      "meinung": {
+        "Jäger Tom": "rauer Freund",
+        "Hexe Morgana": "Angst und Respekt",
+        "Müllerin Lena": "gute Kundin"
+      },
+      "romance": true,
+      "geschlecht": "w",
+      "schedule": [
+        "Morgen: Taverne",
+        "Mittag: Taverne",
+        "Abend: Taverne",
+        "Nacht: ruht nahe Taverne"
+      ],
+      "adult": true,
+      "backstory": "Gutmütig, resolut, mütterlich; schimpft aus Sorge."
     },
-    {
-     "id": "nick",
-     "label": "Einen Spitznamen erfinden",
-     "nameMode": "nick"
+    "Jäger Tom": {
+      "e": "🏹",
+      "art": "Rau, wortkarg, misstrauisch, trockener Humor.",
+      "stimme": "Knapp: „Lebst du noch?“ „Wald lügt nicht. Menschen schon.“",
+      "ziel": "Das Dorf vor Wölfen und Dummen schützen.",
+      "furcht": "Der Hexe – und seiner eigenen Neugier.",
+      "geheim": "Hat Morgana einmal um Hilfe gebeten und nie bezahlt.",
+      "ort": "Waldrand / Taverne",
+      "plan": [
+        "Jagen",
+        "Dich prüfen",
+        "Patrouillen"
+      ],
+      "meinung": {
+        "Wirtin Hanna": "vertraut",
+        "Hexe Morgana": "fürchtet",
+        "Müller Pete": "ok"
+      },
+      "romance": true,
+      "geschlecht": "m",
+      "schedule": [
+        "Morgen: Waldrand / Taverne",
+        "Mittag: Waldrand / Taverne",
+        "Abend: Waldrand / Taverne",
+        "Nacht: ruht nahe Waldrand "
+      ],
+      "adult": true,
+      "backstory": "Rau, wortkarg, misstrauisch, trockener Humor."
     },
-    {
-     "id": "lost",
-     "label": "„Ich weiß es nicht mehr“",
-     "nameMode": "lost"
+    "Hexe Morgana": {
+      "e": "🧙‍♀️",
+      "art": "Rätselhaft, Andeutungen, Augen wie Moos.",
+      "stimme": "Langsam: „Du bist… früh.“ „Namen sind Türen.“",
+      "ziel": "Ein Ritual vollenden, das den Wald 'beruhigt'.",
+      "furcht": "Dass das Ritual dich frisst statt den Fluch.",
+      "geheim": "Sie hat dich hergerufen; der Preis ist noch offen.",
+      "ort": "Dunkelwald-Hütte",
+      "plan": [
+        "Beobachten",
+        "Dich rufen",
+        "Kräuter sammeln"
+      ],
+      "meinung": {
+        "Jäger Tom": "Schuldner",
+        "Wirtin Hanna": "respektiert Distanz"
+      },
+      "romance": true,
+      "geschlecht": "w",
+      "schedule": [
+        "Morgen: Dunkelwald-Hütte",
+        "Mittag: Dunkelwald-Hütte",
+        "Abend: Dunkelwald-Hütte",
+        "Nacht: ruht nahe Dunkelwald-Hütte"
+      ],
+      "adult": true,
+      "backstory": "Rätselhaft, Andeutungen, Augen wie Moos."
+    },
+    "Müllerin Lena": {
+      "e": "🌾",
+      "art": "Praktisch, müde Augen, hofft heimlich.",
+      "stimme": "Ruhig: „Wenn du die Hände rührst, bleibst du.“",
+      "ziel": "Ihren Bruder finden, der in den Wald ging.",
+      "furcht": "Hoffnung zu verlieren.",
+      "geheim": "Hat einen Brief von Morgana versteckt.",
+      "ort": "Mühle",
+      "plan": [
+        "Arbeiten",
+        "Dich um Hilfe bitten"
+      ],
+      "meinung": {
+        "Wirtin Hanna": "Freundin",
+        "Müller Pete": "Onkel/Chef"
+      },
+      "romance": true,
+      "geschlecht": "w",
+      "schedule": [
+        "Morgen: Mühle",
+        "Mittag: Mühle",
+        "Abend: Mühle",
+        "Nacht: ruht nahe Mühle"
+      ],
+      "adult": true,
+      "backstory": "Praktisch, müde Augen, hofft heimlich."
+    },
+    "Müller Pete": {
+      "e": "⚙️",
+      "art": "Laut, mehlbestaubt, gutmütig-technisch.",
+      "stimme": "Brummig: „Rad klemmt. Wie dein Kopf.“",
+      "ziel": "Die Mühle am Laufen halten.",
+      "furcht": "Steuern, die ihn ruinieren.",
+      "geheim": "Versteckt Getreide vor dem Baron.",
+      "ort": "Mühle",
+      "plan": [
+        "Reparieren",
+        "Dich anheuern"
+      ],
+      "meinung": {
+        "Müllerin Lena": "Familie"
+      },
+      "romance": false,
+      "geschlecht": "m",
+      "schedule": [
+        "Morgen: Mühle",
+        "Mittag: Mühle",
+        "Abend: Mühle",
+        "Nacht: ruht nahe Mühle"
+      ],
+      "adult": true,
+      "backstory": "Laut, mehlbestaubt, gutmütig-technisch."
+    },
+    "Kind Elsi": {
+      "e": "👧",
+      "art": "Neugierig, zeichnet Kreidebilder am Brunnen.",
+      "stimme": "Hell: „Bist du ein Geist?“",
+      "ziel": "Geschichten sammeln.",
+      "furcht": "Dass die Vogelscheuche nachts geht.",
+      "geheim": "Hat etwas im Wald gesehen, das ihren Namen kannte.",
+      "ort": "Dorfplatz",
+      "plan": [
+        "Fragen stellen",
+        "Zeichnen"
+      ],
+      "meinung": {
+        "Hexe Morgana": "fasziniert/ängstlich"
+      },
+      "romance": false,
+      "geschlecht": "w",
+      "schedule": [
+        "Morgen: Dorfplatz",
+        "Mittag: Dorfplatz",
+        "Abend: Dorfplatz",
+        "Nacht: ruht nahe Dorfplatz"
+      ],
+      "adult": true,
+      "backstory": "Neugierig, zeichnet Kreidebilder am Brunnen."
+    },
+    "Steuereintreiber Volz": {
+      "e": "📜",
+      "art": "Höflich-kalt, zählt alles.",
+      "stimme": "Formell: „Im Namen des Barons.“",
+      "ziel": "Steuern eintreiben, Bonus kassieren.",
+      "furcht": "Dem Baron zu wenig zu bringen.",
+      "geheim": "Nimmt Bestechung – in Maßen.",
+      "ort": "Anrückend / Dorfplatz",
+      "plan": [
+        "Drängen",
+        "Drohungen",
+        "Deals"
+      ],
+      "meinung": {
+        "Wirtin Hanna": "Zahlende"
+      },
+      "romance": false,
+      "geschlecht": "m",
+      "schedule": [
+        "Morgen: Anrückend / Dorfplatz",
+        "Mittag: Anrückend / Dorfplatz",
+        "Abend: Anrückend / Dorfplatz",
+        "Nacht: ruht nahe Anrückend "
+      ],
+      "adult": true,
+      "backstory": "Höflich-kalt, zählt alles."
+    },
+    "Förster Bram": {
+      "e": "🌲",
+      "art": "Ruhig, wachsam, kennt jeden Pfad.",
+      "stimme": "„Der Wald hört mit.“",
+      "ziel": "Wilderei stoppen.",
+      "furcht": "Feuer.",
+      "geheim": "Versteckt Deserteure.",
+      "ort": "Waldrand",
+      "plan": [
+        "Patrouille"
+      ],
+      "meinung": {},
+      "romance": false,
+      "geschlecht": "m",
+      "backstory": "Dorfkind.",
+      "samples": [
+        "Der Wald hört mit."
+      ]
+    },
+    "Hebamme Clara": {
+      "e": "🕯️",
+      "art": "Warm, resolut, keine Zeit für Unsinn.",
+      "stimme": "„Atmen. Ich bin da.“",
+      "ziel": "Jede Geburt überleben.",
+      "furcht": "Seuche.",
+      "geheim": "Kann auch Gift.",
+      "ort": "Taverne Zum Müden Ochsen",
+      "plan": [
+        "Helfen"
+      ],
+      "meinung": {},
+      "romance": false,
+      "geschlecht": "w",
+      "backstory": "Drei Generationen Hebammen.",
+      "samples": [
+        "Atmen. Ich bin da."
+      ]
+    },
+    "Müllerbursche Piet": {
+      "e": "🌾",
+      "art": "Tollpatschig ehrlich, stark.",
+      "stimme": "„Mehl zuerst, Fragen später.“",
+      "ziel": "Die Mühle erben.",
+      "furcht": "Schuldner.",
+      "geheim": "Kann nicht lesen.",
+      "ort": "Dorfplatz",
+      "plan": [
+        "Arbeiten"
+      ],
+      "meinung": {},
+      "romance": true,
+      "geschlecht": "m",
+      "backstory": "Lehrling.",
+      "samples": [
+        "Mehl zuerst, Fragen später."
+      ]
+    },
+    "Krämerin Ulla": {
+      "e": "🧂",
+      "art": "Feilscht um jeden Pfennig, Herz aus Butter.",
+      "stimme": "„Das ist der Preis – heute.“",
+      "ziel": "Laden halten.",
+      "furcht": "Steuern.",
+      "geheim": "Borgt den Armen.",
+      "ort": "Dorfplatz",
+      "plan": [
+        "Verkaufen"
+      ],
+      "meinung": {},
+      "romance": false,
+      "geschlecht": "w",
+      "backstory": "Witwe.",
+      "samples": [
+        "Das ist der Preis – heute."
+      ]
+    },
+    "Nachtwächter Sem": {
+      "e": "🔔",
+      "art": "Müde, pflichtbewusst, pfeift schief.",
+      "stimme": "„Alles ruhig – bisher.“",
+      "ziel": "Keine Überraschungen.",
+      "furcht": "Wölfe.",
+      "geheim": "Schläft auf der Runde.",
+      "ort": "Dorfplatz",
+      "plan": [
+        "Wachen"
+      ],
+      "meinung": {},
+      "romance": false,
+      "geschlecht": "m",
+      "backstory": "Ex-Soldat.",
+      "samples": [
+        "Alles ruhig – bisher."
+      ]
     }
-   ],
-   "needsName": true
   },
-  {
-   "id": "npc",
-   "titel": "Willkommen?",
-   "text": "Jäger Tom piekst noch einmal. „Lebst du noch? Komische Kleidung. Wegelagerer – oder hat dich die Hexe ausgespuckt?“\nAus der Taverne: „Tom! Lass den armen Kerl und bring ihn rein!“",
-   "choices": [
+  "startItems": [
     {
-     "id": "honest",
-     "label": "Die Wahrheit andeuten (andere Welt)",
-     "impression": "seltsam",
-     "aff": {
-      "Jäger Tom": -2,
-      "Wirtin Hanna": 5,
-      "Hexe Morgana": 5
-     }
+      "id": "stick",
+      "name": "Holzstock",
+      "icon": "🪵",
+      "desc": "Besser als nichts.",
+      "type": "weapon",
+      "equip": true
     },
     {
-     "id": "lie",
-     "label": "Behaupten, du seist Reisender",
-     "impression": "vorsichtig",
-     "aff": {
-      "Jäger Tom": 3
-     }
+      "id": "bread",
+      "name": "Brotkanten",
+      "icon": "🍞",
+      "desc": "Stellt 10 HP wieder her.",
+      "type": "consumable",
+      "use": "heal:10"
     },
     {
-     "id": "help",
-     "label": "Sofort Arbeit anbieten",
-     "impression": "nützlich",
-     "aff": {
-      "Wirtin Hanna": 10,
-      "Jäger Tom": 5
-     }
-    },
-    {
-     "id": "witch",
-     "label": "Nach der Hexe fragen",
-     "impression": "neugierig",
-     "aff": {
-      "Jäger Tom": -5,
-      "Hexe Morgana": 8
-     }
+      "id": "phone_dead",
+      "name": "Totes Handy",
+      "icon": "📱",
+      "desc": "Kein Empfang. Spiegel und Gesprächsstarter.",
+      "type": "key"
     }
-   ]
+  ],
+  "startSkills": [
+    {
+      "id": "modern",
+      "name": "Moderne Bildung",
+      "icon": "🧠",
+      "desc": "Hygiene, Hebel, Schrift – manchmal genial, oft verdächtig.",
+      "level": 1,
+      "cost": 0,
+      "cd": 0
+    },
+    {
+      "id": "observe",
+      "name": "Beobachten",
+      "icon": "👁️",
+      "desc": "Details finden, die Einheimische übersehen.",
+      "level": 1,
+      "cost": 0,
+      "cd": 0
+    }
+  ],
+  "startScene": {
+    "ort": "Dorfplatz Kleinbach",
+    "zeit": "Früher Morgen, Tau, Vogelgezwitscher",
+    "anwesend": [
+      "Jäger Tom"
+    ]
+  },
+  "startEvents": [
+    "Wölfe reißen Schafe am Waldrand",
+    "Steuereintreiber kommen in einer Woche",
+    "Gerücht: die Hexe hat etwas gerufen"
+  ],
+  "locations": {
+    "nodes": {
+      "Dorfplatz Kleinbach": {
+        "desc": "Brunnen, Bäckerei, neugierige Nachbarn.",
+        "tags": [
+          "dorf",
+          "außen"
+        ],
+        "exits": [
+          "Taverne Zum Müden Ochsen",
+          "Bauernhof Otto",
+          "Waldpfad",
+          "Feldweg"
+        ],
+        "bg": "dorfplatz"
+      },
+      "Taverne Zum Müden Ochsen": {
+        "desc": "Rauch, Lachen, dünnes Bier.",
+        "tags": [
+          "dorf",
+          "innen"
+        ],
+        "exits": [
+          "Dorfplatz Kleinbach"
+        ],
+        "bg": "taverne"
+      },
+      "Bauernhof Otto": {
+        "desc": "Heu, Hühner, ehrliche Arbeit.",
+        "tags": [
+          "dorf",
+          "außen"
+        ],
+        "exits": [
+          "Dorfplatz Kleinbach",
+          "Feldweg"
+        ],
+        "bg": "dorfplatz"
+      },
+      "Feldweg": {
+        "desc": "Getreide bis zum Horizont.",
+        "tags": [
+          "außen"
+        ],
+        "exits": [
+          "Dorfplatz Kleinbach",
+          "Bauernhof Otto",
+          "Waldpfad"
+        ],
+        "bg": "dorfplatz"
+      },
+      "Waldpfad": {
+        "desc": "Vogelsang, Knacken im Unterholz.",
+        "tags": [
+          "wald",
+          "außen"
+        ],
+        "exits": [
+          "Dorfplatz Kleinbach",
+          "Feldweg",
+          "Dunkle Lichtung"
+        ],
+        "bg": "waldpfad"
+      },
+      "Dunkle Lichtung": {
+        "desc": "Zu still. Etwas beobachtet.",
+        "tags": [
+          "wald",
+          "außen"
+        ],
+        "exits": [
+          "Waldpfad"
+        ],
+        "bg": "waldpfad"
+      }
+    },
+    "start": "Dorfplatz Kleinbach"
+  },
+  "orte": {
+    "Dorfplatz Kleinbach": "Brunnen, Bäckerei, neugierige Nachbarn.",
+    "Taverne Zum Müden Ochsen": "Rauch, Lachen, dünnes Bier.",
+    "Bauernhof Otto": "Heu, Hühner, ehrliche Arbeit.",
+    "Feldweg": "Getreide bis zum Horizont.",
+    "Waldpfad": "Vogelsang, Knacken im Unterholz.",
+    "Dunkle Lichtung": "Zu still. Etwas beobachtet.",
+    "Dorfplatz": "Brunnen, Schwarzes Brett, Klatsch.",
+    "Taverne Zum Krummen Kessel": "Hannas Reich. Wärme, Gerüchte, Jobs.",
+    "Dunkelwald": "Pfade, Morganas Hütte, Dinge die Namen flüstern.",
+    "Felder": "Getreide, Steuermarkierungen, Vogelscheuchen die zu gut stehen.",
+    "Mühle": "Lärm, Mehlstaub, heimliche Treffen.",
+    "Baronssitz Feldreich": "Einen Tagesritt entfernt – Steuern und Urteile.",
+    "Waldrand": "Buchen, Moos, Pfade die sich entscheiden.",
+    "Mühle am Bach": "Klappern, Mehlstaub, nasse Steine.",
+    "Hebammenhaus": "Warme Stube, Kräuter, klare Befehle.",
+    "Dorfkirche": "Holz, Kerzen, Namen in Bänken.",
+    "Nachtwache-Posten": "Laterne, Bank, zu wenig Decke.",
+    "Krämerladen Ulla": "Salz, Stoff, Schuldenbuch.",
+    "Feldweg Ost": "Lehm, Krähen, Fernblick.",
+    "Brunnenplatz": "Treffpunkt, Klatsch, Eimer.",
+    "Schreinerwerkstatt": "Späne, Leim, ehrliche Arbeit.",
+    "Schäferhütte": "Wolle, Wind, Hunde.",
+    "Friedhofhügel": "Steine, Stille, Kränze.",
+    "Fähre": "Seil, Wasser, Wartezeit.",
+    "Marktbuden (Saison)": "Nur an Markttagen voll.",
+    "Bürgermeisterstube": "Akten, Siegel, Kaffee.",
+    "Spielwiese": "Kinder, Staub, Lachen.",
+    "Steinbruch": "Echo, Gefahr, Lohn.",
+    "Kräuterwiese": "Bienen, Heilkraut, Clara.",
+    "Gasthaus-Keller": "Fässer, Geheimnisse.",
+    "Brücke Süd": "Bretter, Fluss, Abschiede.",
+    "Obstgarten": "Äpfel, Wespen, Diebe.",
+    "Schulstube": "Kreide, Unruhe, Hoffnung.",
+    "Schmiede (Dorf)": "Funken, Nachbarn.",
+    "Jägersteig": "Stille, Fallen, Bram.",
+    "Hochsitz": "Blick übers Feld.",
+    "Lehmgrube": "Nass, kalt, Arbeit.",
+    "Kapellenruine": "Steine ohne Dach.",
+    "Fischersteg": "Netze, Moder, Geschichten.",
+    "Mühlenwehr-Pfad": "Rutschig, Abkürzung.",
+    "Nachbarfeld": "Zäune, Streit, Ernte.",
+    "Taverne-Hinterhof": "Fässer, Katzen, Küsse."
   }
- ],
- "arc": {
-  "titel": "Was der Wald behält",
-  "acts": [
-   {
-    "id": "a1",
-    "titel": "Ankommen",
-    "ziel": "Unterkunft, Arbeit, Vertrauen im Dorf",
-    "mile": [
-     "Bei Hanna unterkommen",
-     "Erste Arbeit",
-     "Tom akzeptiert dich notdürftig"
-    ],
-    "twist": "Etwas im Wald kennt deinen modernen Namen."
-   },
-   {
-    "id": "a2",
-    "titel": "Steuer und Wölfe",
-    "ziel": "Die Krise mit Eintreiber und Wölfen überstehen",
-    "mile": [
-     "Vorräte",
-     "Falle oder Verhandlung",
-     "Dorfversammlung"
-    ],
-    "twist": "Die 'Wölfe' sind nicht nur Tiere."
-   },
-   {
-    "id": "a3",
-    "titel": "Die Hexe",
-    "ziel": "Morganas Ritual verstehen – helfen oder stoppen",
-    "mile": [
-     "Hütte finden",
-     "Wahrheit über Verschwundene",
-     "Wahl"
-    ],
-    "twist": "Morgana hat dich hergerufen – nicht aus Güte allein."
-   },
-   {
-    "id": "a4",
-    "titel": "Baron und Brunnen",
-    "ziel": "Kleinbachs Zukunft entscheiden",
-    "mile": [
-     "Konfrontation Feldreich",
-     "Waldgrenze",
-     "Bleiben oder weiterziehen"
-    ],
-    "twist": "Dein 'modernes Wissen' kann das Dorf retten oder zerstören."
-   }
-  ]
- },
- "sideQuests": [
-  {
-   "id": "sq_hanna",
-   "titel": "Eintopf und Schulden",
-   "ziel": "Hilf Hanna, die Taverne über den Winter zu bringen",
-   "npc": "Wirtin Hanna"
-  },
-  {
-   "id": "sq_tom",
-   "titel": "Jagdpfad",
-   "ziel": "Begleite Tom und lerne den Wald",
-   "npc": "Jäger Tom"
-  },
-  {
-   "id": "sq_lena",
-   "titel": "Briefe der Müllerin",
-   "ziel": "Finde Lenás verschwundenen Bruder",
-   "npc": "Müllerin Lena"
-  },
-  {
-   "id": "sq_pete",
-   "titel": "Kaputte Mühle",
-   "ziel": "Repariere die Mühle mit Vorwissen",
-   "npc": "Müller Pete"
-  }
- ],
- "romanceable": [
-  "Wirtin Hanna",
-  "Jäger Tom",
-  "Hexe Morgana",
-  "Müllerin Lena"
- ],
- "npcs": {
-  "Wirtin Hanna": {
-   "e": "🍲",
-   "art": "Gutmütig, resolut, mütterlich; schimpft aus Sorge.",
-   "stimme": "Warm-streng: „Rein mit dir.“ „Essen zuerst, Dramen später.“",
-   "ziel": "Die Taverne und das Dorf über den Winter bringen.",
-   "furcht": "Noch jemanden an den Wald zu verlieren.",
-   "geheim": "Ihr Mann verschwand im Dunkelwald; sie sucht noch Zeichen.",
-   "ort": "Taverne",
-   "plan": [
-    "Kochen",
-    "Dich anstellen",
-    "Tom zurechtweisen"
-   ],
-   "meinung": {
-    "Jäger Tom": "rauer Freund",
-    "Hexe Morgana": "Angst und Respekt",
-    "Müllerin Lena": "gute Kundin"
-   },
-   "romance": true,
-   "geschlecht": "w",
-   "schedule": [
-    "Morgen: Taverne",
-    "Mittag: Taverne",
-    "Abend: Taverne",
-    "Nacht: ruht nahe Taverne"
-   ],
-   "adult": true
-  },
-  "Jäger Tom": {
-   "e": "🏹",
-   "art": "Rau, wortkarg, misstrauisch, trockener Humor.",
-   "stimme": "Knapp: „Lebst du noch?“ „Wald lügt nicht. Menschen schon.“",
-   "ziel": "Das Dorf vor Wölfen und Dummen schützen.",
-   "furcht": "Der Hexe – und seiner eigenen Neugier.",
-   "geheim": "Hat Morgana einmal um Hilfe gebeten und nie bezahlt.",
-   "ort": "Waldrand / Taverne",
-   "plan": [
-    "Jagen",
-    "Dich prüfen",
-    "Patrouillen"
-   ],
-   "meinung": {
-    "Wirtin Hanna": "vertraut",
-    "Hexe Morgana": "fürchtet",
-    "Müller Pete": "ok"
-   },
-   "romance": true,
-   "geschlecht": "m",
-   "schedule": [
-    "Morgen: Waldrand / Taverne",
-    "Mittag: Waldrand / Taverne",
-    "Abend: Waldrand / Taverne",
-    "Nacht: ruht nahe Waldrand "
-   ],
-   "adult": true
-  },
-  "Hexe Morgana": {
-   "e": "🧙‍♀️",
-   "art": "Rätselhaft, Andeutungen, Augen wie Moos.",
-   "stimme": "Langsam: „Du bist… früh.“ „Namen sind Türen.“",
-   "ziel": "Ein Ritual vollenden, das den Wald 'beruhigt'.",
-   "furcht": "Dass das Ritual dich frisst statt den Fluch.",
-   "geheim": "Sie hat dich hergerufen; der Preis ist noch offen.",
-   "ort": "Dunkelwald-Hütte",
-   "plan": [
-    "Beobachten",
-    "Dich rufen",
-    "Kräuter sammeln"
-   ],
-   "meinung": {
-    "Jäger Tom": "Schuldner",
-    "Wirtin Hanna": "respektiert Distanz"
-   },
-   "romance": true,
-   "geschlecht": "w",
-   "schedule": [
-    "Morgen: Dunkelwald-Hütte",
-    "Mittag: Dunkelwald-Hütte",
-    "Abend: Dunkelwald-Hütte",
-    "Nacht: ruht nahe Dunkelwald-Hütte"
-   ],
-   "adult": true
-  },
-  "Müllerin Lena": {
-   "e": "🌾",
-   "art": "Praktisch, müde Augen, hofft heimlich.",
-   "stimme": "Ruhig: „Wenn du die Hände rührst, bleibst du.“",
-   "ziel": "Ihren Bruder finden, der in den Wald ging.",
-   "furcht": "Hoffnung zu verlieren.",
-   "geheim": "Hat einen Brief von Morgana versteckt.",
-   "ort": "Mühle",
-   "plan": [
-    "Arbeiten",
-    "Dich um Hilfe bitten"
-   ],
-   "meinung": {
-    "Wirtin Hanna": "Freundin",
-    "Müller Pete": "Onkel/Chef"
-   },
-   "romance": true,
-   "geschlecht": "w",
-   "schedule": [
-    "Morgen: Mühle",
-    "Mittag: Mühle",
-    "Abend: Mühle",
-    "Nacht: ruht nahe Mühle"
-   ],
-   "adult": true
-  },
-  "Müller Pete": {
-   "e": "⚙️",
-   "art": "Laut, mehlbestaubt, gutmütig-technisch.",
-   "stimme": "Brummig: „Rad klemmt. Wie dein Kopf.“",
-   "ziel": "Die Mühle am Laufen halten.",
-   "furcht": "Steuern, die ihn ruinieren.",
-   "geheim": "Versteckt Getreide vor dem Baron.",
-   "ort": "Mühle",
-   "plan": [
-    "Reparieren",
-    "Dich anheuern"
-   ],
-   "meinung": {
-    "Müllerin Lena": "Familie"
-   },
-   "romance": false,
-   "geschlecht": "m",
-   "schedule": [
-    "Morgen: Mühle",
-    "Mittag: Mühle",
-    "Abend: Mühle",
-    "Nacht: ruht nahe Mühle"
-   ],
-   "adult": true
-  },
-  "Kind Elsi": {
-   "e": "👧",
-   "art": "Neugierig, zeichnet Kreidebilder am Brunnen.",
-   "stimme": "Hell: „Bist du ein Geist?“",
-   "ziel": "Geschichten sammeln.",
-   "furcht": "Dass die Vogelscheuche nachts geht.",
-   "geheim": "Hat etwas im Wald gesehen, das ihren Namen kannte.",
-   "ort": "Dorfplatz",
-   "plan": [
-    "Fragen stellen",
-    "Zeichnen"
-   ],
-   "meinung": {
-    "Hexe Morgana": "fasziniert/ängstlich"
-   },
-   "romance": false,
-   "geschlecht": "w",
-   "schedule": [
-    "Morgen: Dorfplatz",
-    "Mittag: Dorfplatz",
-    "Abend: Dorfplatz",
-    "Nacht: ruht nahe Dorfplatz"
-   ],
-   "adult": true
-  },
-  "Steuereintreiber Volz": {
-   "e": "📜",
-   "art": "Höflich-kalt, zählt alles.",
-   "stimme": "Formell: „Im Namen des Barons.“",
-   "ziel": "Steuern eintreiben, Bonus kassieren.",
-   "furcht": "Dem Baron zu wenig zu bringen.",
-   "geheim": "Nimmt Bestechung – in Maßen.",
-   "ort": "Anrückend / Dorfplatz",
-   "plan": [
-    "Drängen",
-    "Drohungen",
-    "Deals"
-   ],
-   "meinung": {
-    "Wirtin Hanna": "Zahlende"
-   },
-   "romance": false,
-   "geschlecht": "m",
-   "schedule": [
-    "Morgen: Anrückend / Dorfplatz",
-    "Mittag: Anrückend / Dorfplatz",
-    "Abend: Anrückend / Dorfplatz",
-    "Nacht: ruht nahe Anrückend "
-   ],
-   "adult": true
-  }
- },
- "startItems": [
-  {
-   "id": "stick",
-   "name": "Holzstock",
-   "icon": "🪵",
-   "desc": "Besser als nichts.",
-   "type": "weapon",
-   "equip": true
-  },
-  {
-   "id": "bread",
-   "name": "Brotkanten",
-   "icon": "🍞",
-   "desc": "Stellt 10 HP wieder her.",
-   "type": "consumable",
-   "use": "heal:10"
-  },
-  {
-   "id": "phone_dead",
-   "name": "Totes Handy",
-   "icon": "📱",
-   "desc": "Kein Empfang. Spiegel und Gesprächsstarter.",
-   "type": "key"
-  }
- ],
- "startSkills": [
-  {
-   "id": "modern",
-   "name": "Moderne Bildung",
-   "icon": "🧠",
-   "desc": "Hygiene, Hebel, Schrift – manchmal genial, oft verdächtig.",
-   "level": 1,
-   "cost": 0,
-   "cd": 0
-  },
-  {
-   "id": "observe",
-   "name": "Beobachten",
-   "icon": "👁️",
-   "desc": "Details finden, die Einheimische übersehen.",
-   "level": 1,
-   "cost": 0,
-   "cd": 0
-  }
- ],
- "startScene": {
-  "ort": "Dorfplatz Kleinbach",
-  "zeit": "Früher Morgen, Tau, Vogelgezwitscher",
-  "anwesend": [
-   "Jäger Tom"
-  ]
- },
- "startEvents": [
-  "Wölfe reißen Schafe am Waldrand",
-  "Steuereintreiber kommen in einer Woche",
-  "Gerücht: die Hexe hat etwas gerufen"
- ],
- "locations": {
-  "nodes": {
-   "Dorfplatz Kleinbach": {
-    "desc": "Brunnen, Bäckerei, neugierige Nachbarn.",
-    "tags": [
-     "dorf",
-     "außen"
-    ],
-    "exits": [
-     "Taverne Zum Müden Ochsen",
-     "Bauernhof Otto",
-     "Waldpfad",
-     "Feldweg"
-    ],
-    "bg": "dorfplatz"
-   },
-   "Taverne Zum Müden Ochsen": {
-    "desc": "Rauch, Lachen, dünnes Bier.",
-    "tags": [
-     "dorf",
-     "innen"
-    ],
-    "exits": [
-     "Dorfplatz Kleinbach"
-    ],
-    "bg": "taverne"
-   },
-   "Bauernhof Otto": {
-    "desc": "Heu, Hühner, ehrliche Arbeit.",
-    "tags": [
-     "dorf",
-     "außen"
-    ],
-    "exits": [
-     "Dorfplatz Kleinbach",
-     "Feldweg"
-    ],
-    "bg": "dorfplatz"
-   },
-   "Feldweg": {
-    "desc": "Getreide bis zum Horizont.",
-    "tags": [
-     "außen"
-    ],
-    "exits": [
-     "Dorfplatz Kleinbach",
-     "Bauernhof Otto",
-     "Waldpfad"
-    ],
-    "bg": "dorfplatz"
-   },
-   "Waldpfad": {
-    "desc": "Vogelsang, Knacken im Unterholz.",
-    "tags": [
-     "wald",
-     "außen"
-    ],
-    "exits": [
-     "Dorfplatz Kleinbach",
-     "Feldweg",
-     "Dunkle Lichtung"
-    ],
-    "bg": "waldpfad"
-   },
-   "Dunkle Lichtung": {
-    "desc": "Zu still. Etwas beobachtet.",
-    "tags": [
-     "wald",
-     "außen"
-    ],
-    "exits": [
-     "Waldpfad"
-    ],
-    "bg": "waldpfad"
-   }
-  },
-  "start": "Dorfplatz Kleinbach"
- },
- "orte": {
-  "Dorfplatz Kleinbach": "Brunnen, Bäckerei, neugierige Nachbarn.",
-  "Taverne Zum Müden Ochsen": "Rauch, Lachen, dünnes Bier.",
-  "Bauernhof Otto": "Heu, Hühner, ehrliche Arbeit.",
-  "Feldweg": "Getreide bis zum Horizont.",
-  "Waldpfad": "Vogelsang, Knacken im Unterholz.",
-  "Dunkle Lichtung": "Zu still. Etwas beobachtet.",
-  "Dorfplatz": "Brunnen, Schwarzes Brett, Klatsch.",
-  "Taverne Zum Krummen Kessel": "Hannas Reich. Wärme, Gerüchte, Jobs.",
-  "Dunkelwald": "Pfade, Morganas Hütte, Dinge die Namen flüstern.",
-  "Felder": "Getreide, Steuermarkierungen, Vogelscheuchen die zu gut stehen.",
-  "Mühle": "Lärm, Mehlstaub, heimliche Treffen.",
-  "Baronssitz Feldreich": "Einen Tagesritt entfernt – Steuern und Urteile."
- }
 }
