@@ -448,3 +448,22 @@ body.genre-grey .vn-box{font-family:Georgia,'Times New Roman',serif}
 .mercy-card{background:linear-gradient(180deg,#2a1838f2,#0e0a1cf5);border:1px solid #f8717166;border-radius:22px;padding:16px;max-width:380px;width:100%;box-shadow:0 20px 60px #000c}
 .mercy-card .bcm.accent{background:linear-gradient(90deg,#b91c1c,#ef4444)}
 .mercy-card .meta{opacity:.75;font-size:.85rem;margin-top:8px}
+
+
+/* ===== v17 JRPG depth ===== */
+.battle-atb-mode{position:absolute;top:8px;right:12px;z-index:5;font:700 11px/1 Cinzel,serif;letter-spacing:.08em;color:#f0d59aaa;background:#0006;padding:4px 8px;border-radius:8px}
+.skill-banner{position:absolute;left:50%;top:18%;transform:translate(-50%,-50%) scale(.9);z-index:6;font:700 22px/1.1 Cinzel,serif;color:#fff;text-shadow:0 0 18px #f59e0b,0 2px 0 #000;opacity:0;pointer-events:none;transition:opacity .15s,transform .15s;white-space:nowrap}
+.skill-banner.on{opacity:1;transform:translate(-50%,-50%) scale(1)}
+.bar.atb{height:3px;background:#1e293b;margin-top:2px;border-radius:2px;overflow:hidden}
+.bar.atb i{display:block;height:100%;background:linear-gradient(90deg,#38bdf8,#a78bfa);width:0}
+.bar.foe-stagger{height:4px;background:#3f1d1d;margin-top:3px;border-radius:2px;overflow:hidden}
+.bar.foe-stagger i{display:block;height:100%;background:linear-gradient(90deg,#f59e0b,#ef4444);width:0;transition:width .2s}
+.bar.foe-stagger.broken i{background:linear-gradient(90deg,#fbbf24,#fff);animation:pulse 0.6s infinite}
+.cmd-classic{display:grid;grid-template-columns:1fr 1fr;gap:6px;max-height:42vh;overflow:auto}
+.cmd-classic .bcm{font-size:.92rem;padding:8px 10px}
+.victory-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px;text-align:center}
+.victory-summary span{display:block;opacity:.7;font-size:.75rem}
+.victory-summary b{font-size:1.15rem;color:#fbbf24}
+.victory-summary .loot{grid-column:1/-1;font-size:.9rem;opacity:.9}
+.party-card.row-back{opacity:.92;transform:scale(.96)}
+.party-card.row-front{box-shadow:inset 0 0 0 1px #f0d59a33}
