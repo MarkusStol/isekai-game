@@ -132,10 +132,11 @@ export function renderCodex(body, S, {setSceneImage, imgUrl}){
 
 export function renderMap(body, S, {act, closeMenu, toast}){
   Map.ensureSpawn(S);
-  const wrap=document.createElement('div'); wrap.className='card'; wrap.innerHTML='<h3>🗺 Weltkarte</h3><p class="meta">Pinch/Drag · Zeichnen · Nebel lichtet sich nur durch Reisen, Karten und Gerüchte.</p>';
+  const wrap=document.createElement('div'); wrap.className='card map-card atlas-card'; wrap.innerHTML='<h3>Weltkarte</h3><p class="meta">Ziehen · Zoomen · Zeichnen · Nebel lichtet sich durch Reisen, Karten und Gerüchte.</p>';
   body.appendChild(wrap);
-  const canvas=document.createElement('canvas'); canvas.width=340; canvas.height=340; canvas.style.width='100%'; canvas.style.borderRadius='12px'; canvas.style.border='1px solid #f0d59a55'; canvas.style.touchAction='none'; canvas.style.background='#0a1620';
-  wrap.appendChild(canvas);
+  const cwrap=document.createElement('div'); cwrap.className='map-canvas-wrap';
+  const canvas=document.createElement('canvas'); canvas.width=340; canvas.height=340; canvas.style.width='100%'; canvas.style.display='block'; canvas.style.touchAction='none'; canvas.style.background='#0a1620';
+  cwrap.appendChild(canvas); wrap.appendChild(cwrap);
   const ctx=canvas.getContext('2d');
   const a=S.atlas;
   let drawMode=false, drawing=[];
@@ -188,16 +189,16 @@ export function renderMap(body, S, {act, closeMenu, toast}){
   canvas.addEventListener('pointerup',()=>{dragging=false;last=null;if(drawMode&&drawing.length>1){Map.addDrawing(S,drawing);drawing=[];paint()}});
   canvas.addEventListener('wheel',ev=>{ev.preventDefault();a.zoom=Math.max(0.4,Math.min(3,a.zoom*(ev.deltaY>0?0.9:1.1)));paint()},{passive:false});
 
-  const tools=document.createElement('div'); tools.className='row'; wrap.appendChild(tools);
+  const tools=document.createElement('div'); tools.className='row map-toolbar'; wrap.appendChild(tools);
   const btn=(lab,fn)=>{const b=document.createElement('button');b.type='button';b.className='tiny';b.textContent=lab;b.onclick=fn;tools.appendChild(b);return b};
   btn('＋',()=>{a.zoom=Math.min(3,a.zoom*1.2);paint()});
   btn('－',()=>{a.zoom=Math.max(0.4,a.zoom/1.2);paint()});
   const db=btn('Zeichnen',()=>{drawMode=!drawMode;db.textContent=drawMode?'Zeichnen ✓':'Zeichnen';});
-  btn('Pin',()=>{const label=prompt('Name der Marke','Mein Ort'); if(!label)return; Map.addPin(S,{x:a.playerPos.x+5,y:a.playerPos.y+5,label,note:''}); paint(); toast&&toast('📌 '+label)});
+  btn('Pin',()=>{const label=prompt('Name der Marke','Mein Ort'); if(!label)return; Map.addPin(S,{x:a.playerPos.x+5,y:a.playerPos.y+5,label,note:''}); paint(); toast&&toast(label)});
   btn('Norden',()=>{closeMenu();act('Ich erkunde nach Norden')});
   btn('Karte nutzen',()=>{closeMenu();act('Ich studiere eine gefundene Landkarte')});
   // list nearby
-  const list=document.createElement('div'); list.className='card'; list.innerHTML='<h3>Sichtbar</h3>'+Map.listVisible(S).slice(0,12).map(l=>`<div class="lex-item">${l.icon} <b>${l.fog==='rumored'?'???':l.name}</b> <span class="meta">${l.fog}</span></div>`).join('');
+  const list=document.createElement('div'); list.className='card map-card'; list.innerHTML='<h3>Sichtbar</h3>'+Map.listVisible(S).slice(0,12).map(l=>`<div class="lex-item">${l.icon} <b>${l.fog==='rumored'?'???':l.name}</b> <span class="meta">${l.fog}</span></div>`).join('');
   body.appendChild(list);
 }
 

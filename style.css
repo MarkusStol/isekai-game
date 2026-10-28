@@ -1042,3 +1042,113 @@ body.hud-dim .topbar{opacity:.28}
   border:1px solid #e8c47a33!important;border-radius:18px!important;
   box-shadow:0 20px 60px #000c!important;
 }
+
+/* ========== v20: SVG icons, screens, transitions, narr-dot ========== */
+.ico-svg{width:28px;height:28px;display:block;margin:0 auto;color:#e8dcc8;stroke:currentColor;fill:none}
+.ico-svg.r-uncommon{color:#7ddea0}
+.ico-svg.r-rare{color:#7eb6ff}
+.ico-svg.r-epic{color:#c9a0ff}
+.ico-svg.r-legendary{color:#ffd56a;filter:drop-shadow(0 0 4px #ffd56a66)}
+.inv-cell .ico{display:flex;align-items:center;justify-content:center;height:32px}
+.inv-cell .ico .ico-svg{width:30px;height:30px}
+.skill-ico .ico-svg{width:26px;height:26px;color:#e8c47a}
+.item-h{display:flex;align-items:center;gap:8px}
+.item-h .ico-svg{width:22px;height:22px;display:inline-block;vertical-align:middle}
+
+/* Inventory to hub standard */
+.inv-grid{gap:10px;padding:4px}
+.inv-cell{
+  min-height:84px;border-radius:16px!important;
+  background:linear-gradient(165deg,#ffffff10,#ffffff05)!important;
+  border:1px solid #ffffff16!important;
+  box-shadow:0 4px 14px #0006;
+  transition:transform .12s ease,border-color .15s ease,box-shadow .15s ease;
+}
+.inv-cell:active{transform:scale(.97)}
+.inv-cell.r-common{border-color:#ffffff18!important}
+.inv-cell.r-uncommon{border-color:#5ad47a66!important;box-shadow:0 0 12px #5ad47a22}
+.inv-cell.r-rare{border-color:#6fb6ff66!important;box-shadow:0 0 14px #6fb6ff28}
+.inv-cell.r-epic{border-color:#c084fc66!important;box-shadow:0 0 14px #c084fc28}
+.inv-cell.r-legendary{border-color:#ffd35a77!important;box-shadow:0 0 16px #ffd35a33}
+.inv-cell .nm{font-size:10px;letter-spacing:.02em;color:#e8e0d4;margin-top:4px}
+
+/* Map hub-standard */
+.map-card,.atlas-card{
+  background:linear-gradient(180deg,#16141cf2,#0c0a12f5)!important;
+  border:1px solid #e8c47a28!important;border-radius:18px!important;
+  box-shadow:0 12px 40px #000a;padding:14px!important;
+}
+.map-card h3,.atlas-card h3{font-family:var(--font-display,serif);color:#e8c47a;letter-spacing:.04em;margin:0 0 8px}
+.map-toolbar{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.map-toolbar button.tiny{
+  background:#ffffff0c!important;border:1px solid #ffffff18!important;
+  border-radius:10px!important;padding:8px 12px!important;color:#e8e0d4!important;
+}
+.map-toolbar button.tiny:active{border-color:#e8c47a55!important;background:#e8c47a14!important}
+.map-canvas-wrap{border-radius:14px;overflow:hidden;border:1px solid #ffffff14;box-shadow:inset 0 0 40px #0008}
+.lex-item{padding:8px 10px;border-radius:10px;background:#ffffff08;margin:4px 0;border:1px solid #ffffff10}
+
+/* Battle / combat to hub glass */
+.battle-root{
+  background:#05040aee;
+}
+.battle-veil{background:linear-gradient(180deg,#0a0814cc,#05040af2)!important}
+.battle-cmd,.battle-log,.battle-end-card{
+  background:linear-gradient(180deg,#16141cf5,#0c0a12f8)!important;
+  border:1px solid #e8c47a33!important;border-radius:16px!important;
+  box-shadow:0 12px 40px #000a;
+}
+.battle-end-card{padding:18px;text-align:center}
+.bcm,.battle-cmd button{
+  background:#ffffff0c!important;border:1px solid #ffffff18!important;
+  border-radius:12px!important;color:#e8e0d4!important;
+}
+.bcm:active,.battle-cmd button:active{border-color:#e8c47a55!important}
+.combat-fx{
+  animation:fxIn .28s ease;
+}
+.combat-fx .combat-card{
+  animation:cardRise .34s cubic-bezier(.2,.8,.2,1);
+}
+.combat-foeport{
+  width:64px;height:64px;border-radius:50%;margin:0 auto 10px;
+  background:linear-gradient(145deg,#2a2438,#12101a);
+  border:1px solid #e8c47a44;display:flex;align-items:center;justify-content:center;
+  font-size:28px;color:#e8c47a;box-shadow:0 8px 24px #0008;
+}
+.combat-badge{
+  display:inline-block;font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+  color:#e8c47a;border:1px solid #e8c47a44;border-radius:999px;padding:3px 10px;margin-bottom:8px;
+}
+
+/* Narrator settings dot — unobtrusive */
+.narr-dot{
+  display:inline-block;width:7px;height:7px;border-radius:50%;
+  margin-left:8px;vertical-align:middle;
+  background:#5ad47a;box-shadow:0 0 6px #5ad47a88;
+  transition:background .3s,box-shadow .3s;
+}
+.narr-dot[data-mode="offline"]{background:#94a3b8;box-shadow:0 0 4px #94a3b866}
+.narr-dot[data-mode="gemini"]{background:#7eb6ff;box-shadow:0 0 6px #7eb6ff88}
+.narr-dot[data-mode="free"]{background:#5ad47a;box-shadow:0 0 6px #5ad47a88}
+.narr-dot[data-lim="1"]{background:#f0d59a;box-shadow:0 0 6px #f0d59a88;animation:dotPulse 1.6s ease infinite}
+@keyframes dotPulse{0%,100%{opacity:1}50%{opacity:.45}}
+.narrator-badge{display:none!important} /* v20: never show disruptive badge */
+
+/* Richer transitions */
+@keyframes fxIn{from{opacity:0}to{opacity:1}}
+@keyframes cardRise{from{opacity:0;transform:translateY(18px) scale(.97)}to{opacity:1;transform:none}}
+@keyframes screenIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes menuSlide{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
+@keyframes sceneXfade{from{opacity:0}to{opacity:1}}
+@keyframes vnTextIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+#menu:not(.hidden) #menuBody{animation:menuSlide .32s cubic-bezier(.2,.8,.2,1)}
+#menu:not(.hidden){animation:fxIn .2s ease}
+.scene-fade-out{opacity:0!important;transition:opacity .28s ease!important}
+#sceneImg.on{animation:sceneXfade .5s ease}
+#vnText{animation:vnTextIn .28s ease}
+.screen-enter{animation:screenIn .36s cubic-bezier(.2,.8,.2,1)}
+.battle-root:not(.hidden){animation:fxIn .25s ease}
+.battle-root:not(.hidden) .battle-cmd{animation:cardRise .35s cubic-bezier(.2,.8,.2,1)}
+.choices button{transition:transform .12s ease,border-color .15s,background .15s}
+.choices button:active{transform:scale(.98)}

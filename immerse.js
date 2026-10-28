@@ -85,37 +85,53 @@ export function richOfflineProse(S, playerAction, opts={}){
     :`Es ist ${zeit} in ${ort}.`;
 
   const lines=[];
-  lines.push(timeFeel);
-  lines.push(weatherLine);
+  const isQ=/\?|was |wer |wie |wo |warum |wieso |weshalb |erzähl|frag/.test(act.toLowerCase());
+  // Lead with the person and the answer — time/weather as color, not headline (seamless vs live narrators)
   if(who&&npc){
-    lines.push(art?`${label} – ${art} – reagiert auf dich.`:`${label} wendet sich dir zu.`);
-    if(mem) lines.push(`In den Augen liegt eine Erinnerung: ${mem}.`);
-    else lines.push(R([
-      `Die Haltung verrät ${mood==='wütend'?'Anspannung':'eine vorsichtige Offenheit'}.`,
-      `${label} atmet aus, bevor Worte kommen.`,
-      `Ein Blick wechselt – kurz, dann länger.`
-    ]));
-    const reply=opts.good!==false
-      ? R([
-          `„${R(['Erzähl mir mehr.','Ich höre.','Das bleibt zwischen uns.','Gut, dass du das sagst.'])}“`,
-          `${label} nickt langsam und antwortet mit Bedacht.`,
-          `Ihr sprecht eine Weile; Pausen sind Teil des Gesprächs.`
-        ])
-      : R([
-          `„Nicht jetzt.“ Die Stimme ist scharf, aber nicht laut.`,
-          `${label} weicht einen Schritt zurück.`,
-          `Ein kalter Blick – dann doch ein Satz, knapp und ehrlich.`
-        ]);
-    lines.push(reply);
+    lines.push(art?`${label} (${art}) bleibt in ${ort}.`:`${label} bleibt dir in ${ort} zugewandt.`);
+    if(mem) lines.push(`Etwas an dir erinnert ${label} an: ${mem}.`);
+    if(isQ){
+      const topic=act.replace(/^[„"]?/,'').slice(0,80);
+      lines.push(opts.good!==false
+        ? R([
+            `${label} überlegt. „Zu deiner Frage — ich sage dir, was ich weiß.“ Die Antwort bleibt knapp, aber ehrlich.`,
+            `„Hm.“ ${label} senkt die Stimme. „Darüber spricht man hier nicht laut. Aber gut: ich erzähl’s dir.“`,
+            `${label} nickt. Die Antwort kommt in ganzen Sätzen, ohne dich wegzuschicken.`
+          ])
+        : R([
+            `${label} schüttelt den Kopf. „Nicht hier. Nicht so.“`,
+            `Ein kurzes Schweigen. „Frag etwas anderes.“`
+          ]));
+      lines.push(weatherLine);
+    } else {
+      lines.push(R([
+        `Die Haltung verrät ${mood==='wütend'?'Anspannung':'eine vorsichtige Offenheit'}.`,
+        `${label} atmet aus, bevor Worte kommen.`,
+        `Ein Blick wechselt – kurz, dann länger.`
+      ]));
+      lines.push(opts.good!==false
+        ? R([
+            `„${R(['Ich höre.','Gut, dass du das sagst.','Das bleibt zwischen uns.','Rede weiter.'])}“`,
+            `${label} nickt langsam und antwortet mit Bedacht.`,
+            `Ihr sprecht eine Weile; Pausen sind Teil des Gesprächs.`
+          ])
+        : R([
+            `„Nicht jetzt.“ Die Stimme ist scharf, aber nicht laut.`,
+            `${label} weicht einen Schritt zurück.`,
+            `Ein kalter Blick – dann doch ein Satz, knapp und ehrlich.`
+          ]));
+      lines.push(timeFeel);
+    }
   } else {
-    lines.push(`Du handelst: „${act||'…'}“.`);
+    lines.push(timeFeel);
+    lines.push(weatherLine);
+    lines.push(`Du handelst in ${ort}.`);
     lines.push(R([
       `Die Umgebung antwortet mit Geräuschen, Licht und dem Gewicht deiner Entscheidung.`,
       `Nichts zwingt dich – aber die Welt merkt sich, was du tust.`,
       `Ein Augenblick zieht sich, dann setzt sich etwas in Bewegung.`
     ]));
   }
-  if(tone) lines.push(`(${tone.slice(0,70)})`);
   // 3–6 sentences
   let out=lines.filter(Boolean).slice(0,6).join(' ');
   out=out.replace(/\s+/g,' ').trim();
@@ -203,8 +219,10 @@ export function crossfadeScene(imgEl, url){
       imgEl.classList.add('scene-fade-out');
       setTimeout(()=>{
         imgEl.src=url; imgEl.classList.remove('scene-fade-out'); imgEl.classList.add('on','scene-kenburns'); imgEl.style.opacity='1'; imgEl.style.zIndex='2';
+        // soft ken-burns restart
+        try{ imgEl.style.animation='none'; void imgEl.offsetWidth; imgEl.style.animation=''; }catch(_){}
         res();
-      },220);
+      },280);
     };
     next.onerror=()=>res();
     next.src=url;
@@ -286,7 +304,7 @@ export function openCombat(opts={}){
     <div class="combat-foeport" aria-hidden="true"><span>${initial}</span></div>
     <div class="combat-row">
       <div class="combat-side"><div class="combat-lab">Du</div><div class="bar"><i style="width:${Math.max(0,playerHP/playerMax*100)}%;background:#ff5f7e"></i></div></div>
-      <div class="combat-vs">⚔</div>
+      <div class="combat-vs" aria-hidden="true"><svg class="ico-svg" viewBox="0 0 24 24" width="22" height="22"><use href="#sk-attack"/></svg></div>
       <div class="combat-side"><div class="combat-lab">${foeName}</div><div class="bar"><i id="foeBar" style="width:${Math.max(0,foeHP/foeMax*100)}%;background:#f59e0b"></i></div></div>
     </div>
     <p class="meta combat-art">${foeArt||'Ein Gegner stellt sich dir entgegen.'}</p>
@@ -294,7 +312,7 @@ export function openCombat(opts={}){
     <div class="combat-skills" id="combatSkills"></div>
     <button type="button" class="tiny" id="combatFlee">Fliehen</button>
   </div>`;
-  overlay.classList.remove('hidden');
+  overlay.classList.remove('hidden'); overlay.classList.add('screen-enter');
   const log=overlay.querySelector('#combatLog');
   const skillsEl=overlay.querySelector('#combatSkills');
   let hp=foeHP, php=playerHP;

@@ -18,7 +18,7 @@ import * as Summons from './summons.js';
 import * as Equip from './equip.js';
 import * as Jrpg from './jrpg.js';
 const $=s=>document.querySelector(s);const $$=s=>[...document.querySelectorAll(s)];const R=a=>a[Math.floor(Math.random()*a.length)];const rnd=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
-const VER='19.1',CACHE_V='v19.1';
+const VER='20',CACHE_V='v20';
 const ROLES={
  held:{e:'⚔️',name:'Held mit Status-System',d:'Ein blaues Fenster erscheint: [Status]. Die Welt braucht dich.',world:'Königreich Aldheim',
   base:{hp:100,mp:40,str:12,cha:8,ruf:10,gold:40},cls:['Abenteurer','Ritter','Held','Legendärer Held'],pack:'worlds/held.json',
@@ -334,7 +334,9 @@ function travelChoices(ort){ort=ort||S.world?.scene?.ort;const ex=exitsFrom(ort)
   return [...new Set(ch)].slice(0,4)}
 function shortPlace(p){return String(p).replace(/ von .*| im .*| Zum /g,' ').trim().split(' ').slice(0,2).join(' ')}
 function parseTravel(a){const t=a.toLowerCase();
-  const m=t.match(/(?:geh(?:e|st|en)?|lauf(?:e|st|en)?|wander(?:e|st|n)?|reise|fahr(?:e|st|en|t)?|auf dem weg|nach |zum |zur |ins |in die |in den |in der |richtung )(.{3,60?}?)(?:\s*[.!]|$)/i);
+  // "frage nach X" / "erzähl von X" is NOT travel — only real movement verbs open dest capture with nach/zu/in
+  if(/\b(frag|erzähl|berichten?|wissen|hör)\b/.test(t) && !/\b(geh|lauf|wander|reise|fahr|verlasse|auf dem weg)\b/.test(t)) return null;
+  const m=t.match(/(?:geh(?:e|st|en)?|lauf(?:e|st|en)?|wander(?:e|st|n)?|reise|fahr(?:e|st|en|t)?|auf dem weg|verlasse|richtung )(?:nach |zum |zur |ins |in die |in den |in der )?(.{3,60?}?)(?:\s*[.!]|$)/i);
   let dest=null;const g=ensureGraph();const cur=(S?.world?.scene?.ort||'').toLowerCase();
   if(g){let best=null,bestScore=0;
    for(const name of Object.keys(g.nodes)){const low=name.toLowerCase();if(low===cur)continue;
@@ -349,6 +351,8 @@ function parseTravel(a){const t=a.toLowerCase();
    if(!dest)for(const name of(S.discovered||[])){const low=String(name).toLowerCase();if(low!==cur&&t.includes(low.slice(0,10))){dest=name;break}}}
   if(!dest&&m){const cand=m[1].trim();const key=locKey(cand);if(key&&key.toLowerCase()!==cur)dest=key;else if(cand.length>3)dest=cand}
   const travelVerb=/geh|lauf|wander|reise|fahr|auf dem weg|verlasse|zurück|nach hause|fort|richtung/.test(t);
+  // Ignore local micro-targets (door, table, window) — not world travel
+  if(dest && /^(tür|tur|fenster|tisch|theke|bar|stuhl|bett|ecke|raum)\b/i.test(String(dest).trim())) return null;
   return (dest&&(travelVerb||locNode(dest)))?dest:null}
 function assetBgKey(ort,bgHint){const role=S?.role||'held';const phase=phaseLabel();const night=/nacht|spät|abend/i.test(phase)?'nacht':'tag';
   const slug=(bgHint||slugify(ort||'scene'));
@@ -535,6 +539,34 @@ function skillNames(){return (S.skills||[]).map(i=>typeof i==='string'?i:i.name)
 function stageOf(aff,trust){let s=0;for(let i=0;i<STAGE_NEED.length;i++){const needT=i>=4?STAGE_NEED[i]-10:0;if(aff>=STAGE_NEED[i]&&(trust||0)>=needT)s=i}return s}
 function stageName(n){return STAGES[Math.max(0,Math.min(5,n|0))]}
 function rarityOf(item){const r=(item&&item.rarity)||'common';return ['common','uncommon','rare','epic','legendary'].includes(r)?r:'common'}
+function itemIconId(item){
+  const t=String((item&&item.type)||'').toLowerCase();
+  const n=String((item&&item.name)||'').toLowerCase();
+  const s=t+' '+n;
+  if(t==='weapon'||/waffe|schwert|axt|bogen|dolch|speer|stab|klinge|hammer|dagger|sword|bow|spear|staff|mace/.test(s)) return 'it-weapon';
+  if(t==='armor'||t==='armour'||/rüstung|harnisch|schild|helm|brust|armor|shield|cloak|mantel/.test(s)) return 'it-armor';
+  if(t==='accessory'||/ring|amulett|kette|ohrring|talisman|accessoire/.test(s)) return 'it-accessory';
+  if(t==='potion'||/trank|potion|elixier|phiole|heiltrank/.test(s)) return 'it-potion';
+  if(t==='food'||/brot|fleisch|ration|essen|trank|wasser|wein|suppe|obst|food|meal/.test(s)) return 'it-food';
+  if(t==='scroll'||/schrift|rolle|scroll|brief|buch|grimoire|tome/.test(s)) return 'it-scroll';
+  if(t==='gem'||t==='crystal'||/kristall|aetherkristall|sternengeist|edelstein|gem|shard/.test(s)) return 'it-gem';
+  if(t==='key'||/schlüssel|key|sigill|siegel/.test(s)) return 'it-key';
+  if(t==='map'||/karte|map|atlas|plan/.test(s)) return 'it-map';
+  if(t==='material'||/erz|holz|stoff|leder|material|erz|ingot|herbe|kraut/.test(s)) return 'it-material';
+  return 'it-misc';
+}
+function skillIconId(sk){
+  const n=String((sk&&sk.name)||'').toLowerCase()+' '+String((sk&&sk.desc)||'').toLowerCase()+' '+String((sk&&sk.type)||'');
+  if(/heil|cure|regen|leben|heal|cura/.test(n)) return 'sk-heal';
+  if(/schutz|guard|schild|wall|block|verteid/.test(n)) return 'sk-guard';
+  if(/magie|zauber|feuer|eis|blitz|arcane|spell|portal|schatten/.test(n)) return 'sk-magic';
+  if(/buff|support|stärk|segen|aura|hilfe/.test(n)) return 'sk-support';
+  return 'sk-attack';
+}
+function svgIcon(id, extra=''){
+  return `<svg class="ico-svg ${extra}" viewBox="0 0 24 24" aria-hidden="true"><use href="#${id}"/></svg>`;
+}
+
 function hearts(stage){return '♥'.repeat(Math.max(0,Math.min(5,stage|0)))+'♡'.repeat(Math.max(0,5-Math.max(0,stage|0)))}
 function phaseLabel(){if(!S)return '–';
   try{Cont.ensureCont(S)}catch(_){}
@@ -598,6 +630,7 @@ function migrate(raw){if(!raw)return null;const s=typeof raw==='string'?JSON.par
  if(Number(s.ver)<18){s.ver=18}
  if(Number(s.ver)<19){s.ver=19}
  if(Number(s.ver)<19.1){s.ver=19.1}
+ if(Number(s.ver)<20){s.ver=20}
  // v13.1 continuity+time always (kept in v14)
  try{Cont.ensureCont(s);if(s.cal&&s.cal.minute==null)s.cal.minute=0;if(s.cfgCatchupOptIn==null)s.cfgCatchupOptIn=false}catch(e){console.warn('cont migrate',e)}
  if(s.ver<14)s.ver=14;
@@ -1013,11 +1046,11 @@ function renderMenu(){const body=$('#menuBody');if(!body||!S)return;body.innerHT
  ${S.pc?.bg?`<p class="meta">Hintergrund: ${S.pc.bg}</p>`:''}${S.pc?.look?`<p class="meta">Aussehen: ${S.pc.look}</p>`:''}</div>`}
  else if(_menuTab==='inv'){const grid=document.createElement('div');grid.className='inv-grid';
  (S.inv||[]).forEach((it,idx)=>{const item=itemFromStr(it);const cell=document.createElement('button');cell.type='button';cell.className='inv-cell r-'+rarityOf(item);
-  cell.innerHTML=`<div class="ico">${item.icon||'📦'}</div><div class="nm">${item.name}</div>`;
+  cell.innerHTML=`<div class="ico">${svgIcon(itemIconId(item),'r-'+rarityOf(item))}</div><div class="nm">${item.name}</div>`;
   cell.onclick=()=>openItemDetail(idx);grid.appendChild(cell)});
  if(!(S.inv||[]).length)body.innerHTML='<div class="card"><p>Leer.</p></div>';else{body.appendChild(grid);body.innerHTML+=`<div class="card"><p class="meta">Tippe ein Item für Details. Farben = Seltenheit.</p></div>`}}
  else if(_menuTab==='skills'){(S.skills||[]).forEach((sk,idx)=>{const s=skillFromStr(sk);const card=document.createElement('div');card.className='card';
-  card.innerHTML=`<div class="skill-card"><div class="skill-ico">${s.icon||'✨'}</div><div style="flex:1"><h3>${s.name} ${(s._cd|0)>0?`<span class="cd-pill">CD ${s._cd}</span>`:''}</h3>
+  card.innerHTML=`<div class="skill-card"><div class="skill-ico">${svgIcon(skillIconId(s))}</div><div style="flex:1"><h3>${s.name} ${(s._cd|0)>0?`<span class="cd-pill">CD ${s._cd}</span>`:''}</h3>
   <p>${s.desc||''}</p><p class="meta">Stufe ${s.level||1} · ${s.cost||0} MP · CD ${s.cd||0}</p><div class="row"></div></div></div>`;
   const row=card.querySelector('.row');const b=document.createElement('button');b.textContent='Einsetzen';b.disabled=(s._cd|0)>0||((s.cost|0)>0&&S.st.mp<(s.cost|0));
   b.onclick=()=>{useSkill(idx)};row.appendChild(b);body.appendChild(card)});if(!(S.skills||[]).length)body.innerHTML='<div class="card"><p>Keine Fähigkeiten.</p></div>'}
@@ -1065,7 +1098,7 @@ function renderMenu(){const body=$('#menuBody');if(!body||!S)return;body.innerHT
  else if(_menuTab==='atlas'){UI13.renderMap(body,S,{act,closeMenu,toast})}
 }
 function openItemDetail(idx){const item=itemFromStr(S.inv[idx]);const body=$('#menuBody');
- body.innerHTML=`<div class="card"><h3>${item.icon||'📦'} ${item.name}</h3><p>${item.desc||''}</p>
+ body.innerHTML=`<div class="card"><h3 class="item-h">${svgIcon(itemIconId(item),'r-'+rarityOf(item))} ${item.name}</h3><p>${item.desc||''}</p>
  <p class="meta">${item.type||'misc'} · ${rarityOf(item)}${item.equip?' · ausrüstbar':''}</p><div class="row"></div></div>`;
  const row=body.querySelector('.row');
  if(item.use||item.type==='consumable'){const b=document.createElement('button');b.textContent='Benutzen';b.onclick=()=>{useItem(idx);renderMenu()};row.appendChild(b)}
@@ -1398,8 +1431,16 @@ function offline(a){const q=askNPC(a);if(q)return q;
  const beast=parseCreatureEncounter(a);if(beast){const e=discoverThing('creature',beast,{desc:'Begegnung mit '+beast+'.',danger:2,behavior:'aggressiv oder scheu',habitat:S.world?.scene?.ort,inline:true});applyActionDuration('begegne '+beast,15);return {text:'Du begegnest '+beast+'. '+(e?Codex.inlineCard(e):''),changes:{xp:8,choices:travelChoices()}}}
  // crime first
  const crime=parseCrime(a);if(crime){const r=crime.type==='kill'?killNPC(crime.who,a):robNPC(crime.who);if(r.ok){if(crime.type==='kill')addMemory(crime.who,'(tot)','Tod');return {text:r.text,changes:r.changes}}}
- // travel
- const dest=parseTravel(a);if(dest){const tr=travelTo(dest);if(tr.ok)return {text:tr.text,changes:tr.changes||{choices:travelChoices(tr.to),xp:5}}}
+ // travel — respect scene lock (same continuity package as live narrators)
+ const dest=parseTravel(a);
+ if(dest){
+  let locked=false; try{locked=Cont.isSceneLocked(S)&&!Cont.playerWantsExit(a)}catch(_){}
+  if(locked){
+   /* stay; fall through to talk/look prose */
+  }else{
+   const tr=travelTo(dest);if(tr.ok)return {text:tr.text,changes:tr.changes||{choices:travelChoices(tr.to),xp:5}}
+  }
+ }
  // romance beats (consensual adults only)
  const rom=parseRomance(a);if(rom)return rom;
  if(isG()){const t=a.toLowerCase();const hit=/tür|öffn|klink/.test(t);
@@ -1419,7 +1460,7 @@ function offline(a){const q=askNPC(a);if(q)return q;
   S.flags._offerEncounter={foes, blurb:`Feindseligkeit. ${foes.map(f=>f.name).join(", ")} — du entscheidest.`, forceAttack:/angriff|greif|schlag/.test(t)};
   txt=`Du spürst den Konflikt mit ${foes.map(f=>f.name).join(", ")}. Kämpfen, reden, drohen, schleichen oder fliehen — deine Wahl.`;
   ch={xp:5, choices:["Kämpfen","Reden / Überzeugen","Einschüchtern","Schleichen","Fliehen"]}}
- else if(/red|sprech|sag|frag|flirt|hilf|helf|plan|lieb|tee|party|erzähl|gestalt ansprechen|mit .+ sprechen/.test(t)||who){const n=who||R((S.world.scene.anwesend||[]).filter(x=>S.world.npcs[x]?.alive!==false).concat(npcs));
+ else if(/red|sprech|sag|frag|flirt|hilf|helf|plan|lieb|tee|party|erzähl|gestalt ansprechen|mit .+ sprechen/.test(t)||who){const present=(S.world.scene.anwesend||[]).filter(x=>S.world.npcs[x]?.alive!==false); const n=who||R(present.length?present:npcs);
   const npc=S.world.npcs[n];const good=Math.random()<0.5+s.cha/50;
   let label=n; try{label=Know.displayName(S,n,npc)}catch(_){}
   const wx=S.flags?.weather||Imm.weatherFor(S);
@@ -1432,7 +1473,7 @@ function offline(a){const q=askNPC(a);if(q)return q;
  else if(/ruh|rast|ess|heil/.test(t)){txt='Du ruhst dich aus. Wärme kehrt zurück.';ch={hp:rnd(20,40),mp:rnd(10,25)};applyActionDuration(t.includes('ess')?'essen':'kurz ruhen',null)}
  else if(/intrig|lüg|schmied|spion|sabot/.test(t)){const ok=Math.random()<.55;txt=ok?'Dein Plan geht auf.':'Du wirst beinahe erwischt!';ch={xp:25,ruf:ok?rnd(-3,6):-10}}
  else if(/quest|auftrag|mission|hauptgeschichte|nebenquest|hook/.test(t)){const m=S.quests?.main;txt=m?`Du denkst an eine Möglichkeit – keinen Zwang: ${m.ziel}. (Optional.) Offene Haken: ${(m.objectives||[]).filter(o=>!(m.done||[]).includes(o)).join(', ')||'keine'}.`:'Kein Quest zwingt dich. Die Welt liegt offen.';ch={xp:5,choices:defChoices()}}
- else if(/umseh|erkund|schau|untersuch|wohn/.test(t)){const ex=exitsFrom(S.world.scene.ort);txt=`Du siehst dich in ${S.world.scene.ort} um. ${locNode(S.world.scene.ort)?.desc||''}${ex.length?' Wege führen nach: '+ex.slice(0,3).join(', ')+'.':''}`;ch={xp:8,choices:travelChoices()}}
+ else if(/umseh|um\s*sehen|sehe mich um|sieh(?:st)? dich um|erkund|schau|untersuch|wohn/.test(t)){const ex=exitsFrom(S.world.scene.ort);txt=`Du siehst dich in ${S.world.scene.ort} um. ${locNode(S.world.scene.ort)?.desc||''}${ex.length?' Wege führen nach: '+ex.slice(0,3).join(', ')+'.':''}`;ch={xp:8,choices:travelChoices()}}
  else{const ev=R([['Du findest etwas Verstecktes!',{items:[{name:R(['Goldmünzen','Alte Karte','Zauberring','Konserven']),icon:'📦',desc:'Gefunden',type:'misc'}],xp:20}],['Ein Händler hilft.',{xp:10,ruf:2}],['Eine Falle!',{hp:-rnd(8,18),xp:10}],['Ein Fremder flüstert deinen Namen.',{xp:15,ruf:3}],['Ruhige Gegend. Die Welt atmet weiter – ohne dich zu zerren.',{xp:20}]]);
   txt=`Du versuchst: „${a}“. ${ev[0]}`;ch=ev[1]}
  ch.choices=ch.choices||travelChoices();
@@ -1443,9 +1484,14 @@ function offline(a){const q=askNPC(a);if(q)return q;
 /* ---------- AI ---------- */
 if(!cfg.v2||(cfg.mode==='gemini'&&!hasKey())){cfg.mode=hasKey()?'gemini':'free';cfg.v2=1;try{localStorage.setItem(CFG,JSON.stringify(cfg))}catch(_){}}
 function parseCreatureEncounter(a){
-  const m=String(a||'').match(/(?:kämpfe? gegen|begegne|sehe|jage|töte|erte|angreife?)\s+(?:einen?|die|das)?\s*([A-ZÄÖÜ][\wÄÖÜäöüß\-]{2,30})/i)
-    ||String(a||'').match(/\b(Wolf|Schattenwolf|Drache|Goblin|Ork|Skelett|Spinne|Bär|Greif|Dämon|Schleim|Banditen?)\b/i);
-  if(!m)return null; return m[1];
+  // Require an explicit creature intent — never match pronouns ("sehe mich") or casual "sehe".
+  const s=String(a||'');
+  const named=s.match(/\b(?:kämpfe? gegen|begegne(?:n)?|jage|töte|angreife?)\s+(?:einen?|eine|die|das)?\s*([A-ZÄÖÜ][\wÄÖÜäöüß\-]{2,30})/);
+  const known=s.match(/\b(Wolf|Schattenwolf|Drache|Goblin|Ork|Skelett|Spinne|Bär|Greif|Dämon|Schleim|Banditen?|Ghul|Hydra|Chimäre)\b/);
+  const name=(named&&named[1])||(known&&known[1])||null;
+  if(!name)return null;
+  if(/^(mich|dich|uns|euch|sie|ihn|ihm|mir|dir|jemand|etwas|alles|nichts|um)$/i.test(name)) return null;
+  return name;
 }
 const FREE_URL='https://text.pollinations.ai/openai';
 const STREAM_DELIM='###DATA###';
@@ -1579,14 +1625,10 @@ function gBody(a){Cont.ensureCont(S);const contents=[];
  // stream-friendly: slightly lower max to first finish JSON faster after prose
  return {systemInstruction:{parts:[{text:sysPrompt(true)}]},contents,generationConfig:{temperature:.85,maxOutputTokens:350},safetySettings:G_SAFE}}
 function friendlyAIFail(){return 'Die Erzählerin stockt kurz. Versuch es noch einmal – oder spiele ohne sie weiter.'}
-function setNarratorMode(mode){ // gemini | free | offline
+function setNarratorMode(mode){ // gemini | free | offline — v20: no disruptive badge, settings dot only
   S._narratorMode=mode||'gemini';
-  let el=$('#narratorBadge');
-  if(!el){el=document.createElement('div');el.id='narratorBadge';el.className='narrator-badge hidden';document.body.appendChild(el)}
-  // free is the intended no-key narrator — label softly; offline only if true fallback
-  if(mode==='free'){el.textContent='Erzählerin: Pollinations';el.classList.remove('hidden','is-offline');el.classList.add('is-free')}
-  else if(mode==='offline'){el.textContent='Offline-Erzähler';el.classList.remove('hidden','is-free');el.classList.add('is-offline')}
-  else {el.classList.add('hidden'); el.classList.remove('is-free','is-offline')}
+  const badge=$('#narratorBadge'); if(badge) badge.classList.add('hidden');
+  try{ updateNarratorDot() }catch(_){}
 }
 function scheduleAfterReply(tasks){
   const run=()=>{try{for(const fn of tasks){try{fn()}catch(e){console.warn('afterReply',e)}}}catch(_){}};
@@ -1629,7 +1671,7 @@ async function gemini(a,el){const key=(cfg.gkey||'').trim();if(!key)throw gErr(f
  const st=await gmFetch(key);const tPrompt0=performance.now();const base=gBody(a);const order=gmOrder(st);let last,tried=0;
  S._promptChars=(JSON.stringify(base).length)|0; S._ttft=null; S._turnTotal=null;
  for(const m of order){if(tried>=2)break;tried++;
-  el.classList.add('typing');el.textContent='…';
+  el.classList.add('typing'); if(!S._keepBeat) el.textContent='…';
   let think=thinkingCfg(m),attempt=0;
   while(attempt++<2){const body=JSON.parse(JSON.stringify(base));
    if(think)body.generationConfig.thinkingConfig=think;else delete body.generationConfig.thinkingConfig;
@@ -1654,10 +1696,48 @@ async function loadWebLLM(){if(engine)return engine;if(!navigator.gpu)throw new 
  engine=await w.CreateMLCEngine(cfg.wmodel||'Qwen2.5-1.5B-Instruct-q4f16_1-MLC',{initProgressCallback:p=>{$('#wstatus').textContent=p.text}});$('#wstatus').textContent='✅ Modell bereit';return engine}
 async function streamTo(el,iter){let raw='';for await(const c of iter){raw+=c;el.textContent=raw.split('```')[0]}return raw}
 
-/* ---- v17.2 free path: openai-fast SSE, TTFT budget, local beat ---- */
+/* ---- v20 free path: race failover, instant 402, seamless continuity ---- */
 const FREE_MODEL='openai-fast';
-const FREE_TTFT_MS=6000;
-const FREE_TOTAL_MS=22000;
+const FREE_TTFT_MS=1800;          // speculative secondary fires if no first token
+const FREE_STATUS_MS=6000;        // hard deadline waiting for HTTP status
+const FREE_TOTAL_MS=16000;
+const FREE_REFERRER='https://markusstol.github.io/isekai-game/';
+/** Pollinations free tier ~1/30s/IP when limited. Gate skips Pollinations during backoff. */
+const _freeGate={until:0,lastStatus:0,provider:'free'};
+function freeGateOpen(){return Date.now()>=(_freeGate.until||0)}
+function freeGateTrip(status, retryAfterSec, msg){
+  _freeGate.lastStatus=status|0;
+  let sec=+(retryAfterSec||0);
+  if(!(sec>0)){
+    const m=String(msg||'').match(/wait\s+(\d+)\s*sec/i);
+    sec=m?+m[1]:((status===429||status===402)?30:10);
+  }
+  sec=Math.max(8,Math.min(120,sec+1));
+  _freeGate.until=Date.now()+sec*1000;
+  try{ updateNarratorDot() }catch(_){}
+  return sec;
+}
+function freeGateOk(){ _freeGate.until=0; _freeGate.lastStatus=0; try{ updateNarratorDot() }catch(_){} }
+function updateNarratorDot(){
+  // Tiny settings indicator only — never a disruptive banner.
+  let d=document.getElementById('narrDot');
+  if(!d){
+    const host=document.querySelector('#cfgPanel .cfg-row, #settings .cfg-row, #cfg, .cfg-body, #menu');
+    // Prefer a dedicated slot next to mode select
+    const modeSel=document.getElementById('mode')||document.querySelector('select[name=mode]');
+    const anchor=modeSel&&modeSel.parentElement;
+    d=document.createElement('span'); d.id='narrDot'; d.className='narr-dot'; d.title='Narrator';
+    if(anchor) anchor.appendChild(d);
+    else if(host) host.appendChild(d);
+    else return;
+  }
+  const lim=!freeGateOpen();
+  const mode=S&&S._narratorMode||cfg.mode||'free';
+  d.dataset.mode=mode;
+  d.dataset.lim=lim?'1':'0';
+  d.title=lim?('Free-Narrator Pause bis '+new Date(_freeGate.until).toLocaleTimeString()):('Narrator: '+mode);
+}
+
 function localBeatLine(a){
   const t0=performance.now();
   const here=(S?.world?.scene?.anwesend||[]).filter(n=>S.world?.npcs?.[n]?.alive!==false);
@@ -1684,56 +1764,213 @@ async function readOpenAISSE(res, onText){
       }catch(_){}}}
   return raw;
 }
-async function freeStream(a, el){
-  const t0=performance.now();
-  // instant local beat — zero dead air
-  const beat=localBeatLine(a);
-  if(el){ el.textContent=beat; el.classList.add('typing'); }
-  const body={model:FREE_MODEL, messages:msgs(a), temperature:0.85, max_tokens:260, stream:true, referrer:'https://markusstol.github.io/isekai-game/'};
+
+/** Shared continuity package — every narrator path uses the same msgs()/scene lock/Story-Stand. State lives in S. */
+function continuityPack(a){ return msgs(a) }
+
+/** One Pollinations attempt. Resolves {raw,ttft} or rejects with .status / .ttft / .abort */
+function pollinationsAttempt(a, el, {model, signal, onFirst}={}){
+  const body={model:model||FREE_MODEL, messages:continuityPack(a), temperature:0.85, max_tokens:260, stream:true, referrer:FREE_REFERRER};
   S._promptChars=(JSON.stringify(body).length)|0;
-  let err;
-  for(let attempt=0; attempt<2; attempt++){
-    try{
-      const ac=new AbortController();
-      const hard=setTimeout(()=>ac.abort(), FREE_TOTAL_MS);
-      // race: if no first token in FREE_TTFT_MS, abort and try fallback model once
-      let ttftTimer, gotToken=false;
-      const ttftPromise=new Promise((_,rej)=>{ ttftTimer=setTimeout(()=>{ if(!gotToken) { try{ac.abort()}catch(_){ } rej(Object.assign(new Error('ttft'),{ttft:1})) } }, FREE_TTFT_MS)});
-      const fetchP=fetch(FREE_URL,{method:'POST',signal:ac.signal,headers:{'Content-Type':'application/json'},body:JSON.stringify(attempt===0?body:{...body,model:'openai'})});
-      let res;
-      try{ res=await Promise.race([fetchP, ttftPromise.then(()=>null)]); }catch(e){ clearTimeout(hard); clearTimeout(ttftTimer); if(e.ttft&&attempt===0){ err=e; continue } throw e }
-      // if fetch won
-      res=res||await fetchP;
-      clearTimeout(ttftTimer);
-      if(!res||!res.ok){ clearTimeout(hard); const e=new Error('Gratis-KI '+(res&&res.status)); e.ra=+(res&&res.headers.get('Retry-After'))||0; throw e }
-      let raw='';
-      raw=await readOpenAISSE(res, r=>{
-        if(!gotToken && r && r.trim()){ gotToken=true; S._ttft=Math.round(performance.now()-t0); }
-        // replace beat with stream as soon as real text arrives
-        showNarration(el, r);
-      });
-      clearTimeout(hard);
-      if(!raw||raw.trim().length<8){ const e=new Error('leere Antwort'); e.ra=1; throw e }
-      // obey check — regenerate once quickly if ignored
-      let packed=raw.includes(STREAM_DELIM)?parseStream(raw):parse(raw);
-      if(packed && packed.text && !Cont.addressesPlayer(a, packed.text) && attempt===0){
-        el.textContent=beat+' …';
-        // one fast retry with stronger obey prefix
-        const retryMsgs=msgs(a);
-        retryMsgs[retryMsgs.length-1]={role:'user', content:turnMsg(a)+'\n\nWICHTIG: Deine letzte Antwort ignorierte den Spieler. Antworte JETZT auf: „'+a+'“'};
-        const ac2=new AbortController(); const to2=setTimeout(()=>ac2.abort(),12000);
-        const res2=await fetch(FREE_URL,{method:'POST',signal:ac2.signal,headers:{'Content-Type':'application/json'},body:JSON.stringify({model:FREE_MODEL,messages:retryMsgs,temperature:0.7,max_tokens:280,stream:true,referrer:'https://markusstol.github.io/isekai-game/'})});
-        clearTimeout(to2);
-        if(res2.ok){ const raw2=await readOpenAISSE(res2, r=>showNarration(el,r)); if(raw2&&raw2.trim().length>8) raw=raw2; }
-      }
-      S._turnTotal=Math.round(performance.now()-t0);
-      showNarration(el, raw);
-      return raw;
-    }catch(e){ err=e; if(attempt<1){ await new Promise(r=>setTimeout(r, Math.min(2,e.ra||1)*400)); } }
-  }
-  throw err||new Error('Gratis-KI');
+  return (async()=>{
+    const t0=performance.now();
+    const res=await fetch(FREE_URL,{method:'POST',signal, headers:{'Content-Type':'application/json','Referer':FREE_REFERRER}, body:JSON.stringify(body)});
+    if(!res.ok){
+      let msg=''; try{msg=await res.text()}catch(_){}
+      const e=new Error('free_'+res.status); e.status=res.status; e.body=msg;
+      e.ra=+(res.headers.get('Retry-After')||0);
+      if(res.status===402||res.status===429) freeGateTrip(res.status, e.ra, msg);
+      throw e;
+    }
+    let got=false;
+    const raw=await readOpenAISSE(res, r=>{
+      if(!got && r && r.trim()){ got=true; const tt=Math.round(performance.now()-t0); S._ttft=tt; if(onFirst) onFirst(tt); }
+      showNarration(el, r);
+    });
+    if(!raw||raw.trim().length<8){ const e=new Error('leere Antwort'); e.empty=1; throw e }
+    freeGateOk();
+    return {raw, ttft:S._ttft|0, provider:'free'};
+  })();
 }
 
+/** Offline packaged like a live narrator — same voice, same memory/scene, STREAM_DELIM JSON tail. */
+function offlineAsStream(a, el){
+  const t0=performance.now();
+  const pack=offline(a);
+  // Ensure choices/changes present; attach continuity-friendly summary
+  pack.changes=pack.changes||{};
+  if(!pack.changes.choices) pack.changes.choices=travelChoices();
+  try{
+    const stand=Cont.storyStand&&Cont.storyStand(S);
+    if(stand && !pack.changes.summary) pack.changes.summary=String(stand).slice(0,180);
+  }catch(_){}
+  const text=pack.text||'…';
+  // Instant visible text — worst case ~localBeat already shown; now replace with full prose
+  if(el) showNarration(el, text);
+  S._ttft=Math.round(performance.now()-t0);
+  // Serialize like free path so parseStream works
+  const raw=text+'\n'+STREAM_DELIM+'\n'+JSON.stringify(pack.changes||{});
+  return {raw, text, changes:pack.changes, ttft:S._ttft, provider:'offline', note:pack.note};
+}
+
+/**
+ * v20 race: primary Pollinations; if no first token ~FREE_TTFT_MS OR instant 402/429,
+ * fire secondary (Gemini if key else offline) in parallel; take first usable stream; cancel loser.
+ * Never shows a disruptive error — seamless same-turn failover.
+ */
+async function freeStream(a, el){
+  const t0=performance.now();
+  const beat=localBeatLine(a);
+  if(el){ el.textContent=beat; el.classList.add('typing'); }
+
+  // If gated, skip Pollinations entirely — race Gemini vs offline for sub-2s text
+  if(!freeGateOpen()){
+    return await raceSecondary(a, el, t0, 'gate');
+  }
+
+  const acPrimary=new AbortController();
+  let primaryDone=false, winner=null, primaryErr=null;
+  let firstTokenAt=null;
+
+  const primaryP=pollinationsAttempt(a, el, {
+    model:FREE_MODEL,
+    signal:acPrimary.signal,
+    onFirst:(tt)=>{ firstTokenAt=tt; }
+  }).then(r=>{ primaryDone=true; return r; }).catch(e=>{ primaryErr=e; throw e; });
+
+  // Speculative secondary timer
+  const secondaryAc={current:null};
+  let secondaryP=null;
+  const armSecondary=()=>{
+    if(secondaryP||winner) return;
+    secondaryP=raceSecondary(a, el, t0, 'speculative', secondaryAc).catch(e=>({__err:e}));
+  };
+  const specTimer=setTimeout(armSecondary, FREE_TTFT_MS);
+
+  // Also arm immediately on 402/429 (status arrives ~150–200ms)
+  const statusWatch=primaryP.catch(e=>{
+    if(e && (e.status===402||e.status===429||e.status===503)){ clearTimeout(specTimer); armSecondary(); }
+    throw e;
+  });
+
+  // Wait for first usable result
+  try{
+    // Prefer primary if it delivers first token before secondary wins
+    const raced=await Promise.race([
+      primaryP.then(r=>({src:'primary', r})),
+      (async()=>{
+        // wait until secondary armed and settles, or primary fails hard
+        while(!secondaryP && !primaryErr){ await new Promise(r=>setTimeout(r,40)); if(performance.now()-t0>FREE_TOTAL_MS) break; }
+        if(primaryDone) return null;
+        if(!secondaryP) armSecondary();
+        const s=await secondaryP;
+        if(s&&!s.__err) return {src:'secondary', r:s};
+        return null;
+      })()
+    ]);
+
+    if(raced && raced.src==='primary' && raced.r && raced.r.raw){
+      clearTimeout(specTimer);
+      // cancel secondary if started
+      try{ secondaryAc.current && secondaryAc.current.abort(); }catch(_){}
+      winner=raced.r;
+      // soft obey once — only if still on free and gate open (no second hang)
+      let packed=winner.raw.includes(STREAM_DELIM)?parseStream(winner.raw):parse(winner.raw);
+      if(packed && packed.text && !Cont.addressesPlayer(a, packed.text) && freeGateOpen()){
+        try{
+          el.textContent=beat+' …';
+          const ac2=new AbortController(); const to2=setTimeout(()=>ac2.abort(), Math.min(8000, FREE_TOTAL_MS));
+          const retry=await pollinationsAttempt(a, el, {model:FREE_MODEL, signal:ac2.signal});
+          clearTimeout(to2);
+          if(retry&&retry.raw) winner=retry;
+        }catch(_){ /* keep first */ }
+      }
+      S._turnTotal=Math.round(performance.now()-t0);
+      S._narratorMode='free'; setNarratorMode('free');
+      showNarration(el, winner.raw);
+      return winner.raw;
+    }
+
+    if(raced && raced.src==='secondary' && raced.r){
+      try{ acPrimary.abort(); }catch(_){}
+      clearTimeout(specTimer);
+      winner=raced.r;
+      S._turnTotal=Math.round(performance.now()-t0);
+      if(winner.provider==='gemini'){ setNarratorMode('gemini'); return winner.raw; }
+      setNarratorMode('offline');
+      // offline returns raw with DELIM already
+      return winner.raw;
+    }
+  }catch(e){ primaryErr=primaryErr||e; }
+
+  clearTimeout(specTimer);
+  try{ acPrimary.abort(); }catch(_){}
+
+  // Primary failed (402 etc.) — secondary may already be running
+  if(!secondaryP) armSecondary();
+  try{
+    const s=await secondaryP;
+    if(s && !s.__err){
+      S._turnTotal=Math.round(performance.now()-t0);
+      if(s.provider==='gemini'){ setNarratorMode('gemini'); return s.raw; }
+      setNarratorMode('offline');
+      return s.raw;
+    }
+  }catch(_){}
+
+  // Last resort: sync offline (always <50ms prose)
+  const off=offlineAsStream(a, el);
+  S._turnTotal=Math.round(performance.now()-t0);
+  setNarratorMode('offline');
+  return off.raw;
+}
+
+/** Secondary: Gemini (if key) raced against offline. Offline always finishes <100ms so Gemini only wins if faster first paint — we prefer Gemini quality when key exists by giving it a short head-start window, else take offline. */
+async function raceSecondary(a, el, t0, reason, acHolder){
+  const has=hasKey();
+  // Instant offline candidate (same continuity: offline() reads S.world/scene/memories)
+  const offP=Promise.resolve().then(()=>offlineAsStream(a, el));
+  if(!has){
+    const off=await offP;
+    S._failoverReason=reason||'no_key';
+    return off;
+  }
+  // With Gemini key: start Gemini; if first usable text within ~1.6s use it, else take offline (already ready) — zero wait beyond that.
+  const ac=new AbortController();
+  if(acHolder) acHolder.current=ac;
+  let gemRaw=null, gemErr=null, gemFirst=null;
+  const gemP=(async()=>{
+    try{
+      S._keepBeat=true;
+      const res=await gemini(a, el);
+      S._keepBeat=false;
+      // gemini returns parsed {text,changes} — re-serialize for freeStream callers
+      if(res && res.text){
+        gemFirst=S._ttft;
+        const raw=res.text+'\n'+STREAM_DELIM+'\n'+JSON.stringify(res.changes||{});
+        return {raw, text:res.text, changes:res.changes, ttft:S._ttft|0, provider:'gemini'};
+      }
+      throw new Error('gemini_empty');
+    }catch(e){ gemErr=e; throw e; }
+  })();
+
+  // Offline is ready instantly; give Gemini its own ~1.5s window from secondary start (not wall-clock from primary).
+  const off=await offP;
+  const gemWindow=1500;
+  try{
+    const g=await Promise.race([
+      gemP,
+      new Promise((resolve)=>setTimeout(()=>resolve(null), gemWindow))
+    ]);
+    if(g && g.raw){ S._failoverReason=reason||'gemini'; return g; }
+  }catch(_){}
+  // Gemini too slow or failed — use offline (text already shown). Cancel gemini if still going.
+  try{ ac.abort(); }catch(_){}
+  S._failoverReason=reason||'offline';
+  // Re-show offline text in case gemini partially overwrote
+  if(el && off.text) showNarration(el, off.text);
+  return off;
+}
 
 async function aiTurn(a,el,mode=cfg.mode){if(mode==='webllm'){const e=await loadWebLLM();const it=await e.chat.completions.create({messages:msgs(a),stream:true,temperature:.8,max_tokens:400});
   return streamTo(el,(async function*(){for await(const c of it)yield c.choices[0]?.delta?.content||''})())}
@@ -1807,7 +2044,9 @@ function parseHostilityOffer(a){
 function setBusy(on){busy=!!on;const txt=$('#txt'),btn=$('#inputRow button'),ch=$('#choices');if(txt)txt.disabled=on;if(btn)btn.disabled=on;if(ch)ch.querySelectorAll('button').forEach(b=>b.disabled=on);document.body.classList.toggle('busy',on)}
 async function act(a){if(busy||!a.trim())return;
  // Freedom & systems: travel / crime / romance / life-sim offline-first
- if(_mode==='play'&&S?.setup?.done){const dest=parseTravel(a);const crime=parseCrime(a);const life=parseLifeSim(a);const isRom=/küss|kuss|date|nacht (mit|zusammen)|bleib(en)? (bei|über)|schlaf(en)? (mit|bei)|flirt|umarmen|geständnis|liebe gestehen|verabredung/.test(a.toLowerCase());
+ if(_mode==='play'&&S?.setup?.done){let dest=parseTravel(a);const crime=parseCrime(a);const life=parseLifeSim(a);const isRom=/küss|kuss|date|nacht (mit|zusammen)|bleib(en)? (bei|über)|schlaf(en)? (mit|bei)|flirt|umarmen|geständnis|liebe gestehen|verabredung/.test(a.toLowerCase());
+  // Continuity: scene lock blocks travel unless the player clearly leaves
+  if(dest){try{if(Cont.isSceneLocked(S)&&!Cont.playerWantsExit(a)) dest=null}catch(_){}}
   if(crime||dest||isRom||life){busy=true;try{let res=null;if(crime){res=crime.type==='kill'?killNPC(crime.who,a):robNPC(crime.who);res={text:res.text,changes:res.changes}}
    else if(life){res={text:life.text,changes:life.changes||{choices:travelChoices()}}}
    else if(dest){const tr=travelTo(dest);res={text:tr.text,changes:tr.changes||{choices:travelChoices(tr.to),xp:5}}}
@@ -1862,9 +2101,20 @@ async function act(a){if(busy||!a.trim())return;
   if(cfg.mode==='gemini'||(cfg.mode!=='webllm'&&cfg.mode!=='api'&&cfg.mode!=='free'&&hasKey())){
    try{res=await gemini(a,el)}catch(e){softFail=true;el.textContent='…'}}
   if(!res&&(cfg.mode==='free'||softFail||(cfg.mode!=='gemini'&&cfg.mode!=='webllm'&&cfg.mode!=='api'&&cfg.mode!=='offline'))){
-   try{const raw=await aiTurn(a,el,'free');let p=raw.includes(STREAM_DELIM)?parseStream(raw):parse(raw);if(p&&p.text&&p.text!=='…'&&p.text.length>8){res=p;softFail=false;setNarratorMode('free')}}catch(_){}}
+   try{
+     const raw=await aiTurn(a,el,'free'); // freeStream races Pollinations→Gemini→offline seamlessly
+     let p=raw.includes(STREAM_DELIM)?parseStream(raw):parse(raw);
+     // offlineAsStream / gemini serialize the same way
+     if(!p||!p.text){ try{p=parse(raw)}catch(_){}}
+     if(p&&p.text&&p.text!=='…'&&p.text.length>4){
+       res=p; softFail=false;
+       // narrator mode already set inside freeStream/raceSecondary
+       if(!S._narratorMode) setNarratorMode(cfg.mode==='free'?'free':(S._narratorMode||'offline'));
+     }
+   }catch(_){ /* freeStream last-resorts offline; only land here on hard throw */ }
+  }
   if(!res&&cfg.mode!=='gemini'&&cfg.mode!=='free'){const raw=await aiTurn(a,el,cfg.mode);res=parse(raw);setNarratorMode(cfg.mode)}
-  if(!res){res=offline(a);softFail=true;setNarratorMode('offline')}
+  if(!res){ const off=offlineAsStream(a,el); res={text:off.text,changes:off.changes}; softFail=false; setNarratorMode('offline') }
   try{if(res.changes)res.changes=Sim.validateChanges(S,res.changes);if(res.changes?.world)res.changes.world=guardNoRegression(Sim.validateWorldUpdate(S,res.changes.world))}catch(_){}
   {const c=res.changes||{},lim={hp:30,mp:30,str:2,cha:2,ruf:5,xp:60,verstand:15,schuld:5,gold:50};for(const k in lim)if(k in c)c[k]=Math.max(-lim[k],Math.min(lim[k],+c[k]||0));if(c.affinity)for(const n in c.affinity)c.affinity[n]=Math.max(-15,Math.min(15,+c.affinity[n]||0));if(c.trust)for(const n in c.trust)c.trust[n]=Math.max(-10,Math.min(10,+c.trust[n]||0))}
   if(!res.changes)res.changes={};
@@ -1878,9 +2128,10 @@ async function act(a){if(busy||!a.trim())return;
   // Continuity: hist first (needed for next turn); keep 24 turns (~12 exchanges)
   S.hist=S.hist||[];S.hist.push({role:'user',content:'SPIELER: '+a},{role:'assistant',content:res.text});S.hist=S.hist.slice(-24);
   Cont.noteExchange(S,a,res.text);
-  if(softFail){res.note=friendlyAIFail();setNarratorMode(S._narratorMode||'offline')}
-  else if(!S._narratorMode)setNarratorMode('gemini')}
- catch(e){res=offline(a);res.changes=res.changes||{};res.note=friendlyAIFail();setNarratorMode('offline')}
+  if(softFail){ /* v20: seamless — no banner; narrator dot only */ setNarratorMode(S._narratorMode||'offline')}
+  else if(!S._narratorMode)setNarratorMode('gemini');
+  try{ updateNarratorDot() }catch(_){}}
+ catch(e){const off=offlineAsStream(a,el);res={text:off.text,changes:off.changes||{}};setNarratorMode('offline');try{updateNarratorDot()}catch(_){}}
  _dbgMs=Math.round(performance.now()-t0); S._turnTotal=S._turnTotal||_dbgMs;
  // Time BEFORE showing? No — apply duration after reply starts streaming/typing, still before worldTick
  try{applyActionDuration(a, res._durationMin)}catch(_){try{applyActionDuration(a,null)}catch(__){}}
