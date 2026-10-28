@@ -1,5 +1,5 @@
 const $=s=>document.querySelector(s);const $$=s=>[...document.querySelectorAll(s)];const R=a=>a[Math.floor(Math.random()*a.length)];const rnd=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
-const VER=10,CACHE_V='v10';
+const VER=11,CACHE_V='v11';
 const ROLES={
  held:{e:'⚔️',name:'Held mit Status-System',d:'Ein blaues Fenster erscheint: [Status]. Die Welt braucht dich.',world:'Königreich Aldheim',
   base:{hp:100,mp:40,str:12,cha:8,ruf:10,gold:40},cls:['Abenteurer','Ritter','Held','Legendärer Held'],pack:'worlds/held.json',
@@ -37,50 +37,159 @@ let S=null,cfg=JSON.parse(localStorage.getItem(CFG)||'{"mode":"gemini"}'),engine
 let _twTimer=null,_twDone=true,_twFull='',_mode='title'; // title | intro | setup | play
 let _musicOn=false,_audioCtx=null,_musicNodes=null;
 
-/* ---------- images (Pollinations, no key) ---------- */
+
+/* ---------- images: CSS themes + validated Pollinations (reject placards) ---------- */
 const IMG_STYLE='anime style, detailed illustration, cinematic lighting, vibrant colors, high quality, ';
 const IMG_STYLE_GREY='atmospheric literary illustration, muted colors, fog, victorian, painterly, ';
 function hashSeed(str){let h=2166136261>>>0;for(let i=0;i<str.length;i++){h^=str.charCodeAt(i);h=Math.imul(h,16777619)}return (h>>>0)%100000}
 function imgUrl(prompt,w,h,seed,grey){const style=grey?IMG_STYLE_GREY:IMG_STYLE;
  const p=encodeURIComponent(style+String(prompt||'fantasy scene').slice(0,200));
  return `https://image.pollinations.ai/prompt/${p}?width=${w||512}&height=${h||896}&nologo=true&seed=${seed||42}&referrer=${encodeURIComponent('https://markusstol.github.io/isekai-game/')}`}
-let _imgQ=Promise.resolve();
-function enqueueImg(loadFn){_imgQ=_imgQ.then(loadFn,loadFn);return _imgQ}
-let _imgTmp={scenes:{},portraits:{}};
-function ensureImgCache(){if(!S){return _imgTmp}if(!S.imgCache)S.imgCache={scenes:{},portraits:{}};return S.imgCache}
+let _imgQ=Promise.resolve(),_imgBusy=false;
+function enqueueImg(loadFn){_imgQ=_imgQ.then(()=>loadFn(),()=>loadFn());return _imgQ}
+let _imgTmp={scenes:{},portraits:{},ok:{},fail:{},next:{}};
+function ensureImgCache(){const c=S?(S.imgCache||(S.imgCache={scenes:{},portraits:{},ok:{},fail:{},next:{}})):_imgTmp;
+ if(!c.ok)c.ok={};if(!c.fail)c.fail={};if(!c.next)c.next={};if(!c.scenes)c.scenes={};if(!c.portraits)c.portraits={};return c}
 function scenePromptFor(ort,extra){const base=ort||'fantasy place';const tone=isG()?'foggy mysterious':'anime fantasy';
  return `${tone} scene, ${base}${extra?', '+extra:''}, environment establishing shot, no text`}
 function portraitPromptFor(name,npc){const art=(npc&&npc.art)||'';const g=npc&&npc.geschlecht?npc.geschlecht+' ':'';
  return `character portrait bust, ${g}${name}, ${String(art).slice(0,100)}, looking at viewer, soft background, no text`}
+
+function themeFromText(txt){const s=String(txt||'').toLowerCase();
+ if(/grey|nebel|fog|zug|train|bahnhof|eisen|greymourne/.test(s))return 'fog';
+ if(/nachtzug|abteil|messing/.test(s))return 'train';
+ if(/regen|asphalt|scheinwerfer|straße|street|city night|hupen/.test(s))return 'street';
+ if(/stern|void|dunkelheit|dazwischen|kosmos|starfield|cosmos/.test(s))return 'stars';
+ if(/göttin|tempel|ethereal|lichtspiegel|gestalt|angebot|goddess|temple/.test(s))return 'temple';
+ if(/akademie|salon|rose|otome|lumière|lumiere|academy/.test(s))return 'academy';
+ if(/thron|dämon|daemon|nocturna|knochen|armee|throne/.test(s))return 'throne';
+ if(/dorf|kleinbach|heu|wiese|taverne|village|morgenlicht/.test(s))return 'village';
+ if(/wald|forest|bäume|hexe|woods|trees/.test(s))return 'forest';
+ if(/kerker|dungeon|höhle|keller|katakom|cave/.test(s))return 'dungeon';
+ if(/stadt|markt|gasse|city|hauptstadt|market/.test(s))return 'city';
+ if(/burg|palast|halle|hall|ritter|knight|beschwörung|summon|castle|thronsaal|aldheim|royal|torch/.test(s))return 'castle';
+ if(/nacht|mond|spät|night|moon/.test(s))return 'night';
+ return isG()?'fog':'void'}
+
+function buildSceneArt(theme){const art=$('#sceneArt');if(!art)return;art.innerHTML='';
+ const add=(html)=>{art.insertAdjacentHTML('beforeend',html)};
+ if(theme==='street'){add('<div class="mist" style="background:linear-gradient(180deg,transparent,#1a0820aa);bottom:0;height:50%"></div>');
+  for(let i=0;i<14;i++)add(`<div style="position:absolute;left:${8+i*7}%;top:-5%;width:2px;height:18px;background:#9cf8;animation:rain 0.9s linear ${i*.07}s infinite"></div>`);
+  add('<div class="sil" style="left:10%;width:18%;height:28%;background:#0006;border-radius:4px 4px 0 0"></div><div class="sil" style="right:12%;width:22%;height:36%;background:#0005;border-radius:6px 6px 0 0"></div>')}
+ else if(theme==='stars'||theme==='void'||theme==='temple'){for(let i=0;i<18;i++)add(`<div class="spark" style="left:${5+Math.random()*90}%;top:${5+Math.random()*55}%;animation-delay:${Math.random()*3}s"></div>`);
+  add('<div class="orb" style="width:120px;height:120px;left:30%;top:12%;background:radial-gradient(circle,#ff9ad588,#a78bfa22)"></div>');
+  if(theme==='temple')add('<div style="position:absolute;left:10%;right:10%;top:8%;height:22%;background:linear-gradient(90deg,transparent,#cbb8ff44,transparent);animation:aurora 8s ease-in-out infinite"></div>')}
+ else if(theme==='castle'){add('<div class="sil" style="left:18%;width:64%;height:42%;background:linear-gradient(180deg,#2a1848,#0a0610);clip-path:polygon(0% 100%,0% 40%,8% 40%,8% 20%,18% 20%,18% 40%,30% 40%,30% 10%,42% 10%,42% 40%,55% 40%,55% 25%,70% 25%,70% 40%,85% 40%,85% 15%,100% 15%,100% 100%)"></div>');
+  add('<div class="orb" style="width:50px;height:50px;right:14%;top:10%;background:radial-gradient(circle,#ffe7a6aa,transparent);opacity:.7"></div>')}
+ else if(theme==='academy'){add('<div class="sil" style="left:22%;width:56%;height:48%;background:linear-gradient(180deg,#5a3080aa,#1a1040);border-radius:40% 40% 0 0"></div>');
+  for(let i=0;i<8;i++)add(`<div class="spark" style="left:${20+i*8}%;top:${30+((i*17)%40)}%;background:#ffb0d0"></div>`)}
+ else if(theme==='throne'){add('<div class="orb" style="width:180px;height:180px;left:28%;top:8%;background:radial-gradient(circle,#ff3a5088,#5a102022);opacity:.7"></div>');
+  add('<div class="sil" style="left:35%;width:30%;height:38%;background:linear-gradient(180deg,#3a0810,#100408);clip-path:polygon(10% 100%,20% 30%,50% 0,80% 30%,90% 100%)"></div>')}
+ else if(theme==='village'){add('<div class="orb" style="width:70px;height:70px;right:18%;top:8%;background:radial-gradient(circle,#ffe08a,transparent);opacity:.85"></div>');
+  add('<div class="sil" style="left:8%;width:28%;height:22%;background:#2a4018cc;border-radius:50% 50% 0 0"></div>');
+  add('<div class="sil" style="left:40%;width:20%;height:18%;background:#4a3020cc;clip-path:polygon(0 100%,0 40%,50% 0,100% 40%,100% 100%)"></div>');
+  add('<div class="sil" style="right:10%;width:24%;height:20%;background:#2a4018cc;border-radius:50% 50% 0 0"></div>')}
+ else if(theme==='forest'){for(let i=0;i<7;i++)add(`<div class="sil" style="left:${6+i*13}%;width:${10+i%3*4}%;height:${30+i*4}%;background:linear-gradient(180deg,#1a4028,#061208);border-radius:40% 40% 0 0"></div>`);
+  for(let i=0;i<10;i++)add(`<div class="spark" style="left:${10+i*8}%;top:${40+((i*23)%35)}%;background:#9dffb0;width:2px;height:2px"></div>`)}
+ else if(theme==='dungeon'){add('<div style="position:absolute;inset:0;background:repeating-linear-gradient(90deg,#ffffff06 0 2px,transparent 2px 48px),repeating-linear-gradient(0deg,#ffffff05 0 2px,transparent 2px 36px);opacity:.5"></div>');
+  add('<div class="orb" style="width:40px;height:40px;left:20%;top:30%;background:radial-gradient(circle,#ff8a4aaa,transparent)"></div>')}
+ else if(theme==='city'){for(let i=0;i<9;i++)add(`<div class="sil" style="left:${5+i*11}%;width:${8+i%3*3}%;height:${20+((i*19)%40)}%;background:#0a1220ee;box-shadow:inset 0 0 0 1px #6af3"></div>`);
+  add('<div class="mist" style="background:linear-gradient(180deg,transparent,#1a284888)"></div>')}
+ else if(theme==='night'){add('<div class="orb" style="width:60px;height:60px;right:16%;top:8%;background:radial-gradient(circle,#dfe7ff,#8a9ccc22);opacity:.9"></div>');
+  for(let i=0;i<16;i++)add(`<div class="spark" style="left:${Math.random()*90+5}%;top:${Math.random()*50+5}%"></div>`)}
+ else if(theme==='fog'||theme==='train'){add('<div class="mist" style="background:linear-gradient(180deg,#9aa3ae33,#cfd5dc22);height:60%;bottom:10%;animation-duration:18s"></div>');
+  add('<div class="mist" style="background:linear-gradient(180deg,transparent,#8a909a44);height:40%;bottom:0;animation-duration:22s;animation-direction:reverse"></div>');
+  if(theme==='train')add('<div class="sil" style="left:12%;right:12%;height:28%;bottom:22%;background:linear-gradient(180deg,#2a2418,#0e0c08);border-radius:8px;opacity:.35"></div>')}
+ else {for(let i=0;i<12;i++)add(`<div class="spark" style="left:${Math.random()*90+5}%;top:${Math.random()*60+5}%"></div>`)}
+}
+
+function applySceneTheme(theme){const bg=$('#sceneBg');if(!bg)return;const th=theme||'void';
+ [...bg.classList].filter(c=>c.startsWith('theme-')).forEach(c=>bg.classList.remove(c));
+ bg.classList.add('theme-'+th);bg.dataset.theme=th;buildSceneArt(th);
+ const ph=$('#scenePh');if(ph){ph.classList.add('hidden')}}
+
+function portColors(name){const h=hashSeed(String(name||'x'));const hues=[[255,111,181],[123,107,255],[110,200,255],[255,180,100],[160,255,180],[255,120,140],[200,160,255]];
+ const a=hues[h%hues.length],b=hues[(h*3)%hues.length];return {a:`rgb(${a[0]},${a[1]},${a[2]})`,b:`rgb(${(b[0]*0.35)|0},${(b[1]*0.35)|0},${(b[2]*0.35)|0})`,hexA:`#${a.map(x=>x.toString(16).padStart(2,'0')).join('')}`}}
+function initialsOf(name){const p=String(name||'?').replace(/[^a-zA-ZäöüÄÖÜß\s]/g,' ').trim().split(/\s+/).filter(Boolean);
+ if(!p.length)return '?';if(p.length===1)return p[0].slice(0,2).toUpperCase();return (p[0][0]+p[p.length-1][0]).toUpperCase()}
+function stylizedPortraitHTML(name,npc){const col=portColors(name);const ini=initialsOf(name);const e=(npc&&npc.e)||'';
+ return `<div class="port-svg" style="--port-a:${col.a};--port-b:${col.b};width:100%;height:100%;display:grid;place-items:center;background:linear-gradient(160deg,${col.a},${col.b})"><div style="text-align:center"><div style="font-size:22px;line-height:1">${e||'✦'}</div><div class="port-initial" style="font-size:20px;margin-top:2px">${ini}</div></div></div>`}
+function applyPortraitFallback(name,npc){const ph=$('#portraitPh');if(!ph)return;const col=portColors(name);
+ ph.style.setProperty('--port-a',col.a);ph.style.setProperty('--port-b',col.b);
+ ph.innerHTML=stylizedPortraitHTML(name,npc);ph.classList.remove('hidden')}
+
+/** Reject Pollinations free-limit placards (yellow/flat) via canvas sampling */
+function analyzeImage(img){try{const w=Math.min(64,img.naturalWidth||0),h=Math.min(64,img.naturalHeight||0);
+ if(w<8||h<8)return {ok:false,reason:'tiny'};
+ const c=document.createElement('canvas');c.width=w;c.height=h;const ctx=c.getContext('2d',{willReadFrequently:true});
+ ctx.drawImage(img,0,0,w,h);const data=ctx.getImageData(0,0,w,h).data;
+ let n=0,yellow=0,sum=0,sum2=0,rSum=0,gSum=0,bSum=0;
+ for(let i=0;i<data.length;i+=4){const r=data[i],g=data[i+1],b=data[i+2],a=data[i+3];if(a<20)continue;n++;
+  const lum=(r*299+g*587+b*114)/1000;sum+=lum;sum2+=lum*lum;rSum+=r;gSum+=g;bSum+=b;
+  // yellow/amber placard tones
+  if(r>170&&g>140&&b<120&&(r+g)>2.2*b)yellow++}
+ if(!n)return {ok:false,reason:'empty'};
+ const mean=sum/n,variance=sum2/n-mean*mean,yRatio=yellow/n;
+ const avgR=rSum/n,avgG=gSum/n,avgB=bSum/n;
+ if(yRatio>0.28)return {ok:false,reason:'yellow',yRatio,variance};
+ if(variance<180&&avgR>160&&avgG>130&&avgB<140)return {ok:false,reason:'flat-yellow',variance};
+ if(variance<90)return {ok:false,reason:'flat',variance};
+ return {ok:true,yRatio,variance,avg:[avgR|0,avgG|0,avgB|0]}}
+ catch(e){return {ok:false,reason:'cors-or-error',err:String(e)}}}
+
+function loadValidatedImage(url){return new Promise(resolve=>{
+ const pre=new Image();pre.crossOrigin='anonymous';
+ const done=(ok,meta)=>{resolve({ok:!!ok,img:ok?pre:null,meta:meta||{}})};
+ pre.onload=()=>{const meta=analyzeImage(pre);done(meta.ok,meta)};
+ pre.onerror=()=>done(false,{reason:'error'});
+ // cache-bust lightly on retries via existing url
+ pre.src=url+(url.includes('?')?'&':'?')+'_cb='+(Date.now()%100000)})}
+
+function markFail(cache,key){cache.fail[key]=(cache.fail[key]|0)+1;const n=cache.fail[key];
+ cache.next[key]=Date.now()+Math.min(30*60*1000, Math.pow(2,Math.min(6,n))*8000);delete cache.ok[key]}
+function canRetry(cache,key){if(cache.ok[key])return false;const t=cache.next[key]|0;return Date.now()>=t}
+function scheduleRetry(kind,key,fn){const cache=ensureImgCache();const wait=Math.max(0,(cache.next[key]|0)-Date.now());
+ setTimeout(()=>{if(canRetry(cache,key)||!cache.ok[key])fn()},Math.min(wait||12000,120000))}
+
+function hideScenePhoto(){const img=$('#sceneImg');if(!img)return;img.classList.remove('on');img.removeAttribute('src');img.dataset.key=''}
+function hidePortraitPhoto(){const img=$('#portraitImg');if(!img)return;img.classList.remove('on');img.removeAttribute('src');img.dataset.name=''}
+
 function setSceneImage(prompt,key,opts){opts=opts||{};const cache=ensureImgCache();const k=key||prompt||'default';
+ const theme=themeFromText((prompt||'')+' '+(k||'')+' '+(S?.world?.scene?.ort||'')+' '+(S?.role||''));
+ applySceneTheme(theme);hideScenePhoto();
+ const forceCss=!!opts.cssOnly||!!window.__FORCE_CSS_SCENES;
+ if(forceCss){cache.next[k]=Date.now()+60000;return}
+ if(cache.ok[k]&&cache.scenes[k]){ // previously validated — still re-check occasionally? use cached url carefully
+  // Don't auto-show cached URL without revalidation if it might be placard from v10; only if ok flag set in v11
+ }
  const seed=hashSeed('scene:'+k+(S?.role||''));
- const url=cache.scenes[k]||imgUrl(prompt||scenePromptFor(k),512,896,seed,isG());
+ const url=imgUrl(prompt||scenePromptFor(k),512,896,seed,isG());
  cache.scenes[k]=url;if(S)save();
- const img=$('#sceneImg'),ph=$('#scenePh');if(!img)return;
- if(img.dataset.key===k&&img.classList.contains('on'))return;
- img.dataset.key=k;img.classList.remove('on');if(ph){ph.classList.remove('hidden');ph.textContent='✦'}
- if(opts.deferNet && !cache.scenes[k+'_ok']){/* keep placeholder until play */}
- enqueueImg(()=>new Promise(res=>{const pre=new Image();
-  pre.onload=()=>{// reject tiny limit placards
-   if(pre.naturalWidth>0&&pre.naturalWidth<80){if(ph){ph.textContent='🌫️';ph.classList.remove('hidden')};res();return}
-   img.src=url;cache.scenes[k+'_ok']=1;requestAnimationFrame(()=>img.classList.add('on'));if(ph)ph.classList.add('hidden');res()};
-  pre.onerror=()=>{if(ph){ph.textContent='🌫️';ph.classList.remove('hidden')};res()};pre.src=url}))}
-function setPortrait(name,npc){const cache=ensureImgCache();const wrap=$('#portraitWrap'),img=$('#portraitImg'),ph=$('#portraitPh');
+ if(!canRetry(cache,k)&&cache.fail[k]){scheduleRetry('scene',k,()=>setSceneImage(prompt,key,opts));return}
+ enqueueImg(()=>loadValidatedImage(url).then(res=>{
+  const img=$('#sceneImg');if(!img)return;
+  if(res.ok){cache.ok[k]=1;delete cache.fail[k];delete cache.next[k];img.src=url;img.dataset.key=k;
+   requestAnimationFrame(()=>img.classList.add('on'));if(S)save()}
+  else{markFail(cache,k);hideScenePhoto();scheduleRetry('scene',k,()=>setSceneImage(prompt,key,{...opts}));if(S)save()}
+ }))}
+
+function setPortrait(name,npc){const cache=ensureImgCache();const wrap=$('#portraitWrap'),img=$('#portraitImg');
  if(!name){wrap&&wrap.classList.add('hidden');return}
- wrap.classList.remove('hidden');
+ wrap.classList.remove('hidden');applyPortraitFallback(name,npc);hidePortraitPhoto();
+ if(window.__FORCE_CSS_SCENES)return;
  const seed=hashSeed('port:'+name+(S?.role||''));
- const url=cache.portraits[name]||imgUrl(portraitPromptFor(name,npc),192,192,seed,isG());
+ const url=imgUrl(portraitPromptFor(name,npc),192,192,seed,isG());
  cache.portraits[name]=url;
- if(img.dataset.name===name&&img.classList.contains('on'))return;
- img.dataset.name=name;img.classList.remove('on');if(ph){ph.textContent=(npc&&npc.e)||'👤';ph.classList.remove('hidden')}
- enqueueImg(()=>new Promise(res=>{const pre=new Image();pre.onload=()=>{if(pre.naturalWidth<40){res();return}img.src=url;requestAnimationFrame(()=>img.classList.add('on'));res()};pre.onerror=()=>res();pre.src=url}));if(S)save()}
+ const key='port:'+name;
+ if(!canRetry(cache,key)&&cache.fail[key]){scheduleRetry('port',key,()=>setPortrait(name,npc));if(S)save();return}
+ enqueueImg(()=>loadValidatedImage(url).then(res=>{
+  if(!res.ok){markFail(cache,key);hidePortraitPhoto();scheduleRetry('port',key,()=>setPortrait(name,npc));if(S)save();return}
+  cache.ok[key]=1;delete cache.fail[key];delete cache.next[key];
+  img.src=url;img.dataset.name=name;requestAnimationFrame(()=>img.classList.add('on'));if(S)save()}))}
+
 function maybeSceneFromWorld(){if(!S?.world?.scene?.ort)return;const ort=S.world.scene.ort;const zeit=S.world.scene.zeit||phaseLabel();
  const prompt=(S.flags&&S.flags.scenePrompt)||scenePromptFor(ort,zeit);setSceneImage(prompt,ort)}
-function maybePortraitsPresent(){if(!S?.world?.scene)return;const anw=S.world.scene.anwesend||[];
- for(const raw of anw){const name=String(raw);const npc=S.world.npcs&&(S.world.npcs[name]||Object.entries(S.world.npcs).find(([k])=>name.includes(k.split(' ')[0]))?.[1]);
-  if(npc||S.world.npcs?.[name]){ensureImgCache();const key=S.world.npcs[name]?name:(Object.keys(S.world.npcs).find(k=>name.includes(k.split(' ')[0]))||name);
-   if(!S.imgCache.portraits[key]){const n=S.world.npcs[key];S.imgCache.portraits[key]=imgUrl(portraitPromptFor(key,n),256,256,hashSeed('port:'+key+(S.role||'')),isG())}}}
-}
+function maybePortraitsPresent(){/* warm cache URLs only — don't burst-fetch; portraits load on speak/meet */}
 
 /* ---------- save / toast / gate ---------- */
 function save(){if(!S)return;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){try{if(S.hist)S.hist=S.hist.slice(-8);if(S.log)S.log=S.log.slice(-40);if(S.summary)S.summary=String(S.summary).slice(0,400);if(S.world&&S.world.npcs)for(const n of Object.values(S.world.npcs))if(n.erinnerung)n.erinnerung=n.erinnerung.slice(-2);localStorage.setItem(KEY,JSON.stringify(S));toast('Speicher gekürzt (wenig Platz)')}catch(_){toast('Speichern fehlgeschlagen – wenig Speicher')}}}
@@ -121,9 +230,10 @@ function migrate(raw){if(!raw)return null;const s=typeof raw==='string'?JSON.par
  }
  if(s.ver<10){s.ver=10;if(!s.time)s.time={day:1,hour:isG()?0:18,phase:isG()?'Nacht':'Abend'};
   if(s.st&&s.st.gold==null)s.st.gold=ROLES[s.role]?.base?.gold||0;
-  if(!s.imgCache)s.imgCache={scenes:{},portraits:{}};
+  if(!s.imgCache)s.imgCache={scenes:{},portraits:{},ok:{},fail:{},next:{}};
   if(Array.isArray(s.inv))s.inv=s.inv.map(it=>{const i=itemFromStr(it);if(!i.rarity)i.rarity=i.type==='key'||i.type==='weapon'?'rare':i.type==='consumable'?'uncommon':'common';return i});
  }
+ if(s.ver<11){s.ver=11;if(s.imgCache){s.imgCache.ok=s.imgCache.ok||{};s.imgCache.fail=s.imgCache.fail||{};s.imgCache.next=s.imgCache.next||{}}}
  return s}
 
 function buildQuests(pack){const arc=pack.arc||{titel:'Hauptgeschichte',acts:[]};const act0=arc.acts[0]||{id:'a1',titel:'Anfang',ziel:'Ankommen',mile:[]};
@@ -153,7 +263,7 @@ async function newLife(role,meta,opts){const r=ROLES[role];meta=meta||{lives:0,s
   skills,inv,aff:Object.fromEntries(romNames.map(k=>[k,0])),romance:initRomance(pack,romNames),
   quests:buildQuests(pack),discovered:[world.scene.ort].filter(Boolean),ticks:{rumours:[],log:[]},
   cls:0,turn:0,hist:[],log:[],flags:Object.assign({},opts.flags||{}),setup:{done:false,beat:0,answers:{}},summary:'',
-  time:{day:1,hour:18,phase:'Abend'},imgCache:{scenes:{},portraits:{}}};
+  time:{day:1,hour:18,phase:'Abend'},imgCache:{scenes:{},portraits:{},ok:{},fail:{},next:{}}};
  S.world=world;
  if(opts.skipSetup){finishSetup(pack);gateOrShow();return}
  // If cinematic already covered death, skip first setup beat when it is 'tod'
@@ -174,7 +284,7 @@ async function newGrey(kind,name,bg,opts){const B=await loadGrey();const r=ROLES
   aff:Object.fromEntries(affBase.map(k=>[k,0])),romance:initRomance(B,affBase),
   quests:buildQuests(B),discovered:['Nachtzug'],ticks:{rumours:[],log:[]},
   cls:0,turn:0,hist:[],log:[],flags:{},setup:{done:false,beat:0,answers:{}},summary:'',
-  time:{day:1,hour:0,phase:'Nacht'},imgCache:{scenes:{},portraits:{}}};
+  time:{day:1,hour:0,phase:'Nacht'},imgCache:{scenes:{},portraits:{},ok:{},fail:{},next:{}}};
  S.world=world;
  beginSetup(B);gateOrShow()}
 
@@ -231,15 +341,12 @@ function startIntro(){_mode='intro';_intro={beat:0,answers:{},role:null,name:'',
 function showIntroBeat(){const i=_intro.beat;if(i>=INTRO_BEATS.length){return finishIntro()}
  const b=INTRO_BEATS[i];
  // Only fetch a scene image for goddess/shape — earlier beats stay on atmospheric placeholder to avoid free-limit burn
- if(b.id==='goddess'||b.id==='shape')setSceneImage(b.scene,b.id); else {const img=$('#sceneImg'),ph=$('#scenePh');if(img){img.classList.remove('on');img.removeAttribute('src');img.dataset.key=''}if(ph){ph.classList.remove('hidden');ph.textContent=b.id==='death'?'⚡':'✦'}}
+ applySceneTheme(themeFromText(b.scene+' '+b.id));
+ if(b.id==='goddess'||b.id==='shape')setSceneImage(b.scene,b.id); else hideScenePhoto();
  if(b.portrait==='Göttin'){ensureTempGoddessPortrait()}
  else{$('#portraitWrap').classList.add('hidden')}
  typewrite(b.speaker,b.text,()=>{renderIntroChoices(b)})}
-function ensureTempGoddessPortrait(){
- if(!window._goddessUrl)window._goddessUrl=imgUrl('ethereal anime goddess portrait silver hair kind smile soft glow',192,192,99,false);
- const img=$('#portraitImg'),wrap=$('#portraitWrap'),ph=$('#portraitPh');
- wrap.classList.remove('hidden');img.classList.remove('on');ph.textContent='✨';
- enqueueImg(()=>new Promise(res=>{const pre=new Image();pre.onload=()=>{if(pre.naturalWidth<40){res();return}img.src=window._goddessUrl;img.dataset.name='Göttin';requestAnimationFrame(()=>img.classList.add('on'));res()};pre.onerror=()=>res();pre.src=window._goddessUrl}))}
+function ensureTempGoddessPortrait(){setPortrait('Göttin',{e:'✨',art:'ethereal goddess long silver hair kind eyes flowing robes',geschlecht:'weiblich'})}
 
 function renderIntroChoices(b){const c=$('#choices');c.innerHTML='';
  if(b.needsName){const row=document.createElement('div');row.className='name-row';row.innerHTML=`<input id="setupName" placeholder="Dein Name…" maxlength="40">`;c.appendChild(row)}
@@ -338,17 +445,34 @@ function pickSetup(ch){const pack=S._setupPack;const beat=S._setupBeat;
 
 function _introPushPlayer(label){/* show player choice briefly */}
 
+
+function softMemory(trait,bg){const raw=String(trait||bg||'').trim();if(!raw)return '';
+ const s=raw.toLowerCase();
+ if(/liebt|gesicht/.test(s))return 'Irgendwo hinter den Rippen bleibt ein Gesicht, das du nicht verlieren wolltest.';
+ if(/streit/.test(s))return 'Ein ungelöster Streit klopft noch leise an die Tür hinter dir.';
+ if(/traum/.test(s))return 'Ein Traum, den du nie gelebt hast, sucht nach Luft in dieser neuen Brust.';
+ if(/wut|leere/.test(s))return 'Wut und Leere teilen sich den Platz unter deiner Haut – und warten.';
+ if(raw.length<60&&!/ort:|anwesend|hp|mp|status/i.test(raw))return ''; // avoid dumping form answers
+ return ''}
+function openingNarration(pack){if(isG())return (S.kind==='darren'?greyIntroDarren():greyIntroOwn());
+ const name=S.pc.name&&S.pc.name!=='???'?S.pc.name:'Fremde Seele';
+ const ort=(pack.startScene&&pack.startScene.ort)||'';
+ const anw=((pack.startScene&&pack.startScene.anwesend)||[]).slice(0,3);
+ const ev=((pack.startEvents||[])[0]||'');
+ const mem=softMemory(S.pc.trait,S.pc.bg);
+ const look=S.pc.look?`In diesem Körper: ${S.pc.look}.`:'';
+ const byRole={
+  held:`Fackellicht zittert an alten Steinen. Weihrauch. Metall. Atem, der nicht deiner allein ist.\n\nDu – ${name} – stehst im Beschwörungskreis.${look?'\n'+look:''}${mem?'\n'+mem:''}\n\n${ort?ort+'.':''}\n${anw.length?'Gesichter warten: '+anw.join(', ')+'.':''}\n${ev?ev+'.':''}\n\nNiemand klatscht. Die Welt hält den Atem an – und überlässt dir den nächsten Schritt.`,
+  villainess:`Spiegelglas. Rosenwasser. Das leise Klicken einer Uhr, die bereits gegen dich zählt.\n\nDu – ${name} – öffnest die Augen in einem Leben, das jemand anderes zu Ende schreiben wollte.${look?'\n'+look:''}${mem?'\n'+mem:''}\n\n${ort?ort+'.':''}\n${anw.length?'Im Raum: '+anw.join(', ')+'.':''}\n${ev?ev+'.':''}\n\nEin Skandal wartet nicht auf deine Erlaubnis. Was tust du zuerst?`,
+  daemon:`Knochen. Samt. Eine Krone, die zu schwer ist für höfliche Lügen.\n\nDu – ${name} – sitzt, wo Könige knien lernen.${look?'\n'+look:''}${mem?'\n'+mem:''}\n\n${ort?ort+'.':''}\n${anw.length?'Zu deinen Füßen: '+anw.join(', ')+'.':''}\n${ev?ev+'.':''}\n\nDie Nacht lauscht. Ein Befehl würde reichen – oder eine Frage.`,
+  mensch:`Heu. Morgenluft. Irgendwo kräht etwas, das kein Monster ist.\n\nDu – ${name} – wachst ohne Statusfenster auf. Nur Haut, Atem, Zweifel.${look?'\n'+look:''}${mem?'\n'+mem:''}\n\n${ort?ort+'.':''}\n${anw.length?'In der Nähe: '+anw.join(', ')+'.':''}\n${ev?ev+'.':''}\n\nDie Welt ist klein und gefährlich zugleich. Dein nächster Schritt gehört dir.`
+ };
+ return byRole[S.role]||byRole.held}
+
 function finishSetup(pack){S.setup.done=true;S._setupChoices=null;S._setupBeat=null;_mode='play';
  if(wantAI()&&!hasKey()&&cfg.mode!=='webllm'&&cfg.mode!=='api'&&cfg.mode!=='free'){save();showKeyGate();return}
  $('.top-actions').style.visibility='';$('#hud').style.visibility='';
- let bridge='';
- if(isG()){
-  bridge=(S.kind==='darren'?greyIntroDarren():greyIntroOwn())+(S.flags.impression?'\n\n(Dein erster Eindruck bleibt: '+S.flags.impression+'.)':'');
- }else{
-  const ort=(pack.startScene&&pack.startScene.ort)||'';
-  const anw=((pack.startScene&&pack.startScene.anwesend)||[]).join(', ');
-  bridge=ROLES[S.role].e+' Du bist '+(S.pc.name||'???')+'.\n'+((S.pc.bg||S.pc.trait||'Ein Leben endete.').replace(/^liebt/,'Liebt'))+'\n\nDie Welt von '+(pack.titel||ROLES[S.role].world)+' atmet bereits – sie hat nicht auf dich gewartet, aber sie hat Platz.\n\nOrt: '+ort+'\nAnwesend: '+anw+'\n\n'+((pack.startEvents||[])[0]||'')+'\n\n(Die Eröffnung ist vorbei. Was tust du?)';
- }
+ let bridge=openingNarration(pack);
  S.log=[{k:'n',t:bridge}];S.hist=[{role:'assistant',content:bridge}];S.choices=defChoices();
  maybeSceneFromWorld();maybePortraitsPresent();
  const firstNpc=(S.world?.scene?.anwesend||[])[0];if(firstNpc&&S.world.npcs[firstNpc])setPortrait(firstNpc,S.world.npcs[firstNpc]);
@@ -489,9 +613,22 @@ function renderMenu(){const body=$('#menuBody');if(!body||!S)return;body.innerHT
    <p class="meta">${n?.art?String(n.art).slice(0,100):''}</p><p class="meta">Ort: ${n?.ort||'?'} · ${mem}</p>
    <div class="row"><button type="button">Ansprechen</button></div>`;
    card.querySelector('button').onclick=()=>{closeMenu();act('Ich gehe zu '+name+' und spreche sie/ihn an.')};body.appendChild(card);
-   const box=card.querySelector('.rel-port');const cache=ensureImgCache();
-   if(cache.portraits[name]){const im=document.createElement('img');im.alt='';im.onload=()=>im.classList.add('on');im.src=cache.portraits[name];box.appendChild(im)}
-   else{const delay=(body.querySelectorAll('.rel-port').length)*450;setTimeout(()=>{const url=imgUrl(portraitPromptFor(name,n),256,256,hashSeed('port:'+name+(S.role||'')),isG());cache.portraits[name]=url;const im=document.createElement('img');im.alt='';im.onload=()=>im.classList.add('on');im.onerror=()=>{};im.src=url;box.appendChild(im);if(S)save()},delay)}})}
+   const box=card.querySelector('.rel-port');const col=portColors(name);box.style.setProperty('--port-a',col.a);box.style.setProperty('--port-b',col.b);
+   box.innerHTML=`<span class="port-initial">${initialsOf(name)}</span>`;
+   const cache=ensureImgCache();const key='port:'+name;const delay=body.querySelectorAll('.rel-port').length*700;
+   if(!window.__FORCE_CSS_SCENES)setTimeout(()=>{
+    enqueueImg(()=>{
+     const url=cache.portraits[name]||imgUrl(portraitPromptFor(name,n),192,192,hashSeed('port:'+name+(S.role||'')),isG());
+     cache.portraits[name]=url;
+     if(!canRetry(cache,key)&&cache.fail[key])return Promise.resolve();
+     return loadValidatedImage(url).then(res=>{
+      if(!res.ok){markFail(cache,key);return}
+      cache.ok[key]=1;const im=document.createElement('img');im.alt='';im.crossOrigin='anonymous';
+      im.onload=()=>im.classList.add('on');im.src=url;box.appendChild(im);if(S)save()
+     })
+    })
+   },delay)
+  })}
 
  else if(_menuTab==='quests'){const m=S.quests?.main;if(m){const left=(m.objectives||[]).filter(o=>!(m.done||[]).includes(o));
   body.innerHTML+=`<div class="card quest-main"><h3>📜 ${m.titel}</h3><p><b>Akt:</b> ${m.actTitel||''}</p><p>${m.ziel||''}</p>
@@ -884,13 +1021,13 @@ $('#btnGateSave').onclick=()=>{const gk=$('#gateKey').value.trim();if(!gk){toast
  toast('Alles bereit.');gmFetch(gk,true).then(()=>gmProbe(gk).catch(()=>{}));enterPlay()};
 $('#btnGateSkip').onclick=()=>{cfg.mode='offline';cfg.v2=1;localStorage.setItem(CFG,JSON.stringify(cfg));enterPlay()};
 
-window.__game={newGrey,greyDetails,loadGrey,loadPack,get S(){return S},act,newLife,gBody,msgs,gmRank,gmProbe,parseStream,thinkingCfg,gmOrder,readSSE,STREAM_DELIM,migrate,worldTick,bumpRel,openMenu,stageName,offline,startIntro,setSceneImage,imgUrl,advanceTime,phaseLabel,typewrite,enterPlay,showTitle};
+window.__game={newGrey,greyDetails,loadGrey,loadPack,get S(){return S},act,newLife,gBody,msgs,gmRank,gmProbe,parseStream,thinkingCfg,gmOrder,readSSE,STREAM_DELIM,migrate,worldTick,bumpRel,openMenu,stageName,offline,startIntro,setSceneImage,setPortrait,imgUrl,advanceTime,phaseLabel,typewrite,enterPlay,showTitle,analyzeImage,applySceneTheme,themeFromText,loadValidatedImage,openingNarration};
 window.__game.askNPC=a=>askNPC(a);window.__game.gemini=gemini;
 if(cfg.gkey)gmFetch(cfg.gkey.trim()).then(()=>gmProbe(cfg.gkey.trim()).catch(()=>{})).catch(()=>{});
 (function(){const root=document.documentElement;const apply=()=>{try{const vv=window.visualViewport;if(!vv)return;const kb=Math.max(0,window.innerHeight-vv.height-vv.offsetTop);root.style.setProperty('--kb',kb+'px')}catch(_){}};
  if(window.visualViewport){visualViewport.addEventListener('resize',apply);visualViewport.addEventListener('scroll',apply)}
  window.addEventListener('focusin',e=>{if(e.target&&e.target.id==='txt'){setTimeout(()=>{try{e.target.scrollIntoView({block:'end',behavior:'smooth'})}catch(_){};apply()},300)}});
  $('#txt')&&$('#txt').addEventListener('blur',()=>root.style.setProperty('--kb','0px'))})();
-try{if('serviceWorker' in navigator&&navigator.serviceWorker){navigator.serviceWorker.register('./sw.js?v=10').catch(()=>{});
+try{if('serviceWorker' in navigator&&navigator.serviceWorker){navigator.serviceWorker.register('./sw.js?v=11').catch(()=>{});
  navigator.serviceWorker.addEventListener('controllerchange',()=>{if(sessionStorage.getItem('isekai_sw_reloaded'))return;sessionStorage.setItem('isekai_sw_reloaded','1');location.reload()})}}catch(_){}
 showTitle();
