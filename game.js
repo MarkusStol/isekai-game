@@ -19,7 +19,7 @@ import * as Equip from './equip.js';
 import * as Jrpg from './jrpg.js';
 import * as Depth from './depth.js';
 const $=s=>document.querySelector(s);const $$=s=>[...document.querySelectorAll(s)];const R=a=>a[Math.floor(Math.random()*a.length)];const rnd=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
-const VER='21',CACHE_V='v21';
+const VER='21.1',CACHE_V='v21.1';
 const ROLES={
  held:{e:'⚔️',name:'Held mit Status-System',d:'Ein blaues Fenster erscheint: [Status]. Die Welt braucht dich.',world:'Königreich Aldheim',
   base:{hp:100,mp:40,str:12,cha:8,ruf:10,gold:40},cls:['Abenteurer','Ritter','Held','Legendärer Held'],pack:'worlds/held.json',
@@ -2006,7 +2006,12 @@ async function freeStream(a, el){
     model:FREE_MODEL,
     signal:acPrimary.signal,
     onFirst:(tt)=>{ firstTokenAt=tt; }
-  }).then(r=>{ primaryDone=true; return r; }).catch(e=>{ primaryErr=e; throw e; });
+  }).then(r=>{ primaryDone=true; return r; }).catch(e=>{
+    primaryErr=e;
+    // Abort is expected when secondary wins — never become an unhandled rejection
+    if(e && (e.name==='AbortError' || /abort/i.test(String(e.message||e)))) return null;
+    throw e;
+  });
 
   // Speculative secondary timer
   const secondaryAc={current:null};
@@ -2018,9 +2023,10 @@ async function freeStream(a, el){
   const specTimer=setTimeout(armSecondary, FREE_TTFT_MS);
 
   // Also arm immediately on 402/429 (status arrives ~150–200ms)
-  const statusWatch=primaryP.catch(e=>{
-    if(e && (e.status===402||e.status===429||e.status===503)){ clearTimeout(specTimer); armSecondary(); }
-    throw e;
+  primaryP.catch(e=>{
+    if(!e) return;
+    if(e.status===402||e.status===429||e.status===503){ clearTimeout(specTimer); armSecondary(); }
+    // swallow — abort/race noise must not surface as pageerror
   });
 
   // Wait for first usable result
@@ -2266,17 +2272,27 @@ async function act(a){if(busy||!a.trim())return;
   }
  }
  setBusy(true);const t0=performance.now();
+ let res; let softFail=false; let modelSummary,scenePrompt,worldUpdate,questUpdate;
+ const el=$('#vnText');
+ const failSafeReply=()=>{
+   try{
+     const intent=parsePlayerIntent(a);
+     const off=offlineRespondIntent(a, intent)||{};
+     const text=(off.text&&String(off.text).trim())||localBeatLine(a)||'Die Welt stockt einen Atemzug. Versuch es noch einmal.';
+     return {text, changes:Object.assign({choices:travelChoices()}, off.changes||{})};
+   }catch(_){
+     try{return {text:localBeatLine(a)||'…', changes:{choices:travelChoices()}}}catch(__){return {text:'…', changes:{choices:['Umsehen','Weiter']}}}
+   }
+ };
+ try{
  // v17.2: defer pack reload; lock scene BEFORE first token; instant beat
  try{ if(!Cont.playerWantsExit(a)) Cont.lockScene(S,'talk'); else Cont.unlockScene(S); }catch(_){}
  if(!hasKey()&&cfg.mode==='gemini'){cfg.mode='free';try{localStorage.setItem(CFG,JSON.stringify(cfg))}catch(_){}}
- const el=$('#vnText');
  // instant local beat (<50ms) — zero dead time
- try{ const beat=localBeatLine(a); $('#speaker').textContent=(S.world?.scene?.anwesend||[])[0]||(isG()?'Nebel':'Erzähler'); $('#speaker').classList.remove('hidden'); el.textContent=beat; }catch(_){ el.innerHTML='<span class="caret">…</span>'; }
+ try{ const beat=localBeatLine(a); $('#speaker').textContent=(S.world?.scene?.anwesend||[])[0]||(isG()?'Nebel':'Erzähler'); $('#speaker').classList.remove('hidden'); el.textContent=beat; }catch(_){ try{el.innerHTML='<span class="caret">…</span>'}catch(__){} }
  S.turn++;S.log.push({k:'p',t:a});
- let res;let softFail=false;
  // loadPack deferred — never block TTFT
  scheduleAfterReply([()=>{try{loadPack(S.role)}catch(_){}}, ()=>{try{Imm.uiTick()}catch(_){}}]);
- let modelSummary,scenePrompt,worldUpdate,questUpdate;
  try{if(cfg.mode==='offline')throw 0;
   if(cfg.mode==='gemini'||(cfg.mode!=='webllm'&&cfg.mode!=='api'&&cfg.mode!=='free'&&hasKey())){
    try{res=await gemini(a,el)}catch(e){softFail=true;el.textContent='…'}}
@@ -2311,18 +2327,19 @@ async function act(a){if(busy||!a.trim())return;
   if(softFail){ /* v20: seamless — no banner; narrator dot only */ setNarratorMode(S._narratorMode||'offline')}
   else if(!S._narratorMode)setNarratorMode('gemini');
   try{ updateNarratorDot() }catch(_){}}
- catch(e){const off=offlineAsStream(a,el);res={text:off.text,changes:off.changes||{}};setNarratorMode('offline');try{updateNarratorDot()}catch(_){}}
+ catch(e){
+   try{const off=offlineAsStream(a,el);res={text:off.text,changes:off.changes||{}};setNarratorMode('offline');try{updateNarratorDot()}catch(_){}}
+   catch(e2){ res=failSafeReply(); setNarratorMode('offline'); }
+ }
+ if(!res || !res.text){ res=failSafeReply(); setNarratorMode(S._narratorMode||'offline'); }
  _dbgMs=Math.round(performance.now()-t0); S._turnTotal=S._turnTotal||_dbgMs;
- // Time BEFORE showing? No — apply duration after reply starts streaming/typing, still before worldTick
  try{applyActionDuration(a, res._durationMin)}catch(_){try{applyActionDuration(a,null)}catch(__){}}
  S.log.push({k:'n',t:res.text});if(S.log.length>80)S.log=S.log.slice(-80);
  const sp=S.flags?.speaker||(isG()?'Nebel':'Erzähler');
- // Portrait sync can wait — show text first
  await typewriteAsync(sp,res.text);
  if(res.note)pushSys(res.note);apply(res.changes||{});
- hud();renderChoices();setBusy(false);
- requestAnimationFrame(()=>{const t=$('#txt');if(t)t.focus({preventScroll:true})});
- // AFTER reply: world tick, summary, images, codex, save — never block TTFT
+ hud();renderChoices();
+ requestAnimationFrame(()=>{const t=$('#txt');if(t){t.disabled=false;t.focus({preventScroll:true})}});
  const _worldUpdate=worldUpdate, _scenePrompt=scenePrompt, _questUpdate=questUpdate, _modelSummary=modelSummary, _a=a, _text=res.text;
  scheduleAfterReply([
   ()=>{try{if(_modelSummary)Cont.ingestModelSummary(S,_modelSummary); else Cont.rollChapterAsync(S)}catch(_){}},
@@ -2337,6 +2354,21 @@ async function act(a){if(busy||!a.trim())return;
   ()=>{try{const w=Imm.weatherFor(S);S.flags=S.flags||{};S.flags.weather=w;Imm.setWeather(w==='klar'?'none':w);Imm.applyDayNightTint(S)}catch(_){}},
   ()=>{try{openPendingEncounter(res)}catch(_){}}
  ]);
+ }catch(fatal){
+  console.warn('act fatal', fatal);
+  try{
+    res=failSafeReply();
+    if(!(S.log||[]).some(m=>m.k==='p'&&m.t===a)) S.log.push({k:'p',t:a});
+    S.log.push({k:'n',t:res.text});
+    try{apply(res.changes||{})}catch(_){}
+    S.choices=(res.changes&&res.changes.choices)||travelChoices();
+    await typewriteAsync(isG()?'Nebel':'Erzähler', res.text);
+    hud();renderChoices();
+  }catch(e3){ try{ if(el) el.textContent='…'; toast('Antwort fehlgeschlagen — tippe erneut.'); }catch(_){ } }
+ }finally{
+  setBusy(false);
+  try{ const t=$('#txt'); if(t) t.disabled=false; }catch(_){}
+ }
 }
 
 
@@ -2392,9 +2424,11 @@ $('#menu').addEventListener('click',e=>{if(e.target.id==='menu')closeMenu()});
 $$('#menuTabs button').forEach(b=>b.onclick=()=>{_menuTab=b.dataset.tab;$$('#menuTabs button').forEach(x=>x.classList.toggle('on',x.dataset.tab===_menuTab));renderMenu()});
 
 $('#inputRow').onsubmit=e=>{e.preventDefault();const v=$('#txt').value;$('#txt').value='';
- if(_mode==='intro'){actIntro(v);return}
+ if(_mode==='intro'){Promise.resolve(actIntro(v)).catch(err=>console.warn(err));return}
  if(_mode==='intro'||!S){/* grey own name via text */ const t=v.trim();if(t&&document.body.classList.contains('greyw')&&!S){newGrey('own',t,'');return}}
- act(v)};
+ if(busy){ try{toast('Noch am Erzählen…')}catch(_){ } return; }
+ Promise.resolve(act(v)).catch(err=>{ console.warn('act',err); try{setBusy(false)}catch(_){ } });
+};
 
 const sync=()=>{$('#webllmBox').style.display=$('#mode').value==='webllm'?'':'none';$('#apiBox').style.display=$('#mode').value==='api'?'':'none'};
 function openSheet(){$('#mode').value=cfg.mode||'gemini';$('#wmodel').value=cfg.wmodel||$('#wmodel').value;$('#aurl').value=cfg.aurl||'';$('#akey').value=cfg.akey||'';$('#amodel').value=cfg.amodel||'';$('#gkey').value=cfg.gkey||'';
@@ -2425,6 +2459,24 @@ if(cfg.gkey)gmFetch(cfg.gkey.trim()).then(()=>gmProbe(cfg.gkey.trim()).catch(()=
  if(window.visualViewport){visualViewport.addEventListener('resize',apply);visualViewport.addEventListener('scroll',apply)}
  window.addEventListener('focusin',e=>{if(e.target&&e.target.id==='txt'){setTimeout(()=>{try{e.target.scrollIntoView({block:'end',behavior:'smooth'})}catch(_){};apply()},300)}});
  $('#txt')&&$('#txt').addEventListener('blur',()=>root.style.setProperty('--kb','0px'))})();
-try{if('serviceWorker' in navigator&&navigator.serviceWorker){navigator.serviceWorker.register('./sw.js?v=16').catch(()=>{});
- navigator.serviceWorker.addEventListener('controllerchange',()=>{if(sessionStorage.getItem('isekai_sw_reloaded'))return;sessionStorage.setItem('isekai_sw_reloaded','1');location.reload()})}}catch(_){}
+try{if('serviceWorker' in navigator&&navigator.serviceWorker){
+  // Self-heal: if a stale SW cache name mismatches this build, drop caches & re-register
+  (async()=>{
+    try{
+      const expect='isekai-v'+VER;
+      if(window.caches){
+        const keys=await caches.keys();
+        const stale=keys.filter(k=>k.startsWith('isekai-')&&k!==expect);
+        if(stale.length){
+          await Promise.all(stale.map(k=>caches.delete(k)));
+          const regs=await navigator.serviceWorker.getRegistrations();
+          await Promise.all(regs.map(r=>r.unregister()));
+          if(!sessionStorage.getItem('isekai_sw_heal')){ sessionStorage.setItem('isekai_sw_heal','1'); location.reload(); return; }
+        }
+      }
+    }catch(_){}
+    navigator.serviceWorker.register('./sw.js?v='+VER).catch(()=>{});
+  })();
+  navigator.serviceWorker.addEventListener('controllerchange',()=>{if(sessionStorage.getItem('isekai_sw_reloaded'))return;sessionStorage.setItem('isekai_sw_reloaded','1');location.reload()});
+}}catch(_){}
 showTitle();
