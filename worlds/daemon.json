@@ -16,64 +16,444 @@
  },
  "politik": "Velka will Stabilität, Brok Krieg, die Fürsten Autonomie. Aria ist Werkzeug der Kirche Solari – und beginnt zu zweifeln.",
  "setup": [
-  {"id":"tod","titel":"Abgrund","text":"Licht, Schmerz – eine Stimme tief wie ein Abgrund: „Erhebe dich.“\n\nWas antwortet dein sterbender Gedanke?","choices":[
-   {"id":"power","label":"„Endlich Macht“","past":"Du wolltest nie wieder ohnmächtig sein."},
-   {"id":"rest","label":"„Lass mich schlafen“","past":"Du bist müde – auch als König."},
-   {"id":"joke","label":"„Bitte kein Boss-Kampf“","past":"Du kennst Genre-Tropes und fürchtest sie."},
-   {"id":"rule","label":"„Ich regiere besser“","past":"Du hast Management-Tipps aus dem Vorleben."}
-  ]},
-  {"id":"erwachen","titel":"Thron","text":"Knochen unter dir. Schwarze Flammen. Hunderte Monster knien.\n\n[STATUS] Titel: Gefallener Fürst · Aura: ÜBERWÄLTIGEND · Warnung: Heldin beschworen.\n\nWorauf fällt dein Blick?","choices":[
-   {"id":"army","label":"Die kniende Armee","focus":"macht"},
-   {"id":"velka","label":"Die Sukkubus mit Klemmbrett","focus":"verwaltung"},
-   {"id":"aura","label":"Deine dunkle Aura","focus":"magie"},
-   {"id":"empty","label":"Die leere Schatzkammer-Tür","focus":"krise"}
-  ]},
-  {"id":"name","titel":"Anrede","text":"Velka räuspert sich: „Wie sollen wir Euch nennen, mein König? Der alte Name… ist kompliziert.“","choices":[
-   {"id":"old","label":"Den alten Königsnamen annehmen","nameMode":"king"},
-   {"id":"new","label":"Einen neuen Titel wählen","nameMode":"new"},
-   {"id":"human","label":"Deinen Menschennamen flüstern","nameMode":"human"}
-  ],"needsName":true},
-  {"id":"npc","titel":"Lagebericht","text":"Velka: „Kasse leer. Brok will Krieg. Heldin Aria marschiert. Befehle?“\nBrok schlägt die Faust auf die Brust: „KRIEG, Herr!“","choices":[
-   {"id":"war","label":"„Krieg.“","impression":"aggressiv","aff":{"General Brok":15,"Sekretärin Velka":-5}},
-   {"id":"budget","label":"„Zuerst die Finanzen.“","impression":"vernünftig","aff":{"Sekretärin Velka":12,"General Brok":-8}},
-   {"id":"spy","label":"„Beobachtet die Heldin.“","impression":"gerissen","aff":{"Sekretärin Velka":5,"Spionin Nyx":8}},
-   {"id":"speech","label":"Eine Rede an die Armee halten","impression":"charismatisch","aff":{"General Brok":8,"Sekretärin Velka":3}}
-  ]}
+  {
+   "id": "tod",
+   "titel": "Abgrund",
+   "text": "Licht, Schmerz – eine Stimme tief wie ein Abgrund: „Erhebe dich.“\n\nWas antwortet dein sterbender Gedanke?",
+   "choices": [
+    {
+     "id": "power",
+     "label": "„Endlich Macht“",
+     "past": "Du wolltest nie wieder ohnmächtig sein."
+    },
+    {
+     "id": "rest",
+     "label": "„Lass mich schlafen“",
+     "past": "Du bist müde – auch als König."
+    },
+    {
+     "id": "joke",
+     "label": "„Bitte kein Boss-Kampf“",
+     "past": "Du kennst Genre-Tropes und fürchtest sie."
+    },
+    {
+     "id": "rule",
+     "label": "„Ich regiere besser“",
+     "past": "Du hast Management-Tipps aus dem Vorleben."
+    }
+   ]
+  },
+  {
+   "id": "erwachen",
+   "titel": "Thron",
+   "text": "Knochen unter dir. Schwarze Flammen. Hunderte Monster knien.\n\n[STATUS] Titel: Gefallener Fürst · Aura: ÜBERWÄLTIGEND · Warnung: Heldin beschworen.\n\nWorauf fällt dein Blick?",
+   "choices": [
+    {
+     "id": "army",
+     "label": "Die kniende Armee",
+     "focus": "macht"
+    },
+    {
+     "id": "velka",
+     "label": "Die Sukkubus mit Klemmbrett",
+     "focus": "verwaltung"
+    },
+    {
+     "id": "aura",
+     "label": "Deine dunkle Aura",
+     "focus": "magie"
+    },
+    {
+     "id": "empty",
+     "label": "Die leere Schatzkammer-Tür",
+     "focus": "krise"
+    }
+   ]
+  },
+  {
+   "id": "name",
+   "titel": "Anrede",
+   "text": "Velka räuspert sich: „Wie sollen wir Euch nennen, mein König? Der alte Name… ist kompliziert.“",
+   "choices": [
+    {
+     "id": "old",
+     "label": "Den alten Königsnamen annehmen",
+     "nameMode": "king"
+    },
+    {
+     "id": "new",
+     "label": "Einen neuen Titel wählen",
+     "nameMode": "new"
+    },
+    {
+     "id": "human",
+     "label": "Deinen Menschennamen flüstern",
+     "nameMode": "human"
+    }
+   ],
+   "needsName": true
+  },
+  {
+   "id": "npc",
+   "titel": "Lagebericht",
+   "text": "Velka: „Kasse leer. Brok will Krieg. Heldin Aria marschiert. Befehle?“\nBrok schlägt die Faust auf die Brust: „KRIEG, Herr!“",
+   "choices": [
+    {
+     "id": "war",
+     "label": "„Krieg.“",
+     "impression": "aggressiv",
+     "aff": {
+      "General Brok": 15,
+      "Sekretärin Velka": -5
+     }
+    },
+    {
+     "id": "budget",
+     "label": "„Zuerst die Finanzen.“",
+     "impression": "vernünftig",
+     "aff": {
+      "Sekretärin Velka": 12,
+      "General Brok": -8
+     }
+    },
+    {
+     "id": "spy",
+     "label": "„Beobachtet die Heldin.“",
+     "impression": "gerissen",
+     "aff": {
+      "Sekretärin Velka": 5,
+      "Spionin Nyx": 8
+     }
+    },
+    {
+     "id": "speech",
+     "label": "Eine Rede an die Armee halten",
+     "impression": "charismatisch",
+     "aff": {
+      "General Brok": 8,
+      "Sekretärin Velka": 3
+     }
+    }
+   ]
+  }
  ],
  "arc": {
   "titel": "Krone aus Schulden und Nacht",
   "acts": [
-   {"id":"a1","titel":"Thron ohne Gold","ziel":"Das Reich vor dem Zerfall bewahren","mile":["Erste Befehle","Kasse notdürftig füllen","Brok oder Velka priorisieren"],"twist":"Ein Fürst plant Abspaltung, sobald die Heldin naht."},
-   {"id":"a2","titel":"Die Heldin am Pass","ziel":"Aria treffen – töten, bekehren oder verhandeln","mile":["Spionagebericht","Erstkontakt","Moralische Entscheidung"],"twist":"Aria trägt ein Relikt des ersten Helden – das auf DICH reagiert."},
-   {"id":"a3","titel":"Nachtfeuer","ziel":"Innere Rebellion und Kirchenkreuzzug überstehen","mile":["Schattenmarkt-Deal","Duell der Fürsten","Velkas Geheimnis"],"twist":"Velka hat den alten König nicht nur 'überlebt'."},
-   {"id":"a4","titel":"Gott der Nacht?","ziel":"Entscheide, was Nocturna wird","mile":["Finale gegen Kirche oder Aria","Titelwahl","Neues Gleichgewicht"],"twist":"Der Thron frisst Namen – wer König bleibt, verliert etwas Menschliches."}
+   {
+    "id": "a1",
+    "titel": "Thron ohne Gold",
+    "ziel": "Das Reich vor dem Zerfall bewahren",
+    "mile": [
+     "Erste Befehle",
+     "Kasse notdürftig füllen",
+     "Brok oder Velka priorisieren"
+    ],
+    "twist": "Ein Fürst plant Abspaltung, sobald die Heldin naht."
+   },
+   {
+    "id": "a2",
+    "titel": "Die Heldin am Pass",
+    "ziel": "Aria treffen – töten, bekehren oder verhandeln",
+    "mile": [
+     "Spionagebericht",
+     "Erstkontakt",
+     "Moralische Entscheidung"
+    ],
+    "twist": "Aria trägt ein Relikt des ersten Helden – das auf DICH reagiert."
+   },
+   {
+    "id": "a3",
+    "titel": "Nachtfeuer",
+    "ziel": "Innere Rebellion und Kirchenkreuzzug überstehen",
+    "mile": [
+     "Schattenmarkt-Deal",
+     "Duell der Fürsten",
+     "Velkas Geheimnis"
+    ],
+    "twist": "Velka hat den alten König nicht nur 'überlebt'."
+   },
+   {
+    "id": "a4",
+    "titel": "Gott der Nacht?",
+    "ziel": "Entscheide, was Nocturna wird",
+    "mile": [
+     "Finale gegen Kirche oder Aria",
+     "Titelwahl",
+     "Neues Gleichgewicht"
+    ],
+    "twist": "Der Thron frisst Namen – wer König bleibt, verliert etwas Menschliches."
+   }
   ]
  },
  "sideQuests": [
-  {"id":"sq_brok","titel":"Ehre der Orks","ziel":"Bestehe Broks Ritualduell (oder finde eine List)","npc":"General Brok"},
-  {"id":"sq_velka","titel":"Klemmbrett des Verderbens","ziel":"Hilf Velka bei der Steuerreform","npc":"Sekretärin Velka"},
-  {"id":"sq_aria","titel":"Briefe der Heldin","ziel":"Lies Arias beschlagnahmte Briefe","npc":"Heldin Aria"},
-  {"id":"sq_nyx","titel":"Schattenmarkt","ziel":"Hole Informationen ohne zu viel Aura","npc":"Spionin Nyx"}
+  {
+   "id": "sq_brok",
+   "titel": "Ehre der Orks",
+   "ziel": "Bestehe Broks Ritualduell (oder finde eine List)",
+   "npc": "General Brok"
+  },
+  {
+   "id": "sq_velka",
+   "titel": "Klemmbrett des Verderbens",
+   "ziel": "Hilf Velka bei der Steuerreform",
+   "npc": "Sekretärin Velka"
+  },
+  {
+   "id": "sq_aria",
+   "titel": "Briefe der Heldin",
+   "ziel": "Lies Arias beschlagnahmte Briefe",
+   "npc": "Heldin Aria"
+  },
+  {
+   "id": "sq_nyx",
+   "titel": "Schattenmarkt",
+   "ziel": "Hole Informationen ohne zu viel Aura",
+   "npc": "Spionin Nyx"
+  }
  ],
- "romanceable": ["Sekretärin Velka","Heldin Aria","Spionin Nyx"],
+ "romanceable": [
+  "Sekretärin Velka",
+  "Heldin Aria",
+  "Spionin Nyx"
+ ],
  "npcs": {
-  "Sekretärin Velka": {"e":"📋","art":"Sukkubus mit Brille, sachlich, trocken-ironisch, loyal zum Amt mehr als zum Mythos.","stimme":"Trocken: „Kurzer Lagebericht.“ „Die Kasse ist leer – poetisch, aber tödlich.“","ziel":"Nocturna vor Bankrott und Dummheit retten.","furcht":"Einen weiteren König zu überleben, der alles verbrennt.","geheim":"Hat am Sturz des alten Königs mitgewirkt – aus Notwendigkeit.","ort":"Thronsaal / Büro","plan":["Berichte","Dich steuern","Brok ausbremsen"],"meinung":{"General Brok":"Nervensäge","Heldin Aria":"Existenzrisiko","Spionin Nyx":"nützlich"},"romance":true,"geschlecht":"w"},
-  "General Brok": {"e":"🐗","art":"Ork, brüllt, will Krieg, überraschend ehrenhaft.","stimme":"BRÜLLEND: „KRIEG, Herr!“ „Ehre oder Tod!“","ziel":"Ruhm in der Schlacht.","furcht":"Als Feigling zu enden; heimlich: nicht lesen zu können.","geheim":"Kann nicht lesen – Velka unterschreibt für ihn.","ort":"Kasernen","plan":["Trommeln","Dich zu Krieg drängen","Feiglinge prügeln"],"meinung":{"Sekretärin Velka":"respektiert widerwillig","Heldin Aria":"würdiger Feind"},"romance":false,"geschlecht":"m"},
-  "Heldin Aria": {"e":"⚔️","art":"Entschlossen, idealistisch, heißblütig; Zweifel wächst.","stimme":"Klar: „Dämonenkönig! Stell dich!“ „Die Kirche sagte…“","ziel":"Dich töten – oder verstehen, warum die Welt dich braucht.","furcht":"Unschuldige zu töten 'für das Licht'.","geheim":"Zweifelt an der Kirche, die sie schickte.","ort":"Grenzpass (anrückend)","plan":["Marschieren","Dich herausfordern","Zivilisten schützen"],"meinung":{"Sekretärin Velka":"unbekannt","General Brok":"Monster"},"romance":true,"geschlecht":"w"},
-  "Spionin Nyx": {"e":"🌑","art":"Schattenwesen in Menschenform, flüstert, sammelt Preise.","stimme":"Flüsternd: „Alles hat einen Preis. Auch Stille.“","ziel":"Den besten Deal für sich – und überleben.","furcht":"Vom Thron 'aufgesogen' zu werden.","geheim":"Kann zwischen Nocturna und Solari wechseln.","ort":"Schattenmarkt","plan":["Handeln","Dich informieren","Beide Seiten füttern"],"meinung":{"Sekretärin Velka":"Zahlungspartnerin","Heldin Aria":"Ware/Risiko"},"romance":true,"geschlecht":"w"},
-  "Fürst Malgor": {"e":"🦴","art":"Skelettaristokrat, höflich, plant Abspaltung.","stimme":"Gesittet: „Mit Verlaub, die Peripherie zahlt genug.“","ziel":"Unabhängigkeit seines Grabfürstentums.","furcht":"Wieder Knecht des Throns zu sein.","geheim":"Verhandelt heimlich mit der Kirche.","ort":"Ruinen von Solmir","plan":["Dich testen","Abfallen wenn schwach"],"meinung":{"Sekretärin Velka":"Bürokratin","General Brok":"Barbar"},"romance":false,"geschlecht":"m"},
-  "Koch Grimbel": {"e":"🍲","art":"Trollkoch, nimmt Essensmoral ernst.","stimme":"Knurrend: „Armee kämpft nicht auf leerem Magen.“","ziel":"Die Truppe ernähren.","furcht":"Hungerrevolten.","geheim":"Versteckt Menschenrezepte – und mag sie.","ort":"Küche","plan":["Kochen","Dich um Budget bitten"],"meinung":{"Sekretärin Velka":"gibt manchmal Münzen"},"romance":false,"geschlecht":"m"},
-  "Priesterin Solara": {"e":"☀️","art":"Kirchenvertreterin hinter Aria, fanatisch höflich.","stimme":"Süß: „Das Licht vergibt. Die Klinge nicht.“","ziel":"Nocturna auslöschen.","furcht":"Dass Aria abfällt.","geheim":"Kennt den wahren Preis des ersten Helden-Sieges.","ort":"Mit Arias Heer","plan":["Aria steuern","Dich dämonisieren"],"meinung":{"Heldin Aria":"Werkzeug/Heilige"},"romance":false,"geschlecht":"w"}
+  "Sekretärin Velka": {
+   "e": "📋",
+   "art": "Sukkubus mit Brille, sachlich, trocken-ironisch, loyal zum Amt mehr als zum Mythos.",
+   "stimme": "Trocken: „Kurzer Lagebericht.“ „Die Kasse ist leer – poetisch, aber tödlich.“",
+   "ziel": "Nocturna vor Bankrott und Dummheit retten.",
+   "furcht": "Einen weiteren König zu überleben, der alles verbrennt.",
+   "geheim": "Hat am Sturz des alten Königs mitgewirkt – aus Notwendigkeit.",
+   "ort": "Thronsaal / Büro",
+   "plan": [
+    "Berichte",
+    "Dich steuern",
+    "Brok ausbremsen"
+   ],
+   "meinung": {
+    "General Brok": "Nervensäge",
+    "Heldin Aria": "Existenzrisiko",
+    "Spionin Nyx": "nützlich"
+   },
+   "romance": true,
+   "geschlecht": "w",
+   "schedule": [
+    "Morgen: Thronsaal / Büro",
+    "Mittag: Thronsaal / Büro",
+    "Abend: Thronsaal / Büro",
+    "Nacht: ruht nahe Thronsaal "
+   ]
+  },
+  "General Brok": {
+   "e": "🐗",
+   "art": "Ork, brüllt, will Krieg, überraschend ehrenhaft.",
+   "stimme": "BRÜLLEND: „KRIEG, Herr!“ „Ehre oder Tod!“",
+   "ziel": "Ruhm in der Schlacht.",
+   "furcht": "Als Feigling zu enden; heimlich: nicht lesen zu können.",
+   "geheim": "Kann nicht lesen – Velka unterschreibt für ihn.",
+   "ort": "Kasernen",
+   "plan": [
+    "Trommeln",
+    "Dich zu Krieg drängen",
+    "Feiglinge prügeln"
+   ],
+   "meinung": {
+    "Sekretärin Velka": "respektiert widerwillig",
+    "Heldin Aria": "würdiger Feind"
+   },
+   "romance": false,
+   "geschlecht": "m",
+   "schedule": [
+    "Morgen: Kasernen",
+    "Mittag: Kasernen",
+    "Abend: Kasernen",
+    "Nacht: ruht nahe Kasernen"
+   ]
+  },
+  "Heldin Aria": {
+   "e": "⚔️",
+   "art": "Entschlossen, idealistisch, heißblütig; Zweifel wächst.",
+   "stimme": "Klar: „Dämonenkönig! Stell dich!“ „Die Kirche sagte…“",
+   "ziel": "Dich töten – oder verstehen, warum die Welt dich braucht.",
+   "furcht": "Unschuldige zu töten 'für das Licht'.",
+   "geheim": "Zweifelt an der Kirche, die sie schickte.",
+   "ort": "Grenzpass (anrückend)",
+   "plan": [
+    "Marschieren",
+    "Dich herausfordern",
+    "Zivilisten schützen"
+   ],
+   "meinung": {
+    "Sekretärin Velka": "unbekannt",
+    "General Brok": "Monster"
+   },
+   "romance": true,
+   "geschlecht": "w",
+   "schedule": [
+    "Morgen: Grenzpass (anrückend)",
+    "Mittag: Grenzpass (anrückend)",
+    "Abend: Grenzpass (anrückend)",
+    "Nacht: ruht nahe Grenzpass (anrückend)"
+   ]
+  },
+  "Spionin Nyx": {
+   "e": "🌑",
+   "art": "Schattenwesen in Menschenform, flüstert, sammelt Preise.",
+   "stimme": "Flüsternd: „Alles hat einen Preis. Auch Stille.“",
+   "ziel": "Den besten Deal für sich – und überleben.",
+   "furcht": "Vom Thron 'aufgesogen' zu werden.",
+   "geheim": "Kann zwischen Nocturna und Solari wechseln.",
+   "ort": "Schattenmarkt",
+   "plan": [
+    "Handeln",
+    "Dich informieren",
+    "Beide Seiten füttern"
+   ],
+   "meinung": {
+    "Sekretärin Velka": "Zahlungspartnerin",
+    "Heldin Aria": "Ware/Risiko"
+   },
+   "romance": true,
+   "geschlecht": "w",
+   "schedule": [
+    "Morgen: Schattenmarkt",
+    "Mittag: Schattenmarkt",
+    "Abend: Schattenmarkt",
+    "Nacht: ruht nahe Schattenmarkt"
+   ]
+  },
+  "Fürst Malgor": {
+   "e": "🦴",
+   "art": "Skelettaristokrat, höflich, plant Abspaltung.",
+   "stimme": "Gesittet: „Mit Verlaub, die Peripherie zahlt genug.“",
+   "ziel": "Unabhängigkeit seines Grabfürstentums.",
+   "furcht": "Wieder Knecht des Throns zu sein.",
+   "geheim": "Verhandelt heimlich mit der Kirche.",
+   "ort": "Ruinen von Solmir",
+   "plan": [
+    "Dich testen",
+    "Abfallen wenn schwach"
+   ],
+   "meinung": {
+    "Sekretärin Velka": "Bürokratin",
+    "General Brok": "Barbar"
+   },
+   "romance": false,
+   "geschlecht": "m",
+   "schedule": [
+    "Morgen: Ruinen von Solmir",
+    "Mittag: Ruinen von Solmir",
+    "Abend: Ruinen von Solmir",
+    "Nacht: ruht nahe Ruinen von Solmir"
+   ]
+  },
+  "Koch Grimbel": {
+   "e": "🍲",
+   "art": "Trollkoch, nimmt Essensmoral ernst.",
+   "stimme": "Knurrend: „Armee kämpft nicht auf leerem Magen.“",
+   "ziel": "Die Truppe ernähren.",
+   "furcht": "Hungerrevolten.",
+   "geheim": "Versteckt Menschenrezepte – und mag sie.",
+   "ort": "Küche",
+   "plan": [
+    "Kochen",
+    "Dich um Budget bitten"
+   ],
+   "meinung": {
+    "Sekretärin Velka": "gibt manchmal Münzen"
+   },
+   "romance": false,
+   "geschlecht": "m",
+   "schedule": [
+    "Morgen: Küche",
+    "Mittag: Küche",
+    "Abend: Küche",
+    "Nacht: ruht nahe Küche"
+   ]
+  },
+  "Priesterin Solara": {
+   "e": "☀️",
+   "art": "Kirchenvertreterin hinter Aria, fanatisch höflich.",
+   "stimme": "Süß: „Das Licht vergibt. Die Klinge nicht.“",
+   "ziel": "Nocturna auslöschen.",
+   "furcht": "Dass Aria abfällt.",
+   "geheim": "Kennt den wahren Preis des ersten Helden-Sieges.",
+   "ort": "Mit Arias Heer",
+   "plan": [
+    "Aria steuern",
+    "Dich dämonisieren"
+   ],
+   "meinung": {
+    "Heldin Aria": "Werkzeug/Heilige"
+   },
+   "romance": false,
+   "geschlecht": "w",
+   "schedule": [
+    "Morgen: Mit Arias Heer",
+    "Mittag: Mit Arias Heer",
+    "Abend: Mit Arias Heer",
+    "Nacht: ruht nahe Mit Arias Heer"
+   ]
+  }
  },
  "startItems": [
-  {"id":"crown","name":"Krone der Nacht","icon":"👑","desc":"Symbol der Herrschaft. Aura +1, Diplomatie −1 bei Menschen.","type":"armor","equip":true},
-  {"id":"ledger","name":"Velkas Kassenbuch","icon":"📒","desc":"Zeigt: fast leer. Kann als Schild gegen Brok dienen.","type":"key"},
-  {"id":"shadow_flask","name":"Nachtfeuer-Phiole","icon":"🖤","desc":"Stellt 25 MP wieder her.","type":"consumable","use":"mp:25"}
+  {
+   "id": "crown",
+   "name": "Krone der Nacht",
+   "icon": "👑",
+   "desc": "Symbol der Herrschaft. Aura +1, Diplomatie −1 bei Menschen.",
+   "type": "armor",
+   "equip": true
+  },
+  {
+   "id": "ledger",
+   "name": "Velkas Kassenbuch",
+   "icon": "📒",
+   "desc": "Zeigt: fast leer. Kann als Schild gegen Brok dienen.",
+   "type": "key"
+  },
+  {
+   "id": "shadow_flask",
+   "name": "Nachtfeuer-Phiole",
+   "icon": "🖤",
+   "desc": "Stellt 25 MP wieder her.",
+   "type": "consumable",
+   "use": "mp:25"
+  }
  ],
  "startSkills": [
-  {"id":"aura","name":"Dunkle Aura","icon":"😈","desc":"Einschüchtern oder beeindrucken. Kostet MP.","level":1,"cost":10,"cd":1},
-  {"id":"flame","name":"Höllenflamme","icon":"🔥","desc":"Kampfzauber. Hoch MP.","level":1,"cost":20,"cd":0}
+  {
+   "id": "aura",
+   "name": "Dunkle Aura",
+   "icon": "😈",
+   "desc": "Einschüchtern oder beeindrucken. Kostet MP.",
+   "level": 1,
+   "cost": 10,
+   "cd": 1
+  },
+  {
+   "id": "flame",
+   "name": "Höllenflamme",
+   "icon": "🔥",
+   "desc": "Kampfzauber. Hoch MP.",
+   "level": 1,
+   "cost": 20,
+   "cd": 0
+  }
  ],
- "startScene": {"ort":"Thronsaal der Nachtfestung, Nocturna","zeit":"Ewige Nacht, schwarze Flammen","anwesend":["Sekretärin Velka","General Brok","hunderte kniende Monster"]},
- "startEvents": ["Die Heldin Aria marschiert auf Nocturna zu","Die Kriegskasse ist leer","Fürst Malgor prüft deine Schwäche"]
+ "startScene": {
+  "ort": "Thronsaal der Nachtfestung, Nocturna",
+  "zeit": "Ewige Nacht, schwarze Flammen",
+  "anwesend": [
+   "Sekretärin Velka",
+   "General Brok",
+   "hunderte kniende Monster"
+  ]
+ },
+ "startEvents": [
+  "Die Heldin Aria marschiert auf Nocturna zu",
+  "Die Kriegskasse ist leer",
+  "Fürst Malgor prüft deine Schwäche"
+ ]
 }

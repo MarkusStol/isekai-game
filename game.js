@@ -1,43 +1,110 @@
 const $=s=>document.querySelector(s);const $$=s=>[...document.querySelectorAll(s)];const R=a=>a[Math.floor(Math.random()*a.length)];const rnd=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
-const VER=9,CACHE_V='v9';
+const VER=10,CACHE_V='v10';
 const ROLES={
  held:{e:'⚔️',name:'Held mit Status-System',d:'Ein blaues Fenster erscheint: [Status]. Die Welt braucht dich.',world:'Königreich Aldheim',
-  base:{hp:100,mp:40,str:12,cha:8,ruf:10},cls:['Abenteurer','Ritter','Held','Legendärer Held'],pack:'worlds/held.json'},
+  base:{hp:100,mp:40,str:12,cha:8,ruf:10,gold:40},cls:['Abenteurer','Ritter','Held','Legendärer Held'],pack:'worlds/held.json',
+  destiny:'Als Held beschworen – mit Statusfenster und einer Welt am Abgrund.',
+  scene:'epic anime summoning circle royal hall torchlight princess knights'},
  villainess:{e:'🌹',name:'Villainess',d:'Du erwachst als Lady Rosalind – die Schurkin aus einem Otome-Roman. Dein Untergang ist in 1 Jahr.',world:'Akademie von Lumière',
-  base:{hp:70,mp:60,str:5,cha:16,ruf:-20},cls:['Verstoßene Lady','Salonlöwin','Herzogin','Kaiserin der Intrige'],pack:'worlds/villainess.json'},
+  base:{hp:70,mp:60,str:5,cha:16,ruf:-20,gold:120},cls:['Verstoßene Lady','Salonlöwin','Herzogin','Kaiserin der Intrige'],pack:'worlds/villainess.json',
+  destiny:'Als Villainess in einem Otome-Roman – 365 Tage bis zum Untergang.',
+  scene:'anime otome academy noble lady rose garden mirror ornate bedroom'},
  daemon:{e:'😈',name:'Dämonenkönig',d:'Du erwachst auf einem Thron aus Knochen. Deine Diener knien – und ein Held ist unterwegs.',world:'Das Dunkle Reich Nocturna',
-  base:{hp:160,mp:120,str:20,cha:6,ruf:-50},cls:['Gefallener Fürst','Dämonenlord','Dämonenkönig','Gott der Nacht'],pack:'worlds/daemon.json'},
+  base:{hp:160,mp:120,str:20,cha:6,ruf:-50,gold:200},cls:['Gefallener Fürst','Dämonenlord','Dämonenkönig','Gott der Nacht'],pack:'worlds/daemon.json',
+  destiny:'Als Dämonenkönig auf einem Thron aus Knochen – mit einer Heldin am Horizont.',
+  scene:'dark fantasy demon throne bone castle red moon kneeling army anime'},
  mensch:{e:'🧑',name:'Normaler Mensch',d:'Keine Kräfte, kein Status. Nur du, ein Dorf und viel Hoffnung.',world:'Dorf Kleinbach',
-  base:{hp:60,mp:0,str:6,cha:8,ruf:0},cls:['Dorfbewohner','Lehrling','Meister','Ungekrönter Legende'],pack:'worlds/mensch.json'},
+  base:{hp:60,mp:0,str:6,cha:8,ruf:0,gold:8},cls:['Dorfbewohner','Lehrling','Meister','Ungekrönter Legende'],pack:'worlds/mensch.json',
+  destiny:'Als ganz normaler Mensch – ohne Kräfte, nur mit Hoffnung.',
+  scene:'cozy anime village meadow hay barn morning light rural fantasy'},
  grey:{e:'🌫️',name:'Greymourne',d:'Ein Nachtzug hält, wo er nicht halten dürfte.',world:'Greymourne',
-  base:{hp:100,mp:0,str:0,cha:0,ruf:0},cls:['Fahrgast','Gast im Eisernen Licht','Eingetragen','Wer durch den Nebel kommt'],hidden:1,pack:'worlds/greymourne.json'}
+  base:{hp:100,mp:0,str:0,cha:0,ruf:0,gold:12},cls:['Fahrgast','Gast im Eisernen Licht','Eingetragen','Wer durch den Nebel kommt'],hidden:1,pack:'worlds/greymourne.json',
+  destiny:'Ein Buch aus Nebel – Greymourne.',
+  scene:'foggy victorian train station night lamp gaslight horror atmosphere'}
 };
 const ISEKAI=Object.keys(ROLES).filter(k=>!ROLES[k].hidden);const isG=()=>S&&S.role==='grey';
 const STAGES=['Fremd','Bekannt','Freund','Vertraut','Verliebt','Partner'];
 const STAGE_NEED=[0,15,35,55,75,90];
+const PHASES=['Nacht','Morgen','Mittag','Nachmittag','Abend','Spät'];
+const PHASE_H={[0]:'Nacht',[1]:'Nacht',[2]:'Nacht',[3]:'Nacht',[4]:'Nacht',[5]:'Morgen',[6]:'Morgen',[7]:'Morgen',[8]:'Morgen',[9]:'Morgen',[10]:'Mittag',[11]:'Mittag',[12]:'Mittag',[13]:'Nachmittag',[14]:'Nachmittag',[15]:'Nachmittag',[16]:'Nachmittag',[17]:'Abend',[18]:'Abend',[19]:'Abend',[20]:'Abend',[21]:'Spät',[22]:'Spät',[23]:'Spät'};
 const PACKS={};let GREY=null;
 async function loadPack(role){const path=ROLES[role].pack;if(PACKS[role])return PACKS[role];
  const j=await(await fetch(path+'?'+CACHE_V)).json();PACKS[role]=j;if(role==='grey')GREY=j;return j}
 async function loadGrey(){return loadPack('grey')}
 
 const KEY='isekai_save_v1',CFG='isekai_cfg_v1';
-let S=null,cfg=JSON.parse(localStorage.getItem(CFG)||'{"mode":"gemini"}'),engine=null,busy=false,_dbgMs=0,_drawerTab=null;
+let S=null,cfg=JSON.parse(localStorage.getItem(CFG)||'{"mode":"gemini"}'),engine=null,busy=false,_dbgMs=0,_menuTab='status';
+let _twTimer=null,_twDone=true,_twFull='',_mode='title'; // title | intro | setup | play
+let _musicOn=false,_audioCtx=null,_musicNodes=null;
 
+/* ---------- images (Pollinations, no key) ---------- */
+const IMG_STYLE='anime style, detailed illustration, cinematic lighting, vibrant colors, high quality, ';
+const IMG_STYLE_GREY='atmospheric literary illustration, muted colors, fog, victorian, painterly, ';
+function hashSeed(str){let h=2166136261>>>0;for(let i=0;i<str.length;i++){h^=str.charCodeAt(i);h=Math.imul(h,16777619)}return (h>>>0)%100000}
+function imgUrl(prompt,w,h,seed,grey){const style=grey?IMG_STYLE_GREY:IMG_STYLE;
+ const p=encodeURIComponent(style+String(prompt||'fantasy scene').slice(0,200));
+ return `https://image.pollinations.ai/prompt/${p}?width=${w||512}&height=${h||896}&nologo=true&seed=${seed||42}&referrer=${encodeURIComponent('https://markusstol.github.io/isekai-game/')}`}
+let _imgQ=Promise.resolve();
+function enqueueImg(loadFn){_imgQ=_imgQ.then(loadFn,loadFn);return _imgQ}
+let _imgTmp={scenes:{},portraits:{}};
+function ensureImgCache(){if(!S){return _imgTmp}if(!S.imgCache)S.imgCache={scenes:{},portraits:{}};return S.imgCache}
+function scenePromptFor(ort,extra){const base=ort||'fantasy place';const tone=isG()?'foggy mysterious':'anime fantasy';
+ return `${tone} scene, ${base}${extra?', '+extra:''}, environment establishing shot, no text`}
+function portraitPromptFor(name,npc){const art=(npc&&npc.art)||'';const g=npc&&npc.geschlecht?npc.geschlecht+' ':'';
+ return `character portrait bust, ${g}${name}, ${String(art).slice(0,100)}, looking at viewer, soft background, no text`}
+function setSceneImage(prompt,key,opts){opts=opts||{};const cache=ensureImgCache();const k=key||prompt||'default';
+ const seed=hashSeed('scene:'+k+(S?.role||''));
+ const url=cache.scenes[k]||imgUrl(prompt||scenePromptFor(k),512,896,seed,isG());
+ cache.scenes[k]=url;if(S)save();
+ const img=$('#sceneImg'),ph=$('#scenePh');if(!img)return;
+ if(img.dataset.key===k&&img.classList.contains('on'))return;
+ img.dataset.key=k;img.classList.remove('on');if(ph){ph.classList.remove('hidden');ph.textContent='✦'}
+ if(opts.deferNet && !cache.scenes[k+'_ok']){/* keep placeholder until play */}
+ enqueueImg(()=>new Promise(res=>{const pre=new Image();
+  pre.onload=()=>{// reject tiny limit placards
+   if(pre.naturalWidth>0&&pre.naturalWidth<80){if(ph){ph.textContent='🌫️';ph.classList.remove('hidden')};res();return}
+   img.src=url;cache.scenes[k+'_ok']=1;requestAnimationFrame(()=>img.classList.add('on'));if(ph)ph.classList.add('hidden');res()};
+  pre.onerror=()=>{if(ph){ph.textContent='🌫️';ph.classList.remove('hidden')};res()};pre.src=url}))}
+function setPortrait(name,npc){const cache=ensureImgCache();const wrap=$('#portraitWrap'),img=$('#portraitImg'),ph=$('#portraitPh');
+ if(!name){wrap&&wrap.classList.add('hidden');return}
+ wrap.classList.remove('hidden');
+ const seed=hashSeed('port:'+name+(S?.role||''));
+ const url=cache.portraits[name]||imgUrl(portraitPromptFor(name,npc),192,192,seed,isG());
+ cache.portraits[name]=url;
+ if(img.dataset.name===name&&img.classList.contains('on'))return;
+ img.dataset.name=name;img.classList.remove('on');if(ph){ph.textContent=(npc&&npc.e)||'👤';ph.classList.remove('hidden')}
+ enqueueImg(()=>new Promise(res=>{const pre=new Image();pre.onload=()=>{if(pre.naturalWidth<40){res();return}img.src=url;requestAnimationFrame(()=>img.classList.add('on'));res()};pre.onerror=()=>res();pre.src=url}));if(S)save()}
+function maybeSceneFromWorld(){if(!S?.world?.scene?.ort)return;const ort=S.world.scene.ort;const zeit=S.world.scene.zeit||phaseLabel();
+ const prompt=(S.flags&&S.flags.scenePrompt)||scenePromptFor(ort,zeit);setSceneImage(prompt,ort)}
+function maybePortraitsPresent(){if(!S?.world?.scene)return;const anw=S.world.scene.anwesend||[];
+ for(const raw of anw){const name=String(raw);const npc=S.world.npcs&&(S.world.npcs[name]||Object.entries(S.world.npcs).find(([k])=>name.includes(k.split(' ')[0]))?.[1]);
+  if(npc||S.world.npcs?.[name]){ensureImgCache();const key=S.world.npcs[name]?name:(Object.keys(S.world.npcs).find(k=>name.includes(k.split(' ')[0]))||name);
+   if(!S.imgCache.portraits[key]){const n=S.world.npcs[key];S.imgCache.portraits[key]=imgUrl(portraitPromptFor(key,n),256,256,hashSeed('port:'+key+(S.role||'')),isG())}}}
+}
+
+/* ---------- save / toast / gate ---------- */
 function save(){if(!S)return;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){try{if(S.hist)S.hist=S.hist.slice(-8);if(S.log)S.log=S.log.slice(-40);if(S.summary)S.summary=String(S.summary).slice(0,400);if(S.world&&S.world.npcs)for(const n of Object.values(S.world.npcs))if(n.erinnerung)n.erinnerung=n.erinnerung.slice(-2);localStorage.setItem(KEY,JSON.stringify(S));toast('Speicher gekürzt (wenig Platz)')}catch(_){toast('Speichern fehlgeschlagen – wenig Speicher')}}}
 function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('on'),2600)}
+function eventToast(t){const e=$('#eventToast');if(!e)return;e.textContent=t;e.classList.remove('hidden');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.add('hidden'),4200)}
 function hasKey(){return !!(cfg.gkey||'').trim()}
 function wantAI(){return cfg.mode!=='offline'}
-function gateOrShow(){if(wantAI()&&!hasKey()&&cfg.mode!=='webllm'&&cfg.mode!=='api'&&cfg.mode!=='free'){showKeyGate();return}show()}
-function showKeyGate(){$('#start').classList.add('hidden');$('#game').classList.add('hidden');const g=$('#keyGate');if(g){g.classList.remove('hidden');$('#gateKey').value='';setTimeout(()=>$('#gateKey').focus(),50)}}
-function dbgLine(){let el=$('#dbg');if(!cfg.debug){if(el)el.remove();return}if(!el){el=document.createElement('div');el.id='dbg';el.className='dbg';$('#game').appendChild(el)}el.textContent=_dbgMs?('Zug '+_dbgMs+' ms'):'–'}
+function gateOrShow(){if(S&&S.setup&&!S.setup.done){enterPlay();return}if(wantAI()&&!hasKey()&&cfg.mode!=='webllm'&&cfg.mode!=='api'&&cfg.mode!=='free'){showKeyGate();return}enterPlay()}
+function showKeyGate(){$('#title').classList.add('hidden');$('#stage').classList.add('hidden');const g=$('#keyGate');if(g){g.classList.remove('hidden');$('#gateKey').value='';setTimeout(()=>$('#gateKey').focus(),50)}}
+function dbgLine(){const el=$('#dbg');if(!el)return;if(!cfg.debug){el.classList.add('hidden');return}el.classList.remove('hidden');el.textContent=_dbgMs?('Zug '+_dbgMs+' ms'):'–'}
 
 /* ---------- items / skills helpers ---------- */
-function itemFromStr(x){if(typeof x==='object'&&x&&x.name)return x;const s=String(x);return {id:'i_'+s.slice(0,20),name:s,icon:'📦',desc:s,type:'misc'}}
+function itemFromStr(x){if(typeof x==='object'&&x&&x.name)return x;const s=String(x);return {id:'i_'+s.slice(0,20),name:s,icon:'📦',desc:s,type:'misc',rarity:'common'}}
 function skillFromStr(x){if(typeof x==='object'&&x&&x.name)return x;const s=String(x);return {id:'sk_'+s.slice(0,20),name:s,icon:'✨',desc:s,level:1,cost:0,cd:0,_cd:0}}
 function invNames(){return (S.inv||[]).map(i=>typeof i==='string'?i:i.name)}
 function skillNames(){return (S.skills||[]).map(i=>typeof i==='string'?i:i.name)}
 function stageOf(aff,trust){let s=0;for(let i=0;i<STAGE_NEED.length;i++){const needT=i>=4?STAGE_NEED[i]-10:0;if(aff>=STAGE_NEED[i]&&(trust||0)>=needT)s=i}return s}
 function stageName(n){return STAGES[Math.max(0,Math.min(5,n|0))]}
+function rarityOf(item){const r=(item&&item.rarity)||'common';return ['common','uncommon','rare','epic','legendary'].includes(r)?r:'common'}
+function hearts(stage){return '♥'.repeat(Math.max(0,Math.min(5,stage|0)))+'♡'.repeat(Math.max(0,5-Math.max(0,stage|0)))}
+function phaseLabel(){if(!S?.time)return '–';return `${S.time.phase||PHASE_H[S.time.hour|0]||'–'} · Tag ${S.time.day|1}`}
+function advanceTime(hours){if(!S.time)S.time={day:1,hour:8,phase:'Morgen'};let h=(S.time.hour|0)+(hours||1);let d=S.time.day|1;
+ while(h>=24){h-=24;d++}while(h<0){h+=24;d=Math.max(1,d-1)}S.time.day=d;S.time.hour=h;S.time.phase=PHASE_H[h]||'–';
+ if(S.world?.scene)S.world.scene.zeit=`${S.time.phase}, Tag ${d}`}
 
 /* ---------- migration ---------- */
 function migrate(raw){if(!raw)return null;const s=typeof raw==='string'?JSON.parse(raw):raw;
@@ -51,6 +118,11 @@ function migrate(raw){if(!raw)return null;const s=typeof raw==='string'?JSON.par
   if(!s.setup)s.setup={done:true,beat:99,answers:{}};
   if(!s.flags)s.flags={};
   if(s.world&&s.world.npcs){for(const[k,n]of Object.entries(s.world.npcs)){if(!n.e)n.e='👤';if(!n.plan)n.plan=[];if(n.beziehung&&!s.romance[k]){const a=(s.aff&&(s.aff[k]??s.aff[k.replace(/ /g,'_')]))||0;s.romance[k]={affection:a|0,trust:Math.max(0,a/2|0),stage:stageOf(a|0,a/2|0),events:[]}}}}
+ }
+ if(s.ver<10){s.ver=10;if(!s.time)s.time={day:1,hour:isG()?0:18,phase:isG()?'Nacht':'Abend'};
+  if(s.st&&s.st.gold==null)s.st.gold=ROLES[s.role]?.base?.gold||0;
+  if(!s.imgCache)s.imgCache={scenes:{},portraits:{}};
+  if(Array.isArray(s.inv))s.inv=s.inv.map(it=>{const i=itemFromStr(it);if(!i.rarity)i.rarity=i.type==='key'||i.type==='weapon'?'rare':i.type==='consumable'?'uncommon':'common';return i});
  }
  return s}
 
@@ -67,80 +139,222 @@ function initRomance(pack,affKeys){const rom={};const names=new Set([...(pack.ro
  for(const n of names){rom[n]={affection:0,trust:0,stage:0,events:[]}}
  return rom}
 
-/* ---------- new life / setup ---------- */
-async function newLife(role,meta){const r=ROLES[role];meta=meta||{lives:0,soul:0,keptSkills:[]};const pack=await loadPack(role);
+/* ---------- new life / cinematic intro ---------- */
+async function newLife(role,meta,opts){const r=ROLES[role];meta=meta||{lives:0,soul:0,keptSkills:[]};opts=opts||{};const pack=await loadPack(role);
  const b=meta.soul|0;
- const inv=(pack.startItems||[]).map(x=>({...x}));
- const skills=(pack.startSkills||[]).map(x=>({...x,_cd:0}));
+ const inv=(pack.startItems||[]).map(x=>({...itemFromStr(x)}));
+ const skills=(pack.startSkills||[]).map(x=>({...skillFromStr(x),_cd:0}));
  (meta.keptSkills||[]).forEach(ks=>{const sk=skillFromStr(ks);if(!skills.some(s=>s.name===sk.name))skills.push(sk)});
  const world=buildWorldFromPack(pack,role);
  const romNames=Object.keys(world.npcs);
- S={ver:VER,role,lives:(meta.lives|0)+1,soul:b,pc:{name:'???',bg:''},
-  st:{hp:r.base.hp+b*5,maxhp:r.base.hp+b*5,mp:r.base.mp+b*3,maxmp:r.base.mp+b*3,str:r.base.str+b,cha:r.base.cha+b,ruf:r.base.ruf,lvl:1,xp:0},
+ const pcName=(opts.name&&opts.name!=='???')?opts.name:'???';
+ S={ver:VER,role,lives:(meta.lives|0)+1,soul:b,pc:{name:pcName,bg:opts.bg||'',look:opts.look||'',trait:opts.trait||''},
+  st:{hp:r.base.hp+b*5,maxhp:r.base.hp+b*5,mp:r.base.mp+b*3,maxmp:r.base.mp+b*3,str:r.base.str+b,cha:r.base.cha+b,ruf:r.base.ruf,gold:r.base.gold|0,lvl:1,xp:0},
   skills,inv,aff:Object.fromEntries(romNames.map(k=>[k,0])),romance:initRomance(pack,romNames),
   quests:buildQuests(pack),discovered:[world.scene.ort].filter(Boolean),ticks:{rumours:[],log:[]},
-  cls:0,turn:0,hist:[],log:[],flags:{},setup:{done:false,beat:0,answers:{}},summary:''};
+  cls:0,turn:0,hist:[],log:[],flags:Object.assign({},opts.flags||{}),setup:{done:false,beat:0,answers:{}},summary:'',
+  time:{day:1,hour:18,phase:'Abend'},imgCache:{scenes:{},portraits:{}}};
  S.world=world;
+ if(opts.skipSetup){finishSetup(pack);gateOrShow();return}
+ // If cinematic already covered death, skip first setup beat when it is 'tod'
+ if(opts.fromIntro){S.flags.introDeath=true;S.setup.answers.tod={label:'(Intro)',past:opts.trait||''};S.setup.beat=1}
  beginSetup(pack);gateOrShow()}
 
-async function newGrey(kind,name,bg){const B=await loadGrey();const r=ROLES.grey;const own=kind!=='darren';
+async function newGrey(kind,name,bg,opts){const B=await loadGrey();const r=ROLES.grey;const own=kind!=='darren';opts=opts||{};
  const who=own?(name||'Fremde Person'):'Darren Crowe';
- const inv=((own?B.startItems_own:B.startItems_darren)||[]).map(x=>({...x}));
- const skills=(B.startSkills||[]).map(x=>({...x,_cd:0}));
+ const inv=((own?B.startItems_own:B.startItems_darren)||[]).map(x=>({...itemFromStr(x)}));
+ const skills=(B.startSkills||[]).map(x=>({...skillFromStr(x),_cd:0}));
  const world=buildWorldFromPack(B,'grey');
  world.scene={ort:'Nachtzug, Abteil mit Messinglampe, kurz nach Mitternacht',zeit:'Nacht, Nebel',anwesend:['Der Schaffner','Die alte Frau im Zug','ein schlafender Soldat','ein Junge mit Buch']};
  world.ereignisse=['Der Zug hält in Greymourne, obwohl er nach Blackmere fahren sollte'];
- // seed core NPCs into world
  for(const[k,v]of Object.entries(B.npcs||{})){if(!world.npcs[k])world.npcs[k]={art:v.art||'',stimme:v.stimme||'',ziel:v.ziel||'',furcht:v.furcht||'',geheimnis:v.geheim||'',beziehung:'Fremd',erinnerung:[],e:v.e||'👤',ort:v.ort||'',plan:[...(v.plan||[])],meinung:v.meinung||{},romance:!!v.romance,schedule:v.schedule||[]}}
  const affBase=own?['Marlowe','Elias Ward','Mascha Petrowa','Darren Crowe']:['Velicya','Marlowe','Elias Ward','Mascha Petrowa'];
- S={ver:VER,role:'grey',world_id:'greymourne',kind,pc:{name:who,bg:own?(bg||'Jemand, der etwas verloren hat'):(B.npcs['Darren Crowe']?.art||'')},lives:1,soul:0,
-  st:{hp:100,maxhp:100,mp:0,maxmp:0,str:0,cha:0,ruf:own?10:30,lvl:1,xp:0},skills,inv,
+ S={ver:VER,role:'grey',world_id:'greymourne',kind,pc:{name:who,bg:own?(bg||'Jemand, der etwas verloren hat'):(B.npcs['Darren Crowe']?.art||''),look:opts.look||'',trait:opts.trait||''},lives:1,soul:0,
+  st:{hp:100,maxhp:100,mp:0,maxmp:0,str:0,cha:0,ruf:own?10:30,gold:r.base.gold|0,lvl:1,xp:0},skills,inv,
   aff:Object.fromEntries(affBase.map(k=>[k,0])),romance:initRomance(B,affBase),
   quests:buildQuests(B),discovered:['Nachtzug'],ticks:{rumours:[],log:[]},
-  cls:0,turn:0,hist:[],log:[],flags:{},setup:{done:false,beat:0,answers:{}},summary:''};
+  cls:0,turn:0,hist:[],log:[],flags:{},setup:{done:false,beat:0,answers:{}},summary:'',
+  time:{day:1,hour:0,phase:'Nacht'},imgCache:{scenes:{},portraits:{}}};
  S.world=world;
  beginSetup(B);gateOrShow()}
 
+/* Cinematic origin – role emerges from dialogue, not cards */
+const INTRO_BEATS=[
+ {id:'death',titel:'Letzter Moment',
+  scene:'dark rainy city street night headlights asphalt anime dramatic',
+  speaker:'…',portrait:null,
+  text:'Hupen. Scheinwerfer. Der Asphalt kommt auf dich zu.\n\nIn dem Moment zwischen Aufprall und Dunkelheit – was hältst du fest?',
+  choices:[
+   {label:'Ein Gesicht, das du liebst',trait:'liebt jemanden',look:''},
+   {label:'Einen ungelösten Streit',trait:'trägt einen Streit mit sich',look:''},
+   {label:'Einen Traum, den du nie gelebt hast',trait:'jagt einen unerfüllten Traum',look:''},
+   {label:'Nur Leere – und Wut',trait:'wütend und leer',look:''}
+  ],free:true,freePh:'Oder schreib frei, was dich nicht loslässt…'},
+ {id:'void',titel:'Dazwischen',
+  scene:'endless starry void soft light particles ethereal anime',
+  speaker:'Eine Stimme',portrait:null,
+  text:'Dunkelheit. Dann Wärme, die nicht von dieser Welt ist.\n\nEine Stimme, klar wie Glas: „Du bist gestorben. Das ist… ärgerlich. Aber nicht endgültig.“\n\n„Ich kann dir ein neues Leben geben. Nicht fair. Nicht sicher. Aber lebendig.“',
+  choices:[
+   {label:'„Wer bist du?“',note:'goddess'},
+   {label:'„Ich will zurück.“',note:'deny'},
+   {label:'„Was kostet das?“',note:'price'},
+   {label:'Schweigen und zuhören',note:'listen'}
+  ]},
+ {id:'goddess',titel:'Angebot',
+  scene:'ethereal goddess temple floating islands starlight anime beautiful',
+  speaker:'Göttin',portrait:'Göttin',
+  text:'„Nenn mich, wie du willst – Göttin, System, Fehler in der Matrix.“\n\nSie öffnet die Hand. Licht zerteilt sich in Pfade.\n\n„Wähle nicht eine Klasse auf einer Karte. Sag mir, wie du weiterleben willst.“',
+  choices:[
+   {label:'„Als Held. Mit Status. Die Welt retten.“',role:'held'},
+   {label:'„Als Schurkin in einem Roman – diesmal anders.“',role:'villainess'},
+   {label:'„Als Herrscher der Nacht. Mit Macht.“',role:'daemon'},
+   {label:'„Einfach als Mensch. Keine Kräfte.“',role:'mensch'}
+  ],free:true,freePh:'Oder beschreibe dein Schicksal in eigenen Worten…'},
+ {id:'shape',titel:'Gestalt',
+  scene:'mirror of light reflecting silhouette anime character creation soft glow',
+  speaker:'Göttin',portrait:'Göttin',
+  text:'„Gut. Dann formst du dich noch.“\n\nEin Spiegel aus Licht. Dein Name, dein Aussehen, was dich ausmacht – nicht als Formular. Als Antwort.',
+  choices:[
+   {label:'Ich behalte meinen alten Namen',nameMode:'keep'},
+   {label:'Ich wähle einen neuen Namen',nameMode:'new'},
+   {label:'Ich will geheimnisvoll bleiben',nameMode:'mystery'}
+  ],needsName:true,free:true,freePh:'Name, Aussehen, Eigenart – frei schreiben…'}
+];
+
+let _intro={beat:0,answers:{},role:null,name:'',bg:'',look:'',trait:''};
+
+function startIntro(){_mode='intro';_intro={beat:0,answers:{},role:null,name:'',bg:'',look:'',trait:''};
+ $('#title').classList.add('hidden');$('#keyGate').classList.add('hidden');$('#stage').classList.remove('hidden');
+ document.body.classList.remove('greyw');$('.top-actions').style.visibility='hidden';$('#hud').style.visibility='hidden';
+ $('#inputRow').classList.remove('hidden');showIntroBeat()}
+
+function showIntroBeat(){const i=_intro.beat;if(i>=INTRO_BEATS.length){return finishIntro()}
+ const b=INTRO_BEATS[i];
+ // Only fetch a scene image for goddess/shape — earlier beats stay on atmospheric placeholder to avoid free-limit burn
+ if(b.id==='goddess'||b.id==='shape')setSceneImage(b.scene,b.id); else {const img=$('#sceneImg'),ph=$('#scenePh');if(img){img.classList.remove('on');img.removeAttribute('src');img.dataset.key=''}if(ph){ph.classList.remove('hidden');ph.textContent=b.id==='death'?'⚡':'✦'}}
+ if(b.portrait==='Göttin'){ensureTempGoddessPortrait()}
+ else{$('#portraitWrap').classList.add('hidden')}
+ typewrite(b.speaker,b.text,()=>{renderIntroChoices(b)})}
+function ensureTempGoddessPortrait(){
+ if(!window._goddessUrl)window._goddessUrl=imgUrl('ethereal anime goddess portrait silver hair kind smile soft glow',192,192,99,false);
+ const img=$('#portraitImg'),wrap=$('#portraitWrap'),ph=$('#portraitPh');
+ wrap.classList.remove('hidden');img.classList.remove('on');ph.textContent='✨';
+ enqueueImg(()=>new Promise(res=>{const pre=new Image();pre.onload=()=>{if(pre.naturalWidth<40){res();return}img.src=window._goddessUrl;img.dataset.name='Göttin';requestAnimationFrame(()=>img.classList.add('on'));res()};pre.onerror=()=>res();pre.src=window._goddessUrl}))}
+
+function renderIntroChoices(b){const c=$('#choices');c.innerHTML='';
+ if(b.needsName){const row=document.createElement('div');row.className='name-row';row.innerHTML=`<input id="setupName" placeholder="Dein Name…" maxlength="40">`;c.appendChild(row)}
+ (b.choices||[]).forEach(ch=>{const btn=document.createElement('button');btn.type='button';btn.textContent=ch.label;btn.onclick=()=>pickIntro(ch,b);c.appendChild(btn)});
+ $('#txt').placeholder=b.free?(b.freePh||'Frei antworten…'):'Was tust oder sagst du?';
+ if(b.free){$('#txt').focus({preventScroll:true})}}
+
+function pickIntro(ch,beat){beat=beat||INTRO_BEATS[_intro.beat];
+ _intro.answers[beat.id]=ch;
+ if(ch.trait)_intro.trait=( _intro.trait?_intro.trait+'; ':'')+ch.trait;
+ if(ch.role)_intro.role=ch.role;
+ if(ch.look)_intro.look=ch.look;
+ if(beat.needsName){const inp=$('#setupName');const nm=(inp&&inp.value.trim())||'';
+  if(ch.nameMode==='mystery')_intro.name=_intro.name||'???';
+  else if(nm)_intro.name=nm;
+  else if(ch.nameMode==='keep')_intro.name=_intro.name||'Alex';
+  else _intro.name=_intro.name||nm||'???'}
+ // free text already in actIntro
+ addLogLocal('p',ch.label);
+ _intro.beat++;showIntroBeat()}
+
+async function actIntro(text){const beat=INTRO_BEATS[_intro.beat];if(!beat)return;
+ const t=text.trim();if(!t)return;addLogLocal('p',t);
+ // Interpret free text for goddess destiny
+ if(beat.id==='goddess'&&!_intro.role){_intro.role=guessRole(t);toast('Pfad: '+(ROLES[_intro.role]?.name||_intro.role))}
+ if(beat.id==='death')_intro.trait=(_intro.trait?_intro.trait+'; ':'')+t.slice(0,80);
+ if(beat.id==='shape'){// parse "Name, look"
+  const m=t.match(/^([^,–-]+)[,–-](.+)$/);if(m){_intro.name=m[1].trim();_intro.look=m[2].trim()}
+  else if(!_intro.name||_intro.name==='???')_intro.name=t.slice(0,40);else _intro.look=t.slice(0,80);
+  _intro.bg=t.slice(0,120)}
+ if(beat.id==='void'){/* flavor */}
+ _intro.answers[beat.id]={label:t,free:true};
+ _intro.beat++;showIntroBeat()}
+
+function guessRole(t){const s=t.toLowerCase();
+ if(/villain|schurkin|rosalind|otome|roman|lady|intrig/.test(s))return 'villainess';
+ if(/dämon|daemon|teufel|könig der nacht|nocturna|thron|bösewicht|lord/.test(s))return 'daemon';
+ if(/mensch|normal|bauer|dorf|ohne kraft|keine magie|kein status/.test(s))return 'mensch';
+ if(/grey|nebel|zug|horror|greymourne|buch/.test(s))return 'grey';
+ if(/held|status|schwert|retten|ritter|aldheim|heldin/.test(s))return 'held';
+ return R(ISEKAI)}
+
+async function finishIntro(){let role=_intro.role||R(ISEKAI);
+ if(role==='grey'){await startGreyBook();return}
+ const name=_intro.name&&_intro.name!=='???'?_intro.name:'';
+ // Brief bridge then pack setup
+ setSceneImage(ROLES[role].scene,'destiny_'+role);
+ await typewriteAsync('Göttin',`„Dann sei es so.“\n\n${ROLES[role].destiny}\n\nLicht reißt dich mit – und die andere Welt atmet bereits.`);
+ $('.top-actions').style.visibility='';$('#hud').style.visibility='';
+ await newLife(role,{lives:0,soul:0,keptSkills:[]},{fromIntro:true,name:name||undefined,bg:_intro.bg||_intro.trait,look:_intro.look,trait:_intro.trait,
+  flags:{impression:_intro.trait,look:_intro.look}})}
+
+function addLogLocal(k,t){/* soft breadcrumb in vn only during intro - no S yet */ }
+
+async function startGreyBook(){_mode='intro';
+ $('#title').classList.add('hidden');$('#stage').classList.remove('hidden');
+ document.body.classList.add('greyw');$('.top-actions').style.visibility='hidden';$('#hud').style.visibility='hidden';
+ setSceneImage(ROLES.grey.scene,'grey_book');
+ await typewriteAsync('Buch','Ein Band, gebunden in etwas, das sich wie Nebel anfühlt.\n\nAuf dem Vorsatzblatt: GREYMOURNE.\nWer durch den Nebel kommt.\n\nDu kannst als Darren Crowe einsteigen – oder als jemand, den der Roman noch nicht kennt.');
+ const c=$('#choices');c.innerHTML='';
+ [['🎫 Als Darren Crowe',()=>newGrey('darren')],['✒️ Eigene Figur',()=>greyOwnForm()]].forEach(([l,f])=>{const b=document.createElement('button');b.type='button';b.textContent=l;b.onclick=f;c.appendChild(b)});
+ $('#txt').placeholder='Oder schreib den Namen deiner Figur…'}
+function greyOwnForm(){const c=$('#choices');c.innerHTML='';
+ const row=document.createElement('div');row.className='name-row';row.innerHTML=`<input id="ownName" placeholder="Name der Figur" maxlength="40"><input id="ownBg" placeholder="Was hast du verloren?" maxlength="200" style="margin-top:6px">`;c.appendChild(row);
+ const b=document.createElement('button');b.type='button';b.textContent='🚂 Einsteigen';b.onclick=()=>{
+  const n=$('#ownName')?.value.trim(),bg=$('#ownBg')?.value.trim();newGrey('own',n,bg)};c.appendChild(b)}
+
 function beginSetup(pack){const beats=pack.setup||[];
  if(!beats.length){finishSetup(pack);return}
- S.setup={done:false,beat:0,answers:{}};
- showBeat(pack)}
+ // clamp beat
+ if(S.setup.beat>=beats.length){finishSetup(pack);return}
+ _mode='setup';showBeat(pack)}
 
 function showBeat(pack){const beats=pack.setup||[];const i=S.setup.beat;
  if(i>=beats.length){finishSetup(pack);return}
- const b=beats[i];$('#log').innerHTML='';S.log=[];
- add('n',`✦ ${b.titel}\n\n${b.text}`);
- const choices=b.choices||[];
- S.choices=choices.map(c=>c.label);
- S._setupChoices=choices;S._setupBeat=b;S._setupPack=pack;
- // name input?
- const c=$('#choices');c.innerHTML='';
- if(b.needsName){const row=document.createElement('div');row.className='name-row';row.innerHTML=`<input id="setupName" placeholder="Name…" maxlength="40" value="">`;c.appendChild(row)}
- choices.forEach(ch=>{const btn=document.createElement('button');btn.textContent=ch.label;btn.onclick=()=>pickSetup(ch);c.appendChild(btn)});
- hud();save()}
+ const b=beats[i];
+ if(i===0||i===beats.length-1){const sceneHint=b.scene||(pack.startScene&&i===beats.length-1?scenePromptFor(pack.startScene.ort,pack.startScene.zeit):ROLES[S.role].scene);setSceneImage(sceneHint,i===beats.length-1?(pack.startScene?.ort||('setup_'+S.role)):('setup_'+S.role+'_start'))}
+ const sp=b.speaker||(isG()?'…':(i===0?'…':'Stimme'));
+ typewrite(sp,`✦ ${b.titel}\n\n${b.text}`,()=>{
+  const choices=b.choices||[];S.choices=choices.map(c=>c.label);S._setupChoices=choices;S._setupBeat=b;S._setupPack=pack;
+  const c=$('#choices');c.innerHTML='';
+  if(b.needsName){const row=document.createElement('div');row.className='name-row';row.innerHTML=`<input id="setupName" placeholder="Name…" maxlength="40" value="">`;c.appendChild(row)}
+  choices.forEach(ch=>{const btn=document.createElement('button');btn.type='button';btn.textContent=ch.label;btn.onclick=()=>pickSetup(ch);c.appendChild(btn)});
+  hud();save()})}
 
 function pickSetup(ch){const pack=S._setupPack;const beat=S._setupBeat;
  S.setup.answers[beat.id]=ch;
- if(beat.needsName){const inp=$('#setupName');const nm=(inp&&inp.value.trim())||(isG()?S.pc.name:'Held');if(ch.nameMode!=='mystery'&&ch.nameMode!=='lost')S.pc.name=nm;else if(ch.nameMode==='hero')S.pc.name=nm||'Held';else if(ch.nameMode==='keep'||ch.nameMode==='real')S.pc.name=nm;else if(ch.nameMode==='nick'||ch.nameMode==='new')S.pc.name=nm||'???';else if(ch.nameMode==='king')S.pc.name=nm||'König der Nacht';else if(ch.nameMode==='human')S.pc.name=nm;else if(ch.nameMode==='mask')S.pc.name='Rosalind';else if(ch.nameMode==='honest'||ch.nameMode==='rewrite')S.pc.name=nm||'Rosalind'}
+ if(beat.needsName){const inp=$('#setupName');const nm=(inp&&inp.value.trim())||(S.pc.name&&S.pc.name!=='???'?S.pc.name:(isG()?S.pc.name:'Held'));if(ch.nameMode!=='mystery'&&ch.nameMode!=='lost')S.pc.name=nm;else if(ch.nameMode==='hero')S.pc.name=nm||'Held';else if(ch.nameMode==='keep'||ch.nameMode==='real')S.pc.name=nm;else if(ch.nameMode==='nick'||ch.nameMode==='new')S.pc.name=nm||'???';else if(ch.nameMode==='king')S.pc.name=nm||'König der Nacht';else if(ch.nameMode==='human')S.pc.name=nm;else if(ch.nameMode==='mask')S.pc.name='Rosalind';else if(ch.nameMode==='honest'||ch.nameMode==='rewrite')S.pc.name=nm||'Rosalind'}
  if(ch.past)S.pc.bg=(S.pc.bg?S.pc.bg+' ':'')+ch.past;
  if(ch.focus)S.flags.focus=ch.focus;
  if(ch.impression)S.flags.impression=ch.impression;
  if(ch.aff){for(const[n,v]of Object.entries(ch.aff))bumpRel(n,v,Math.max(0,v/2|0),false)}
- add('p',ch.label);
+ _introPushPlayer(ch.label);
  S.setup.beat++;
  showBeat(pack)}
 
-function finishSetup(pack){S.setup.done=true;S._setupChoices=null;S._setupBeat=null;
+function _introPushPlayer(label){/* show player choice briefly */}
+
+function finishSetup(pack){S.setup.done=true;S._setupChoices=null;S._setupBeat=null;_mode='play';
+ if(wantAI()&&!hasKey()&&cfg.mode!=='webllm'&&cfg.mode!=='api'&&cfg.mode!=='free'){save();showKeyGate();return}
+ $('.top-actions').style.visibility='';$('#hud').style.visibility='';
  let bridge='';
  if(isG()){
   bridge=(S.kind==='darren'?greyIntroDarren():greyIntroOwn())+(S.flags.impression?'\n\n(Dein erster Eindruck bleibt: '+S.flags.impression+'.)':'');
  }else{
   const ort=(pack.startScene&&pack.startScene.ort)||'';
   const anw=((pack.startScene&&pack.startScene.anwesend)||[]).join(', ');
-  bridge=ROLES[S.role].e+' Du bist '+(S.pc.name||'???')+'.\n'+(S.pc.bg||'Ein Leben endete.')+'\n\nDie Welt von '+(pack.titel||ROLES[S.role].world)+' atmet bereits – sie hat nicht auf dich gewartet, aber sie hat Platz.\n\nOrt: '+ort+'\nAnwesend: '+anw+'\n\n'+((pack.startEvents||[])[0]||'')+'\n\n(Die Eröffnung ist vorbei. Was tust du?)';
+  bridge=ROLES[S.role].e+' Du bist '+(S.pc.name||'???')+'.\n'+((S.pc.bg||S.pc.trait||'Ein Leben endete.').replace(/^liebt/,'Liebt'))+'\n\nDie Welt von '+(pack.titel||ROLES[S.role].world)+' atmet bereits – sie hat nicht auf dich gewartet, aber sie hat Platz.\n\nOrt: '+ort+'\nAnwesend: '+anw+'\n\n'+((pack.startEvents||[])[0]||'')+'\n\n(Die Eröffnung ist vorbei. Was tust du?)';
  }
- $('#log').innerHTML='';S.log=[];add('n',bridge);S.hist=[{role:'assistant',content:bridge}];S.choices=defChoices();
- discover(S.world?.scene?.ort);hud();save()}
+ S.log=[{k:'n',t:bridge}];S.hist=[{role:'assistant',content:bridge}];S.choices=defChoices();
+ maybeSceneFromWorld();maybePortraitsPresent();
+ const firstNpc=(S.world?.scene?.anwesend||[])[0];if(firstNpc&&S.world.npcs[firstNpc])setPortrait(firstNpc,S.world.npcs[firstNpc]);
+ $('#txt').placeholder='Was tust oder sagst du?';
+ typewrite(isG()?'Nebel':'Erzähler',bridge,()=>{hud();renderChoices();save()});
+ discover(S.world?.scene?.ort)}
 
 function greyIntroDarren(){return `Der Zug hätte nicht halten dürfen.\n\nAuf deiner Fahrkarte steht Blackmere. Kurz nach Mitternacht verliert das Rattern seinen Takt. Die Messinglampe hängt still.\n\nAußen im Ruß: der Abdruck einer kleinen Hand.\nDie Bremsen greifen. GREYMOURNE.\n\nDu bist Darren Crowe. ${S.pc.bg?S.pc.bg.slice(0,120):'Koch, unrasiert, eine Narbe am Unterarm.'}`}
 function greyIntroOwn(){return `Der Zug hätte nicht halten dürfen.\n\nDu – ${S.pc.name}. ${S.pc.bg}\nIm Ruß außen: eine kleine Hand. Der Schaffner hat deinen Namen in violetter Tinte geschrieben.\nGREYMOURNE.\nDie alte Frau: „Lassen Sie sich nicht beim vollen Namen rufen.“`}
@@ -149,6 +363,19 @@ function defChoices(){const r=S.role;return {grey:['Sitzen bleiben','Aus dem Fen
 
 function discover(place){if(!place)return;if(!S.discovered)S.discovered=[];if(!S.discovered.includes(place)){S.discovered.push(place);if(S.setup?.done)toast('📍 Neu entdeckt: '+place)}}
 
+/* ---------- typewriter VN ---------- */
+function typewrite(speaker,text,done){_twDone=false;_twFull=text||'';
+ const sp=$('#speaker'),el=$('#vnText'),tap=$('#vnTap');
+ if(speaker){sp.textContent=speaker;sp.classList.remove('hidden')}else sp.classList.add('hidden');
+ el.textContent='';tap.classList.add('hidden');
+ clearInterval(_twTimer);
+ function finish(){if(_twDone)return;clearInterval(_twTimer);el.textContent=_twFull;_twDone=true;tap.classList.remove('hidden');done&&done()}
+ el.onclick=finish;$('#vnBox').onclick=finish;
+ if(window.__FAST){finish();return}
+ let i=0;const step=Math.max(1,Math.floor(_twFull.length/120));
+ _twTimer=setInterval(()=>{i=Math.min(_twFull.length,i+step);el.textContent=_twFull.slice(0,i);if(i>=_twFull.length)finish()},12)}
+function typewriteAsync(speaker,text){return new Promise(res=>typewrite(speaker,text,res))}
+
 /* ---------- relationships / romance ---------- */
 function bumpRel(name,daff,dtrust,toastOn){if(!S.romance)S.romance={};
  let key=Object.keys(S.romance).find(k=>k.toLowerCase()===String(name).toLowerCase())||Object.keys(S.romance).find(k=>k.toLowerCase().includes(String(name).toLowerCase().split(' ').pop()));
@@ -156,129 +383,161 @@ function bumpRel(name,daff,dtrust,toastOn){if(!S.romance)S.romance={};
  const r=S.romance[key];const old=r.stage;r.affection=Math.max(-100,Math.min(100,(r.affection|0)+(daff|0)));r.trust=Math.max(0,Math.min(100,(r.trust|0)+(dtrust|0)));
  r.stage=stageOf(r.affection,r.trust);S.aff[key]=r.affection;
  if(S.world?.npcs?.[key])S.world.npcs[key].beziehung=stageName(r.stage);
- if(r.stage>old){const msg=`💞 ${key}: ${stageName(old)} → ${stageName(r.stage)}`;if(toastOn!==false)toast(msg);add('s',msg);r.events.push({t:S.turn,stage:r.stage});
+ if(r.stage>old){const msg=`💞 ${key}: ${stageName(old)} → ${stageName(r.stage)}`;if(toastOn!==false)toast(msg);pushSys(msg);r.events.push({t:S.turn,stage:r.stage});
   if(r.stage>=4)maybeJealousy(key)}
  return key}
 function maybeJealousy(who){const pack=PACKS[S.role];if(!pack)return;const roms=(pack.romanceable||[]).filter(n=>n!==who);const high=roms.filter(n=>(S.romance[n]?.stage|0)>=3);
- if(high.length&&Math.random()<.45){const j=R(high);bumpRel(j,-rnd(3,8),-rnd(1,4),false);S.ticks.rumours.push(`${j} hat von dir und ${who} gehört.`);add('s',`⚡ Spannung: ${j} wirkt verletzt oder misstrauisch.`)}}
+ if(high.length&&Math.random()<.45){const j=R(high);bumpRel(j,-rnd(3,8),-rnd(1,4),false);S.ticks.rumours.push(`${j} hat von dir und ${who} gehört.`);pushSys(`⚡ Spannung: ${j} wirkt verletzt oder misstrauisch.`)}}
 
-/* ---------- world tick ---------- */
-function worldTick(){if(!S.world||!S.setup?.done)return;const npcs=Object.entries(S.world.npcs||{});if(!npcs.length)return;
+/* ---------- living world: time + schedules + ticks ---------- */
+function matchSchedule(entry,phase){if(!entry)return false;const e=String(entry).toLowerCase();const p=String(phase).toLowerCase();
+ if(e.startsWith(p+':')||e.includes(p+':'))return true;
+ const map={nacht:['nacht','night','mitternacht'],morgen:['morgen','früh','morning'],mittag:['mittag','noon'],nachmittag:['nachmittag'],abend:['abend','evening'],spät:['spät','spaet','late']};
+ const keys=map[p]||[p];return keys.some(k=>e.includes(k))}
+function worldTick(){if(!S.world||!S.setup?.done)return;
+ advanceTime(rnd(1,3));
+ const phase=S.time.phase;const npcs=Object.entries(S.world.npcs||{});if(!npcs.length)return;
  const present=new Set((S.world.scene.anwesend||[]).map(String));
+ // schedule-driven location hints
+ for(const[name,n]of npcs){const sch=n.schedule||[];const hit=sch.find(s=>matchSchedule(s,phase));
+  if(hit){const bit=String(hit).split(':').slice(1).join(':').trim()||hit;n._schedNow=bit;if(!present.has(name)&&Math.random()<.3)n.ort=bit}}
  const actors=npcs.filter(([k])=>!present.has(k)).sort(()=>Math.random()-.5).slice(0,2);
  const notes=[];
- for(const[name,n]of actors){const plan=n.plan||[];const act=plan.length?R(plan):null;
+ for(const[name,n]of actors){const plan=n.plan||[];const schedAct=n._schedNow;const act=schedAct||(plan.length?R(plan):null);
   if(act){const line=`${n.e||'👤'} ${name} handelt abseits: ${act}.`;notes.push(line);n.erinnerung=(n.erinnerung||[]).concat(['(Offscreen) '+act]).slice(-6);
-   if(Math.random()<.35){const rum=`Gerücht: ${name} – ${act}`;S.ticks.rumours=(S.ticks.rumours||[]).concat(rum).slice(-8);S.world.ereignisse=(S.world.ereignisse||[]).concat(rum).slice(0,6)}}
-  // pursue goals quietly
+   if(Math.random()<.4){const rum=`Gerücht: ${name} – ${act}`;S.ticks.rumours=(S.ticks.rumours||[]).concat(rum).slice(-8);S.world.ereignisse=(S.world.ereignisse||[]).concat(rum).slice(0,6)}}
   if(n.ziel&&Math.random()<.25)S.ticks.rumours.push(`${name} verfolgt weiter: ${String(n.ziel).slice(0,60)}`)}
- // organic quest nudge (not railroad): if main objectives empty progress hint every 5 turns
  if(S.turn%5===0&&S.quests?.main){const m=S.quests.main;const left=(m.objectives||[]).filter(o=>!(m.done||[]).includes(o));
   if(left.length&&Math.random()<.5)S.world.ereignisse=(S.world.ereignisse||[]).concat(`Etwas zieht die Geschichte: ${left[0]}`).slice(0,6)}
- if(notes.length&&S.turn>0&&S.turn%2===0){const t=notes[0];S.ticks.log=(S.ticks.log||[]).concat(t).slice(-10);add('tick',t)}
- // NPC may initiate
- if(Math.random()<.22){const here=[...present].filter(p=>S.world.npcs[p]);if(here.length){const who=R(here);const n=S.world.npcs[who];
-  const line=R([`${n.e||''} ${who} spricht dich an, ohne zu warten.`.trim(),`${who} schaut zu dir herüber: „${R(['Wir müssen reden.','Hast du einen Moment?','Das bleibt nicht so.'])}“`]);
-  S.flags.npcInit=who;if(S.choices&&S.choices.length)S.choices=[`Mit ${who} sprechen`,...S.choices.slice(0,3)]}}}
+ if(notes.length&&S.turn>0&&S.turn%2===0){const t=notes[0];S.ticks.log=(S.ticks.log||[]).concat(t).slice(-10);eventToast(t)}
+ // NPC may initiate conversation
+ if(Math.random()<.28){const here=[...present].filter(p=>S.world.npcs[p]);if(here.length){const who=R(here);const n=S.world.npcs[who];
+  const line=R([`${n.e||''} ${who} spricht dich an.`.trim(),`${who}: „${R(['Wir müssen reden.','Hast du einen Moment?','Das bleibt nicht so.','Komm. Kurz.'])}“`]);
+  S.flags.npcInit=who;eventToast(line);if(S.choices&&S.choices.length)S.choices=[`Mit ${who} sprechen`,...S.choices.slice(0,3)];
+  setPortrait(who,n)}}}
 
-/* ---------- quests apply ---------- */
 function applyQuestUpdate(u){if(!u||!S.quests)return;const m=S.quests.main;
- if(u.mainObjectiveDone){const o=String(u.mainObjectiveDone);if(!(m.done||[]).includes(o)){m.done=m.done||[];m.done.push(o);toast('✓ Quest: '+o);add('s','📜 '+o)}}
- if(u.advanceAct&&PACKS[S.role]?.arc?.acts){const acts=PACKS[S.role].arc.acts;const next=Math.min(acts.length-1,(m.act|0)+1);if(next>m.act){m.act=next;m.id=acts[next].id;m.actTitel=acts[next].titel;m.ziel=acts[next].ziel;m.objectives=[...(acts[next].mile||[])];m.done=[];m.twist=acts[next].twist||'';toast('📖 Neuer Akt: '+m.actTitel);add('s','📖 Akt: '+m.actTitel+' – '+m.ziel)}}
+ if(u.mainObjectiveDone){const o=String(u.mainObjectiveDone);if(!(m.done||[]).includes(o)){m.done=m.done||[];m.done.push(o);toast('✓ Quest: '+o);pushSys('📜 '+o)}}
+ if(u.advanceAct&&PACKS[S.role]?.arc?.acts){const acts=PACKS[S.role].arc.acts;const next=Math.min(acts.length-1,(m.act|0)+1);if(next>m.act){m.act=next;m.id=acts[next].id;m.actTitel=acts[next].titel;m.ziel=acts[next].ziel;m.objectives=[...(acts[next].mile||[])];m.done=[];m.twist=acts[next].twist||'';toast('📖 Neuer Akt: '+m.actTitel);pushSys('📖 Akt: '+m.actTitel+' – '+m.ziel)}}
  if(u.sideComplete){const id=String(u.sideComplete);const sq=(S.quests.side||[]).find(q=>q.id===id||q.titel===id);if(sq){sq.status='erledigt';toast('✓ Nebenquest: '+sq.titel)}}
  if(u.sideUnlock){const id=String(u.sideUnlock);const sq=(S.quests.side||[]).find(q=>q.id===id);if(sq&&sq.status==='offen')sq.status='aktiv'}}
 
-/* ---------- HUD / UI ---------- */
-function hud(){if(!S)return;if(isG())hudG();else hudI();
- const c=$('#choices');if(!S._setupChoices){c.innerHTML='';(S.choices||[]).slice(0,4).forEach(t=>{const b=document.createElement('button');b.textContent=t;b.onclick=()=>act(t);c.appendChild(b)})}
- dbgLine()}
+/* ---------- HUD / choices / log ---------- */
+function hud(){if(!S)return;if(isG())hudG();else hudI();dbgLine()}
 function bar(v,m,col){return `<div class="bar"><i style="width:${Math.max(0,Math.min(100,v/Math.max(1,m)*100))}%;background:${col}"></i></div>`}
-function hudI(){const s=S.st,r=ROLES[S.role];const topRom=Object.entries(S.romance||{}).filter(([,v])=>(v.stage|0)>0).sort((a,b)=>b[1].affection-a[1].affection).slice(0,2);
- $('#hud').innerHTML=`<div class="hud-top"><b>${r.e} ${S.pc?.name&&S.pc.name!=='???'?S.pc.name:r.cls[S.cls]}</b><span>Lv ${s.lvl} · #${S.lives}</span></div>
+function hudI(){const s=S.st,r=ROLES[S.role];
+ $('#hud').innerHTML=`<div class="hud-top"><b>${r.e} ${S.pc?.name&&S.pc.name!=='???'?S.pc.name:r.cls[S.cls]}</b><span>Lv ${s.lvl} · 🪙${s.gold|0}</span></div>
  <div class="bars"><div style="flex:1"><div class="bar-lab">HP ${Math.max(0,s.hp)}/${s.maxhp}</div>${bar(s.hp,s.maxhp,'#ff5f7e')}</div>
- <div style="flex:1"><div class="bar-lab">MP ${s.mp}/${s.maxmp}</div>${bar(s.mp,s.maxmp||1,'#6fb6ff')}</div>
- <div style="flex:1"><div class="bar-lab">XP ${s.xp}/${s.lvl*100}</div>${bar(s.xp,s.lvl*100,'#ffd35a')}</div></div>
- <div class="chips"><span class="chip">💪${s.str}</span><span class="chip">✨${s.cha}</span><span class="chip">📣${s.ruf}</span>${topRom.map(([n,v])=>`<span class="chip">💗${n.split(' ').pop()} ${stageName(v.stage)}</span>`).join('')}${S.quests?.main?`<span class="chip">📜${S.quests.main.actTitel||'Quest'}</span>`:''}</div>`}
-function hudG(){const s=S.st;const topRom=Object.entries(S.romance||{}).filter(([,v])=>(v.affection|0)>0).sort((a,b)=>b[1].affection-a[1].affection).slice(0,2);
+ <div style="flex:1"><div class="bar-lab">MP ${s.mp}/${s.maxmp}</div>${bar(s.mp,s.maxmp||1,'#6fb6ff')}</div></div>
+ <div class="chips"><span class="chip">📍${(S.world?.scene?.ort||'').slice(0,22)}</span><span class="chip">🕐${phaseLabel()}</span></div>`}
+function hudG(){const s=S.st;
  $('#hud').innerHTML=`<div class="hud-top"><b>🌫️ ${S.pc.name}</b><span>${ROLES.grey.cls[S.cls]}</span></div>
  <div class="bars"><div style="flex:1"><div class="bar-lab">🧠 Verstand ${Math.max(0,s.hp)}/100</div>${bar(s.hp,100,'#9fb3c8')}</div>
  <div style="flex:1"><div class="bar-lab">⚖️ Schuld ${s.ruf}/100</div>${bar(s.ruf,100,'#8a5a5a')}</div></div>
- <div class="chips">${topRom.map(([n,v])=>`<span class="chip">🤝${n.split(' ')[0]} ${stageName(v.stage)}</span>`).join('')}<span class="chip">${(S.world?.scene?.ort||'').slice(0,28)}</span></div>`}
+ <div class="chips"><span class="chip">📍${(S.world?.scene?.ort||'').slice(0,22)}</span><span class="chip">🕐${phaseLabel()}</span></div>`}
 
-function add(k,t){S.log.push({k,t});if(S.log.length>80)S.log.shift();renderMsg(k,t)}
-function renderMsg(k,t){const d=document.createElement('div');d.className='msg '+k;d.textContent=t;const log=$('#log');log.appendChild(d);requestAnimationFrame(()=>{log.scrollTop=log.scrollHeight});return d}
-function show(){$('#keyGate')&&$('#keyGate').classList.add('hidden');document.body.classList.toggle('greyw',isG());$('.title').textContent=isG()?'✦ Greymourne':'✦ Isekai Reinkarnation';$('#start').classList.add('hidden');$('#game').classList.remove('hidden');$('#log').innerHTML='';(S.log||[]).forEach(m=>renderMsg(m.k,m.t));
- if(S.setup&&!S.setup.done){loadPack(S.role).then(p=>{S._setupPack=p;showBeat(p)})}else hud()}
+function renderChoices(){const c=$('#choices');if(S._setupChoices)return;c.innerHTML='';
+ (S.choices||[]).slice(0,4).forEach(t=>{const b=document.createElement('button');b.type='button';b.textContent=t;b.onclick=()=>act(t);c.appendChild(b)})}
 
-/* ---------- drawer panels ---------- */
-function openDrawer(tab){_drawerTab=tab;$('#drawer').classList.remove('hidden');$$('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.tab===tab));
- const titles={status:'Status',inv:'Inventar',skills:'Fähigkeiten',rels:'Beziehungen',quests:'Quests',lex:'Welt / Lexikon'};
- $('#drawerTitle').textContent=titles[tab]||'System';renderDrawer()}
-function closeDrawer(){$('#drawer').classList.add('hidden');$$('#tabs button').forEach(b=>b.classList.remove('on'));_drawerTab=null}
-function renderDrawer(){const body=$('#drawerBody');if(!body||!S)return;body.innerHTML='';
- if(_drawerTab==='status'){const s=S.st;body.innerHTML=`<div class="card"><h3>${ROLES[S.role].e} ${S.pc?.name||ROLES[S.role].name}</h3>
+function pushSys(t){if(!S.log)S.log=[];S.log.push({k:'s',t});if(S.log.length>80)S.log.shift();eventToast(t)}
+function add(k,t){S.log.push({k,t});if(S.log.length>80)S.log.shift();
+ if(k==='n'){const sp=S.flags?.speaker||(isG()?'Nebel':'Erzähler');typewrite(sp,t,()=>{});setPortraitFromSpeaker(S.flags?.speaker)}
+ else if(k==='s')eventToast(t)
+ else if(k==='p'){/* player line already shown via input */}
+ else if(k==='tick')eventToast(t)}
+function setPortraitFromSpeaker(name){if(!name||!S.world?.npcs){$('#portraitWrap').classList.add('hidden');return}
+ let key=Object.keys(S.world.npcs).find(k=>k.toLowerCase()===String(name).toLowerCase())||Object.keys(S.world.npcs).find(k=>String(name).toLowerCase().includes(k.toLowerCase().split(' ')[0]));
+ if(key)setPortrait(key,S.world.npcs[key]);else $('#portraitWrap').classList.add('hidden')}
+
+function enterPlay(){$('#keyGate')&&$('#keyGate').classList.add('hidden');$('#title').classList.add('hidden');
+ document.body.classList.toggle('greyw',isG());$('#stage').classList.remove('hidden');
+ $('.top-actions').style.visibility='';$('#hud').style.visibility='';
+ if(S.setup&&!S.setup.done){_mode='setup';loadPack(S.role).then(p=>{S._setupPack=p;showBeat(p)});return}
+ _mode='play';maybeSceneFromWorld();maybePortraitsPresent();
+ const last=(S.log||[]).filter(m=>m.k==='n').slice(-1)[0];
+ if(last)typewrite(isG()?'Nebel':'Erzähler',last.t,()=>{});else typewrite('','…',()=>{});
+ hud();renderChoices()}
+
+function show(){enterPlay()}
+
+/* ---------- menu overlays ---------- */
+function openMenu(tab){_menuTab=tab||_menuTab||'status';$('#menu').classList.remove('hidden');
+ $$('#menuTabs button').forEach(b=>b.classList.toggle('on',b.dataset.tab===_menuTab));renderMenu()}
+function closeMenu(){$('#menu').classList.add('hidden')}
+function renderMenu(){const body=$('#menuBody');if(!body||!S)return;body.innerHTML='';
+ if(_menuTab==='status'){const s=S.st;body.innerHTML=`<div class="card"><h3>${ROLES[S.role].e} ${S.pc?.name||ROLES[S.role].name}</h3>
  <p class="meta">${ROLES[S.role].cls[S.cls]} · Leben #${S.lives} · Seele ${S.soul}</p>
- <p>${isG()?`Verstand ${s.hp}/100 · Schuld ${s.ruf}/100`:`Lv ${s.lvl} · HP ${s.hp}/${s.maxhp} · MP ${s.mp}/${s.maxmp}<br>Stärke ${s.str} · Charme ${s.cha} · Ruf ${s.ruf} · XP ${s.xp}/${s.lvl*100}`}</p>
- <p class="meta">Ort: ${S.world?.scene?.ort||'–'}<br>Zeit: ${S.world?.scene?.zeit||'–'}<br>Anwesend: ${(S.world?.scene?.anwesend||[]).join(', ')||'–'}</p>
- ${S.pc?.bg?`<p class="meta">Hintergrund: ${S.pc.bg}</p>`:''}</div>`}
- else if(_drawerTab==='inv'){(S.inv||[]).forEach((it,idx)=>{const item=itemFromStr(it);const card=document.createElement('div');card.className='card';
-  card.innerHTML=`<h3>${item.icon||'📦'} ${item.name}</h3><p>${item.desc||''}</p><p class="meta">${item.type||'misc'}${item.equip?' · ausrüstbar':''}</p><div class="row"></div>`;
-  const row=card.querySelector('.row');
-  if(item.use||item.type==='consumable'){const b=document.createElement('button');b.textContent='Benutzen';b.onclick=()=>{useItem(idx);renderDrawer()};row.appendChild(b)}
-  if(item.equip||item.type==='weapon'||item.type==='armor'){const b=document.createElement('button');b.textContent=item._eq?'Ablegen':'Ausrüsten';b.onclick=()=>{item._eq=!item._eq;S.inv[idx]=item;toast(item._eq?'Ausgerüstet: '+item.name:'Abgelegt');save();renderDrawer();hud()};row.appendChild(b)}
-  const b2=document.createElement('button');b2.textContent='Erwähnen';b2.onclick=()=>{closeDrawer();act('Ich nutze/betrachte: '+item.name)};row.appendChild(b2);
-  body.appendChild(card)});if(!(S.inv||[]).length)body.innerHTML='<div class="card"><p>Leer.</p></div>'}
- else if(_drawerTab==='skills'){(S.skills||[]).forEach((sk,idx)=>{const s=skillFromStr(sk);const card=document.createElement('div');card.className='card';
-  card.innerHTML=`<h3>${s.icon||'✨'} ${s.name}</h3><p>${s.desc||''}</p><p class="meta">Stufe ${s.level||1} · Kosten ${s.cost||0} MP · CD ${s._cd||0}/${s.cd||0}</p><div class="row"></div>`;
+ <p>${isG()?`Verstand ${s.hp}/100 · Schuld ${s.ruf}/100`:`Lv ${s.lvl} · HP ${s.hp}/${s.maxhp} · MP ${s.mp}/${s.maxmp} · 🪙 ${s.gold|0}<br>Stärke ${s.str} · Charme ${s.cha} · Ruf ${s.ruf} · XP ${s.xp}/${s.lvl*100}`}</p>
+ <p class="meta">Ort: ${S.world?.scene?.ort||'–'}<br>Zeit: ${phaseLabel()} (${S.world?.scene?.zeit||'–'})<br>Anwesend: ${(S.world?.scene?.anwesend||[]).join(', ')||'–'}</p>
+ ${S.pc?.bg?`<p class="meta">Hintergrund: ${S.pc.bg}</p>`:''}${S.pc?.look?`<p class="meta">Aussehen: ${S.pc.look}</p>`:''}</div>`}
+ else if(_menuTab==='inv'){const grid=document.createElement('div');grid.className='inv-grid';
+ (S.inv||[]).forEach((it,idx)=>{const item=itemFromStr(it);const cell=document.createElement('button');cell.type='button';cell.className='inv-cell r-'+rarityOf(item);
+  cell.innerHTML=`<div class="ico">${item.icon||'📦'}</div><div class="nm">${item.name}</div>`;
+  cell.onclick=()=>openItemDetail(idx);grid.appendChild(cell)});
+ if(!(S.inv||[]).length)body.innerHTML='<div class="card"><p>Leer.</p></div>';else{body.appendChild(grid);body.innerHTML+=`<div class="card"><p class="meta">Tippe ein Item für Details. Farben = Seltenheit.</p></div>`}}
+ else if(_menuTab==='skills'){(S.skills||[]).forEach((sk,idx)=>{const s=skillFromStr(sk);const card=document.createElement('div');card.className='card';
+  card.innerHTML=`<div class="skill-card"><div class="skill-ico">${s.icon||'✨'}</div><div style="flex:1"><h3>${s.name} ${(s._cd|0)>0?`<span class="cd-pill">CD ${s._cd}</span>`:''}</h3>
+  <p>${s.desc||''}</p><p class="meta">Stufe ${s.level||1} · ${s.cost||0} MP · CD ${s.cd||0}</p><div class="row"></div></div></div>`;
   const row=card.querySelector('.row');const b=document.createElement('button');b.textContent='Einsetzen';b.disabled=(s._cd|0)>0||((s.cost|0)>0&&S.st.mp<(s.cost|0));
-  b.onclick=()=>{useSkill(idx);renderDrawer()};row.appendChild(b);body.appendChild(card)});if(!(S.skills||[]).length)body.innerHTML='<div class="card"><p>Keine Fähigkeiten.</p></div>'}
- else if(_drawerTab==='rels'){const entries=Object.entries(S.romance||{});if(!entries.length)body.innerHTML='<div class="card"><p>Noch keine Beziehungen.</p></div>';
+  b.onclick=()=>{useSkill(idx)};row.appendChild(b);body.appendChild(card)});if(!(S.skills||[]).length)body.innerHTML='<div class="card"><p>Keine Fähigkeiten.</p></div>'}
+ else if(_menuTab==='rels'){const entries=Object.entries(S.romance||{});if(!entries.length)body.innerHTML='<div class="card"><p>Noch keine Beziehungen.</p></div>';
   entries.sort((a,b)=>b[1].affection-a[1].affection).forEach(([name,r])=>{const n=S.world?.npcs?.[name];const card=document.createElement('div');card.className='card';
-   const mem=(n?.erinnerung||[]).slice(-1)[0]||'–';
-   card.innerHTML=`<h3>${n?.e||'👤'} ${name}</h3><div class="stage">${stageName(r.stage)} · Zuneigung ${r.affection} · Vertrauen ${r.trust}</div>
-   <div class="aff-bar"><i style="width:${Math.max(0,Math.min(100,r.affection))}%"></i></div>
-   <p class="meta">${n?.art?String(n.art).slice(0,100):''}</p><p class="meta">Ort: ${n?.ort||'?'} · Letzte Erinnerung: ${mem}</p>
+   const mem=(n?.erinnerung||[]).slice(-1)[0]||'–';const portId='rp_'+hashSeed(name);
+   card.innerHTML=`<div class="rel-row"><div class="rel-port" id="${portId}">${n?.e||'👤'}</div><div style="flex:1"><h3>${name}</h3>
+   <div class="hearts">${hearts(r.stage)}</div><div class="stage-lab">${stageName(r.stage)} · ♡${r.affection} · Vertrauen ${r.trust}</div>
+   <div class="aff-bar"><i style="width:${Math.max(0,Math.min(100,r.affection))}%"></i></div></div></div>
+   <p class="meta">${n?.art?String(n.art).slice(0,100):''}</p><p class="meta">Ort: ${n?.ort||'?'} · ${mem}</p>
    <div class="row"><button type="button">Ansprechen</button></div>`;
-   card.querySelector('button').onclick=()=>{closeDrawer();act('Ich gehe zu '+name+' und spreche sie/ihn an.')};body.appendChild(card)})}
- else if(_drawerTab==='quests'){const m=S.quests?.main;if(m){const left=(m.objectives||[]).filter(o=>!(m.done||[]).includes(o));
+   card.querySelector('button').onclick=()=>{closeMenu();act('Ich gehe zu '+name+' und spreche sie/ihn an.')};body.appendChild(card);
+   const box=card.querySelector('.rel-port');const cache=ensureImgCache();
+   if(cache.portraits[name]){const im=document.createElement('img');im.alt='';im.onload=()=>im.classList.add('on');im.src=cache.portraits[name];box.appendChild(im)}
+   else{const delay=(body.querySelectorAll('.rel-port').length)*450;setTimeout(()=>{const url=imgUrl(portraitPromptFor(name,n),256,256,hashSeed('port:'+name+(S.role||'')),isG());cache.portraits[name]=url;const im=document.createElement('img');im.alt='';im.onload=()=>im.classList.add('on');im.onerror=()=>{};im.src=url;box.appendChild(im);if(S)save()},delay)}})}
+
+ else if(_menuTab==='quests'){const m=S.quests?.main;if(m){const left=(m.objectives||[]).filter(o=>!(m.done||[]).includes(o));
   body.innerHTML+=`<div class="card quest-main"><h3>📜 ${m.titel}</h3><p><b>Akt:</b> ${m.actTitel||''}</p><p>${m.ziel||''}</p>
   <p class="meta">Offen: ${left.join(' · ')||'–'}</p><p class="meta">Erledigt: ${(m.done||[]).join(' · ')||'–'}</p></div>`}
   (S.quests?.side||[]).forEach(q=>{const card=document.createElement('div');card.className='card quest-side';
    card.innerHTML=`<h3>🗺 ${q.titel}</h3><p>${q.ziel||''}</p><p class="meta">${q.status||'offen'}${q.npc?' · '+q.npc:''}</p>`;body.appendChild(card)})}
- else if(_drawerTab==='lex'){const pack=PACKS[S.role];body.innerHTML+=`<div class="card"><h3>📚 Lore</h3><p class="meta">${(S.world?.lore?.geschichte||pack?.geschichte||'').slice(0,280)}</p>
-  <p class="meta"><b>Magie:</b> ${(S.world?.lore?.magie||'').slice(0,160)}</p><p class="meta"><b>Kultur:</b> ${(S.world?.lore?.kultur||'').slice(0,160)}</p></div>`;
-  body.innerHTML+=`<div class="card"><h3>📍 Orte</h3></div>`;
-  const wrap=body.lastChild;
-  (S.discovered||[]).forEach(d=>{const desc=S.world?.orte?.[d]||'';const el=document.createElement('div');el.className='lex-item';el.innerHTML=`<b>${d}</b><br><span class="meta">${desc||'Entdeckt.'}</span>`;wrap.appendChild(el)});
+ else if(_menuTab==='map'){const wrap=document.createElement('div');wrap.className='card map-list';wrap.innerHTML='<h3>📍 Orte</h3>';
+  (S.discovered||[]).forEach(d=>{const desc=S.world?.orte?.[d]||'';const el=document.createElement('div');el.className='lex-item';el.innerHTML=`<b>${d}</b><br><span class="meta">${typeof desc==='string'?desc:(desc?.desc||'Entdeckt.')}</span>`;wrap.appendChild(el)});
+  body.appendChild(wrap);
+  const lore=document.createElement('div');lore.className='card';lore.innerHTML=`<h3>📚 Lore</h3><p class="meta">${(S.world?.lore?.geschichte||PACKS[S.role]?.geschichte||'').slice(0,280)}</p>`;body.appendChild(lore);
   if(S.ticks?.rumours?.length){body.innerHTML+=`<div class="card"><h3>🗣 Gerüchte</h3>${S.ticks.rumours.slice(-5).map(r=>`<div class="lex-item">${r}</div>`).join('')}</div>`}}
 }
+function openItemDetail(idx){const item=itemFromStr(S.inv[idx]);const body=$('#menuBody');
+ body.innerHTML=`<div class="card"><h3>${item.icon||'📦'} ${item.name}</h3><p>${item.desc||''}</p>
+ <p class="meta">${item.type||'misc'} · ${rarityOf(item)}${item.equip?' · ausrüstbar':''}</p><div class="row"></div></div>`;
+ const row=body.querySelector('.row');
+ if(item.use||item.type==='consumable'){const b=document.createElement('button');b.textContent='Benutzen';b.onclick=()=>{useItem(idx);renderMenu()};row.appendChild(b)}
+ if(item.equip||item.type==='weapon'||item.type==='armor'){const b=document.createElement('button');b.textContent=item._eq?'Ablegen':'Ausrüsten';b.onclick=()=>{item._eq=!item._eq;S.inv[idx]=item;toast(item._eq?'Ausgerüstet: '+item.name:'Abgelegt');save();renderMenu();hud()};row.appendChild(b)}
+ const b2=document.createElement('button');b2.textContent='Erwähnen';b2.onclick=()=>{closeMenu();act('Ich nutze/betrachte: '+item.name)};row.appendChild(b2);
+ const back=document.createElement('button');back.textContent='Zurück';back.onclick=()=>renderMenu();row.appendChild(back)}
 
 function useItem(idx){const item=itemFromStr(S.inv[idx]);const use=item.use||'';
- if(use.startsWith('heal:')){const n=+use.slice(5)||20;S.st.hp=Math.min(S.st.maxhp,S.st.hp+n);toast(`+${n} HP`);S.inv.splice(idx,1);add('s',`🧪 ${item.name} benutzt (+${n} HP)`)}
- else if(use.startsWith('mp:')){const n=+use.slice(3)||20;S.st.mp=Math.min(S.st.maxmp,S.st.mp+n);toast(`+${n} MP`);S.inv.splice(idx,1);add('s',`🧪 ${item.name} benutzt (+${n} MP)`)}
- else{closeDrawer();act('Ich benutze: '+item.name);return}
+ if(use.startsWith('heal:')){const n=+use.slice(5)||20;S.st.hp=Math.min(S.st.maxhp,S.st.hp+n);toast(`+${n} HP`);S.inv.splice(idx,1);pushSys(`🧪 ${item.name} benutzt (+${n} HP)`)}
+ else if(use.startsWith('mp:')){const n=+use.slice(3)||20;S.st.mp=Math.min(S.st.maxmp,S.st.mp+n);toast(`+${n} MP`);S.inv.splice(idx,1);pushSys(`🧪 ${item.name} benutzt (+${n} MP)`)}
+ else{closeMenu();act('Ich benutze: '+item.name);return}
  hud();save()}
 function useSkill(idx){const sk=skillFromStr(S.skills[idx]);if((sk._cd|0)>0)return toast('Noch Abklingzeit');if((sk.cost|0)>S.st.mp)return toast('Nicht genug MP');
- S.st.mp-=sk.cost|0;sk._cd=sk.cd|0;S.skills[idx]=sk;toast('✨ '+sk.name);closeDrawer();act('Ich setze meine Fähigkeit ein: '+sk.name);hud();save()}
+ S.st.mp-=sk.cost|0;sk._cd=sk.cd|0;S.skills[idx]=sk;toast('✨ '+sk.name);closeMenu();act('Ich setze meine Fähigkeit ein: '+sk.name);hud();save()}
 
 /* ---------- apply changes ---------- */
 function apply(ch){if(!ch)return;const s=S.st,num=v=>Math.max(-200,Math.min(200,Math.round(+v||0)));const out=[];
- const map={verstand:'hp',schuld:'ruf',hp:'hp',mp:'mp',str:'str',staerke:'str',stärke:'str',cha:'cha',charme:'cha',ruf:'ruf',xp:'xp'};
- for(const[k,v]of Object.entries(ch)){const m=map[k.toLowerCase()];if(m&&v){s[m]+=num(v);out.push(`${k} ${v>0?'+':''}${num(v)}`)}}
+ const map={verstand:'hp',schuld:'ruf',hp:'hp',mp:'mp',str:'str',staerke:'str',stärke:'str',cha:'cha',charme:'cha',ruf:'ruf',xp:'xp',gold:'gold'};
+ for(const[k,v]of Object.entries(ch)){const m=map[k.toLowerCase()];if(m&&v){s[m]=(s[m]|0)+num(v);out.push(`${k} ${v>0?'+':''}${num(v)}`)}}
  if(ch.affinity&&typeof ch.affinity==='object')for(const[n,v]of Object.entries(ch.affinity)){const trust=ch.trust&&ch.trust[n]!=null?num(ch.trust[n]):Math.max(0,num(v)/2|0);bumpRel(n,num(v),trust,false);out.push(`💗${n.split(' ').pop()} ${v>0?'+':''}${num(v)}`)}
  if(ch.trust&&typeof ch.trust==='object'&&!ch.affinity)for(const[n,v]of Object.entries(ch.trust))bumpRel(n,0,num(v),false);
  (ch.newSkills||ch.skills||[]).forEach(x=>{const sk=skillFromStr(x);if(!S.skills.some(s=>s.name===sk.name)&&S.skills.length<24){S.skills.push(sk);out.push('Skill: '+sk.name);toast('✨ Neue Fähigkeit: '+sk.name)}});
- (ch.items||ch.addItems||[]).forEach(x=>{const it=itemFromStr(x);if(S.inv.length<40){S.inv.push(it);out.push('Item: '+it.name);toast('📦 '+it.name)}});
+ (ch.items||ch.addItems||[]).forEach(x=>{const it=itemFromStr(x);if(!it.rarity)it.rarity='uncommon';if(S.inv.length<40){S.inv.push(it);out.push('Item: '+it.name);toast('📦 '+it.name)}});
  (ch.removeItems||[]).forEach(x=>{const name=typeof x==='string'?x:x.name;const i=S.inv.findIndex(it=>(typeof it==='string'?it:it.name)===name);if(i>=0)S.inv.splice(i,1)});
  if(Array.isArray(ch.choices)&&ch.choices.length)S.choices=ch.choices.filter(x=>typeof x==='string').map(x=>x.slice(0,50));
  if(ch.quests)applyQuestUpdate(ch.quests);
- // tick down skill CDs
  (S.skills||[]).forEach(sk=>{if(sk._cd>0)sk._cd--});
- s.hp=Math.min(s.hp,s.maxhp);s.mp=Math.max(0,Math.min(s.mp,s.maxmp));
+ s.hp=Math.min(s.hp,s.maxhp);s.mp=Math.max(0,Math.min(s.mp,s.maxmp));s.gold=Math.max(0,s.gold|0);
  if(isG()){s.ruf=Math.max(0,Math.min(100,s.ruf));s.hp=Math.max(-1,s.hp);const nc=Math.min(3,Math.floor(S.turn/15));if(nc>S.cls){S.cls=nc;out.push('🌫️ '+ROLES.grey.cls[nc])}}
  else{let leveled=false;while(s.xp>=s.lvl*100){s.xp-=s.lvl*100;s.lvl++;s.maxhp+=10;s.hp=s.maxhp;s.maxmp+=5;s.mp=s.maxmp;s.str+=2;s.cha+=1;leveled=true;out.push(`⬆ LEVEL ${s.lvl}!`);toast('⬆ Level '+s.lvl+'!')}
   const nc=Math.min(3,Math.floor(s.lvl/5));if(nc>S.cls){S.cls=nc;const cn=ROLES[S.role].cls[nc];out.push(`🌟 Klassenwechsel: ${cn}!`);S.skills.push(skillFromStr(R(['Erwachte Aura','Zweite Natur','Seelenblick','Königlicher Befehl'])));toast('🌟 '+cn)}}
- if(out.length)add('s',out.join(' · '));
+ if(out.length)pushSys(out.join(' · '));
  if(ch.ending)return ending(String(ch.ending));checkEnd()}
 function checkEnd(){const s=S.st;if(isG()){if(s.hp<=0)return ending('Der Nebel hat deinen Verstand. Greymourne trägt deinen Namen jetzt in seinem Register.');if(s.ruf>=100)return ending('Die Schuld wiegt mehr als du. Die Stadt behält dich – AUSGEGEBEN: 1, ZURÜCK: 0.');return}
  if(s.hp<=0)return death();
@@ -286,11 +545,16 @@ function checkEnd(){const s=S.st;if(isG()){if(s.hp<=0)return ending('Der Nebel h
  if(s.lvl>=20)return ending('Legenden-Ende: Dein Name wird ewig besungen 👑');
  if(s.ruf>=150)return ending('Ruhmes-Ende: Das Volk krönt dich zur Hoffnung der Welt');
  if(s.ruf<=-150)return ending('Tyrannen-Ende: Die Welt kniet in Furcht vor dir')}
-function death(){add('s',`💀 Du bist gestorben (Level ${S.st.lvl}).`);setTimeout(()=>reincarnate('Die Göttin seufzt: „Schon wieder? Na gut – nimm etwas mit.“'),600)}
-function ending(t){add('s','🏁 ENDE: '+t);S.choices=[];hud();save();if(isG()){const c=$('#choices');c.innerHTML='';[['🎫 Erneut als Darren',()=>newGrey('darren')],['✒️ Andere Figur',()=>{S=null;location.reload()}]].forEach(([l,f])=>{const b=document.createElement('button');b.textContent=l;b.onclick=f;c.appendChild(b)});return}setTimeout(()=>reincarnate('Ein neues Kapitel? Deine Seele wird stärker.'),1500)}
+function death(){pushSys(`💀 Du bist gestorben (Level ${S.st.lvl}).`);setTimeout(()=>reincarnate('Die Göttin seufzt: „Schon wieder? Na gut – nimm etwas mit.“'),600)}
+function ending(t){pushSys('🏁 ENDE: '+t);S.choices=[];hud();save();
+ typewrite('Ende',t,()=>{});
+ if(isG()){const c=$('#choices');c.innerHTML='';[['🎫 Erneut als Darren',()=>newGrey('darren')],['✒️ Andere Figur',()=>{S=null;localStorage.removeItem(KEY);location.reload()}]].forEach(([l,f])=>{const b=document.createElement('button');b.type='button';b.textContent=l;b.onclick=f;c.appendChild(b)});return}
+ setTimeout(()=>reincarnate('Ein neues Kapitel? Deine Seele wird stärker.'),1500)}
 function reincarnate(msg){const soul=S.soul+Math.max(1,Math.floor(S.st.lvl/2));const kept=skillNames().filter(x=>!['Status-Fenster','Schwertschlag','Romanwissen','Eleganter Fächerhieb','Dunkle Aura','Höllenflamme','Moderne Bildung','Beobachten'].includes(x)).slice(-2);
- const meta={lives:S.lives,soul,keptSkills:kept};add('n',msg+(kept.length?`\nBehaltene Skills: ${kept.join(', ')}`:''));
- S.choices=[];hud();const c=$('#choices');c.innerHTML='';Object.entries(ROLES).filter(([k])=>k!=='grey').forEach(([k,r])=>{const b=document.createElement('button');b.textContent=r.e+' '+r.name;b.onclick=()=>{$('#log').innerHTML='';newLife(k,meta)};c.appendChild(b)});save()}
+ const meta={lives:S.lives,soul,keptSkills:kept};typewrite('Göttin',msg+(kept.length?`\nBehaltene Skills: ${kept.join(', ')}`:''),()=>{});
+ S.choices=[];hud();const c=$('#choices');c.innerHTML='';
+ // After death, return to cinematic destiny choice rather than 4 cards
+ [['✦ Neues Schicksal wählen',()=>{S=null;startIntro()}],...Object.entries(ROLES).filter(([k])=>k!=='grey').map(([k,r])=>[r.e+' '+r.name,()=>{$('#vnText').textContent='';newLife(k,meta)}])].forEach(([l,f])=>{const b=document.createElement('button');b.type='button';b.textContent=l;b.onclick=f;c.appendChild(b)});save()}
 
 /* ---------- world text lean ---------- */
 function worldText(){const w=S.world;if(!w)return '';
@@ -302,16 +566,18 @@ function worldText(){const w=S.world;if(!w)return '';
   if(rom)o.romance={stage:stageName(rom.stage),affection:rom.affection,trust:rom.trust};npcs[k]=o}
  const orte={};for(const[k,v]of Object.entries(w.orte||{})){const key=k.toLowerCase().split(/[ \/–]/)[0];if(String(scene.ort||'').toLowerCase().includes(key)||histTxt.includes(key)||(S.discovered||[]).includes(k))orte[k]=String(v).slice(0,120)}
  const q=S.quests?.main;const qHint=q?{akt:q.actTitel,ziel:q.ziel,offen:(q.objectives||[]).filter(o=>!(q.done||[]).includes(o)).slice(0,3)}:null;
- return 'WELT (nur Szene):\n'+JSON.stringify({scene,npcs,orte,ereignisse:(w.ereignisse||[]).slice(0,4),quest:qHint,geruechte:(S.ticks?.rumours||[]).slice(-2)})}
-function applyWorld(u){if(!u||!S.world)return;const w=S.world;const cut=(x,n)=>String(x||'').slice(0,n);
- if(u.scene&&u.scene.ort){w.scene={ort:cut(u.scene.ort,80),zeit:cut(u.scene.zeit,60),anwesend:(u.scene.anwesend||[]).slice(0,8).map(x=>cut(x,40))};discover(w.scene.ort)}
+ return 'WELT (nur Szene):\n'+JSON.stringify({scene,zeit:phaseLabel(),npcs,orte,ereignisse:(w.ereignisse||[]).slice(0,4),quest:qHint,geruechte:(S.ticks?.rumours||[]).slice(-2)})}
+function applyWorld(u){if(!u||!S.world)return;const w=S.world;const cut=(x,n)=>String(x||'').slice(0,n);const prevOrt=w.scene?.ort;
+ if(u.scene&&u.scene.ort){w.scene={ort:cut(u.scene.ort,80),zeit:cut(u.scene.zeit,60)||phaseLabel(),anwesend:(u.scene.anwesend||[]).slice(0,8).map(x=>cut(x,40))};discover(w.scene.ort);
+  if(w.scene.ort!==prevOrt||u.scenePrompt||u.imagePrompt){S.flags.scenePrompt=u.scenePrompt||u.imagePrompt||scenePromptFor(w.scene.ort,w.scene.zeit);setSceneImage(S.flags.scenePrompt,w.scene.ort)}
+  maybePortraitsPresent()}
+ if(u.speaker)S.flags.speaker=cut(u.speaker,40);
  (u.npcUpdates||[]).forEach(n=>{if(!n||!n.name)return;let k=Object.keys(w.npcs).find(x=>x.toLowerCase()===String(n.name).toLowerCase());
   if(!k){if(Object.keys(w.npcs).length>=16)return;k=cut(n.name,40);w.npcs[k]={art:'',ziel:'',geheimnis:'',beziehung:'Fremd',erinnerung:[],e:'👤',plan:[]};if(!S.romance[k])S.romance[k]={affection:0,trust:0,stage:0,events:[]}}
-  const p=w.npcs[k];['art','ziel','geheimnis','beziehung','ort'].forEach(f=>{if(n[f])p[f]=cut(n[f],140)});if(n.erinnerung){p.erinnerung.push(cut(n.erinnerung,140));p.erinnerung=p.erinnerung.slice(-6)};if(n.plan)p.plan=[cut(n.plan,80),...(p.plan||[])].slice(0,5)});
+  const p=w.npcs[k];['art','ziel','geheimnis','beziehung','ort'].forEach(f=>{if(n[f])p[f]=cut(n[f],140)});if(n.erinnerung){p.erinnerung.push(cut(n.erinnerung,140));p.erinnerung=p.erinnerung.slice(-6)};if(n.plan)p.plan=[cut(n.plan,80),...(p.plan||[])].slice(0,5);
+  if(n.portraitPrompt&&!S.imgCache.portraits[k]){S.imgCache.portraits[k]=imgUrl(n.portraitPrompt,256,256,hashSeed('port:'+k),isG())}});
  (u.newLocations||[]).forEach(l=>{if(l&&l.name&&Object.keys(w.orte).length<20){w.orte[cut(l.name,50)]=cut(l.desc,140);discover(cut(l.name,50))}});
  if(Array.isArray(u.ereignisse)&&u.ereignisse.length)w.ereignisse=u.ereignisse.slice(0,6).map(x=>cut(x,140))}
-
-/* ---------- offline narrator ---------- */
 function isQ(a){return /\?\s*$/.test(a.trim())||/^\s*(wer|was|wo|wohin|woher|wie|warum|wieso|weshalb|wann|welche[rsmn]?|seid|bist|sind|kannst|könnt|ist|habt|hast|gibt)\b/i.test(a)}
 function askNPC(a){if(!isQ(a)||!S)return null;const t=a.toLowerCase();const pres=(S.world?.scene?.anwesend||[]).map(String);
  const bible=S.world?.npcs||{};
@@ -368,7 +634,7 @@ SPOILERSCHUTZ: ${k.spoilerschutz||''}
 ${romanceHint()}
 ${questHint()}
 ERZÄHLREGELN: 1) Erster Satz reagiert direkt. Fragen werden beantwortet. 2) 2. Person, nie Erzähler-Ich. 3) Kein Splatter/Anime-Fenster. 4) NPCs eigenständig (können ablehnen). 5) 4-9 Sätze. 6) Romanzen: zurückhaltend, melancholisch, passend zur Stadt.
-${stream?`AUSGABE: Erzähltext, dann Zeile „${STREAM_DELIM}“, dann JSON: choices[4], changes{verstand,schuld,affinity,trust,xp,items,removeItems}, summary, world{scene,npcUpdates,newLocations,ereignisse}, quests{mainObjectiveDone?,advanceAct?,sideComplete?}, optional ending.`:`JSON mit narration, choices, changes, summary, world, quests.`}`}
+${stream?`AUSGABE: Erzähltext, dann Zeile „${STREAM_DELIM}“, dann JSON: choices[4], changes{verstand,schuld,affinity,trust,xp,items,removeItems}, summary, world{scene,npcUpdates,newLocations,ereignisse,scenePrompt?,speaker?}, speaker, scenePrompt (engl. Bildprompt zur Szene), quests{mainObjectiveDone?,advanceAct?,sideComplete?}, optional ending.`:`JSON mit narration, choices, changes, summary, world, speaker, scenePrompt, quests.`}`}
 function voiceHint(){const pack=PACKS[S.role];if(!pack?.npcs)return '';
  return 'STIMMEN: '+Object.entries(pack.npcs).slice(0,6).map(([k,v])=>k+': '+(v.stimme||v.art||'').slice(0,60)).join(' | ')}
 function sysPrompt(stream=true){if(isG())return greyPrompt(stream);const r=ROLES[S.role];const pack=PACKS[S.role]||{};
@@ -384,7 +650,7 @@ GOLDENE REGELN:
 4. Romanzen: Stufen Fremd→…→Partner, geschmackvoll (13+), keine expliziten Szenen.
 5. Anime-Mittel sparsam: (Gedanke), [Status]. 4-9 Sätze, 2. Person.
 6. WELT-JSON nur für Szene/Updates. Inventar/Skills nur bei echten Änderungen.
-${stream?`AUSGABE: Erzähltext, dann „${STREAM_DELIM}“, dann JSON: choices[4], changes{hp,mp,str,cha,ruf,xp,affinity,trust,items,newSkills,removeItems}, summary, world, quests{mainObjectiveDone?,advanceAct?,sideComplete?}, optional ending.`:`JSON: narration, choices, changes, summary, world, quests.`}`}
+${stream?`AUSGABE: Erzähltext, dann „${STREAM_DELIM}“, dann JSON: choices[4], changes{hp,mp,str,cha,ruf,xp,gold,affinity,trust,items,newSkills,removeItems}, summary, world{scene,npcUpdates,newLocations,ereignisse,scenePrompt?,speaker?}, speaker (wer spricht sichtbar), scenePrompt (kurzer engl. Anime-Bildprompt zur Location/Key-Moment), quests{mainObjectiveDone?,advanceAct?,sideComplete?}, optional ending.`:`JSON: narration, choices, changes, summary, world, speaker, scenePrompt, quests.`}`}
 function greyDetails(a){const B=GREY||PACKS.grey;if(!B)return '';const txt=(a+' '+JSON.stringify(S.world.scene)+' '+(S.hist||[]).slice(-4).map(h=>h.content).join(' ')).toLowerCase();
  const pick=(obj,force)=>Object.entries(obj||{}).filter(([k])=>(force||[]).includes(k)||k.toLowerCase().split(/[ \/–-]+/).some(w=>w.length>3&&txt.includes(w)));
  const npcs=pick(B.npcs,S.kind==='darren'?['Der Schaffner']:['Der Schaffner','Darren Crowe']).slice(0,5).map(([k,v])=>{const o={rolle:v.rolle,art:v.art,stimme:v.stimme,ziel:v.ziel};if(S.turn>=40&&v.geheim)o.geheim=v.geheim;return k+': '+JSON.stringify(o)});
@@ -409,7 +675,8 @@ function parse(raw){let m=raw.match(/```(?:json)?\s*([\s\S]*?)```/)||raw.match(/
 function parseStream(raw){const i=raw.indexOf(STREAM_DELIM);if(i<0){const j=raw.lastIndexOf('{');if(j>0){const nar=raw.slice(0,j).trim();const o=gJSON(raw.slice(j));if(o)return packStream(nar||o.narration||o.text||'…',o)}return parse(raw)}
  const nar=raw.slice(0,i).trim();const o=gJSON(raw.slice(i+STREAM_DELIM.length).trim())||{};return packStream(nar||o.narration||'…',o)}
 function packStream(text,o){const ch=Object.assign({},o.changes||{});if(o.choices)ch.choices=o.choices;if(o.summary)ch.summary=o.summary;if(o.world)ch.world=o.world;if(o.ending)ch.ending=o.ending;if(o.quests)ch.quests=o.quests;
- for(const k of ['verstand','schuld','hp','mp','str','cha','ruf','xp','affinity','trust','items','newSkills','removeItems']){if(k in o&&!(k in ch))ch[k]=o[k]}
+ if(o.speaker)ch.speaker=o.speaker;if(o.scenePrompt)ch.scenePrompt=o.scenePrompt;if(o.imagePrompt)ch.scenePrompt=o.imagePrompt;
+ for(const k of ['verstand','schuld','hp','mp','str','cha','ruf','xp','gold','affinity','trust','items','newSkills','removeItems']){if(k in o&&!(k in ch))ch[k]=o[k]}
  return {text:String(text||'…'),changes:ch}}
 
 const G_FALLBACK=['gemini-2.5-flash','gemini-flash-latest','gemini-2.5-flash-lite','gemini-2.0-flash'];
@@ -456,8 +723,7 @@ async function readSSE(res,onText){const reader=res.body.getReader();const dec=n
  if(buf.startsWith('data:')){try{const j=JSON.parse(buf.slice(5).trim());const {t}=gParse(j);if(t){raw+=t;if(onText)onText(raw)}}catch(_){}}
  return raw}
 function showNarration(el,raw){let vis=raw;const i=raw.indexOf(STREAM_DELIM);if(i>=0)vis=raw.slice(0,i);else{const partial=STREAM_DELIM;for(let n=Math.min(partial.length-1,raw.length);n>=3;n--){if(raw.endsWith(partial.slice(0,n))){vis=raw.slice(0,-n);break}}}
- el.textContent=vis.replace(/\n+$/,'');if(i>=0)el.classList.remove('typing');else el.classList.add('typing');
- const log=$('#log');if(log){const near=log.scrollHeight-log.scrollTop-log.clientHeight<120;if(near)log.scrollTop=log.scrollHeight}}
+ const tx=vis.replace(/\n+$/,'');if(el)el.textContent=tx;const vn=$('#vnText');if(vn)vn.textContent=tx}
 
 async function gmProbe(key){const st=await gmFetch(key);const cands=(st.list||G_FALLBACK).slice(0,6);const results=[];
  for(const m of cands){const t0=performance.now();
@@ -513,45 +779,92 @@ async function aiTurn(a,el,mode=cfg.mode){if(mode==='webllm'){const e=await load
   catch(e){err=e;if(i<1){el.textContent='…';await new Promise(r=>setTimeout(r,Math.min(3,e.ra||1)*1000))}}}throw err}
  throw new Error('offline')}
 function setBusy(on){busy=!!on;const txt=$('#txt'),btn=$('#inputRow button'),ch=$('#choices');if(txt)txt.disabled=on;if(btn)btn.disabled=on;if(ch)ch.querySelectorAll('button').forEach(b=>b.disabled=on);document.body.classList.toggle('busy',on)}
-async function act(a){if(busy||!a.trim())return;if(S.setup&&!S.setup.done)return;
+async function act(a){if(busy||!a.trim())return;
+ // Intro free-text
+ if(_mode==='intro'){await actIntro(a);return}
+ if(S&&S.setup&&!S.setup.done){
+   // allow free text during setup as custom choice
+   const pack=S._setupPack;const beat=S._setupBeat;if(beat){pickSetup({label:a.trim(),past:a.trim().slice(0,80)});return}
+ }
+ if(!S||!S.setup?.done)return;
  setBusy(true);const t0=performance.now();try{await loadPack(S.role)}catch(_){}
- add('p',a);S.turn++;const el=renderMsg('n','');el.classList.add('typing');el.innerHTML='<span class="dots">Schreibe</span>';let res;
- let softFail=false;try{if(cfg.mode==='offline')throw 0;
+ // show player intent briefly
+ const prevSp=$('#speaker').textContent;$('#speaker').textContent='Du';$('#speaker').classList.remove('hidden');$('#vnText').textContent='„'+a+'“';
+ S.turn++;S.log.push({k:'p',t:a});
+ $('#vnText').innerHTML='<span class="caret">Schreibe</span>';let res;let softFail=false;const el=$('#vnText');
+ try{if(cfg.mode==='offline')throw 0;
   if(cfg.mode==='gemini'||(cfg.mode!=='webllm'&&cfg.mode!=='api'&&cfg.mode!=='free'&&hasKey())){
-   try{res=await gemini(a,el)}catch(e){softFail=true;el.textContent='…';el.classList.add('typing')}}
+   try{res=await gemini(a,el)}catch(e){softFail=true;el.textContent='…'}}
   if(!res&&(cfg.mode==='free'||softFail||(cfg.mode!=='gemini'&&cfg.mode!=='webllm'&&cfg.mode!=='api'&&cfg.mode!=='offline'))){
    try{const raw=await aiTurn(a,el,'free');let p=raw.includes(STREAM_DELIM)?parseStream(raw):parse(raw);if(p&&p.text&&p.text!=='…'&&p.text.length>8){res=p;softFail=false}}catch(_){}}
   if(!res&&cfg.mode!=='gemini'&&cfg.mode!=='free'){const raw=await aiTurn(a,el,cfg.mode);res=parse(raw)}
   if(!res){res=offline(a);softFail=true}
-  {const c=res.changes,lim={hp:30,mp:30,str:2,cha:2,ruf:5,xp:60,verstand:15,schuld:5};for(const k in lim)if(k in c)c[k]=Math.max(-lim[k],Math.min(lim[k],+c[k]||0));if(c.affinity)for(const n in c.affinity)c.affinity[n]=Math.max(-15,Math.min(15,+c.affinity[n]||0));if(c.trust)for(const n in c.trust)c.trust[n]=Math.max(-10,Math.min(10,+c.trust[n]||0))}
+  {const c=res.changes,lim={hp:30,mp:30,str:2,cha:2,ruf:5,xp:60,verstand:15,schuld:5,gold:50};for(const k in lim)if(k in c)c[k]=Math.max(-lim[k],Math.min(lim[k],+c[k]||0));if(c.affinity)for(const n in c.affinity)c.affinity[n]=Math.max(-15,Math.min(15,+c.affinity[n]||0));if(c.trust)for(const n in c.trust)c.trust[n]=Math.max(-10,Math.min(10,+c.trust[n]||0))}
   if(Array.isArray(res.changes.items))res.changes.items=res.changes.items.filter(x=>{const n=typeof x==='string'?x:x.name;return !invNames().includes(n)});
   if(Array.isArray(res.changes.newSkills))res.changes.newSkills=res.changes.newSkills.filter(x=>{const n=typeof x==='string'?x:x.name;return !skillNames().includes(n)});
   if(res.changes.summary){S.summary=String(res.changes.summary).slice(0,800);delete res.changes.summary}
+  if(res.changes.speaker){S.flags.speaker=String(res.changes.speaker).slice(0,40);delete res.changes.speaker}
+  if(res.changes.scenePrompt){S.flags.scenePrompt=String(res.changes.scenePrompt).slice(0,220);setSceneImage(S.flags.scenePrompt,'ai_'+S.turn);delete res.changes.scenePrompt}
   if(res.changes.world){try{applyWorld(res.changes.world)}catch(_){}delete res.changes.world}
   if(res.changes.quests){try{applyQuestUpdate(res.changes.quests)}catch(_){}delete res.changes.quests}
   S.hist=S.hist||[];S.hist.push({role:'user',content:'SPIELER: '+a},{role:'assistant',content:res.text});S.hist=S.hist.slice(-20);
   if(softFail)res.note=friendlyAIFail()}
  catch(e){res=offline(a);res.note=friendlyAIFail()}
- _dbgMs=Math.round(performance.now()-t0);el.remove();add('n',res.text);if(res.note)add('s',res.note);apply(res.changes);
+ _dbgMs=Math.round(performance.now()-t0);
+ S.log.push({k:'n',t:res.text});if(S.log.length>80)S.log=S.log.slice(-80);
+ const sp=S.flags?.speaker||(isG()?'Nebel':'Erzähler');
+ setPortraitFromSpeaker(S.flags?.speaker);
+ await typewriteAsync(sp,res.text);
+ if(res.note)pushSys(res.note);apply(res.changes);
  try{worldTick()}catch(_){}
- hud();save();setBusy(false);requestAnimationFrame(()=>{const t=$('#txt');if(t)t.focus({preventScroll:true})})}
+ maybeSceneFromWorld();
+ hud();renderChoices();save();setBusy(false);requestAnimationFrame(()=>{const t=$('#txt');if(t)t.focus({preventScroll:true})})}
+
+
+/* ---------- title particles + soft music ---------- */
+function runParticles(){const c=$('#particles');if(!c)return;const ctx=c.getContext('2d');let parts=[];
+ function resize(){c.width=c.clientWidth*devicePixelRatio;c.height=c.clientHeight*devicePixelRatio;ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0)}
+ function spawn(){parts=Array.from({length:48},()=>({x:Math.random()*c.clientWidth,y:Math.random()*c.clientHeight,r:Math.random()*2.2+.3,vx:(Math.random()-.5)*.25,vy:-Math.random()*.35-.05,a:Math.random()*.5+.15}))}
+ function frame(){if(!$('#title').classList.contains('hidden')){ctx.clearRect(0,0,c.clientWidth,c.clientHeight);
+  for(const p of parts){p.x+=p.vx;p.y+=p.vy;if(p.y<-5){p.y=c.clientHeight+5;p.x=Math.random()*c.clientWidth}ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,6.28);ctx.fillStyle='rgba(255,180,230,'+p.a+')';ctx.fill()}}
+  requestAnimationFrame(frame)}
+ resize();spawn();window.addEventListener('resize',()=>{resize();spawn()});frame()}
+function toggleMusic(){_musicOn=!_musicOn;$('#btnMusic').textContent=_musicOn?'🔊 Musik an':'🔇 Musik aus';
+ if(!_musicOn){stopMusic();return}startMusic()}
+function startMusic(){try{if(!_audioCtx)_audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+ const ctx=_audioCtx;if(ctx.state==='suspended')ctx.resume();
+ stopMusic();const master=ctx.createGain();master.gain.value=0.03;master.connect(ctx.destination);
+ const oscs=[];[196,246.94,293.66,392].forEach((f,i)=>{const o=ctx.createOscillator();const g=ctx.createGain();o.type='sine';o.frequency.value=f;
+  g.gain.value=0.15/(i+1);o.connect(g);g.connect(master);o.start();oscs.push(o)});
+ _musicNodes={master,oscs}}catch(_){_musicOn=false;$('#btnMusic').textContent='🔇 Musik aus'}}
+function stopMusic(){if(!_musicNodes)return;try{_musicNodes.oscs.forEach(o=>{try{o.stop()}catch(_){}});_musicNodes.master.disconnect()}catch(_){}_musicNodes=null}
 
 /* ---------- UI boot ---------- */
-function startScreen(){const g=$('#roles');g.innerHTML='';Object.entries(ROLES).filter(([k])=>k!=='grey').forEach(([k,r])=>{const b=document.createElement('button');b.className='role';b.innerHTML=`<div class="e">${r.e}</div><b>${r.name}</b><span>${r.d}</span>`;b.onclick=()=>newLife(k);g.appendChild(b)});
- const sv=localStorage.getItem(KEY);if(sv){$('#btnContinue').classList.remove('hidden');$('#btnContinue').onclick=async()=>{S=migrate(sv);try{await loadPack(S.role)}catch(_){}
-  if(!S.world&&PACKS[S.role])S.world=buildWorldFromPack(PACKS[S.role],S.role);gateOrShow()}}}
-$('#btnRandom').onclick=()=>newLife(R(ISEKAI));
-$('#btnDarren').onclick=()=>newGrey('darren');$('#btnOwnShow').onclick=()=>$('#ownForm').classList.toggle('hidden');
-$('#btnOwnGo').onclick=()=>newGrey('own',$('#ownName').value.trim(),$('#ownBg').value.trim());
-$('#inputRow').onsubmit=e=>{e.preventDefault();const v=$('#txt').value;$('#txt').value='';act(v)};
-$$('#tabs button').forEach(b=>b.onclick=()=>openDrawer(b.dataset.tab));
-$('#btnSys').onclick=()=>openDrawer('status');
-$('#btnDrawerClose').onclick=closeDrawer;
-$('#drawer').addEventListener('click',e=>{if(e.target.id==='drawer')closeDrawer()});
+function showTitle(){_mode='title';$('#stage').classList.add('hidden');$('#keyGate').classList.add('hidden');$('#title').classList.remove('hidden');
+ document.body.classList.remove('greyw');
+ const sv=localStorage.getItem(KEY);if(sv)$('#btnContinue').classList.remove('hidden');else $('#btnContinue').classList.add('hidden');
+ runParticles()}
+
+$('#btnNew').onclick=()=>startIntro();
+$('#btnGreyBook').onclick=()=>startGreyBook();
+$('#btnContinue').onclick=async()=>{const sv=localStorage.getItem(KEY);if(!sv)return;S=migrate(sv);try{await loadPack(S.role)}catch(_){}
+ if(!S.world&&PACKS[S.role])S.world=buildWorldFromPack(PACKS[S.role],S.role);gateOrShow()};
+$('#btnMusic').onclick=toggleMusic;
+$('#btnTitleSettings').onclick=openSheet;
+$('#btnSettings').onclick=openSheet;
+$('#btnMenu').onclick=()=>openMenu(_menuTab||'status');
+$('#btnMenuClose').onclick=closeMenu;
+$('#menu').addEventListener('click',e=>{if(e.target.id==='menu')closeMenu()});
+$$('#menuTabs button').forEach(b=>b.onclick=()=>{_menuTab=b.dataset.tab;$$('#menuTabs button').forEach(x=>x.classList.toggle('on',x.dataset.tab===_menuTab));renderMenu()});
+
+$('#inputRow').onsubmit=e=>{e.preventDefault();const v=$('#txt').value;$('#txt').value='';
+ if(_mode==='intro'){actIntro(v);return}
+ if(_mode==='intro'||!S){/* grey own name via text */ const t=v.trim();if(t&&document.body.classList.contains('greyw')&&!S){newGrey('own',t,'');return}}
+ act(v)};
+
 const sync=()=>{$('#webllmBox').style.display=$('#mode').value==='webllm'?'':'none';$('#apiBox').style.display=$('#mode').value==='api'?'':'none'};
-function openSheet(){$('#mode').value=cfg.mode;$('#wmodel').value=cfg.wmodel||$('#wmodel').value;$('#aurl').value=cfg.aurl||'';$('#akey').value=cfg.akey||'';$('#amodel').value=cfg.amodel||'';$('#gkey').value=cfg.gkey||'';
+function openSheet(){$('#mode').value=cfg.mode||'gemini';$('#wmodel').value=cfg.wmodel||$('#wmodel').value;$('#aurl').value=cfg.aurl||'';$('#akey').value=cfg.akey||'';$('#amodel').value=cfg.amodel||'';$('#gkey').value=cfg.gkey||'';
  if($('#dbgToggle'))$('#dbgToggle').checked=!!cfg.debug;gmUI();sync();$('#sheet').classList.remove('hidden')}
-$('#btnMenu').onclick=openSheet;
 $('#mode').onchange=sync;$('#btnClose').onclick=()=>$('#sheet').classList.add('hidden');
 $('#gkey').oninput=()=>{if($('#gkey').value.trim())$('#mode').value='gemini';sync()};
 function saveCfgFromUI(gk){const mode=$('#mode')?$('#mode').value:(gk?'gemini':'offline');
@@ -568,15 +881,16 @@ $('#btnReset').onclick=()=>{if(confirm('Wirklich alles löschen?')){localStorage
 $('#btnAdv').onclick=()=>{$('#advBox').classList.toggle('hidden');$('#btnAdv').textContent=$('#advBox').classList.contains('hidden')?'Erweitert ▸':'Erweitert ▾'};
 $('#btnGateSave').onclick=()=>{const gk=$('#gateKey').value.trim();if(!gk){toast('Bitte Schlüssel einfügen');return}
  cfg.gkey=gk;cfg.mode='gemini';cfg.v2=1;localStorage.setItem(CFG,JSON.stringify(cfg));
- toast('Alles bereit.');gmFetch(gk,true).then(()=>gmProbe(gk).catch(()=>{}));show()};
-$('#btnGateSkip').onclick=()=>{cfg.mode='offline';cfg.v2=1;localStorage.setItem(CFG,JSON.stringify(cfg));show()};
-window.__game={newGrey,greyDetails,loadGrey,loadPack,get S(){return S},act,newLife,gBody,msgs,gmRank,gmProbe,parseStream,thinkingCfg,gmOrder,readSSE,STREAM_DELIM,migrate,worldTick,bumpRel,openDrawer,stageName,offline};
+ toast('Alles bereit.');gmFetch(gk,true).then(()=>gmProbe(gk).catch(()=>{}));enterPlay()};
+$('#btnGateSkip').onclick=()=>{cfg.mode='offline';cfg.v2=1;localStorage.setItem(CFG,JSON.stringify(cfg));enterPlay()};
+
+window.__game={newGrey,greyDetails,loadGrey,loadPack,get S(){return S},act,newLife,gBody,msgs,gmRank,gmProbe,parseStream,thinkingCfg,gmOrder,readSSE,STREAM_DELIM,migrate,worldTick,bumpRel,openMenu,stageName,offline,startIntro,setSceneImage,imgUrl,advanceTime,phaseLabel,typewrite,enterPlay,showTitle};
 window.__game.askNPC=a=>askNPC(a);window.__game.gemini=gemini;
 if(cfg.gkey)gmFetch(cfg.gkey.trim()).then(()=>gmProbe(cfg.gkey.trim()).catch(()=>{})).catch(()=>{});
-(function(){const root=document.documentElement;const apply=()=>{try{const vv=window.visualViewport;if(!vv)return;const kb=Math.max(0,window.innerHeight-vv.height-vv.offsetTop);root.style.setProperty('--kb',kb+'px');if(kb>40){const log=$('#log');if(log)log.scrollTop=log.scrollHeight}}catch(_){}};
+(function(){const root=document.documentElement;const apply=()=>{try{const vv=window.visualViewport;if(!vv)return;const kb=Math.max(0,window.innerHeight-vv.height-vv.offsetTop);root.style.setProperty('--kb',kb+'px')}catch(_){}};
  if(window.visualViewport){visualViewport.addEventListener('resize',apply);visualViewport.addEventListener('scroll',apply)}
  window.addEventListener('focusin',e=>{if(e.target&&e.target.id==='txt'){setTimeout(()=>{try{e.target.scrollIntoView({block:'end',behavior:'smooth'})}catch(_){};apply()},300)}});
  $('#txt')&&$('#txt').addEventListener('blur',()=>root.style.setProperty('--kb','0px'))})();
-try{if('serviceWorker' in navigator&&navigator.serviceWorker){navigator.serviceWorker.register('./sw.js?v=9').catch(()=>{});
+try{if('serviceWorker' in navigator&&navigator.serviceWorker){navigator.serviceWorker.register('./sw.js?v=10').catch(()=>{});
  navigator.serviceWorker.addEventListener('controllerchange',()=>{if(sessionStorage.getItem('isekai_sw_reloaded'))return;sessionStorage.setItem('isekai_sw_reloaded','1');location.reload()})}}catch(_){}
-startScreen();
+showTitle();
