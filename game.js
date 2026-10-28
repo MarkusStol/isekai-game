@@ -6,6 +6,7 @@ import * as Codex from './codex.js';
 import * as UI13 from './ui13.js';
 import * as Level from './leveling.js';
 import * as UI14 from './ui14.js';
+import * as UI17 from './ui17.js';
 import * as Know from './know.js';
 import * as Cont from './continuity.js';
 import * as Imm from './immerse.js';
@@ -17,7 +18,7 @@ import * as Summons from './summons.js';
 import * as Equip from './equip.js';
 import * as Jrpg from './jrpg.js';
 const $=s=>document.querySelector(s);const $$=s=>[...document.querySelectorAll(s)];const R=a=>a[Math.floor(Math.random()*a.length)];const rnd=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
-const VER=17,CACHE_V='v17';
+const VER='17.1',CACHE_V='v17.1';
 const ROLES={
  held:{e:'⚔️',name:'Held mit Status-System',d:'Ein blaues Fenster erscheint: [Status]. Die Welt braucht dich.',world:'Königreich Aldheim',
   base:{hp:100,mp:40,str:12,cha:8,ruf:10,gold:40},cls:['Abenteurer','Ritter','Held','Legendärer Held'],pack:'worlds/held.json',
@@ -560,6 +561,7 @@ function migrate(raw){if(!raw)return null;const s=typeof raw==='string'?JSON.par
  if(s.ver<13){s.ver=14;try{Sim.migrateToV13(s)}catch(e){console.warn('v13 migrate',e)}}
  if(s.ver<14){s.ver=14;try{Level.ensureProgress(s);Know.ensureKnow(s);Know.migrateKnow(s);s.met=s.met||{};s.romance=s.romance||{}}catch(e){console.warn('v14 migrate',e)}}
  if(Number(s.ver)<17){s.ver=17;try{Jobs.ensureJobs(s);Gems.ensureGems(s);Summons.ensureSummons(s);Equip.ensureEquip(s);s.cfgBattleDiff=s.cfgBattleDiff||'normal';s.cfgAtbMode=s.cfgAtbMode||'active'}catch(e){console.warn('v17 migrate',e)}}
+ if(Number(s.ver)<17.1){s.ver=17.1;try{Jobs.ensureJobs(s);Gems.ensureGems(s);Summons.ensureSummons(s);Equip.ensureEquip(s);s.battle=s.battle||{};s.battle.gambitMap=s.battle.gambitMap||{}}catch(e){console.warn('v17.1 migrate',e)}}
  // v13.1 continuity+time always (kept in v14)
  try{Cont.ensureCont(s);if(s.cal&&s.cal.minute==null)s.cal.minute=0;if(s.cfgCatchupOptIn==null)s.cfgCatchupOptIn=false}catch(e){console.warn('cont migrate',e)}
  if(s.ver<14)s.ver=14;
@@ -955,9 +957,14 @@ function openMenu(tab){_menuTab=tab||'hub';$('#menu').classList.remove('hidden')
  $$('#menuTabs button').forEach(b=>b.classList.toggle('on',b.dataset.tab===_menuTab));renderMenu()}
 function closeMenu(){$('#menu').classList.add('hidden')}
 function renderMenu(){const body=$('#menuBody');if(!body||!S)return;body.innerHTML='';
- const helpers={act,closeMenu,toast,phaseLabel,setSceneImage,imgUrl,openTab:(id)=>{_menuTab=id;$$('#menuTabs button').forEach(x=>x.classList.toggle('on',x.dataset.tab===id));renderMenu()}};
+ const helpers={act,closeMenu,toast,phaseLabel,setSceneImage,imgUrl,save,openTab:(id)=>{_menuTab=id;$$('#menuTabs button').forEach(x=>x.classList.toggle('on',x.dataset.tab===id));renderMenu()},startSuperboss:(st)=>UI17.startSuperbossSetpiece(st,Battle,{toast}).then(r=>{if(r)afterEncounterResolved(r)}).catch(()=>{})};
  if(_menuTab==='hub'||!_menuTab){UI14.openHub(body,S,helpers);return}
  if(_menuTab==='level'){UI14.renderLevel(body,S,helpers);return}
+ if(_menuTab==='equip'||_menuTab==='gems'){UI17.renderEquip(body,S,helpers);return}
+ if(_menuTab==='jobs'){UI17.renderJobs(body,S,helpers);return}
+ if(_menuTab==='gambits'){UI17.renderGambits(body,S,helpers);return}
+ if(_menuTab==='craft'){UI17.renderCraft(body,S,helpers);return}
+ if(_menuTab==='summons'){UI17.renderSummons(body,S,helpers);return}
  if(_menuTab==='status'){const s=S.st;body.innerHTML=`<div class="card"><h3>${ROLES[S.role].e} ${S.pc?.name||ROLES[S.role].name}</h3>
  <p class="meta">${ROLES[S.role].cls[S.cls]} · Leben #${S.lives} · Seele ${S.soul}</p>
  <p>${isG()?`Verstand ${s.hp}/100 · Schuld ${s.ruf}/100`:`Lv ${s.lvl} · HP ${s.hp}/${s.maxhp} · MP ${s.mp}/${s.maxmp} · 🪙 ${s.gold|0}<br>Stärke ${s.str} · Charme ${s.cha} · Ruf ${s.ruf} · XP ${s.xp}/${s.lvl*100}`}</p>
@@ -1264,7 +1271,7 @@ async function startProcedural(genreInput,pcName){const pack=await generateWorld
   quests:buildQuests(pack),discovered:[world.scene.ort].filter(Boolean),ticks:{rumours:[],log:[]},
   cls:0,turn:0,hist:[],log:[],flags:{},setup:{done:true,beat:0,answers:{}},summary:pack.conflict||'',
   time:{day:1,hour:18,phase:'Abend'},imgCache:{scenes:{},portraits:{},ok:{},fail:{},next:{}},heat:0,wanted:[],dead:[],world};
- enrichNpcs(S.world);ensureGraph(S);try{Sim.migrateToV13(S);Econ.ensureEcon(S);Codex.ensureCodex(S);WorldMap.ensureSpawn(S);Level.ensureProgress(S);Know.ensureKnow(S);Know.migrateKnow(S);S.ver=VER}catch(_){}if(S.world.systems||S.genre==='zombie')ensureSystems();
+ enrichNpcs(S.world);ensureGraph(S);try{Sim.migrateToV13(S);Econ.ensureEcon(S);Codex.ensureCodex(S);WorldMap.ensureSpawn(S);Level.ensureProgress(S);Know.ensureKnow(S);Know.migrateKnow(S);Jobs.ensureJobs(S);Gems.ensureGems(S);Summons.ensureSummons(S);Equip.ensureEquip(S);S.ver=VER}catch(_){}if(S.world.systems||S.genre==='zombie')ensureSystems();
  const bridge=`${pack.titel}.\n\n${pack.conflict||pack.geschichte}\n\nDu – ${S.pc.name} – stehst in ${world.scene.ort}. Die Welt wartet nicht. Wohin du gehst, ist deine Sache.`;
  S.log=[{k:'n',t:bridge}];S.hist=[{role:'assistant',content:bridge}];S.choices=travelChoices(world.scene.ort);
  save();enterPlay();typewrite('Erzähler',bridge,()=>{});hud();renderChoices();
@@ -1801,7 +1808,7 @@ $('#btnContinue').onclick=async()=>{
   if(!S){toast('Kein Spielstand');return}
   try{await loadPack(S.role)}catch(_){}
   if(!S.world&&PACKS[S.role])S.world=buildWorldFromPack(PACKS[S.role],S.role);
-  try{Sim.migrateToV13(S);Econ.ensureEcon(S);Codex.ensureCodex(S);WorldMap.ensureSpawn(S);Level.ensureProgress(S);Know.ensureKnow(S);Know.migrateKnow(S);S.ver=VER}catch(_){}
+  try{Sim.migrateToV13(S);Econ.ensureEcon(S);Codex.ensureCodex(S);WorldMap.ensureSpawn(S);Level.ensureProgress(S);Know.ensureKnow(S);Know.migrateKnow(S);Jobs.ensureJobs(S);Gems.ensureGems(S);Summons.ensureSummons(S);Equip.ensureEquip(S);S.ver=VER}catch(_){}
   gateOrShow();
 };
 $('#btnMusic').onclick=toggleMusic;
@@ -1840,7 +1847,7 @@ $('#btnGateSave').onclick=()=>{const gk=$('#gateKey').value.trim();if(!gk){toast
  toast('Alles bereit.');gmFetch(gk,true).then(()=>gmProbe(gk).catch(()=>{}));enterPlay()};
 $('#btnGateSkip').onclick=()=>{cfg.mode='free';cfg.v2=1;localStorage.setItem(CFG,JSON.stringify(cfg));toast('Erzählerin: Pollinations (ohne Schlüssel)');enterPlay()};
 
-window.__setCfg=o=>{cfg=Object.assign(cfg||{},o||{});try{localStorage.setItem(CFG,JSON.stringify(cfg))}catch(_){}};window.__game={Battle,Jobs,Gems,Summons,Equip,Jrpg,openPendingEncounter,Imm,discoverThing,showCodexInline,Level,UI14,Know,Cont,lastPromptDump,advanceTimeMinutes,applyActionDuration,newGrey,greyDetails,loadGrey,loadPack,get S(){return S},act,newLife,gBody,msgs,gmRank,gmProbe,parseStream,thinkingCfg,gmOrder,readSSE,STREAM_DELIM,migrate,worldTick,bumpRel,openMenu,stageName,offline,startIntro,setSceneImage,setPortrait,imgUrl,advanceTime,phaseLabel,typewrite,enterPlay,showTitle,analyzeImage,applySceneTheme,themeFromText,loadValidatedImage,openingNarration,travelTo,parseTravel,killNPC,robNPC,addMemory,memoryHint,startProcedural,offlineGenerateWorld,generateWorldPack,GENRES,travelChoices,ensureGraph,whoHere,parseLifeSim,Sim,Persist,WorldMap,Econ,Codex,UI13,save,loadSave,applyCatchUp,findAnyNpc};
+window.__setCfg=o=>{cfg=Object.assign(cfg||{},o||{});try{localStorage.setItem(CFG,JSON.stringify(cfg))}catch(_){}};window.__game={Battle,Jobs,Gems,Summons,Equip,Jrpg,openPendingEncounter,Imm,discoverThing,showCodexInline,Level,UI14,UI17,Know,Cont,lastPromptDump,advanceTimeMinutes,applyActionDuration,newGrey,greyDetails,loadGrey,loadPack,get S(){return S},act,newLife,gBody,msgs,gmRank,gmProbe,parseStream,thinkingCfg,gmOrder,readSSE,STREAM_DELIM,migrate,worldTick,bumpRel,openMenu,stageName,offline,startIntro,setSceneImage,setPortrait,imgUrl,advanceTime,phaseLabel,typewrite,enterPlay,showTitle,analyzeImage,applySceneTheme,themeFromText,loadValidatedImage,openingNarration,travelTo,parseTravel,killNPC,robNPC,addMemory,memoryHint,startProcedural,offlineGenerateWorld,generateWorldPack,GENRES,travelChoices,ensureGraph,whoHere,parseLifeSim,Sim,Persist,WorldMap,Econ,Codex,UI13,save,loadSave,applyCatchUp,findAnyNpc};
 window.__game.askNPC=a=>askNPC(a);window.__game.gemini=gemini;
 if(cfg.gkey)gmFetch(cfg.gkey.trim()).then(()=>gmProbe(cfg.gkey.trim()).catch(()=>{})).catch(()=>{});
 (function(){const root=document.documentElement;const apply=()=>{try{const vv=window.visualViewport;if(!vv)return;const kb=Math.max(0,window.innerHeight-vv.height-vv.offsetTop);root.style.setProperty('--kb',kb+'px')}catch(_){}};

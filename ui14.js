@@ -6,6 +6,11 @@ import * as UI13 from './ui13.js';
 export const HUB_TILES=[
   {id:'status',icon:'👤',label:'Status'},
   {id:'level',icon:'⬆',label:'Aufstieg'},
+  {id:'equip',icon:'⚔',label:'Ausrüstung'},
+  {id:'jobs',icon:'🏷',label:'Berufe'},
+  {id:'gambits',icon:'🎯',label:'Einsatz'},
+  {id:'craft',icon:'🔨',label:'Werkstatt'},
+  {id:'summons',icon:'🌟',label:'Geister'},
   {id:'inv',icon:'🎒',label:'Inventar'},
   {id:'skills',icon:'✨',label:'Fähigkeiten'},
   {id:'rels',icon:'💞',label:'Beziehungen'},

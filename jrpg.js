@@ -28,8 +28,8 @@ export const STATUS_DEFS={
 };
 
 export const DIFFICULTY={
-  story:{id:'story',name:'Geschichte',enemyHp:0.85,enemyDmg:0.8,playerDmg:1.15,staggerRate:1.2},
-  normal:{id:'normal',name:'Normal',enemyHp:1,enemyDmg:1,playerDmg:1,staggerRate:1},
+  story:{id:'story',name:'Geschichte',enemyHp:0.8,enemyDmg:0.75,playerDmg:1.2,staggerRate:1.35},
+  normal:{id:'normal',name:'Normal',enemyHp:1,enemyDmg:0.95,playerDmg:1.05,staggerRate:1.1},
   hard:{id:'hard',name:'Hart',enemyHp:1.25,enemyDmg:1.2,playerDmg:0.9,staggerRate:0.85},
   nightmare:{id:'nightmare',name:'Albtraum',enemyHp:1.55,enemyDmg:1.45,playerDmg:0.8,staggerRate:0.7},
 };
@@ -210,6 +210,7 @@ export function gambitDecide(actor, battle, gambits){
   const foes=battle.foes.filter(u=>u.alive);
   const livingParty=party.filter(u=>u.alive);
   for(const r of rules){
+    if(r.on===false) continue;
     if(r.when==='hp_lt'){
       const t=livingParty.slice().sort((a,b)=>a.hp/a.maxhp-b.hp/b.maxhp)[0];
       if(t && t.hp/t.maxhp < (r.value||0.3)){
