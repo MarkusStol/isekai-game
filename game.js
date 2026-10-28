@@ -9,7 +9,7 @@ import * as UI14 from './ui14.js';
 import * as Know from './know.js';
 import * as Cont from './continuity.js';
 const $=s=>document.querySelector(s);const $$=s=>[...document.querySelectorAll(s)];const R=a=>a[Math.floor(Math.random()*a.length)];const rnd=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
-const VER=131,CACHE_V='v13.1';
+const VER=14,CACHE_V='v14';
 const ROLES={
  held:{e:'⚔️',name:'Held mit Status-System',d:'Ein blaues Fenster erscheint: [Status]. Die Welt braucht dich.',world:'Königreich Aldheim',
   base:{hp:100,mp:40,str:12,cha:8,ruf:10,gold:40},cls:['Abenteurer','Ritter','Held','Legendärer Held'],pack:'worlds/held.json',
@@ -126,6 +126,11 @@ function applySceneTheme(theme){const bg=$('#sceneBg');if(!bg)return;const th=th
   const map={zombie:'genre-zombie',cyberpunk:'genre-cyberpunk',darkfantasy:'genre-darkfantasy',dark:'genre-darkfantasy',postapoc:'genre-postapoc',grey:'genre-grey',held:'genre-fantasy',villainess:'genre-fantasy',daemon:'genre-darkfantasy',mensch:'genre-fantasy'};
   document.body.classList.add(map[genre]||'genre-fantasy');
 }
+function applyGenreTheme(genre){const g=String(genre||S?.genre||S?.role||'held').toLowerCase(); document.body.dataset.genre=g;
+  document.body.classList.remove('genre-zombie','genre-cyberpunk','genre-darkfantasy','genre-fantasy','genre-postapoc','genre-grey');
+  const map={zombie:'genre-zombie',cyberpunk:'genre-cyberpunk',darkfantasy:'genre-darkfantasy',dark:'genre-darkfantasy',postapoc:'genre-postapoc',grey:'genre-grey',held:'genre-fantasy',villainess:'genre-fantasy',daemon:'genre-darkfantasy',mensch:'genre-fantasy'};
+  document.body.classList.add(map[g]||'genre-fantasy');
+}
 
 function portColors(name){const h=hashSeed(String(name||'x'));const hues=[[255,111,181],[123,107,255],[110,200,255],[255,180,100],[160,255,180],[255,120,140],[200,160,255]];
  const a=hues[h%hues.length],b=hues[(h*3)%hues.length];return {a:`rgb(${a[0]},${a[1]},${a[2]})`,b:`rgb(${(b[0]*0.35)|0},${(b[1]*0.35)|0},${(b[2]*0.35)|0})`,hexA:`#${a.map(x=>x.toString(16).padStart(2,'0')).join('')}`}}
@@ -215,7 +220,7 @@ function setPortrait(name,npc){const cache=ensureImgCache();const wrap=$('#portr
 
 function maybeSceneFromWorld(){if(!S?.world?.scene?.ort)return;const ort=S.world.scene.ort;const zeit=S.world.scene.zeit||phaseLabel();
  const prompt=(S.flags&&S.flags.scenePrompt)||scenePromptFor(ort,zeit);setSceneImage(prompt,ort)}
-function maybePortraitsPresent(){const here=(S?.world?.scene?.anwesend||[]).filter(n=>S.world.npcs[n]?.alive!==false);if(here[0])setPortrait(here[0],S.world.npcs[here[0]]);else if($('#portraitWrap'))$('#portraitWrap').classList.add('hidden')}
+function maybePortraitsPresent(){const here=(S?.world?.scene?.anwesend||[]).filter(n=>{if(S.world.npcs[n]?.alive===false)return false;try{return Know.isNameKnown(S,n)}catch(_){return false}});if(here[0])setPortrait(here[0],S.world.npcs[here[0]]);else if($('#portraitWrap'))$('#portraitWrap').classList.add('hidden')}
 
 /* ---------- v12: location graph, travel, NPC memory, crime ---------- */
 function ensureGraph(s){s=s||S;if(!s?.world)return null;const pack=PACKS[s.role]||GREY||{};
@@ -268,14 +273,16 @@ function finishTravel(from,to){const node=locNode(to);const bg=node?.bg;
   const prompt=scenePromptFor(to,phaseLabel());S.flags.scenePrompt=prompt;
   setSceneImage(prompt, assetBgKey(to,bg), {assetKey:assetBgKey(to,bg)});
   const exitHint=exitsFrom(to).slice(0,4);
-  const txt=`Du verlässt ${from||'den vorherigen Ort'} und erreichst ${to}.${node?.desc?' '+node.desc:''}${present.length?'\n\nAnwesend: '+present.join(', ')+'.':'\n\nHier ist niemand, den du kennst – vorerst.'}${greets.length?'\n\n'+greets.slice(0,2).join('\n\n'):''}`;
+  const txt=`Du verlässt ${from||'den vorherigen Ort'} und erreichst ${to}.${node?.desc?' '+node.desc:''}${present.length?'\n\nAnwesend: '+present.map(n=>{try{return Know.displayName(S,n)}catch(_){return 'eine Gestalt'}}).join('; ')+'.':'\n\nHier ist niemand, den du kennst – vorerst.'}${greets.length?'\n\n'+greets.slice(0,2).join('\n\n'):''}`;
   const choices=travelChoices(to);
   return {ok:true,text:txt,changes:{xp:5,choices,world:{scene:S.world.scene}},to}}
 function cutStr(x,n){return String(x||'').slice(0,n)}
 function travelChoices(ort){ort=ort||S.world?.scene?.ort;const ex=exitsFrom(ort);const here=whoHere(ort);
   const ch=[];
-  if(here[0])ch.push('Mit '+here[0].split(' ')[0]+' sprechen');
-  if(here[1])ch.push('Mit '+here[1].split(' ')[0]+' sprechen');
+  const label=n=>{try{const d=Know.displayName(S,n,S.world?.npcs?.[n]); return Know.isNameKnown(S,n)?d.split(' ')[0]:('die Gestalt')}catch(_){return 'die Gestalt'}};
+  if(here[0])ch.push(Know.isNameKnown(S,here[0])?('Mit '+label(here[0])+' sprechen'):'Die Gestalt ansprechen');
+  if(here[1]&&Know.isNameKnown(S,here[1]))ch.push('Mit '+label(here[1])+' sprechen');
+  else if(here[1]&&!ch.includes('Die Gestalt ansprechen'))ch.push('Jemanden beobachten');
   ch.push('Umsehen');
   if(ex[0])ch.push('Nach '+shortPlace(ex[0])+' gehen');
   if(ex[1])ch.push('Richtung '+shortPlace(ex[1]));
@@ -539,7 +546,9 @@ function migrate(raw){if(!raw)return null;const s=typeof raw==='string'?JSON.par
  if(s.ver<12){s.ver=12;s.heat=s.heat|0;s.wanted=s.wanted||[];s.dead=s.dead||[];if(s.world){ensureGraph(s);enrichNpcs(s.world)}}
  if(s.ver<13){s.ver=14;try{Sim.migrateToV13(s)}catch(e){console.warn('v13 migrate',e)}}
  if(s.ver<14){s.ver=14;try{Level.ensureProgress(s);Know.ensureKnow(s);Know.migrateKnow(s);s.met=s.met||{};s.romance=s.romance||{}}catch(e){console.warn('v14 migrate',e)}}
- if(s.ver<131){s.ver=131;try{Cont.ensureCont(s);if(s.cal&&s.cal.minute==null)s.cal.minute=0;s.cfgCatchupOptIn=!!s.cfgCatchupOptIn}catch(e){console.warn('v13.1 migrate',e)}}
+ // v13.1 continuity+time always (kept in v14)
+ try{Cont.ensureCont(s);if(s.cal&&s.cal.minute==null)s.cal.minute=0;if(s.cfgCatchupOptIn==null)s.cfgCatchupOptIn=false}catch(e){console.warn('cont migrate',e)}
+ if(s.ver<14)s.ver=14;
  else {try{Sim.migrateToV13(s)}catch(_){}}
  return s}
 
@@ -779,16 +788,16 @@ function openingNarration(pack){if(isG())return (S.kind==='darren'?greyIntroDarr
  const vibe=String(pack.ton||'').slice(0,100);
  return (`Du öffnest die Augen. ${ort}${zeit?'. '+zeit:''}.${presence} Du kennst niemanden — nur Gestalten und Eindrücke. ${vibe}`).replace(/\s+/g,' ').trim()}
 
-function finishSetup(pack){S.setup.done=true;S._setupChoices=null;S._setupBeat=null;_mode='play';ensureGraph(S);enrichNpcs(S.world);S.heat=S.heat|0;S.wanted=S.wanted||[];S.dead=S.dead||[];try{Sim.migrateToV13(S);Econ.ensureEcon(S);Codex.ensureCodex(S);WorldMap.ensureSpawn(S);Level.ensureProgress(S);Know.ensureKnow(S);Know.migrateKnow(S);Cont.ensureCont(S);if(S.cal&&S.cal.minute==null)S.cal.minute=0;S.ver=VER}catch(_){};
- if(wantAI()&&!hasKey()&&cfg.mode!=='webllm'&&cfg.mode!=='api'&&cfg.mode!=='free'){save();showKeyGate();return}
- $('.top-actions').style.visibility='';$('#hud').style.visibility='';
- let bridge=openingNarration(pack);
+function finishSetup(pack){S.setup.done=true;S._setupChoices=null;S._setupBeat=null;_mode='play';ensureGraph(S);enrichNpcs(S.world);S.heat=S.heat|0;S.wanted=S.wanted||[];S.dead=S.dead||[];try{Sim.migrateToV13(S);Econ.ensureEcon(S);Codex.ensureCodex(S);WorldMap.ensureSpawn(S);Level.ensureProgress(S);Know.ensureKnow(S);Know.migrateKnow(S);Cont.ensureCont(S);if(S.cal&&S.cal.minute==null)S.cal.minute=0;S.ver=VER;applyGenreTheme(S.genre||S.role||pack.genre)}catch(_){};
+ let bridge=openingNarration(pack)||'Du öffnest die Augen. Die Welt wartet. Du kennst niemanden.';
  S.log=[{k:'n',t:bridge}];S.hist=[{role:'assistant',content:bridge}];S.choices=defChoices();
- maybeSceneFromWorld();maybePortraitsPresent();
  try{Know.ensureKnow(S);Know.migrateKnow(S);Level.ensureProgress(S);
    for(const n of (S.world?.scene?.anwesend||[]))Know.markSeen(S,n,S.world.npcs[n]);
    const wrap=$('#portraitWrap'); if(wrap)wrap.classList.add('hidden');
  }catch(_){}
+ if(wantAI()&&!hasKey()&&cfg.mode!=='webllm'&&cfg.mode!=='api'&&cfg.mode!=='free'&&cfg.mode!=='offline'){save();showKeyGate();return}
+ $('.top-actions').style.visibility='';$('#hud').style.visibility='';
+ maybeSceneFromWorld();maybePortraitsPresent();
  $('#txt').placeholder='Was tust oder sagst du?';
  typewrite(isG()?'Nebel':'Erzähler',bridge,()=>{hud();renderChoices();save()});
  discover(S.world?.scene?.ort)}
@@ -807,21 +816,22 @@ function discover(place){if(!place)return;if(!S.discovered)S.discovered=[];if(!S
 }catch(_){}}
 
 /* ---------- typewriter VN ---------- */
-function typewrite(speaker,text,done){_twDone=false;_twFull=text||'';
+function typewrite(speaker,text,done){_twDone=false;_twFull=String(text||'').trim()||'…';
  const sp=$('#speaker'),el=$('#vnText'),tap=$('#vnTap');
  if(speaker){sp.textContent=speaker;sp.classList.remove('hidden')}else sp.classList.add('hidden');
- el.textContent='';tap.classList.add('hidden');
+ // never leave the dialogue box empty (v14 empty-box fix)
+ el.textContent=_twFull.slice(0,Math.min(48,_twFull.length)); tap.classList.add('hidden');
  clearInterval(_twTimer);
  function finish(){if(_twDone)return;clearInterval(_twTimer);el.textContent=_twFull;_twDone=true;tap.classList.remove('hidden');done&&done()}
  el.onclick=finish;$('#vnBox').onclick=finish;
  if(window.__FAST){finish();return}
- let i=0;const step=Math.max(1,Math.floor(_twFull.length/120));
+ let i=Math.min(48,_twFull.length);const step=Math.max(1,Math.floor(_twFull.length/120));
  _twTimer=setInterval(()=>{i=Math.min(_twFull.length,i+step);el.textContent=_twFull.slice(0,i);if(i>=_twFull.length)finish()},12)}
 function typewriteAsync(speaker,text){return new Promise(res=>typewrite(speaker,text,res))}
 
 /* ---------- relationships / romance ---------- */
 function bumpRel(name,daff,dtrust,toastOn){if(!S.romance)S.romance={};
- try{Know.markInteracted(S,name); if(!Know.isNameKnown(S,name))Know.learnName(S,name,'interact')}catch(_){}
+ try{Know.markInteracted(S,name); if(!Know.isNameKnown(S,name)){const lr=Know.learnName(S,name,'interact'); if(lr.first){try{UI14.showBegegnung(name,S.world?.npcs?.[name],{imgUrl,setPortrait,slug:portAssetKey(name,S.world?.npcs?.[name]),know:lr.person})}catch(_){}}}}catch(_){}
  let key=Object.keys(S.romance).find(k=>k.toLowerCase()===String(name).toLowerCase())||Object.keys(S.romance).find(k=>k.toLowerCase().includes(String(name).toLowerCase().split(' ').pop()));
  if(!key){key=String(name);S.romance[key]={affection:0,trust:0,stage:0,events:[]}}
  const r=S.romance[key];const old=r.stage;r.affection=Math.max(-100,Math.min(100,(r.affection|0)+(daff|0)));r.trust=Math.max(0,Math.min(100,(r.trust|0)+(dtrust|0)));
@@ -855,9 +865,10 @@ function worldTick(){if(!S.world||!S.setup?.done)return;
  if(aiNotes.length&&S.turn>0&&S.turn%2===0)eventToast(aiNotes[0].line);
  if(Math.random()<.28){const here=[...present].filter(p=>S.world.npcs[p]&&!Sim.isDead(S,p));if(here.length){const who=R(here);const n=S.world.npcs[who];
   const mem=(Sim.retrieveMemories(S,{npcNames:[who],limit:1})||[])[0];
-  const line=mem?`${who}: „Ich denke noch an … ${String(mem.text).slice(0,70)}“`:R([`${((n.e||'')+' '+who).trim()} spricht dich an.`,`${who}: „${R(['Wir müssen reden.','Hast du einen Moment?','Das bleibt nicht so.','Komm. Kurz.'])}“`]);
-  S.flags.npcInit=who;eventToast(line);if(S.choices&&S.choices.length)S.choices=[`Mit ${who} sprechen`,...S.choices.slice(0,3)];
-  setPortrait(who,n)}}}
+  let label=who; try{label=Know.displayName(S,who,n)}catch(_){}
+  const line=mem?`${label}: „Ich denke noch an … ${String(mem.text).slice(0,70)}“`:R([`${((n.e||'')+' '+label).trim()} spricht dich an.`,`${label}: „${R(['Wir müssen reden.','Hast du einen Moment?','Das bleibt nicht so.','Komm. Kurz.'])}“`]);
+  S.flags.npcInit=who;eventToast(line);if(S.choices&&S.choices.length){const speak=Know.isNameKnown(S,who)?`Mit ${who} sprechen`:`Die Gestalt ansprechen`;S.choices=[speak,...S.choices.slice(0,3)]}
+  try{if(Know.isNameKnown(S,who))setPortrait(who,n)}catch(_){}}}}
 
 function applyQuestUpdate(u){if(!u||!S.quests)return;const m=S.quests.main;
  if(u.mainObjectiveDone){const o=String(u.mainObjectiveDone);if(!(m.done||[]).includes(o)){m.done=m.done||[];m.done.push(o);toast('✓ Quest: '+o);pushSys('📜 '+o)}}
@@ -900,7 +911,8 @@ function enterPlay(){$('#keyGate')&&$('#keyGate').classList.add('hidden');$('#ti
  $('.top-actions').style.visibility='';$('#hud').style.visibility='';
  if(S.setup&&!S.setup.done){_mode='setup';loadPack(S.role).then(p=>{S._setupPack=p;showBeat(p)});return}
  _mode='play';
- try{Sim.migrateToV13(S);Econ.ensureEcon(S);Codex.ensureCodex(S);WorldMap.ensureSpawn(S);Level.ensureProgress(S);Know.ensureKnow(S);Know.migrateKnow(S)}catch(_){}
+ try{Sim.migrateToV13(S);Econ.ensureEcon(S);Codex.ensureCodex(S);WorldMap.ensureSpawn(S);Level.ensureProgress(S);Know.ensureKnow(S);Know.migrateKnow(S);Cont.ensureCont(S)}catch(_){}
+ try{applyGenreTheme(S.genre||S.role)}catch(_){}
  // never replay intro once setup done
  S.flags=S.flags||{}; S.flags.introDone=true;
  try{applyCatchUp()}catch(_){}
@@ -932,7 +944,7 @@ function renderMenu(){const body=$('#menuBody');if(!body||!S)return;body.innerHT
  if(_menuTab==='status'){const s=S.st;body.innerHTML=`<div class="card"><h3>${ROLES[S.role].e} ${S.pc?.name||ROLES[S.role].name}</h3>
  <p class="meta">${ROLES[S.role].cls[S.cls]} · Leben #${S.lives} · Seele ${S.soul}</p>
  <p>${isG()?`Verstand ${s.hp}/100 · Schuld ${s.ruf}/100`:`Lv ${s.lvl} · HP ${s.hp}/${s.maxhp} · MP ${s.mp}/${s.maxmp} · 🪙 ${s.gold|0}<br>Stärke ${s.str} · Charme ${s.cha} · Ruf ${s.ruf} · XP ${s.xp}/${s.lvl*100}`}</p>
- <p class="meta">Ort: ${S.world?.scene?.ort||'–'}<br>Zeit: ${phaseLabel()} (${S.world?.scene?.zeit||'–'})<br>Anwesend: ${(S.world?.scene?.anwesend||[]).join(', ')||'–'}</p>
+ <p class="meta">Ort: ${S.world?.scene?.ort||'–'}<br>Zeit: ${phaseLabel()} (${S.world?.scene?.zeit||'–'})<br>Anwesend: ${(S.world?.scene?.anwesend||[]).map(n=>{try{return Know.displayName(S,n)}catch(_){return n}}).join('; ')||'–'}</p>
  ${S.pc?.bg?`<p class="meta">Hintergrund: ${S.pc.bg}</p>`:''}${S.pc?.look?`<p class="meta">Aussehen: ${S.pc.look}</p>`:''}</div>`}
  else if(_menuTab==='inv'){const grid=document.createElement('div');grid.className='inv-grid';
  (S.inv||[]).forEach((it,idx)=>{const item=itemFromStr(it);const cell=document.createElement('button');cell.type='button';cell.className='inv-cell r-'+rarityOf(item);
@@ -1719,13 +1731,13 @@ $('#btnGateSave').onclick=()=>{const gk=$('#gateKey').value.trim();if(!gk){toast
  toast('Alles bereit.');gmFetch(gk,true).then(()=>gmProbe(gk).catch(()=>{}));enterPlay()};
 $('#btnGateSkip').onclick=()=>{cfg.mode='offline';cfg.v2=1;localStorage.setItem(CFG,JSON.stringify(cfg));enterPlay()};
 
-window.__game={discoverThing,showCodexInline,Level,UI14,Know,Cont,lastPromptDump,advanceTimeMinutes,applyActionDuration,newGrey,greyDetails,loadGrey,loadPack,get S(){return S},act,newLife,gBody,msgs,gmRank,gmProbe,parseStream,thinkingCfg,gmOrder,readSSE,STREAM_DELIM,migrate,worldTick,bumpRel,openMenu,stageName,offline,startIntro,setSceneImage,setPortrait,imgUrl,advanceTime,phaseLabel,typewrite,enterPlay,showTitle,analyzeImage,applySceneTheme,themeFromText,loadValidatedImage,openingNarration,travelTo,parseTravel,killNPC,robNPC,addMemory,memoryHint,startProcedural,offlineGenerateWorld,generateWorldPack,GENRES,travelChoices,ensureGraph,whoHere,parseLifeSim,Sim,Persist,WorldMap,Econ,Codex,UI13,save,loadSave,applyCatchUp,findAnyNpc};
+window.__setCfg=o=>{cfg=Object.assign(cfg||{},o||{});try{localStorage.setItem(CFG,JSON.stringify(cfg))}catch(_){}};window.__game={discoverThing,showCodexInline,Level,UI14,Know,Cont,lastPromptDump,advanceTimeMinutes,applyActionDuration,newGrey,greyDetails,loadGrey,loadPack,get S(){return S},act,newLife,gBody,msgs,gmRank,gmProbe,parseStream,thinkingCfg,gmOrder,readSSE,STREAM_DELIM,migrate,worldTick,bumpRel,openMenu,stageName,offline,startIntro,setSceneImage,setPortrait,imgUrl,advanceTime,phaseLabel,typewrite,enterPlay,showTitle,analyzeImage,applySceneTheme,themeFromText,loadValidatedImage,openingNarration,travelTo,parseTravel,killNPC,robNPC,addMemory,memoryHint,startProcedural,offlineGenerateWorld,generateWorldPack,GENRES,travelChoices,ensureGraph,whoHere,parseLifeSim,Sim,Persist,WorldMap,Econ,Codex,UI13,save,loadSave,applyCatchUp,findAnyNpc};
 window.__game.askNPC=a=>askNPC(a);window.__game.gemini=gemini;
 if(cfg.gkey)gmFetch(cfg.gkey.trim()).then(()=>gmProbe(cfg.gkey.trim()).catch(()=>{})).catch(()=>{});
 (function(){const root=document.documentElement;const apply=()=>{try{const vv=window.visualViewport;if(!vv)return;const kb=Math.max(0,window.innerHeight-vv.height-vv.offsetTop);root.style.setProperty('--kb',kb+'px')}catch(_){}};
  if(window.visualViewport){visualViewport.addEventListener('resize',apply);visualViewport.addEventListener('scroll',apply)}
  window.addEventListener('focusin',e=>{if(e.target&&e.target.id==='txt'){setTimeout(()=>{try{e.target.scrollIntoView({block:'end',behavior:'smooth'})}catch(_){};apply()},300)}});
  $('#txt')&&$('#txt').addEventListener('blur',()=>root.style.setProperty('--kb','0px'))})();
-try{if('serviceWorker' in navigator&&navigator.serviceWorker){navigator.serviceWorker.register('./sw.js?v=13.1').catch(()=>{});
+try{if('serviceWorker' in navigator&&navigator.serviceWorker){navigator.serviceWorker.register('./sw.js?v=14').catch(()=>{});
  navigator.serviceWorker.addEventListener('controllerchange',()=>{if(sessionStorage.getItem('isekai_sw_reloaded'))return;sessionStorage.setItem('isekai_sw_reloaded','1');location.reload()})}}catch(_){}
 showTitle();

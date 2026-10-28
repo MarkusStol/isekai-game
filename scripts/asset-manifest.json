@@ -1,0 +1,1306 @@
+[
+  {
+    "kind": "bg",
+    "path": "assets/bg/held/beschwoerungshalle-abend.webp",
+    "prompt": "fantasy summoning hall marble palace torches evening ceremonial circle vertical, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 896,
+    "seed": 30931
+  },
+  {
+    "kind": "bg",
+    "path": "assets/bg/held/beschwoerungshalle-tag.webp",
+    "prompt": "fantasy summoning hall marble palace daylight stained glass vertical, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 896,
+    "seed": 28224
+  },
+  {
+    "kind": "bg",
+    "path": "assets/bg/held/beschwoerungshalle-nacht.webp",
+    "prompt": "fantasy summoning hall moonlit empty circle night vertical, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 896,
+    "seed": 39672
+  },
+  {
+    "kind": "bg",
+    "path": "assets/bg/held/beschwoerungshalle-morgen.webp",
+    "prompt": "fantasy summoning hall dawn soft light incense vertical, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 896,
+    "seed": 53627
+  },
+  {
+    "kind": "bg",
+    "path": "assets/bg/held/markt-tag.webp",
+    "prompt": "anime fantasy medieval market plaza sunny banners spices vertical, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 896,
+    "seed": 19854
+  },
+  {
+    "kind": "bg",
+    "path": "assets/bg/held/markt-nacht.webp",
+    "prompt": "anime fantasy medieval market night lanterns vertical, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 896,
+    "seed": 58493
+  },
+  {
+    "kind": "bg",
+    "path": "assets/bg/held/markt-abend.webp",
+    "prompt": "anime fantasy medieval market sunset vertical, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 896,
+    "seed": 67234
+  },
+  {
+    "kind": "bg",
+    "path": "assets/bg/held/elfenwald-nacht.webp",
+    "prompt": "anime glowing elf forest night bioluminescent vertical, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 896,
+    "seed": 44504
+  },
+  {
+    "kind": "bg",
+    "path": "assets/bg/held/elfenwald-tag.webp",
+    "prompt": "anime sunlit elf forest ancient trees vertical, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 896,
+    "seed": 91712
+  },
+  {
+    "kind": "bg",
+    "path": "assets/bg/held/hafen-tag.webp",
+    "prompt": "anime fantasy harbor ships seagulls daylight vertical, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 896,
+    "seed": 27138
+  },
+  {
+    "kind": "bg",
+    "path": "assets/bg/held/hafen-nacht.webp",
+    "prompt": "anime fantasy harbor night lanterns vertical, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 896,
+    "seed": 42466
+  },
+  {
+    "kind": "bg",
+    "path": "assets/bg/held/thron-abend.webp",
+    "prompt": "anime royal throne hall purple banners evening vertical, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 896,
+    "seed": 72597
+  },
+  {
+    "kind": "bg",
+    "path": "assets/bg/held/thron-tag.webp",
+    "prompt": "anime royal throne hall daylight grandeur vertical, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 896,
+    "seed": 58272
+  },
+  {
+    "kind": "bg",
+    "path": "assets/bg/held/thron-nacht.webp",
+    "prompt": "anime royal throne hall night candlelight vertical, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 896,
+    "seed": 81338
+  },
+  {
+    "kind": "bg",
+    "path": "assets/bg/held/taverne-abend.webp",
+    "prompt": "anime cozy fantasy tavern warm fire evening vertical, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 896,
+    "seed": 2154
+  },
+  {
+    "kind": "bg",
+    "path": "assets/bg/held/taverne-nacht.webp",
+    "prompt": "anime fantasy tavern late night candles vertical, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 896,
+    "seed": 10895
+  },
+  {
+    "kind": "bg",
+    "path": "assets/bg/held/nordwall-tag.webp",
+    "prompt": "anime fortress northern wall snow mountains day vertical, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 896,
+    "seed": 81762
+  },
+  {
+    "kind": "bg",
+    "path": "assets/bg/held/nordwall-nacht.webp",
+    "prompt": "anime fortress wall snow night aurora vertical, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 896,
+    "seed": 82696
+  },
+  {
+    "kind": "bg",
+    "path": "assets/bg/held/palastgarten-tag.webp",
+    "prompt": "anime palace garden fountain hedges daylight vertical, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 896,
+    "seed": 66301
+  },
+  {
+    "kind": "bg",
+    "path": "assets/bg/held/palastgarten-nacht.webp",
+    "prompt": "anime palace garden moonlight fountain vertical, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 896,
+    "seed": 1754
+  },
+  {
+    "kind": "bg",
+    "path": "assets/bg/held/unterstadt-tag.webp",
+    "prompt": "anime fantasy undercity alleys market day vertical, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 896,
+    "seed": 79135
+  },
+  {
+    "kind": "bg",
+    "path": "assets/bg/held/unterstadt-nacht.webp",
+    "prompt": "anime fantasy undercity alleys lanterns night vertical, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 896,
+    "seed": 38836
+  },
+  {
+    "kind": "bg",
+    "path": "assets/bg/zombie/parkplatz-abend.webp",
+    "prompt": "post apocalypse empty parking lot sunset abandoned cars anime vertical, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 896,
+    "seed": 34737
+  },
+  {
+    "kind": "bg",
+    "path": "assets/bg/zombie/parkplatz-nacht.webp",
+    "prompt": "zombie apocalypse parking lot night fog anime vertical, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 896,
+    "seed": 25996
+  },
+  {
+    "kind": "bg",
+    "path": "assets/bg/zombie/safehouse-nacht.webp",
+    "prompt": "anime boarded safehouse interior candlelight night vertical, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 896,
+    "seed": 31655
+  },
+  {
+    "kind": "bg",
+    "path": "assets/bg/zombie/safehouse-tag.webp",
+    "prompt": "anime fortified safehouse daylight barricades vertical, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 896,
+    "seed": 16325
+  },
+  {
+    "kind": "bg",
+    "path": "assets/bg/zombie/stadt-tag.webp",
+    "prompt": "anime ruined city street daylight overgrown vertical, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 896,
+    "seed": 24761
+  },
+  {
+    "kind": "bg",
+    "path": "assets/bg/zombie/stadt-nacht.webp",
+    "prompt": "anime ruined city night fires distant vertical, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 896,
+    "seed": 73133
+  },
+  {
+    "kind": "bg",
+    "path": "assets/bg/zombie/mall-abend.webp",
+    "prompt": "anime abandoned shopping mall evening vertical, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 896,
+    "seed": 69275
+  },
+  {
+    "kind": "bg",
+    "path": "assets/bg/zombie/waldlager-tag.webp",
+    "prompt": "anime survivor camp forest daylight tents vertical, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 896,
+    "seed": 63389
+  },
+  {
+    "kind": "bg",
+    "path": "assets/bg/cyberpunk/neon-gasse.webp",
+    "prompt": "anime cyberpunk neon alley rain night vertical, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 896,
+    "seed": 41809
+  },
+  {
+    "kind": "bg",
+    "path": "assets/bg/cyberpunk/neon-gasse-tag.webp",
+    "prompt": "anime cyberpunk alley daylight holographic ads vertical, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 896,
+    "seed": 20202
+  },
+  {
+    "kind": "bg",
+    "path": "assets/bg/cyberpunk/club-nacht.webp",
+    "prompt": "anime cyberpunk nightclub neon interior vertical, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 896,
+    "seed": 40718
+  },
+  {
+    "kind": "bg",
+    "path": "assets/bg/cyberpunk/dach-nacht.webp",
+    "prompt": "anime cyberpunk rooftop city lights night vertical, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 896,
+    "seed": 73918
+  },
+  {
+    "kind": "bg",
+    "path": "assets/bg/cyberpunk/lab-tag.webp",
+    "prompt": "anime cyberpunk laboratory chrome daylight vertical, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 896,
+    "seed": 42425
+  },
+  {
+    "kind": "bg",
+    "path": "assets/bg/cyberpunk/markt-nacht.webp",
+    "prompt": "anime cyberpunk night market stalls neon vertical, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 896,
+    "seed": 87266
+  },
+  {
+    "kind": "bg",
+    "path": "assets/bg/cyberpunk/wohnblock-abend.webp",
+    "prompt": "anime cyberpunk apartment block evening vertical, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 896,
+    "seed": 39120
+  },
+  {
+    "kind": "bg",
+    "path": "assets/bg/cyberpunk/bahn-nacht.webp",
+    "prompt": "anime cyberpunk maglev station night vertical, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 896,
+    "seed": 76095
+  },
+  {
+    "kind": "bg",
+    "path": "assets/bg/darkfantasy/asche-thron.webp",
+    "prompt": "dark fantasy ash throne hall crimson anime vertical, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 896,
+    "seed": 13419
+  },
+  {
+    "kind": "bg",
+    "path": "assets/bg/darkfantasy/asche-thron-nacht.webp",
+    "prompt": "dark fantasy ruined throne night blood moon vertical, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 896,
+    "seed": 71020
+  },
+  {
+    "kind": "bg",
+    "path": "assets/bg/darkfantasy/kathedrale-nacht.webp",
+    "prompt": "dark fantasy ruined cathedral night vertical, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 896,
+    "seed": 42856
+  },
+  {
+    "kind": "bg",
+    "path": "assets/bg/darkfantasy/sumpf-abend.webp",
+    "prompt": "dark fantasy cursed swamp evening mist vertical, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 896,
+    "seed": 81322
+  },
+  {
+    "kind": "bg",
+    "path": "assets/bg/darkfantasy/kerker-nacht.webp",
+    "prompt": "dark fantasy dungeon torchlit vertical, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 896,
+    "seed": 14995
+  },
+  {
+    "kind": "bg",
+    "path": "assets/bg/darkfantasy/friedhof-nacht.webp",
+    "prompt": "dark fantasy graveyard fog night vertical, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 896,
+    "seed": 79513
+  },
+  {
+    "kind": "bg",
+    "path": "assets/bg/darkfantasy/burg-tag.webp",
+    "prompt": "dark fantasy bleak castle daylight grey vertical, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 896,
+    "seed": 86764
+  },
+  {
+    "kind": "bg",
+    "path": "assets/bg/darkfantasy/opferaltar-nacht.webp",
+    "prompt": "dark fantasy ritual altar night candles vertical, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 896,
+    "seed": 12992
+  },
+  {
+    "kind": "bg",
+    "path": "assets/bg/postapoc/wueste-tag.webp",
+    "prompt": "anime post apocalypse desert ruins daylight vertical, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 896,
+    "seed": 3260
+  },
+  {
+    "kind": "bg",
+    "path": "assets/bg/postapoc/wueste-nacht.webp",
+    "prompt": "anime desert ruins night stars vertical, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 896,
+    "seed": 29538
+  },
+  {
+    "kind": "bg",
+    "path": "assets/bg/postapoc/bunker-tag.webp",
+    "prompt": "anime underground bunker fluorescent vertical, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 896,
+    "seed": 92389
+  },
+  {
+    "kind": "bg",
+    "path": "assets/bg/postapoc/bunker-nacht.webp",
+    "prompt": "anime bunker red emergency lights vertical, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 896,
+    "seed": 49116
+  },
+  {
+    "kind": "bg",
+    "path": "assets/bg/postapoc/bruecke-abend.webp",
+    "prompt": "anime collapsed bridge evening dust vertical, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 896,
+    "seed": 4060
+  },
+  {
+    "kind": "bg",
+    "path": "assets/bg/postapoc/oasis-tag.webp",
+    "prompt": "anime desert oasis settlement day vertical, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 896,
+    "seed": 48191
+  },
+  {
+    "kind": "bg",
+    "path": "assets/bg/grey/bahnhof-nebel.webp",
+    "prompt": "foggy victorian train station greymourne mysterious anime muted vertical, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 896,
+    "seed": 25795
+  },
+  {
+    "kind": "bg",
+    "path": "assets/bg/grey/bahnhof-nebel-nacht.webp",
+    "prompt": "foggy train station night gaslamps greymourne vertical, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 896,
+    "seed": 29237
+  },
+  {
+    "kind": "bg",
+    "path": "assets/bg/grey/zugabteil.webp",
+    "prompt": "vintage train compartment foggy windows mysterious anime vertical, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 896,
+    "seed": 13058
+  },
+  {
+    "kind": "bg",
+    "path": "assets/bg/grey/zugabteil-nacht.webp",
+    "prompt": "train compartment night dim lamp mysterious vertical, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 896,
+    "seed": 56507
+  },
+  {
+    "kind": "bg",
+    "path": "assets/bg/grey/gasse-nebel.webp",
+    "prompt": "foggy cobblestone alley gaslamp greymourne vertical, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 896,
+    "seed": 43350
+  },
+  {
+    "kind": "bg",
+    "path": "assets/bg/grey/gasthaus-abend.webp",
+    "prompt": "foggy inn interior evening greymourne vertical, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 896,
+    "seed": 48041
+  },
+  {
+    "kind": "bg",
+    "path": "assets/bg/grey/kirche-nebel.webp",
+    "prompt": "foggy old church greymourne muted vertical, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 896,
+    "seed": 16503
+  },
+  {
+    "kind": "bg",
+    "path": "assets/bg/grey/hafen-nebel.webp",
+    "prompt": "foggy harbor greymourne muted tones vertical, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 896,
+    "seed": 16128
+  },
+  {
+    "kind": "bg",
+    "path": "assets/bg/daemon/thron-nacht.webp",
+    "prompt": "demon throne hall bones velvet night anime vertical, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 896,
+    "seed": 20647
+  },
+  {
+    "kind": "bg",
+    "path": "assets/bg/daemon/thron-tag.webp",
+    "prompt": "demon throne hall bones daylight anime vertical, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 896,
+    "seed": 83903
+  },
+  {
+    "kind": "bg",
+    "path": "assets/bg/villainess/salon-abend.webp",
+    "prompt": "ornate noble salon mirrors roses evening anime vertical, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 896,
+    "seed": 86350
+  },
+  {
+    "kind": "bg",
+    "path": "assets/bg/villainess/salon-tag.webp",
+    "prompt": "ornate noble salon daylight anime vertical, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 896,
+    "seed": 97858
+  },
+  {
+    "kind": "bg",
+    "path": "assets/bg/mensch/waldpfad-tag.webp",
+    "prompt": "quiet forest path village daylight anime vertical, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 896,
+    "seed": 36115
+  },
+  {
+    "kind": "bg",
+    "path": "assets/bg/mensch/waldpfad-nacht.webp",
+    "prompt": "quiet forest path night anime vertical, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 896,
+    "seed": 92578
+  },
+  {
+    "kind": "bg",
+    "path": "assets/bg/highfantasy/kristall.webp",
+    "prompt": "crystal palace fantasy anime vertical, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 896,
+    "seed": 4384
+  },
+  {
+    "kind": "bg",
+    "path": "assets/bg/proc/default-abend.webp",
+    "prompt": "anime fantasy landscape evening vertical, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 896,
+    "seed": 69733
+  },
+  {
+    "kind": "bg",
+    "path": "assets/bg/proc/default-tag.webp",
+    "prompt": "anime fantasy landscape daylight vertical, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 896,
+    "seed": 61196
+  },
+  {
+    "kind": "bg",
+    "path": "assets/bg/proc/default-nacht.webp",
+    "prompt": "anime fantasy landscape night vertical, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 896,
+    "seed": 39001
+  },
+  {
+    "kind": "port",
+    "path": "assets/port/elise.webp",
+    "prompt": "beautiful anime princess long golden blonde hair blue eyes elegant dress portrait bust looking at viewer, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 9459
+  },
+  {
+    "kind": "port",
+    "path": "assets/port/lyra.webp",
+    "prompt": "anime elven archer woman silver hair green eyes soft smile portrait bust, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 47983
+  },
+  {
+    "kind": "port",
+    "path": "assets/port/garrick.webp",
+    "prompt": "anime knight captain short brown hair beard armor portrait bust, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 59901
+  },
+  {
+    "kind": "port",
+    "path": "assets/port/orren.webp",
+    "prompt": "anime elderly court mage grey beard blue robes portrait bust, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 96035
+  },
+  {
+    "kind": "port",
+    "path": "assets/port/seris.webp",
+    "prompt": "anime young sorceress dark hair violet eyes portrait bust, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 28255
+  },
+  {
+    "kind": "port",
+    "path": "assets/port/rhett.webp",
+    "prompt": "anime military captain scar short black hair portrait bust, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 55694
+  },
+  {
+    "kind": "port",
+    "path": "assets/port/mira.webp",
+    "prompt": "anime merchant woman warm smile brown hair portrait bust, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 36775
+  },
+  {
+    "kind": "port",
+    "path": "assets/port/julian.webp",
+    "prompt": "anime noble young man soft features portrait bust, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 96549
+  },
+  {
+    "kind": "port",
+    "path": "assets/port/velka.webp",
+    "prompt": "anime dark priestess pale skin black hair portrait bust, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 21265
+  },
+  {
+    "kind": "port",
+    "path": "assets/port/brok.webp",
+    "prompt": "anime dwarf blacksmith muscular beard portrait bust, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 34203
+  },
+  {
+    "kind": "port",
+    "path": "assets/port/tom.webp",
+    "prompt": "anime young squire freckles earnest portrait bust, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 44444
+  },
+  {
+    "kind": "port",
+    "path": "assets/port/otto.webp",
+    "prompt": "anime farmer middle-aged kind weathered portrait bust, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 37506
+  },
+  {
+    "kind": "port",
+    "path": "assets/port/kael.webp",
+    "prompt": "anime spy hooded sharp eyes portrait bust, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 65523
+  },
+  {
+    "kind": "port",
+    "path": "assets/port/vael.webp",
+    "prompt": "anime necromancer pale hooded eerie portrait bust, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 46280
+  },
+  {
+    "kind": "port",
+    "path": "assets/port/heldin.webp",
+    "prompt": "anime fantasy heroine determined eyes portrait bust, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 7347
+  },
+  {
+    "kind": "port",
+    "path": "assets/port/ritter.webp",
+    "prompt": "anime armored knight open visor portrait bust, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 90034
+  },
+  {
+    "kind": "port",
+    "path": "assets/port/zombie/survivor-f.webp",
+    "prompt": "anime survivor woman messy hair determined portrait postapoc, portrait bust looking at viewer, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 84948
+  },
+  {
+    "kind": "port",
+    "path": "assets/port/zombie/survivor-m.webp",
+    "prompt": "anime survivor man stubble jacket portrait postapoc, portrait bust looking at viewer, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 7050
+  },
+  {
+    "kind": "port",
+    "path": "assets/port/zombie/medic.webp",
+    "prompt": "anime field medic woman tired eyes portrait, portrait bust looking at viewer, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 28697
+  },
+  {
+    "kind": "port",
+    "path": "assets/port/zombie/raider.webp",
+    "prompt": "anime raider scarred dangerous portrait, portrait bust looking at viewer, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 90394
+  },
+  {
+    "kind": "port",
+    "path": "assets/port/zombie/kid.webp",
+    "prompt": "anime child survivor hopeful dirty face portrait, portrait bust looking at viewer, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 13501
+  },
+  {
+    "kind": "port",
+    "path": "assets/port/zombie/leader.webp",
+    "prompt": "anime community leader grey temples portrait, portrait bust looking at viewer, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 58142
+  },
+  {
+    "kind": "port",
+    "path": "assets/port/zombie/scout.webp",
+    "prompt": "anime scout hoodie binoculars portrait, portrait bust looking at viewer, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 26173
+  },
+  {
+    "kind": "port",
+    "path": "assets/port/zombie/engineer.webp",
+    "prompt": "anime engineer grease stains goggles portrait, portrait bust looking at viewer, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 50050
+  },
+  {
+    "kind": "port",
+    "path": "assets/port/zombie/guard.webp",
+    "prompt": "anime gate guard rifle postapoc portrait, portrait bust looking at viewer, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 6939
+  },
+  {
+    "kind": "port",
+    "path": "assets/port/zombie/trader.webp",
+    "prompt": "anime scrap trader hooded portrait, portrait bust looking at viewer, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 63353
+  },
+  {
+    "kind": "port",
+    "path": "assets/port/zombie/infected.webp",
+    "prompt": "anime infected human yellowish eyes portrait horror, portrait bust looking at viewer, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 70022
+  },
+  {
+    "kind": "port",
+    "path": "assets/port/zombie/doctor.webp",
+    "prompt": "anime exhausted doctor coat torn portrait, portrait bust looking at viewer, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 65069
+  },
+  {
+    "kind": "port",
+    "path": "assets/port/cyberpunk/runner.webp",
+    "prompt": "anime cyberpunk netrunner woman neon hair portrait, portrait bust looking at viewer, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 97105
+  },
+  {
+    "kind": "port",
+    "path": "assets/port/cyberpunk/fixer.webp",
+    "prompt": "anime cyberpunk fixer suit implants portrait, portrait bust looking at viewer, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 23709
+  },
+  {
+    "kind": "port",
+    "path": "assets/port/cyberpunk/corpo.webp",
+    "prompt": "anime cyberpunk corporate executive cold portrait, portrait bust looking at viewer, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 49410
+  },
+  {
+    "kind": "port",
+    "path": "assets/port/cyberpunk/street.webp",
+    "prompt": "anime cyberpunk street samurai chrome arm portrait, portrait bust looking at viewer, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 28515
+  },
+  {
+    "kind": "port",
+    "path": "assets/port/cyberpunk/dj.webp",
+    "prompt": "anime cyberpunk dj neon makeup portrait, portrait bust looking at viewer, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 2205
+  },
+  {
+    "kind": "port",
+    "path": "assets/port/cyberpunk/hacker.webp",
+    "prompt": "anime cyberpunk hacker hoodie glow portrait, portrait bust looking at viewer, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 45909
+  },
+  {
+    "kind": "port",
+    "path": "assets/port/cyberpunk/cop.webp",
+    "prompt": "anime cyberpunk police officer visor portrait, portrait bust looking at viewer, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 40656
+  },
+  {
+    "kind": "port",
+    "path": "assets/port/cyberpunk/idol.webp",
+    "prompt": "anime cyberpunk idol singer holographic portrait, portrait bust looking at viewer, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 51064
+  },
+  {
+    "kind": "port",
+    "path": "assets/port/cyberpunk/mechanic.webp",
+    "prompt": "anime cyberpunk mechanic grease portrait, portrait bust looking at viewer, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 91052
+  },
+  {
+    "kind": "port",
+    "path": "assets/port/cyberpunk/ai-face.webp",
+    "prompt": "anime android face uncanny soft portrait, portrait bust looking at viewer, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 9959
+  },
+  {
+    "kind": "port",
+    "path": "assets/port/cyberpunk/bartender.webp",
+    "prompt": "anime cyberpunk bartender neon bar portrait, portrait bust looking at viewer, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 78115
+  },
+  {
+    "kind": "port",
+    "path": "assets/port/cyberpunk/smuggler.webp",
+    "prompt": "anime cyberpunk smuggler coat portrait, portrait bust looking at viewer, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 33455
+  },
+  {
+    "kind": "port",
+    "path": "assets/port/darkfantasy/hexe.webp",
+    "prompt": "anime dark witch pale long hair portrait, portrait bust looking at viewer, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 61481
+  },
+  {
+    "kind": "port",
+    "path": "assets/port/darkfantasy/vampir.webp",
+    "prompt": "anime vampire noble red eyes portrait, portrait bust looking at viewer, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 39803
+  },
+  {
+    "kind": "port",
+    "path": "assets/port/darkfantasy/jaeger.webp",
+    "prompt": "anime monster hunter coat scars portrait, portrait bust looking at viewer, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 12
+  },
+  {
+    "kind": "port",
+    "path": "assets/port/darkfantasy/geist.webp",
+    "prompt": "anime ghostly woman translucent portrait, portrait bust looking at viewer, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 4777
+  },
+  {
+    "kind": "port",
+    "path": "assets/port/darkfantasy/demon.webp",
+    "prompt": "anime demon horns elegant portrait, portrait bust looking at viewer, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 88657
+  },
+  {
+    "kind": "port",
+    "path": "assets/port/darkfantasy/paladin.webp",
+    "prompt": "anime fallen paladin cracked armor portrait, portrait bust looking at viewer, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 8304
+  },
+  {
+    "kind": "port",
+    "path": "assets/port/darkfantasy/orakel.webp",
+    "prompt": "anime oracle blindfold mystic portrait, portrait bust looking at viewer, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 51247
+  },
+  {
+    "kind": "port",
+    "path": "assets/port/darkfantasy/skelett-ritter.webp",
+    "prompt": "anime skeletal knight armor portrait, portrait bust looking at viewer, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 77647
+  },
+  {
+    "kind": "port",
+    "path": "assets/port/darkfantasy/kultist.webp",
+    "prompt": "anime cultist hood shadows portrait, portrait bust looking at viewer, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 42640
+  },
+  {
+    "kind": "port",
+    "path": "assets/port/darkfantasy/blutmagier.webp",
+    "prompt": "anime blood mage crimson eyes portrait, portrait bust looking at viewer, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 27182
+  },
+  {
+    "kind": "port",
+    "path": "assets/port/darkfantasy/schatten.webp",
+    "prompt": "anime shadow assassin mask portrait, portrait bust looking at viewer, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 69339
+  },
+  {
+    "kind": "port",
+    "path": "assets/port/darkfantasy/koenigin-nacht.webp",
+    "prompt": "anime dark queen crown black gown portrait, portrait bust looking at viewer, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 17051
+  },
+  {
+    "kind": "port",
+    "path": "assets/port/postapoc/nomade.webp",
+    "prompt": "anime desert nomad scarf portrait, portrait bust looking at viewer, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 1502
+  },
+  {
+    "kind": "port",
+    "path": "assets/port/postapoc/tech.webp",
+    "prompt": "anime scavenger tech goggles portrait, portrait bust looking at viewer, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 48677
+  },
+  {
+    "kind": "port",
+    "path": "assets/port/postapoc/warlord.webp",
+    "prompt": "anime wasteland warlord armor portrait, portrait bust looking at viewer, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 50227
+  },
+  {
+    "kind": "port",
+    "path": "assets/port/postapoc/seer.webp",
+    "prompt": "anime mystic seer sand robes portrait, portrait bust looking at viewer, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 96349
+  },
+  {
+    "kind": "port",
+    "path": "assets/port/postapoc/driver.webp",
+    "prompt": "anime jeep driver goggles portrait, portrait bust looking at viewer, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 57481
+  },
+  {
+    "kind": "port",
+    "path": "assets/port/postapoc/child-dust.webp",
+    "prompt": "anime dusty child hopeful portrait, portrait bust looking at viewer, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 79469
+  },
+  {
+    "kind": "port",
+    "path": "assets/port/postapoc/trader-sand.webp",
+    "prompt": "anime sand trader mask portrait, portrait bust looking at viewer, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 34622
+  },
+  {
+    "kind": "port",
+    "path": "assets/port/postapoc/guard-wall.webp",
+    "prompt": "anime wall guard spear portrait, portrait bust looking at viewer, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 84433
+  },
+  {
+    "kind": "port",
+    "path": "assets/port/postapoc/mechanic-dust.webp",
+    "prompt": "anime dust mechanic portrait, portrait bust looking at viewer, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 34348
+  },
+  {
+    "kind": "port",
+    "path": "assets/port/postapoc/priest-ash.webp",
+    "prompt": "anime ash priest robes portrait, portrait bust looking at viewer, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 37645
+  },
+  {
+    "kind": "port",
+    "path": "assets/port/postapoc/hunter-dune.webp",
+    "prompt": "anime dune hunter hood portrait, portrait bust looking at viewer, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 43801
+  },
+  {
+    "kind": "port",
+    "path": "assets/port/postapoc/elder.webp",
+    "prompt": "anime wasteland elder wrinkles portrait, portrait bust looking at viewer, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 76565
+  },
+  {
+    "kind": "port",
+    "path": "assets/port/grey/darren.webp",
+    "prompt": "anime tired cook man stubble soft eyes greymourne portrait, portrait bust looking at viewer, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 2237
+  },
+  {
+    "kind": "port",
+    "path": "assets/port/grey/schaffner.webp",
+    "prompt": "anime train conductor stern portrait, portrait bust looking at viewer, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 61936
+  },
+  {
+    "kind": "port",
+    "path": "assets/port/grey/alte-frau.webp",
+    "prompt": "anime elderly woman knowing eyes fog portrait, portrait bust looking at viewer, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 73389
+  },
+  {
+    "kind": "port",
+    "path": "assets/port/grey/kind-nebel.webp",
+    "prompt": "anime pale child foggy mysterious portrait, portrait bust looking at viewer, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 69173
+  },
+  {
+    "kind": "port",
+    "path": "assets/port/grey/wirt.webp",
+    "prompt": "anime innkeeper apron greymourne portrait, portrait bust looking at viewer, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 48879
+  },
+  {
+    "kind": "port",
+    "path": "assets/port/grey/polizist.webp",
+    "prompt": "anime foggy town constable portrait, portrait bust looking at viewer, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 60446
+  },
+  {
+    "kind": "port",
+    "path": "assets/port/grey/kuenstlerin.webp",
+    "prompt": "anime mysterious artist woman portrait fog, portrait bust looking at viewer, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 80879
+  },
+  {
+    "kind": "port",
+    "path": "assets/port/grey/arzt.webp",
+    "prompt": "anime victorian doctor greymourne portrait, portrait bust looking at viewer, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 47419
+  },
+  {
+    "kind": "port",
+    "path": "assets/port/grey/schauspieler.webp",
+    "prompt": "anime traveling actor dramatic portrait, portrait bust looking at viewer, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 2972
+  },
+  {
+    "kind": "port",
+    "path": "assets/port/grey/matrose.webp",
+    "prompt": "anime sailor foggy harbor portrait, portrait bust looking at viewer, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 47696
+  },
+  {
+    "kind": "port",
+    "path": "assets/port/grey/pfarrerin.webp",
+    "prompt": "anime foggy parish priestess portrait, portrait bust looking at viewer, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 32471
+  },
+  {
+    "kind": "port",
+    "path": "assets/port/grey/bibliothek.webp",
+    "prompt": "anime librarian glasses fog portrait, portrait bust looking at viewer, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 81666
+  },
+  {
+    "kind": "creature",
+    "path": "assets/creature/schattenwolf.webp",
+    "prompt": "anime shadow wolf monster glowing eyes dark fur, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 94118
+  },
+  {
+    "kind": "creature",
+    "path": "assets/creature/schleim.webp",
+    "prompt": "anime cute dangerous slime monster green, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 41452
+  },
+  {
+    "kind": "creature",
+    "path": "assets/creature/drache.webp",
+    "prompt": "anime fantasy dragon majestic scales, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 30170
+  },
+  {
+    "kind": "creature",
+    "path": "assets/creature/goblin.webp",
+    "prompt": "anime goblin creature mischievous, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 73132
+  },
+  {
+    "kind": "creature",
+    "path": "assets/creature/skelett.webp",
+    "prompt": "anime skeleton warrior fantasy, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 57494
+  },
+  {
+    "kind": "creature",
+    "path": "assets/creature/greifung.webp",
+    "prompt": "anime griffin majestic creature, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 25462
+  },
+  {
+    "kind": "creature",
+    "path": "assets/creature/daemon-bestie.webp",
+    "prompt": "anime demon beast horns, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 53938
+  },
+  {
+    "kind": "creature",
+    "path": "assets/creature/zombie-hund.webp",
+    "prompt": "anime zombie dog horror, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 26988
+  },
+  {
+    "kind": "weapon",
+    "path": "assets/weapon/mondklinge.webp",
+    "prompt": "anime fantasy silver moon sword glowing item icon, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 542
+  },
+  {
+    "kind": "weapon",
+    "path": "assets/weapon/feuerstab.webp",
+    "prompt": "anime mage fire staff crystal item icon, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 42343
+  },
+  {
+    "kind": "weapon",
+    "path": "assets/weapon/schattenbogen.webp",
+    "prompt": "anime dark bow arrows item icon, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 80596
+  },
+  {
+    "kind": "weapon",
+    "path": "assets/weapon/neonklinge.webp",
+    "prompt": "anime cyberpunk energy katana item icon, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 65538
+  },
+  {
+    "kind": "weapon",
+    "path": "assets/weapon/axt-nord.webp",
+    "prompt": "anime northern battle axe item icon, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 8387
+  },
+  {
+    "kind": "weapon",
+    "path": "assets/weapon/dolch-gift.webp",
+    "prompt": "anime ornate poison dagger item icon, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 512,
+    "h": 512,
+    "seed": 28468
+  },
+  {
+    "kind": "map",
+    "path": "assets/map/pergament.webp",
+    "prompt": "antique fantasy parchment world map illustrated ink anime, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 768,
+    "h": 512,
+    "seed": 9159
+  },
+  {
+    "kind": "map",
+    "path": "assets/map/stadtplan.webp",
+    "prompt": "anime fantasy city map illustrated top-down streets soft, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 768,
+    "h": 768,
+    "seed": 2343
+  },
+  {
+    "kind": "map",
+    "path": "assets/map/grey-karte.webp",
+    "prompt": "foggy greymourne town map parchment mysterious, anime style illustration, high quality, detailed, no text, no watermark, no logo",
+    "w": 768,
+    "h": 512,
+    "seed": 17989
+  }
+]

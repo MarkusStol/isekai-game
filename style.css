@@ -59,7 +59,7 @@ body.greyw .speaker{color:#c9ced6}
 .portrait-ph{position:absolute;inset:0;display:grid;place-items:center;font-size:28px;background:linear-gradient(160deg,#3a1a5c,#1a0f2e)}
 .vn-box{flex:1;min-height:110px;max-height:38vh;background:linear-gradient(180deg,#1a1040ee,#120a28f2);border:1px solid #ffffff28;border-radius:16px;padding:10px 12px 12px;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:0 8px 32px #0009;position:relative;overflow:hidden}
 .speaker{display:inline-block;font-size:12px;font-weight:800;letter-spacing:.04em;background:linear-gradient(90deg,#ff8fc8,#a78bfa);color:#1a0a20;padding:3px 10px;border-radius:8px;margin-bottom:6px}
-.vn-text{font-size:15.5px;line-height:1.55;white-space:pre-wrap;min-height:3.2em;overflow-y:auto;-webkit-overflow-scrolling:touch;max-height:28vh}
+.vn-text{min-height:4.5em;font-size:15.5px;line-height:1.55;white-space:pre-wrap;min-height:3.2em;overflow-y:auto;-webkit-overflow-scrolling:touch;max-height:28vh}
 .vn-text .caret{display:inline-block;width:.55em;animation:blink 1s step-end infinite;opacity:.7}
 @keyframes blink{50%{opacity:0}}
 .vn-tap{position:absolute;right:12px;bottom:6px;font-size:11px;opacity:.55;animation:bounce 1.2s ease infinite}
@@ -201,7 +201,7 @@ html,body{font-family:var(--font-body);letter-spacing:.01em}
 .vn-frame{pointer-events:none;position:absolute;inset:4px;border:1px solid #f0d59a33;border-radius:14px;box-shadow:inset 0 0 24px #a78bfa22}
 .vn-box::before{content:'';position:absolute;left:12px;right:12px;top:0;height:2px;background:linear-gradient(90deg,transparent,var(--gold),transparent);opacity:.7}
 .nameplate,.speaker{font-family:var(--font-title);display:inline-block;background:linear-gradient(135deg,#7c3aed,#db2777);color:#fff;padding:4px 14px;border-radius:999px;border:1px solid var(--gold);box-shadow:0 4px 14px #db277766;font-size:13px;letter-spacing:.04em;margin-bottom:8px}
-.vn-text{font-size:15.5px;line-height:1.55;color:#f5f0ff;text-shadow:0 1px 2px #0008;min-height:4.5em}
+.vn-text{min-height:4.5em;font-size:15.5px;line-height:1.55;color:#f5f0ff;text-shadow:0 1px 2px #0008;min-height:4.5em}
 .vn-tap{color:var(--gold);animation:blink 1.2s infinite}
 
 /* Portrait frame */

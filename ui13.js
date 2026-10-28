@@ -89,11 +89,20 @@ export function renderCodex(body, S, {setSceneImage, imgUrl}){
   const tabs=document.createElement('div'); tabs.className='row'; tabs.style.flexWrap='wrap';
   body.appendChild(tabs);
   const panel=document.createElement('div'); body.appendChild(panel);
+  const localPort=(name)=>{
+    const slug=String(name||'').toLowerCase().split(/\s+/).pop();
+    const map={elise:'elise',lyra:'lyra',garrick:'garrick',orren:'orren',seris:'seris',rhett:'rhett',mira:'mira',julian:'julian',velka:'velka',brok:'brok',tom:'tom',otto:'otto',heldin:'heldin',ritter:'ritter'};
+    for(const[k,v]of Object.entries(map)){if(String(name||'').toLowerCase().includes(k))return 'assets/port/'+v+'.webp'}
+    return 'assets/port/'+slug+'.webp';
+  };
   const mkImg=(e)=>{
-    if(!imgUrl)return '';
     const seed=[...String(e.id||e.name)].reduce((a,c)=>a+c.charCodeAt(0),0)||42;
-    const url=imgUrl(e.imagePrompt||(e.cat+' '+e.name+' anime fantasy'),256,256,seed,false);
-    return '<img class="codex-thumb" src="'+url+'" alt="'+e.name+'" loading="lazy" width="96" height="96" style="float:right;border-radius:10px;object-fit:cover;margin:0 0 8px 8px;border:1px solid #f0d59a44"/>';
+    const remote=imgUrl?imgUrl(e.imagePrompt||(e.cat+' '+e.name+' anime fantasy'),256,256,seed,false):'';
+    const local=e.cat==='people'?localPort(e.name):(e.localImg||'');
+    const src=local||remote||'';
+    if(!src)return '';
+    const onerr=remote&&local?` onerror="this.onerror=null;this.src='${remote}'"`: '';
+    return '<img class="codex-thumb" src="'+src+'" alt="'+e.name+'" loading="lazy" width="96" height="96"'+onerr+' style="float:right;border-radius:10px;object-fit:cover;margin:0 0 8px 8px;border:1px solid #f0d59a44"/>';
   };
   const show=(cat)=>{
     panel.innerHTML='';
