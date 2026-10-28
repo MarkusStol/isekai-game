@@ -18,7 +18,7 @@ import * as Summons from './summons.js';
 import * as Equip from './equip.js';
 import * as Jrpg from './jrpg.js';
 const $=s=>document.querySelector(s);const $$=s=>[...document.querySelectorAll(s)];const R=a=>a[Math.floor(Math.random()*a.length)];const rnd=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
-const VER='20',CACHE_V='v20';
+const VER='20.1',CACHE_V='v20.1';
 const ROLES={
  held:{e:'⚔️',name:'Held mit Status-System',d:'Ein blaues Fenster erscheint: [Status]. Die Welt braucht dich.',world:'Königreich Aldheim',
   base:{hp:100,mp:40,str:12,cha:8,ruf:10,gold:40},cls:['Abenteurer','Ritter','Held','Legendärer Held'],pack:'worlds/held.json',
@@ -631,6 +631,7 @@ function migrate(raw){if(!raw)return null;const s=typeof raw==='string'?JSON.par
  if(Number(s.ver)<19){s.ver=19}
  if(Number(s.ver)<19.1){s.ver=19.1}
  if(Number(s.ver)<20){s.ver=20}
+ if(Number(s.ver)<20.1){s.ver=20.1}
  // v13.1 continuity+time always (kept in v14)
  try{Cont.ensureCont(s);if(s.cal&&s.cal.minute==null)s.cal.minute=0;if(s.cfgCatchupOptIn==null)s.cfgCatchupOptIn=false}catch(e){console.warn('cont migrate',e)}
  if(s.ver<14)s.ver=14;
@@ -1135,10 +1136,17 @@ function apply(ch){if(!ch)return;try{ch=Sim.validateChanges(S,ch)}catch(_){}cons
  if(ch.ending)return ending(String(ch.ending));checkEnd()}
 function checkEnd(){const s=S.st;if(isG()){if(s.hp<=0)return ending('Der Nebel hat deinen Verstand. Greymourne trägt deinen Namen jetzt in seinem Register.');if(s.ruf>=100)return ending('Die Schuld wiegt mehr als du. Die Stadt behält dich – AUSGEGEBEN: 1, ZURÜCK: 0.');return}
  if(s.hp<=0)return death();
- const top=Object.entries(S.romance||{}).find(([,v])=>(v.stage|0)>=5&&(v.affection|0)>=90);if(top)return ending(`Romantisches Ende mit ${top[0]} 💞`);
- if(s.lvl>=20)return ending('Legenden-Ende: Dein Name wird ewig besungen 👑');
- if(s.ruf>=150)return ending('Ruhmes-Ende: Das Volk krönt dich zur Hoffnung der Welt');
- if(s.ruf<=-150)return ending('Tyrannen-Ende: Die Welt kniet in Furcht vor dir')}
+ // Endings must not hijack ordinary turns (esp. Kampf/Gruß). Romance end only on explicit wish or long arc + romantic act.
+ const last=(S.cont?.lastPlayer||S.log?.filter(x=>x.k==='p').slice(-1)[0]?.t||'').toLowerCase();
+ const wantsEnd=/\b(ende|heirat|heiraten|bleib(e)? für immer|gemeinsames leben)\b/.test(last);
+ const romanticAct=/küss|umarm|liebe|heirat|date|nacht (mit|zusammen)|bleib bei/.test(last);
+ const deep=(S.turn|0)>=40;
+ const top=Object.entries(S.romance||{}).find(([,v])=>(v.stage|0)>=5&&(v.affection|0)>=90);
+ if(top && (wantsEnd || (deep && romanticAct)))
+   return ending(`Romantisches Ende mit ${top[0]} 💞`);
+ if(s.lvl>=20 && deep && wantsEnd) return ending('Legenden-Ende: Dein Name wird ewig besungen 👑');
+ if(s.ruf>=150 && deep && wantsEnd) return ending('Ruhmes-Ende: Das Volk krönt dich zur Hoffnung der Welt');
+ if(s.ruf<=-150 && deep && wantsEnd) return ending('Tyrannen-Ende: Die Welt kniet in Furcht vor dir')}
 function death(){pushSys(`💀 Du bist gestorben (Level ${S.st.lvl}).`);setTimeout(()=>reincarnate('Die Göttin seufzt: „Schon wieder? Na gut – nimm etwas mit.“'),600)}
 function ending(t){pushSys('🏁 ENDE: '+t);S.choices=[];hud();save();
  typewrite('Ende',t,()=>{});
@@ -1426,60 +1434,204 @@ function parseLifeSim(a){const t=a.toLowerCase();
   return null}
 function findAnyNpc(a){const t=a.toLowerCase();return Object.keys(S.world?.npcs||{}).find(n=>n.toLowerCase().split(/[\s\/]+/).some(p=>p.length>2&&t.includes(p.toLowerCase())))}
 
-function offline(a){const q=askNPC(a);if(q)return q;
- const life=parseLifeSim(a);if(life)return {text:life.text,changes:life.changes||{choices:travelChoices()}};
- const beast=parseCreatureEncounter(a);if(beast){const e=discoverThing('creature',beast,{desc:'Begegnung mit '+beast+'.',danger:2,behavior:'aggressiv oder scheu',habitat:S.world?.scene?.ort,inline:true});applyActionDuration('begegne '+beast,15);return {text:'Du begegnest '+beast+'. '+(e?Codex.inlineCard(e):''),changes:{xp:8,choices:travelChoices()}}}
- // crime first
- const crime=parseCrime(a);if(crime){const r=crime.type==='kill'?killNPC(crime.who,a):robNPC(crime.who);if(r.ok){if(crime.type==='kill')addMemory(crime.who,'(tot)','Tod');return {text:r.text,changes:r.changes}}}
- // travel — respect scene lock (same continuity package as live narrators)
- const dest=parseTravel(a);
- if(dest){
-  let locked=false; try{locked=Cont.isSceneLocked(S)&&!Cont.playerWantsExit(a)}catch(_){}
-  if(locked){
-   /* stay; fall through to talk/look prose */
-  }else{
-   const tr=travelTo(dest);if(tr.ok)return {text:tr.text,changes:tr.changes||{choices:travelChoices(tr.to),xp:5}}
-  }
- }
- // romance beats (consensual adults only)
- const rom=parseRomance(a);if(rom)return rom;
- if(isG()){const t=a.toLowerCase();const hit=/tür|öffn|klink/.test(t);
-  const txt=R(['Irgendwo schlägt eine Glocke, tief und unsauber. Du spürst sie im Brustbein.','Der Nebel antwortet nicht. Nur eine Uhr tickt, deren Zeiger stillstehen.','Aus einem Ablaufgitter: drei Schläge, Pause, zwei weitere.','Du zählst, ohne es zu wollen. Die Zahl stimmt nicht.']);
-  return {text:`„${a}“ – ${txt}`,changes:{hp:hit?-8:-2,ruf:0,choices:defChoices()}}}
- // genre systems (zombie etc.)
- if(S.genre==='zombie'||S.world?.systems?.hunger!=null){const sys=ensureSystems();const t=a.toLowerCase();
-  if(/ess|trink|wasser|hunger|durst|ration/.test(t)){sys.hunger=Math.max(0,(sys.hunger|0)-rnd(20,40));sys.thirst=Math.max(0,(sys.thirst|0)-rnd(15,35));return {text:'Du nimmst eine knappe Ration. Der Magen beruhigt sich – fürs Erste.',changes:{hp:rnd(5,15),choices:defChoices()}}}
-  if(/safehouse|versteck|barrikade|sichern/.test(t)){sys.safehouse=S.world.scene.ort;return {text:`Du sicherst ${S.world.scene.ort} so gut es geht. Ein Safehouse – vorerst.`,changes:{xp:15,choices:defChoices()}}}
-  if(/horde|zombie|infiziert|beißer/.test(t)){const win=Math.random()<0.4+(S.st.str||0)/100;sys.ammo=Math.max(0,(sys.ammo|0)-rnd(1,4));return {text:win?'Die Horde brandet auf – und reißt an dir vorbei. Du bleibst stehen.':'Zähne. Hände. Du entkommst knapp, kratzt und keuchst.',changes:{hp:win?-rnd(5,15):-rnd(20,40),xp:win?30:10,choices:defChoices()}}}
- }
- const t=a.toLowerCase(),s=S.st;const npcs=Object.keys(S.world?.npcs||{}).filter(n=>S.world.npcs[n].alive!==false);
- const who=npcs.find(n=>n.toLowerCase().split(/[ _]/).some(p=>p.length>2&&t.includes(p.toLowerCase())));
- let txt,ch={};
- if(/kämpf|kampf|angriff|greif|jag|monster|schlag|armee|befehl/.test(t)&&!/töt|mord|umbring/.test(t)){
-  const foes=pickEncounter(S,{noBoss:true,count: /armee|gruppe|trupp/.test(t)?2:1});
-  S.flags._offerEncounter={foes, blurb:`Feindseligkeit. ${foes.map(f=>f.name).join(", ")} — du entscheidest.`, forceAttack:/angriff|greif|schlag/.test(t)};
-  txt=`Du spürst den Konflikt mit ${foes.map(f=>f.name).join(", ")}. Kämpfen, reden, drohen, schleichen oder fliehen — deine Wahl.`;
-  ch={xp:5, choices:["Kämpfen","Reden / Überzeugen","Einschüchtern","Schleichen","Fliehen"]}}
- else if(/red|sprech|sag|frag|flirt|hilf|helf|plan|lieb|tee|party|erzähl|gestalt ansprechen|mit .+ sprechen/.test(t)||who){const present=(S.world.scene.anwesend||[]).filter(x=>S.world.npcs[x]?.alive!==false); const n=who||R(present.length?present:npcs);
-  const npc=S.world.npcs[n];const good=Math.random()<0.5+s.cha/50;
+function parsePlayerIntent(a){
+  const t=String(a||'').toLowerCase().trim();
+  if(!t) return {kind:'idle'};
+  // greet: word-boundary so "hi" ≠ "hilf"
+  if(/^(hallo|hi|hey|servus|moin|guten (tag|abend|morgen)|grü+ß|gruss|sei gegrüßt|peace)(!|\?|\.|…|\s|$)/i.test(t)
+     ||(/^(hallo|hey|servus|moin)\b/.test(t)||/^hi\b/.test(t)) && t.length<40) return {kind:'greet'};
+  if(/küss|kuss|umarm|flirt|date|liebe gestehen|nacht (mit|zusammen)|schlaf(en)? (mit|bei)/.test(t)) return {kind:'romance'};
+  if(/töt|mord|umbring|raub|bestehl|stehlen|klau/.test(t)) return {kind:'crime'};
+  if(/kämpf|angriff|greif|schlag(?!en wir)|attack|jag(e|en)? (den|die|das)|monster/.test(t)&&!/töt|mord/.test(t)) return {kind:'attack'};
+  if(/\bflieh|flucht|rückzug|renn weg|hau ab/.test(t)) return {kind:'flee'};
+  if(/\bhilf|rett mich|zu hilfe/.test(t)) return {kind:'ask'};
+  if(/geh|lauf|wander|reise|fahr|verlasse|auf dem weg|nach hause|fort\b|richtung/.test(t)) return {kind:'move'};
+  if(/umseh|um\s*sehen|sehe mich um|sieh(?:st)? dich um|erkund|schau dich|untersuch|wohn/.test(t)||/^(schau|sieh|guck)\b/.test(t)) return {kind:'look'};
+  if(/kauf|handel|preis|verkauf|brot|trinken kaufen|laden/.test(t)) return {kind:'buy'};
+  if(/nehm|nimm|heb|pick|sammel|nimm (den|die|das|es)/.test(t)) return {kind:'take'};
+  if(/benutz|nutze|trink|iss\b|essen|heiltrank|item|equip|anlegen/.test(t)) return {kind:'use'};
+  if(/schlaf|übernacht|ruh|rast|ausruhen|hinlegen/.test(t)) return {kind:'rest'};
+  if(/train|üb|lern|magie üben|studier/.test(t)) return {kind:'train'};
+  if(/wer bist|was bist|wie heißt|wer seid|was ist (dein|euer)|erzähl von dir/.test(t)) return {kind:'ask_who'};
+  if(/\?|was |wer |wie |wo |warum |wieso |weshalb |erzähl|frag|wissen|bedeutet/.test(t)) return {kind:'ask'};
+  if(/red|sprech|sag|unterhalt|ansprechen|mit .+ sprechen|hör zu|zuhören/.test(t)) return {kind:'talk'};
+  // short social / acknowledgment still talk, never random plot
+  if(t.length<=48 && /^(ja|nein|ok|okay|danke|bitte|entschuldig|hmm|äh|also|gut|weiter|mach|warum nicht)\b/.test(t)) return {kind:'talk'};
+  return {kind:'act'};
+}
+
+function presentCast(){
+  return (S.world?.scene?.anwesend||[]).filter(n=>S.world?.npcs?.[n]?.alive!==false);
+}
+function pickPresentNpc(a){
+  const t=String(a||'').toLowerCase();
+  const present=presentCast();
+  const hit=present.find(n=>n.toLowerCase().split(/[\s\/_\-]+/).some(p=>p.length>2&&t.includes(p.toLowerCase())));
+  if(hit) return hit;
+  const any=findAnyNpc(a); if(any&&present.includes(any)) return any;
+  return present[0]||null;
+}
+function npcLine(n, kind){
+  const npc=S.world?.npcs?.[n]; if(!npc) return null;
   let label=n; try{label=Know.displayName(S,n,npc)}catch(_){}
-  const wx=S.flags?.weather||Imm.weatherFor(S);
-  txt=Imm.richOfflineProse(S,a,{who:n,label,good,weather:wx,phase:phaseLabel()});
-  ch={affinity:{[n]:good?rnd(8,18):-rnd(2,8)},trust:{[n]:good?rnd(4,10):-1},xp:15,cha:good&&Math.random()<.3?1:0};
-  addMemory(n, good?`Gespräch (positiv) über: ${a.slice(0,40)}`:`Gespräch (angespannt) über: ${a.slice(0,40)}`,'Gespräch')}
- else if(/train|üb|lern|magie|zauber|stud/.test(t)){const cost=Math.min(s.mp,rnd(5,15));txt=`Du trainierst. ${R(['Schweiß und Fortschritt.','Ein neues Gefühl.','Mühsam, aber lohnend.'])}`;
-  ch={mp:-cost,xp:rnd(20,40),str:Math.random()<.5?1:0};if(Math.random()<.25)ch.newSkills=[{name:R(['Doppelschlag','Schildwall','Giftige Zunge','Schattenportal','Fallenbau','Kräuterkunde','Erste Hilfe']),icon:'✨',desc:'Neu erlernt',level:1,cost:5,cd:0}]}
- else if(/schlaf|übernacht/.test(t)){txt='Du schläfst bis zum Morgen.';ch={hp:rnd(20,40),mp:rnd(10,25)};Cont.sleepUntilMorning(S)}
- else if(/ruh|rast|ess|heil/.test(t)){txt='Du ruhst dich aus. Wärme kehrt zurück.';ch={hp:rnd(20,40),mp:rnd(10,25)};applyActionDuration(t.includes('ess')?'essen':'kurz ruhen',null)}
- else if(/intrig|lüg|schmied|spion|sabot/.test(t)){const ok=Math.random()<.55;txt=ok?'Dein Plan geht auf.':'Du wirst beinahe erwischt!';ch={xp:25,ruf:ok?rnd(-3,6):-10}}
- else if(/quest|auftrag|mission|hauptgeschichte|nebenquest|hook/.test(t)){const m=S.quests?.main;txt=m?`Du denkst an eine Möglichkeit – keinen Zwang: ${m.ziel}. (Optional.) Offene Haken: ${(m.objectives||[]).filter(o=>!(m.done||[]).includes(o)).join(', ')||'keine'}.`:'Kein Quest zwingt dich. Die Welt liegt offen.';ch={xp:5,choices:defChoices()}}
- else if(/umseh|um\s*sehen|sehe mich um|sieh(?:st)? dich um|erkund|schau|untersuch|wohn/.test(t)){const ex=exitsFrom(S.world.scene.ort);txt=`Du siehst dich in ${S.world.scene.ort} um. ${locNode(S.world.scene.ort)?.desc||''}${ex.length?' Wege führen nach: '+ex.slice(0,3).join(', ')+'.':''}`;ch={xp:8,choices:travelChoices()}}
- else{const ev=R([['Du findest etwas Verstecktes!',{items:[{name:R(['Goldmünzen','Alte Karte','Zauberring','Konserven']),icon:'📦',desc:'Gefunden',type:'misc'}],xp:20}],['Ein Händler hilft.',{xp:10,ruf:2}],['Eine Falle!',{hp:-rnd(8,18),xp:10}],['Ein Fremder flüstert deinen Namen.',{xp:15,ruf:3}],['Ruhige Gegend. Die Welt atmet weiter – ohne dich zu zerren.',{xp:20}]]);
-  txt=`Du versuchst: „${a}“. ${ev[0]}`;ch=ev[1]}
- ch.choices=ch.choices||travelChoices();
- // NO auto quest progress — freedom
- if(S.genre==='zombie'||S.world?.systems){const sys=ensureSystems();sys.hunger=Math.min(100,(sys.hunger|0)+rnd(3,8));sys.thirst=Math.min(100,(sys.thirst|0)+rnd(3,8));if(sys.hunger>80){ch.hp=(ch.hp|0)-rnd(2,6);txt+='\n\n(Hunger nagt.)'} if(sys.thirst>80){ch.hp=(ch.hp|0)-rnd(2,6);txt+='\n\n(Durst brennt.)'}}
- return {text:txt,changes:ch}}
+  // Prefer true name for spoken address when Know still masks as "jemand: …"
+  if(/^jemand\b/i.test(label) && n && !/^jemand\b/i.test(n)) label=String(n).split(/[\/]/)[0];
+  const stimme=String(npc.stimme||'').split(/[„"]/)[0].slice(0,60);
+  const samples=[];
+  if(npc.samples) samples.push(...npc.samples);
+  const quoted=[...(String(npc.stimme||'').match(/[„"]([^„"]+)[„"]/g)||[])].map(x=>x.replace(/[„"]/g,''));
+  samples.push(...quoted);
+  const greet=R([
+    `„${R(['…Hallo.','Ja?','Ich höre.','Sprich.'])}“`,
+    `${label} mustert dich kurz. „Was willst du?“`,
+    `${label} nickt knapp — eine Antwort auf deinen Gruß.`
+  ]);
+  const who=R([
+    `„Ich bin ${label}.“ ${stimme?`(${stimme.trim()}) `:''}${String(npc.art||'').split(/[.;]/)[0].slice(0,90)}.`,
+    `${label}: „Namen hast du gehört. Mehr verdienst du dir.“`
+  ]);
+  if(kind==='greet') return `${label} erwidert deinen Gruß. ${samples[0]?`„${samples[0]}“`:greet}`;
+  if(kind==='ask_who') return who;
+  return null;
+}
+
+function offlineRespondIntent(a, intent){
+  const ort=S.world?.scene?.ort||'hier';
+  const desc=locNode(ort)?.desc||(S.world?.orte&&S.world.orte[ort])||'';
+  const who=pickPresentNpc(a);
+  const s=S.st||{};
+  let txt='', ch={xp:5, choices:travelChoices()};
+  const kind=intent.kind;
+
+  if(kind==='greet' || kind==='talk' || kind==='ask' || kind==='ask_who' || kind==='act'){
+    if(who){
+      const line=npcLine(who, kind==='greet'?'greet':kind==='ask_who'?'ask_who':null);
+      const good=Math.random()<0.55+(s.cha||0)/50;
+      let label=who; try{label=Know.displayName(S,who)}catch(_){}
+      if(kind==='greet'){
+        txt=line||`${label} reagiert auf dein „${a.trim().slice(0,40)}“. Ein Blick, ein Nicken — die Szene bleibt in ${ort}.`;
+      } else if(kind==='ask_who'){
+        txt=line||Imm.richOfflineProse(S,a,{who,label,good,weather:Imm.weatherFor(S),phase:phaseLabel()});
+      } else if(kind==='ask' || kind==='talk' || kind==='act'){
+        // Always answer the input with scene/NPC context — never replace with random plot
+        txt=Imm.richOfflineProse(S,a,{who,label,good,weather:Imm.weatherFor(S),phase:phaseLabel()});
+        if(kind==='ask' && !/\?/.test(a)){
+          // soft ensure question feel
+          txt=txt.replace(/^/, '');
+        }
+      }
+      ch={affinity:{[who]:good?rnd(4,12):-rnd(1,4)}, trust:{[who]:good?rnd(2,8):0}, xp:kind==='greet'?4:12, choices:travelChoices()};
+      try{addMemory(who, `${kind}: ${a.slice(0,50)}`,'Gespräch')}catch(_){}
+      return {text:txt, changes:ch, _intent:kind};
+    }
+    // no NPC present — still address the input
+    if(kind==='greet'){
+      txt=`Du grüßt in ${ort}. ${desc?desc+' ':''}Niemand antwortet laut — aber die Luft verändert sich. Dein „${a.trim().slice(0,32)}“ bleibt stehen.`;
+      return {text:txt, changes:ch, _intent:kind};
+    }
+    txt=Imm.richOfflineProse(S,a,{who:null,label:null,good:true,weather:Imm.weatherFor(S),phase:phaseLabel()});
+    return {text:txt, changes:ch, _intent:kind};
+  }
+  if(kind==='look'){
+    const ex=exitsFrom(ort);
+    const cast=presentCast();
+    txt=`Du siehst dich in ${ort} um. ${desc||''}${cast.length?' Anwesend: '+cast.map(n=>{try{return Know.displayName(S,n)}catch(_){return n}}).join(', ')+'.':''}${ex.length?' Wege: '+ex.slice(0,4).join(', ')+'.':''}`;
+    return {text:txt, changes:{xp:6, choices:travelChoices()}, _intent:kind};
+  }
+  if(kind==='rest'){
+    if(/schlaf|übernacht/.test(a.toLowerCase())){ Cont.sleepUntilMorning?.(S); txt='Du schläfst bis zum Morgen.'; ch={hp:rnd(20,40),mp:rnd(10,25),choices:travelChoices()}; }
+    else { txt=`Du ruhst dich in ${ort} aus. Wärme kehrt zurück.`; ch={hp:rnd(15,30),mp:rnd(8,20),choices:travelChoices()}; applyActionDuration('kurz ruhen',null); }
+    return {text:txt, changes:ch, _intent:kind};
+  }
+  if(kind==='buy'){
+    const price=Math.max(1, Math.round(4*Sim.priceMod(S)));
+    if((s.gold|0)<price){ txt=`Du willst kaufen — aber ${price} Gold fehlen dir. Der Händler in ${ort} zuckt die Achseln.`; return {text:txt, changes:{choices:['Arbeiten','Feilschen','Gehen']}, _intent:kind}; }
+    S.st.gold=(S.st.gold|0)-price;
+    const item={name:/brot/i.test(a)?'Brot':R(['Brot','Wasserflasche','Reiseproviant','Kerze']), type:'food', rarity:'common', desc:'Gekauft in '+ort};
+    txt=`Du kaufst ${item.name} für ${price} Gold in ${ort}.`;
+    return {text:txt, changes:{gold:-price, items:[item], xp:4, choices:travelChoices()}, _intent:kind};
+  }
+  if(kind==='take'){
+    txt=`Du greifst in ${ort} nach etwas Greifbarem. ${R(['Staub.','Eine Münze.','Nichts, das dir gehört — noch nicht.'])}`;
+    return {text:txt, changes:{xp:3, choices:travelChoices()}, _intent:kind};
+  }
+  if(kind==='use'){
+    txt=`Du nutzt, was du hast, hier in ${ort}. Die Wirkung ist spürbar, aber unspektakulär.`;
+    return {text:txt, changes:{hp:rnd(2,8), choices:travelChoices()}, _intent:kind};
+  }
+  if(kind==='train'){
+    const cost=Math.min(s.mp||0,rnd(5,15));
+    txt=`Du trainierst in ${ort}. Schweiß, Atem, Fortschritt.`;
+    return {text:txt, changes:{mp:-cost, xp:rnd(15,35), str:Math.random()<.4?1:0, choices:travelChoices()}, _intent:kind};
+  }
+  if(kind==='attack'){
+    const foes=pickEncounter(S,{noBoss:true,count:1});
+    S.flags._offerEncounter={foes, blurb:`Konflikt mit ${foes.map(f=>f.name).join(', ')}. Deine Entscheidung.`, forceAttack:true};
+    txt=`Du willst angreifen — ${foes.map(f=>f.name).join(', ')} steht bereit. Kämpfen, reden, drohen oder fliehen: deine Wahl.`;
+    return {text:txt, changes:{xp:5, choices:['Kämpfen','Reden','Einschüchtern','Fliehen']}, _intent:kind};
+  }
+  if(kind==='flee'){
+    txt=`Du willst fliehen — in ${ort} suchst du Abstand. ${who?((()=>{let l=who;try{l=Know.displayName(S,who)}catch(_){} return l+' sieht zu, wie du zurückweichst.';})()):'Niemand hält dich auf.'}`;
+    return {text:txt, changes:{xp:3, choices:travelChoices()}, _intent:kind};
+  }
+  if(kind==='romance'){
+    let label=who||'Gegenüber'; try{if(who)label=Know.displayName(S,who)}catch(_){}
+    if(/^jemand\b/i.test(label)&&who) label=String(who).split(/[\/]/)[0];
+    txt=who
+      ? `${label} reagiert auf deine Geste („${a.trim().slice(0,40)}“). Nähe in ${ort} — aber nichts Überstürztes.`
+      : `Du suchst Nähe in ${ort}, doch niemand steht dir nahe genug.`;
+    return {text:txt, changes:{xp:6, affinity:who?{[who]:rnd(2,8)}:undefined, choices:travelChoices()}, _intent:kind};
+  }
+  // move / crime handled by callers before this
+  txt=`Du handelst: „${a.trim().slice(0,80)}“. ${ort} bleibt der Schauplatz. ${desc||''}`;
+  return {text:txt, changes:ch, _intent:kind||'act'};
+}
+
+function offline(a){
+  const intent=parsePlayerIntent(a);
+  // Specialized parsers first when intent matches — never random hijack
+  if(intent.kind==='crime'){ const crime=parseCrime(a); if(crime){ const r=crime.type==='kill'?killNPC(crime.who,a):robNPC(crime.who); if(r.ok){ if(crime.type==='kill')addMemory(crime.who,'(tot)','Tod'); return {text:r.text,changes:r.changes,_intent:'crime'}; } } }
+  if(intent.kind==='romance'){ const rom=parseRomance(a); if(rom){ rom._intent='romance'; return rom; } }
+  if(intent.kind==='move'){
+    const dest=parseTravel(a);
+    if(dest){
+      let locked=false; try{locked=Cont.isSceneLocked(S)&&!Cont.playerWantsExit(a)}catch(_){}
+      if(!locked){ const tr=travelTo(dest); if(tr.ok) return {text:tr.text,changes:tr.changes||{choices:travelChoices(tr.to),xp:5},_intent:'move'}; }
+    }
+    // locked or failed parse → treat as look/talk in place
+  }
+  // askNPC for explicit questions (keeps lore answers)
+  if(intent.kind==='ask' || intent.kind==='ask_who'){ const q=askNPC(a); if(q){ q._intent=intent.kind; return q; } }
+  const life=parseLifeSim(a); if(life && !/^(greet|talk|ask|ask_who|rest|romance|flee)$/.test(intent.kind)){ return {text:life.text,changes:life.changes||{choices:travelChoices()},_intent:'life'}; }
+  if(intent.kind==='attack'){ const beast=parseCreatureEncounter(a); if(beast){ const e=discoverThing('creature',beast,{desc:'Begegnung mit '+beast+'.',danger:2,behavior:'aggressiv oder scheu',habitat:S.world?.scene?.ort,inline:true}); applyActionDuration('begegne '+beast,15); return {text:'Du begegnest '+beast+'. '+(e?Codex.inlineCard(e):''),changes:{xp:8,choices:travelChoices()},_intent:'attack'}; } }
+
+  if(isG() && intent.kind!=='greet' && intent.kind!=='talk'){
+    const t=a.toLowerCase(); const hit=/tür|öffn|klink/.test(t);
+    if(intent.kind==='look'||intent.kind==='move'||intent.kind==='act'){
+      const txt=R(['Irgendwo schlägt eine Glocke, tief und unsauber. Du spürst sie im Brustbein.','Der Nebel antwortet nicht. Nur eine Uhr tickt, deren Zeiger stillstehen.','Aus einem Ablaufgitter: drei Schläge, Pause, zwei weitere.']);
+      return {text:`Du bleibst bei deiner Absicht („${a.trim().slice(0,60)}“). ${txt}`,changes:{hp:hit?-8:-2,choices:defChoices()},_intent:intent.kind};
+    }
+  }
+
+  // Core: always respond to intent with scene/NPC context
+  const res=offlineRespondIntent(a, intent);
+  // Rare aftertaste event ONLY if not social/talk and roll very low — append, never replace
+  const social=/^(greet|talk|ask|ask_who|romance|buy|rest|flee)$/.test(intent.kind);
+  if(!social && Math.random()<0.04){
+    const tail=R([' Irgendwo knackt Holz.',' Ein ferner Ruf verhallt.',' Die Luft zieht kurz kälter.']);
+    res.text=(res.text||'')+tail;
+  }
+  // zombie needs tick — soft, non-hijacking
+  if(S.genre==='zombie'||S.world?.systems){
+    const sys=ensureSystems(); const ch=res.changes||{};
+    sys.hunger=Math.min(100,(sys.hunger|0)+rnd(2,5)); sys.thirst=Math.min(100,(sys.thirst|0)+rnd(2,5));
+    if(sys.hunger>80){ ch.hp=(ch.hp|0)-rnd(1,4); res.text+='\n\n(Hunger nagt.)'; }
+    if(sys.thirst>80){ ch.hp=(ch.hp|0)-rnd(1,4); res.text+='\n\n(Durst brennt.)'; }
+    res.changes=ch;
+  }
+  if(res.changes && !res.changes.choices) res.changes.choices=travelChoices();
+  return res;
+}
 
 /* ---------- AI ---------- */
 if(!cfg.v2||(cfg.mode==='gemini'&&!hasKey())){cfg.mode=hasKey()?'gemini':'free';cfg.v2=1;try{localStorage.setItem(CFG,JSON.stringify(cfg))}catch(_){}}
@@ -1698,7 +1850,7 @@ async function streamTo(el,iter){let raw='';for await(const c of iter){raw+=c;el
 
 /* ---- v20 free path: race failover, instant 402, seamless continuity ---- */
 const FREE_MODEL='openai-fast';
-const FREE_TTFT_MS=1800;          // speculative secondary fires if no first token
+const FREE_TTFT_MS=2800; // wait longer for real AI before speculative offline
 const FREE_STATUS_MS=6000;        // hard deadline waiting for HTTP status
 const FREE_TOTAL_MS=16000;
 const FREE_REFERRER='https://markusstol.github.io/isekai-game/';
@@ -1743,14 +1895,19 @@ function localBeatLine(a){
   const here=(S?.world?.scene?.anwesend||[]).filter(n=>S.world?.npcs?.[n]?.alive!==false);
   const who=here[0]||S.flags?.speaker||'jemand';
   let label=who; try{label=Know.displayName(S,who)}catch(_){}
+  if(/^jemand\b/i.test(label) && who && !/^jemand\b/i.test(who)) label=String(who).split(/[\/]/)[0];
   const ort=S?.world?.scene?.ort||'hier';
-  const low=String(a||'').toLowerCase();
+  const low=String(a||'').toLowerCase().trim();
   let line;
-  if(/frag|\?/.test(low)) line=`${label} hebt den Blick, noch in ${ort}. Die Antwort formt sich.`;
+  if(/^(hallo|hey|servus|moin|guten |grü)/.test(low)||/^hi\b/.test(low)) line=`${label} hört deinen Gruß — noch in ${ort}.`;
+  else if(/frag|\?|wer bist|was /.test(low)) line=`${label} hebt den Blick, noch in ${ort}. Die Antwort formt sich.`;
   else if(/geh|reise|lauf/.test(low)) line=`Du rührst dich — ${ort} bleibt einen Atemzug lang hinter dir.`;
   else if(/küss|umarm|flirt/.test(low)) line=`Ein kurzer Moment zwischen dir und ${label}.`;
-  else if(/wart|schau|beobacht/.test(low)) line=`Die Luft in ${ort} hält still. ${label} bemerkt dich.`;
-  else line=`${label} reagiert — noch hier, in ${ort}.`;
+  else if(/kauf|brot|handel/.test(low)) line=`Du wendest dich dem Handel zu, hier in ${ort}.`;
+  else if(/kämpf|angriff|greif/.test(low)) line=`Die Luft in ${ort} spannt sich.`;
+  else if(/schlaf|ruh|rast/.test(low)) line=`Du suchst Ruhe in ${ort}.`;
+  else if(/wart|schau|beobacht|umseh/.test(low)) line=`Die Luft in ${ort} hält still. ${label} bemerkt dich.`;
+  else line=`${label} nimmt deine Worte wahr — noch hier, in ${ort}.`;
   S._beatMs=Math.round(performance.now()-t0);
   return line;
 }
@@ -1989,7 +2146,10 @@ function allyWouldRefuseFight(name){
   }catch(_){return false}
 }
 async function openPendingEncounter(res){
+  if(typeof window!=='undefined'&&window.__gateNoBattle){ if(S.flags){ delete S.flags._offerEncounter; delete S.flags.narratorCombat } return; }
   if(Battle.isActive())return;
+  // Choice-first: if the player already sees Kämpfen/Reden, wait for their pick — don't steal the turn
+  if(S.flags?._offerEncounter && Array.isArray(S.choices) && S.choices.some(c=>/kämpfen|reden|fliehen/i.test(c))) return;
   const offer=S.flags?._offerEncounter;
   const combatFlag=res?.changes?._combat||res?.changes?.combat||S.flags?.narratorCombat;
   if(S.flags){ delete S.flags._offerEncounter; delete S.flags.narratorCombat }
@@ -2043,8 +2203,9 @@ function parseHostilityOffer(a){
 
 function setBusy(on){busy=!!on;const txt=$('#txt'),btn=$('#inputRow button'),ch=$('#choices');if(txt)txt.disabled=on;if(btn)btn.disabled=on;if(ch)ch.querySelectorAll('button').forEach(b=>b.disabled=on);document.body.classList.toggle('busy',on)}
 async function act(a){if(busy||!a.trim())return;
+ // Drop stale encounter offers only after a prior turn left them — handled below per-input
  // Freedom & systems: travel / crime / romance / life-sim offline-first
- if(_mode==='play'&&S?.setup?.done){let dest=parseTravel(a);const crime=parseCrime(a);const life=parseLifeSim(a);const isRom=/küss|kuss|date|nacht (mit|zusammen)|bleib(en)? (bei|über)|schlaf(en)? (mit|bei)|flirt|umarmen|geständnis|liebe gestehen|verabredung/.test(a.toLowerCase());
+ if(_mode==='play'&&S?.setup?.done){let dest=parseTravel(a);const crime=parseCrime(a);const life=parseLifeSim(a);const isRom=/küss|kuss|date|nacht (mit|zusammen)|bleib(en)? (bei|über)|schlaf(en)? (mit|bei)|flirt|umarm|geständnis|liebe gestehen|verabredung/.test(a.toLowerCase());
   // Continuity: scene lock blocks travel unless the player clearly leaves
   if(dest){try{if(Cont.isSceneLocked(S)&&!Cont.playerWantsExit(a)) dest=null}catch(_){}}
   if(crime||dest||isRom||life){busy=true;try{let res=null;if(crime){res=crime.type==='kill'?killNPC(crime.who,a):robNPC(crime.who);res={text:res.text,changes:res.changes}}
@@ -2071,7 +2232,10 @@ async function act(a){if(busy||!a.trim())return;
    if(hos.block){add('p',a);add('n',hos.text);S.choices=['Reden','Gehen','Entschuldigen','Status prüfen'];hud();renderChoices();typewrite(isG()?'Nebel':'Erzähler',hos.text,()=>{});return}
    S.flags._offerEncounter={foes:hos.foes,blurb:hos.blurb,forceAttack:!!hos.forceAttack};
    add('p',a); add('n',hos.blurb||'Konflikt.');
-   setBusy(true); try{await openPendingEncounter({changes:{}})}finally{setBusy(false)} return;
+   S.choices=['Kämpfen','Reden','Einschüchtern','Fliehen']; hud(); renderChoices();
+   // Choice-first: narrate and wait for player choice — never freeze in battle UI this turn
+   await typewriteAsync(isG()?'Nebel':'Erzähler', hos.blurb||'Konflikt.');
+   return;
   }
   if(S.flags?._offerEncounter){
    const low=a.trim().toLowerCase();
@@ -2079,10 +2243,13 @@ async function act(a){if(busy||!a.trim())return;
     add('p',a); setBusy(true);
     try{
      const foes=S.flags._offerEncounter.foes; const blurb=S.flags._offerEncounter.blurb;
+     try{ delete S.flags._offerEncounter; delete S.flags.narratorCombat }catch(_){}
      const result=await Battle.offerEncounter(S,{enemies:foes,blurb:blurb||'Deine Entscheidung.',bg:battleBgFor(S)});
      if(result) await afterEncounterResolved(result);
     }finally{setBusy(false)} return;
    }
+   // Player typed something else → decline the pending fight and continue with their input
+   try{ delete S.flags._offerEncounter; delete S.flags.narratorCombat }catch(_){}
   }
  }
  setBusy(true);const t0=performance.now();
@@ -2238,7 +2405,7 @@ $('#btnGateSave').onclick=()=>{const gk=$('#gateKey').value.trim();if(!gk){toast
  toast('Alles bereit.');gmFetch(gk,true).then(()=>gmProbe(gk).catch(()=>{}));enterPlay()};
 $('#btnGateSkip').onclick=()=>{cfg.mode='free';cfg.v2=1;localStorage.setItem(CFG,JSON.stringify(cfg));toast('Erzählerin: Pollinations (ohne Schlüssel)');enterPlay()};
 
-window.__setCfg=o=>{cfg=Object.assign(cfg||{},o||{});try{localStorage.setItem(CFG,JSON.stringify(cfg))}catch(_){}};window.__game={Battle,Jobs,Gems,Summons,Equip,Jrpg,localBeatLine,freeStream,FREE_MODEL,openPendingEncounter,Imm,discoverThing,showCodexInline,Level,UI14,UI17,Know,Cont,lastPromptDump,advanceTimeMinutes,applyActionDuration,newGrey,greyDetails,loadGrey,loadPack,get S(){return S},act,newLife,gBody,msgs,gmRank,gmProbe,parseStream,thinkingCfg,gmOrder,readSSE,STREAM_DELIM,migrate,worldTick,bumpRel,openMenu,stageName,offline,startIntro,setSceneImage,setPortrait,imgUrl,advanceTime,phaseLabel,typewrite,enterPlay,showTitle,analyzeImage,applySceneTheme,themeFromText,loadValidatedImage,openingNarration,travelTo,parseTravel,killNPC,robNPC,addMemory,memoryHint,startProcedural,offlineGenerateWorld,generateWorldPack,GENRES,travelChoices,ensureGraph,whoHere,parseLifeSim,Sim,Persist,WorldMap,Econ,Codex,UI13,save,loadSave,applyCatchUp,findAnyNpc};
+window.__setCfg=o=>{cfg=Object.assign(cfg||{},o||{});try{localStorage.setItem(CFG,JSON.stringify(cfg))}catch(_){}};window.__game={Battle,Jobs,Gems,Summons,Equip,Jrpg,localBeatLine,parsePlayerIntent,offlineRespondIntent,freeStream,FREE_MODEL,openPendingEncounter,Imm,discoverThing,showCodexInline,Level,UI14,UI17,Know,Cont,lastPromptDump,advanceTimeMinutes,applyActionDuration,newGrey,greyDetails,loadGrey,loadPack,get S(){return S},act,newLife,gBody,msgs,gmRank,gmProbe,parseStream,thinkingCfg,gmOrder,readSSE,STREAM_DELIM,migrate,worldTick,bumpRel,openMenu,stageName,offline,startIntro,setSceneImage,setPortrait,imgUrl,advanceTime,phaseLabel,typewrite,enterPlay,showTitle,analyzeImage,applySceneTheme,themeFromText,loadValidatedImage,openingNarration,travelTo,parseTravel,killNPC,robNPC,addMemory,memoryHint,startProcedural,offlineGenerateWorld,generateWorldPack,GENRES,travelChoices,ensureGraph,whoHere,parseLifeSim,Sim,Persist,WorldMap,Econ,Codex,UI13,save,loadSave,applyCatchUp,findAnyNpc};
 window.__game.askNPC=a=>askNPC(a);window.__game.gemini=gemini;
 if(cfg.gkey)gmFetch(cfg.gkey.trim()).then(()=>gmProbe(cfg.gkey.trim()).catch(()=>{})).catch(()=>{});
 (function(){const root=document.documentElement;const apply=()=>{try{const vv=window.visualViewport;if(!vv)return;const kb=Math.max(0,window.innerHeight-vv.height-vv.offsetTop);root.style.setProperty('--kb',kb+'px')}catch(_){}};
