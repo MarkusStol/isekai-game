@@ -18,7 +18,7 @@ import * as Summons from './summons.js';
 import * as Equip from './equip.js';
 import * as Jrpg from './jrpg.js';
 const $=s=>document.querySelector(s);const $$=s=>[...document.querySelectorAll(s)];const R=a=>a[Math.floor(Math.random()*a.length)];const rnd=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
-const VER='18',CACHE_V='v18';
+const VER='19',CACHE_V='v19';
 const ROLES={
  held:{e:'⚔️',name:'Held mit Status-System',d:'Ein blaues Fenster erscheint: [Status]. Die Welt braucht dich.',world:'Königreich Aldheim',
   base:{hp:100,mp:40,str:12,cha:8,ruf:10,gold:40},cls:['Abenteurer','Ritter','Held','Legendärer Held'],pack:'worlds/held.json',
@@ -188,6 +188,12 @@ function scheduleRetry(kind,key,fn){const cache=ensureImgCache();const wait=Math
 function hideScenePhoto(){const img=$('#sceneImg');if(!img)return;img.classList.remove('on');img.removeAttribute('src');img.dataset.key=''}
 function hidePortraitPhoto(){const img=$('#portraitImg');if(!img)return;img.classList.remove('on');img.removeAttribute('src');img.dataset.name=''}
 
+function showSceneImg(img,path){
+  if(!img)return; img.classList.remove('scene-fade-out');
+  img.style.opacity='1'; img.style.zIndex='2'; img.classList.add('on','scene-kenburns');
+  if(path){ const abs=path.startsWith('http')||path.startsWith('/')?path:('/'+path.replace(/^\.\//,''));
+    if(!img.getAttribute('src')||!String(img.src).includes(path.split('/').pop())) img.src=path; }
+}
 function setSceneImage(prompt,key,opts){opts=opts||{};const cache=ensureImgCache();const k=key||prompt||'default';
  const theme=themeFromText((prompt||'')+' '+(k||'')+' '+(S?.world?.scene?.ort||'')+' '+(S?.role||'')+' '+(S?.genre||''));
  applySceneTheme(theme);hideScenePhoto();
@@ -197,9 +203,9 @@ function setSceneImage(prompt,key,opts){opts=opts||{};const cache=ensureImgCache
  const locals=tryLocalBg(S?.world?.scene?.ort||k, locNode(S?.world?.scene?.ort)?.bg);
  const tryLocal=async()=>{
   for(const path of locals){try{const r=await fetch(path,{method:'HEAD'});if(r.ok){const img=$('#sceneImg');if(!img)return true;
-   img.crossOrigin='anonymous';img.dataset.key=k;try{await Imm.crossfadeScene(img,path)}catch(_){img.src=path;img.classList.add('on','scene-kenburns')}cache.ok[k]=1;cache.scenes[k]=path;if(S)save();return true}}catch(_){}}
+   img.crossOrigin='anonymous';img.dataset.key=k;try{await Imm.crossfadeScene(img,path)}catch(_){img.src=path;showSceneImg(img)}cache.ok[k]=1;cache.scenes[k]=path;if(S)save();return true}}catch(_){}}
   // also try .svg
-  for(const path of locals.map(x=>x.replace(/\.webp$/,'.svg'))){try{const r=await fetch(path,{method:'HEAD'});if(r.ok){const img=$('#sceneImg');img.src=path;img.dataset.key=k;requestAnimationFrame(()=>img.classList.add('on'));cache.ok[k]=1;return true}}catch(_){}}
+  for(const path of locals.map(x=>x.replace(/\.webp$/,'.svg'))){try{const r=await fetch(path,{method:'HEAD'});if(r.ok){const img=$('#sceneImg');img.dataset.key=k;img.src=path;showSceneImg(img);cache.ok[k]=1;return true}}catch(_){}}
   return false};
  if(window.__SKIP_REMOTE_IMG){tryLocal();return}
  const seed=hashSeed('scene:'+k+(S?.role||'')+(S?.genre||''));
@@ -208,25 +214,51 @@ function setSceneImage(prompt,key,opts){opts=opts||{};const cache=ensureImgCache
  if(!canRetry(cache,k)&&cache.fail[k]){tryLocal().then(ok=>{if(!ok)scheduleRetry('scene',k,()=>setSceneImage(prompt,key,opts))});return}
  enqueueImg(()=>tryLocal().then(ok=>{if(ok)return;return loadValidatedImage(url).then(res=>{
   const img=$('#sceneImg');if(!img)return;
-  if(res.ok){cache.ok[k]=1;delete cache.fail[k];delete cache.next[k];img.dataset.key=k;try{Imm.crossfadeScene(img,url)}catch(_){img.src=url;requestAnimationFrame(()=>img.classList.add('on','scene-kenburns'))};if(S)save()}
+  if(res.ok){cache.ok[k]=1;delete cache.fail[k];delete cache.next[k];img.dataset.key=k;try{Imm.crossfadeScene(img,url)}catch(_){img.src=url;showSceneImg(img)};if(S)save()}
   else{markFail(cache,k);hideScenePhoto();scheduleRetry('scene',k,()=>setSceneImage(prompt,key,{...opts}));if(S)save()}
  })}) )}
 
-function setPortrait(name,npc){const cache=ensureImgCache();const wrap=$('#portraitWrap'),img=$('#portraitImg');
+
+/* ---- v19 sprites: prefer cutouts, client chroma/luma mask fallback ---- */
+function applySpriteMask(img){
+  try{
+    if(!img||!img.naturalWidth)return;
+    if(img.dataset.masked==='1')return;
+    const c=document.createElement('canvas');
+    c.width=img.naturalWidth; c.height=img.naturalHeight;
+    const ctx=c.getContext('2d',{willReadFrequently:true});
+    ctx.drawImage(img,0,0);
+    const im=ctx.getImageData(0,0,c.width,c.height), d=im.data;
+    let greenish=0, total=d.length/4;
+    for(let i=0;i<d.length;i+=4){
+      const r=d[i],g=d[i+1],b=d[i+2];
+      if(g>140 && g>r*1.25 && g>b*1.25){d[i+3]=0;greenish++}
+      else if(r>245&&g>245&&b>245){d[i+3]=Math.min(d[i+3],40)}
+    }
+    if(greenish/total>0.04){
+      ctx.putImageData(im,0,0);
+      img.src=c.toDataURL('image/webp',0.92);
+      img.dataset.masked='1';
+    }
+  }catch(_){ }
+}
+function setPortraitDim(on){const w=$('#portraitWrap'); if(!w)return; w.classList.toggle('dim',!!on)}
+function setPortrait(name,npc){
+const cache=ensureImgCache();const wrap=$('#portraitWrap'),img=$('#portraitImg');
  try{wrap.classList.remove('mood-anger','mood-sad','mood-warm','mood-cool','mood-neutral');wrap.classList.add(Imm.portraitMoodClass(npc?.mood));wrap.classList.add('portrait-in')}catch(_){}
  if(!name){wrap&&wrap.classList.add('hidden');return}
- wrap.classList.remove('hidden');applyPortraitFallback(name,npc);hidePortraitPhoto();
+ wrap.classList.remove('hidden');wrap.classList.add('portrait-sprite','portrait-bust');applyPortraitFallback(name,npc);hidePortraitPhoto();
  if(window.__FORCE_CSS_SCENES)return;
  const slug=portAssetKey(name,npc);const local=`assets/port/${slug}.webp`;const localSvg=`assets/port/${slug}.svg`;
  const seed=hashSeed('port:'+name+(S?.role||''));
  const url=imgUrl(portraitPromptFor(name,npc),768,1152,seed,isG());
  cache.portraits[name]=url;const key='port:'+name;
- const showLocal=async()=>{for(const path of[local,localSvg]){try{const r=await fetch(path,{method:'HEAD'});if(r.ok){img.crossOrigin='anonymous';img.src=path;img.dataset.name=name;requestAnimationFrame(()=>img.classList.add('on'));cache.ok[key]=1;return true}}catch(_){}}return false};
+ const showLocal=async()=>{for(const path of[local,localSvg]){try{const r=await fetch(path,{method:'HEAD'});if(r.ok){img.crossOrigin='anonymous';img.dataset.masked='';img.onload=()=>{applySpriteMask(img);img.classList.add('on')};img.src=path;img.dataset.name=name;cache.ok[key]=1;return true}}catch(_){}}return false};
  if(!canRetry(cache,key)&&cache.fail[key]){showLocal().then(ok=>{if(!ok)scheduleRetry('port',key,()=>setPortrait(name,npc))});if(S)save();return}
  enqueueImg(()=>showLocal().then(ok=>{if(ok){if(S)save();return}return loadValidatedImage(url).then(res=>{
   if(!res.ok){markFail(cache,key);hidePortraitPhoto();scheduleRetry('port',key,()=>setPortrait(name,npc));if(S)save();return}
   cache.ok[key]=1;delete cache.fail[key];delete cache.next[key];
-  img.src=url;img.dataset.name=name;requestAnimationFrame(()=>img.classList.add('on'));if(S)save()})}))}
+  img.dataset.masked='';img.onload=()=>{applySpriteMask(img);img.classList.add('on')};img.src=url;img.dataset.name=name;if(S)save()})}))}
 
 function maybeSceneFromWorld(){if(!S?.world?.scene?.ort)return;const ort=S.world.scene.ort;const zeit=S.world.scene.zeit||phaseLabel();
  const prompt=(S.flags&&S.flags.scenePrompt)||scenePromptFor(ort,zeit);setSceneImage(prompt,ort)}
@@ -564,6 +596,7 @@ function migrate(raw){if(!raw)return null;const s=typeof raw==='string'?JSON.par
  if(Number(s.ver)<17.1){s.ver=17.1;try{Jobs.ensureJobs(s);Gems.ensureGems(s);Summons.ensureSummons(s);Equip.ensureEquip(s);s.battle=s.battle||{};s.battle.gambitMap=s.battle.gambitMap||{}}catch(e){console.warn('v17.1 migrate',e)}}
  if(Number(s.ver)<17.2){s.ver=17.2;try{Cont.ensureCont(s);Cont.updateStoryStand(s);if(s.world?.scene)Cont.lockScene(s,'migrate')}catch(e){console.warn('v17.2 migrate',e)}}
  if(Number(s.ver)<18){s.ver=18}
+ if(Number(s.ver)<19){s.ver=19}
  // v13.1 continuity+time always (kept in v14)
  try{Cont.ensureCont(s);if(s.cal&&s.cal.minute==null)s.cal.minute=0;if(s.cfgCatchupOptIn==null)s.cfgCatchupOptIn=false}catch(e){console.warn('cont migrate',e)}
  if(s.ver<14)s.ver=14;
@@ -926,7 +959,7 @@ function add(k,t){
  else if(k==='s')eventToast(t)
  else if(k==='p'){/* player line already shown via input */}
  else if(k==='tick')eventToast(t)}
-function setPortraitFromSpeaker(name){if(!name||!S.world?.npcs){$('#portraitWrap').classList.add('hidden');return}
+function setPortraitFromSpeaker(name){if(!name||!S.world?.npcs){$('#portraitWrap').classList.add('hidden');return} setPortraitDim(false);
  let key=Object.keys(S.world.npcs).find(k=>k.toLowerCase()===String(name).toLowerCase())||Object.keys(S.world.npcs).find(k=>String(name).toLowerCase().includes(k.toLowerCase().split(' ')[0]));
  if(key){try{if(!Know.isNameKnown(S,key)){$('#portraitWrap').classList.add('hidden');return}}catch(_){}
   setPortrait(key,S.world.npcs[key])}else $('#portraitWrap').classList.add('hidden')}
@@ -1655,7 +1688,7 @@ async function freeStream(a, el){
   // instant local beat — zero dead air
   const beat=localBeatLine(a);
   if(el){ el.textContent=beat; el.classList.add('typing'); }
-  const body={model:FREE_MODEL, messages:msgs(a), temperature:0.85, max_tokens:320, stream:true, referrer:'https://markusstol.github.io/isekai-game/'};
+  const body={model:FREE_MODEL, messages:msgs(a), temperature:0.85, max_tokens:260, stream:true, referrer:'https://markusstol.github.io/isekai-game/'};
   S._promptChars=(JSON.stringify(body).length)|0;
   let err;
   for(let attempt=0; attempt<2; attempt++){
@@ -1918,7 +1951,9 @@ $('#btnContinue').onclick=async()=>{
 $('#btnMusic').onclick=toggleMusic;
 $('#btnTitleSettings').onclick=openSheet;
 $('#btnSettings').onclick=openSheet;
-$('#btnMenu').onclick=()=>{try{Imm.uiTick()}catch(_){}openMenu('hub')};
+$('#btnMenu').onclick=()=>{try{Imm.playUi?.('open')}catch(_){}openMenu('hub')};
+try{document.addEventListener('click',e=>{const t=e.target.closest('button,.hub-tile,.choice');if(!t)return;try{Imm.playUi?.(t.closest('.menu')?'open':'tap')}catch(_){}},true)}catch(_){}
+
  try{$('#btnAudio').onclick=()=>{const on=Imm.toggleMute();$('#btnAudio').textContent=on?'🔊':'🔇';$('#btnAudio').classList.toggle('is-on',on);if(on)Imm.startAmbient(document.body.className.match(/genre-\w+/)?.[0]||'genre-fantasy');toast(on?'Ambient an':'Ambient stumm')}}catch(_){}
 $('#btnMenuClose').onclick=closeMenu;
 $('#menu').addEventListener('click',e=>{if(e.target.id==='menu')closeMenu()});

@@ -768,11 +768,277 @@ body.genre-held .vn-box{border-color:#e8d5a844!important}
 #sceneImg.on, #sceneImg[src]{opacity:1!important}
 .scene-art{opacity:.95}
 
-/* ========== v18 iter5 — scene photo always readable under VN ========== */
-#sceneImg{
-  position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
-  opacity:0;transition:opacity .6s ease;z-index:0;pointer-events:none;
-}
-#sceneImg.on, #sceneImg[src]:not([src=""]){opacity:1}
+/* v18 iter5 scene rules folded into v19 */
 .scene-placeholder{opacity:.15}
 .scene-bg{background-size:cover;background-position:center}
+
+/* ========== v19 — free-standing VN sprites + glass hub ========== */
+:root{
+  --space:8px;
+  --radius:12px;
+  --glass:#0e0c14cc;
+  --glass-strong:#0a0810ee;
+  --metal:#c9b896;
+  --metal-dim:#8a7a5c;
+  --ink:#f3eee4;
+  --ink-dim:#b9b0a4;
+  --accent:#e8c47a;
+  --accent-2:#9bb7ff;
+  --line:#ffffff18;
+  --press:scale(.97);
+  --font-ui:"Noto Sans",system-ui,sans-serif;
+  --font-vn:"Noto Serif JP","Noto Serif",Georgia,serif;
+  --font-display:"Cinzel","Noto Serif JP",serif;
+}
+
+/* Sprite stage */
+.portrait-wrap.portrait-sprite{
+  position:absolute!important;left:50%!important;bottom:calc(100% - 12px)!important;
+  transform:translateX(-50%)!important;
+  width:min(70vw,280px)!important;height:min(48vh,420px)!important;
+  border:0!important;background:transparent!important;overflow:visible!important;
+  filter:none!important;pointer-events:none;z-index:2;
+}
+.portrait-wrap.portrait-sprite .portrait-frame{
+  position:absolute;inset:0;border:0!important;background:transparent!important;
+  width:auto!important;height:auto!important;box-shadow:none!important;overflow:visible!important;
+}
+.portrait-wrap.portrait-sprite img{
+  position:absolute;left:50%;bottom:8px;transform:translateX(-50%);
+  width:100%;height:92%;object-fit:contain;object-position:center bottom;
+  opacity:0;transition:opacity .4s ease, filter .35s ease;
+  -webkit-mask-image:none!important;mask-image:none!important;
+  filter:drop-shadow(0 10px 18px #000a);
+  animation:spriteBreathe 4.2s ease-in-out infinite;
+  transform-origin:center bottom;
+}
+.portrait-wrap.portrait-sprite img.on{opacity:1}
+.portrait-wrap.portrait-sprite.dim img{
+  filter:brightness(.55) saturate(.85) drop-shadow(0 8px 14px #0008);
+  animation-play-state:paused;
+}
+.portrait-shadow{
+  position:absolute;left:50%;bottom:2px;transform:translateX(-50%);
+  width:42%;height:14px;border-radius:50%;
+  background:radial-gradient(ellipse at center,#0009 0%,#0000 70%);
+  pointer-events:none;z-index:1;
+  animation:shadowBreathe 4.2s ease-in-out infinite;
+}
+@keyframes spriteBreathe{
+  0%,100%{transform:translateX(-50%) translateY(0) scale(1)}
+  50%{transform:translateX(-50%) translateY(-5px) scale(1.012)}
+}
+@keyframes shadowBreathe{
+  0%,100%{transform:translateX(-50%) scaleX(1);opacity:.85}
+  50%{transform:translateX(-50%) scaleX(.92);opacity:.65}
+}
+@media (prefers-reduced-motion:reduce){
+  .portrait-wrap.portrait-sprite img,.portrait-shadow{animation:none!important}
+}
+
+/* Multi-sprite row (present cast) */
+.sprite-row{
+  position:absolute;left:0;right:0;bottom:calc(132px + env(safe-area-inset-bottom));
+  height:min(50vh,440px);display:flex;align-items:flex-end;justify-content:center;
+  gap:4px;pointer-events:none;z-index:2;padding:0 8px;
+}
+.sprite-slot{position:relative;flex:0 1 auto;width:min(42vw,200px);height:100%;
+  transition:filter .3s, opacity .3s, transform .35s}
+.sprite-slot img{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);
+  width:100%;height:90%;object-fit:contain;object-position:center bottom;
+  filter:drop-shadow(0 10px 16px #000a);animation:spriteBreathe 4.2s ease-in-out infinite}
+.sprite-slot.dim{opacity:.55;filter:brightness(.6)}
+.sprite-slot.speak{z-index:3;transform:translateY(-4px)}
+
+/* Glass menu — no candy purple */
+.menu{background:#000000b0;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  animation:menuIn .22s ease}
+@keyframes menuIn{from{opacity:0}to{opacity:1}}
+.menu-panel{
+  background:linear-gradient(180deg,#16141cf8,#0c0a12fc)!important;
+  border:1px solid #ffffff14!important;border-bottom:0!important;
+  border-radius:20px 20px 0 0!important;
+  box-shadow:0 -8px 40px #000a!important;
+  max-height:min(92vh,920px);
+  padding-bottom:calc(8px + env(safe-area-inset-bottom))!important;
+}
+.menu-head{padding:12px 12px 8px;border-bottom:1px solid #ffffff10;gap:8px}
+.menu-tabs{gap:6px}
+.menu-tabs button{
+  background:#ffffff08!important;border:1px solid #ffffff12!important;
+  border-radius:10px!important;color:var(--ink-dim)!important;
+  font-family:var(--font-ui)!important;font-weight:600!important;
+  padding:10px 12px!important;box-shadow:none!important;
+}
+.menu-tabs button.on{
+  background:#e8c47a18!important;border-color:#e8c47a55!important;color:var(--accent)!important;
+}
+.menu-tabs button[data-tab="hub"]{background:#ffffff08!important}
+
+.hub{display:flex;flex-direction:column;gap:16px;padding:4px 0 12px}
+.hub-hero{
+  display:grid;grid-template-columns:88px 1fr;gap:12px;align-items:center;
+  padding:12px;border-radius:16px;background:linear-gradient(135deg,#ffffff0c,#ffffff05);
+  border:1px solid #ffffff14;
+}
+.hub-hero-art{
+  width:88px;height:88px;border-radius:14px;background-size:cover;background-position:center top;
+  border:1px solid #e8c47a33;box-shadow:inset 0 0 0 1px #0006;
+}
+.hub-name{font-family:var(--font-display);font-size:18px;color:var(--ink);letter-spacing:.04em}
+.hub-sub,.hub-lvl{font-size:12px;color:var(--ink-dim);margin-top:2px}
+.hub-attrs{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
+.hub-attrs span{
+  font-size:10px;padding:3px 7px;border-radius:6px;background:#ffffff0c;border:1px solid #ffffff12;
+  color:var(--ink-dim);font-variant-numeric:tabular-nums;
+}
+.hub-grid{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:8px;
+}
+.hub-tile{
+  min-height:96px!important;padding:14px 8px!important;gap:8px!important;
+  background:linear-gradient(180deg,#ffffff0c,#ffffff06)!important;
+  border:1px solid #ffffff14!important;border-radius:14px!important;
+  color:var(--ink)!important;box-shadow:none!important;
+  transition:transform .12s ease, border-color .15s, background .15s;
+}
+.hub-tile:active{transform:var(--press);border-color:#e8c47a55!important;background:#e8c47a12!important}
+.hub-ico{display:grid;place-items:center;width:28px;height:28px;color:var(--accent)}
+.hub-ico .ico,.ico{width:24px;height:24px;display:block}
+.hub-lab{font-size:12px;font-weight:600;letter-spacing:.01em;color:var(--ink)}
+
+/* Cards / sub-screens — 8pt grid */
+.menu-body{padding:16px;gap:12px}
+.card{
+  background:#ffffff08!important;border:1px solid #ffffff12!important;border-radius:14px!important;
+  padding:16px!important;box-shadow:none!important;
+}
+.card h3{font-family:var(--font-display);font-size:14px;letter-spacing:.06em;color:var(--accent);margin:0 0 8px}
+.card .meta,.card p{color:var(--ink-dim);font-size:13px;line-height:1.45}
+.card .row{gap:8px;margin-top:12px}
+.card .row button,.menu-body button.tiny{
+  background:#ffffff0c!important;border:1px solid #ffffff16!important;border-radius:10px!important;
+  color:var(--ink)!important;padding:8px 12px!important;font-weight:600!important;
+}
+.card .row button.on, .menu-body button.tiny.on{
+  border-color:#e8c47a55!important;background:#e8c47a18!important;color:var(--accent)!important;
+}
+
+/* Press feedback globally */
+button:active{transform:var(--press)}
+.choices button:active{transform:var(--press);border-color:var(--accent)!important}
+
+/* Screen transitions */
+.screen{animation:none}
+.screen:not(.hidden){animation:screenIn .28s ease}
+@keyframes screenIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+#stage.busy .vn-text{opacity:.85}
+.loading-dot::after{content:'';display:inline-block;width:.6em;animation:dots 1.2s steps(4,end) infinite}
+@keyframes dots{0%{content:''}25%{content:'.'}50%{content:'..'}75%{content:'...'}}
+
+/* Safe area / notch */
+#app{padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right)}
+.topbar{padding-top:calc(8px + env(safe-area-inset-top))!important}
+.input-row{padding-bottom:calc(10px + env(safe-area-inset-bottom))!important}
+.title-inner{padding-bottom:calc(28px + env(safe-area-inset-bottom))!important}
+
+/* Genre accents on glass (no candy) */
+body.genre-held .hub-ico, body.genre-held .menu-tabs button.on{color:#e8c47a}
+body.genre-cyberpunk .hub-ico, body.genre-cyberpunk .menu-tabs button.on{color:#5ce1ff!important}
+body.genre-cyberpunk .menu-tabs button.on{border-color:#5ce1ff55!important;background:#5ce1ff14!important}
+body.genre-zombie .hub-ico, body.genre-zombie .menu-tabs button.on{color:#a8d5a2!important}
+body.genre-zombie .menu-tabs button.on{border-color:#8fbc8f55!important;background:#8fbc8f14!important}
+body.genre-darkfantasy .hub-ico{color:#d48a9a}
+body.greyw .hub-ico, body.greyw .menu-tabs button.on{color:#c9ced6!important}
+
+/* Inventory / equip grids polish */
+.inv-grid{gap:8px}
+.inv-cell{border-radius:12px;background:#ffffff0a;border:1px solid #ffffff14}
+.equip-slot,.gem-chip,.job-card{
+  background:#ffffff0a!important;border:1px solid #ffffff14!important;border-radius:12px!important;
+}
+
+/* ========== v19 iter2 — scene under sprites, hub scroll, quieter play HUD ========== */
+.scene-bg img.on{opacity:1!important;z-index:2}
+.scene-grad{z-index:3!important;opacity:.92}
+.vn-wrap{z-index:4!important}
+.portrait-wrap.portrait-sprite{z-index:4!important}
+.choices,.input-row{z-index:5!important}
+/* keep scene readable: lighter top vignette */
+.scene-grad{
+  background:
+    linear-gradient(180deg,#05040a66 0%,transparent 22%),
+    linear-gradient(180deg,transparent 45%,#05040aa8 72%,#05040af5 100%)!important;
+}
+body.hud-dim .hud{opacity:.2;transition:opacity .3s}
+body.hud-dim .top-actions{opacity:.25}
+.hub{max-height:none}
+.hub-grid{padding-bottom:24px}
+.menu-body{overflow-y:auto;-webkit-overflow-scrolling:touch}
+/* ensure atlas/codex tiles visible spacing */
+.hub-tile{min-height:88px!important}
+/* press ripple feel */
+.hub-tile,.choices button,button.big{
+  transition:transform .12s ease, border-color .15s, background .15s, box-shadow .15s!important;
+}
+.hub-tile:active,.choices button:active{box-shadow:inset 0 0 0 1px #e8c47a44!important}
+/* loading state for vn */
+.vn-text.is-loading{color:var(--ink-dim)}
+.vn-text.is-loading::after{content:'…';animation:dots 1.2s steps(4,end) infinite}
+
+/* ========== v19 iter2b — FORCE scene photo visible (ID specificity) ========== */
+#sceneImg{
+  z-index:2!important;
+  opacity:0;
+  transition:opacity .45s ease;
+}
+#sceneImg.on{
+  opacity:1!important;
+}
+.scene-bg.theme-castle.has-art,
+.scene-bg.has-art{
+  background-size:cover!important;
+  background-position:center!important;
+}
+
+
+/* ========== v19 SCENE IMG CANON ========== */
+#sceneImg{
+  position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+  z-index:2!important; pointer-events:none;
+  opacity:0; transition:opacity .45s ease;
+}
+#sceneImg.on{opacity:1!important}
+
+/* ========== v19 iter3 — sprite over readable scene, play chrome ========== */
+#stage .scene-bg{background:#120c18}
+#stage #sceneImg.on{opacity:1!important;z-index:2!important;filter:brightness(.92) saturate(1.05)}
+#stage .scene-art{opacity:.25;z-index:1}
+#stage .scene-placeholder{display:none}
+.portrait-wrap.portrait-sprite{
+  width:min(72vw,300px)!important;height:min(52vh,460px)!important;
+  bottom:calc(100% - 6px)!important;
+}
+.portrait-wrap.portrait-sprite img{
+  filter:drop-shadow(0 14px 22px #000c);
+  animation:spriteBreathe 3.8s ease-in-out infinite;
+}
+/* Keep HUD readable but quiet */
+.topbar{opacity:.72}
+body.hud-dim .topbar{opacity:.28}
+/* Menu close button */
+#btnMenuClose,.menu-close{
+  width:36px;height:36px;border-radius:50%!important;background:#ffffff10!important;
+  border:1px solid #ffffff18!important;color:var(--ink)!important;
+}
+/* Inventory cells 8pt */
+.inv-grid{grid-template-columns:repeat(4,1fr);gap:8px}
+.inv-cell{min-height:72px}
+/* Map card */
+.atlas-map,.map-wrap{border-radius:14px;border:1px solid #ffffff14;overflow:hidden}
+/* Battle card glass */
+.combat-fx .combat-card{
+  background:linear-gradient(180deg,#16141cf5,#0c0a12f8)!important;
+  border:1px solid #e8c47a33!important;border-radius:18px!important;
+  box-shadow:0 20px 60px #000c!important;
+}

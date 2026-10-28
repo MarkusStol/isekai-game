@@ -4,24 +4,26 @@ import * as Codex from './codex.js';
 import * as UI13 from './ui13.js';
 
 export const HUB_TILES=[
-  {id:'status',icon:'👤',label:'Status'},
-  {id:'level',icon:'⬆',label:'Aufstieg'},
-  {id:'equip',icon:'⚔',label:'Ausrüstung'},
-  {id:'jobs',icon:'🏷',label:'Berufe'},
-  {id:'gambits',icon:'🎯',label:'Einsatz'},
-  {id:'craft',icon:'🔨',label:'Werkstatt'},
-  {id:'summons',icon:'🌟',label:'Geister'},
-  {id:'inv',icon:'🎒',label:'Inventar'},
-  {id:'skills',icon:'✨',label:'Fähigkeiten'},
-  {id:'rels',icon:'💞',label:'Beziehungen'},
-  {id:'quests',icon:'📜',label:'Quests'},
-  {id:'home',icon:'🏠',label:'Zuhause'},
-  {id:'journal',icon:'📖',label:'Chronik'},
-  {id:'finance',icon:'💰',label:'Finanzen'},
-  {id:'kingdom',icon:'👑',label:'Reich'},
-  {id:'codex',icon:'📘',label:'Codex'},
-  {id:'atlas',icon:'🗺',label:'Weltkarte'},
+  {id:'status',icon:'status',label:'Status'},
+  {id:'level',icon:'level',label:'Aufstieg'},
+  {id:'equip',icon:'equip',label:'Ausrüstung'},
+  {id:'jobs',icon:'jobs',label:'Berufe'},
+  {id:'gambits',icon:'gambits',label:'Einsatz'},
+  {id:'craft',icon:'craft',label:'Werkstatt'},
+  {id:'summons',icon:'summons',label:'Geister'},
+  {id:'inv',icon:'inv',label:'Inventar'},
+  {id:'skills',icon:'skills',label:'Fähigkeiten'},
+  {id:'rels',icon:'rels',label:'Beziehungen'},
+  {id:'quests',icon:'quests',label:'Quests'},
+  {id:'home',icon:'home',label:'Zuhause'},
+  {id:'journal',icon:'journal',label:'Chronik'},
+  {id:'finance',icon:'finance',label:'Finanzen'},
+  {id:'kingdom',icon:'kingdom',label:'Reich'},
+  {id:'codex',icon:'codex',label:'Codex'},
+  {id:'atlas',icon:'atlas',label:'Weltkarte'},
 ];
+function hubIcon(id){return `<svg class="ico" aria-hidden="true"><use href="#i-${id}"></use></svg>`}
+
 
 export function openHub(root, S, helpers){
   const {closeMenu, openTab, imgUrl}=helpers;
@@ -31,7 +33,7 @@ export function openHub(root, S, helpers){
   const sum=Level.summary(S);
   const portSlug=(S.pc?.portrait)||(S.role==='held'?'heldin':S.role==='grey'?'grey/darren':'heldin');
   const port=`assets/port/${portSlug}.webp`;
-  head.innerHTML=`<div class="hub-hero-art" style="background-image:url('${port}')"></div>
+  head.innerHTML=`<div class="hub-hero-art" style="background-image:url('${port}');background-size:contain;background-repeat:no-repeat;background-color:#0a0810"></div>
     <div class="hub-hero-meta">
       <div class="hub-name">${S.pc?.name||'Held:in'}</div>
       <div class="hub-sub">${sum.className}${sum.branch?' · '+sum.branch:''} · ${sum.title}</div>
@@ -42,7 +44,7 @@ export function openHub(root, S, helpers){
   const grid=document.createElement('div'); grid.className='hub-grid';
   HUB_TILES.forEach(t=>{
     const b=document.createElement('button'); b.type='button'; b.className='hub-tile';
-    b.innerHTML=`<span class="hub-ico">${t.icon}</span><span class="hub-lab">${t.label}</span>`;
+    b.innerHTML=`<span class="hub-ico">${hubIcon(t.icon)}</span><span class="hub-lab">${t.label}</span>`;
     b.onclick=()=>openTab(t.id);
     grid.appendChild(b);
   });

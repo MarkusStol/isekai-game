@@ -202,7 +202,7 @@ export function crossfadeScene(imgEl, url){
     next.onload=()=>{
       imgEl.classList.add('scene-fade-out');
       setTimeout(()=>{
-        imgEl.src=url; imgEl.classList.remove('scene-fade-out'); imgEl.classList.add('on','scene-kenburns');
+        imgEl.src=url; imgEl.classList.remove('scene-fade-out'); imgEl.classList.add('on','scene-kenburns'); imgEl.style.opacity='1'; imgEl.style.zIndex='2';
         res();
       },220);
     };
@@ -253,14 +253,24 @@ export function stopAmbient(keepFlag=true){
   if(_nodes){try{_nodes.oscs.forEach(o=>{try{o.stop()}catch(_){}});_nodes.master.disconnect()}catch(_){}_nodes=null}
   if(!keepFlag)_want=false;
 }
-export function uiTick(){
+export function playUi(kind){
   try{
-    if(_muted||!_audio)return;
-    const o=_audio.createOscillator(); const g=_audio.createGain();
-    o.frequency.value=880; g.gain.value=0.02;
-    o.connect(g); g.connect(_audio.destination);
-    o.start(); g.gain.exponentialRampToValueAtTime(0.0001,_audio.currentTime+0.06); o.stop(_audio.currentTime+0.07);
-  }catch(_){}
+    if(_muted)return;
+    _audio=_audio||new (window.AudioContext||window.webkitAudioContext)();
+    if(_audio.state==='suspended')_audio.resume();
+    const o=_audio.createOscillator(), g=_audio.createGain();
+    const now=_audio.currentTime;
+    const map={tap:[880,.04],ok:[660,.06],open:[520,.08],back:[420,.05],err:[180,.1]};
+    const [f,d]=map[kind]||map.tap;
+    o.type='sine'; o.frequency.value=f;
+    g.gain.setValueAtTime(0.0001,now);
+    g.gain.exponentialRampToValueAtTime(0.045, now+0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, now+d);
+    o.connect(g); g.connect(_audio.destination); o.start(now); o.stop(now+d+0.02);
+  }catch(_){ }
+}
+export function uiTick(){
+  playUi('tap');
   try{if(navigator.vibrate)navigator.vibrate(8)}catch(_){}
 }
 
@@ -335,6 +345,6 @@ export function arrivalBlurb(S){
 export default {
   cleanSnippet, npcInitiativeLine, seekPlayerLine, richOfflineProse,
   setWeather, weatherFor, applyDayNightTint, crossfadeScene, ensureWeatherCanvas,
-  toggleMute, isMuted, startAmbient, stopAmbient, uiTick,
+  toggleMute, isMuted, startAmbient, stopAmbient, uiTick, playUi,
   openCombat, portraitMoodClass, arrivalBlurb
 };
