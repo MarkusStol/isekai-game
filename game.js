@@ -18,7 +18,7 @@ import * as Summons from './summons.js';
 import * as Equip from './equip.js';
 import * as Jrpg from './jrpg.js';
 const $=s=>document.querySelector(s);const $$=s=>[...document.querySelectorAll(s)];const R=a=>a[Math.floor(Math.random()*a.length)];const rnd=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
-const VER='17.1',CACHE_V='v17.1';
+const VER='17.2',CACHE_V='v17.2';
 const ROLES={
  held:{e:'⚔️',name:'Held mit Status-System',d:'Ein blaues Fenster erscheint: [Status]. Die Welt braucht dich.',world:'Königreich Aldheim',
   base:{hp:100,mp:40,str:12,cha:8,ruf:10,gold:40},cls:['Abenteurer','Ritter','Held','Legendärer Held'],pack:'worlds/held.json',
@@ -270,7 +270,7 @@ function travelTo(dest,opts){opts=opts||{};if(!S?.world)return {ok:false,text:'K
   {const est=Cont.estimateMinutes('reise nach '+key, opts.hours?opts.hours*60:null);advanceTimeMinutes(est.minutes,{allowLong:true,reason:est.kind})}
   return finishTravel(from,key)}
  // fallback: just set scene
- discover(dest);S.world.scene={ort:cutStr(dest,80),zeit:phaseLabel(),anwesend:whoHere(dest).slice(0,6)};
+ discover(dest);try{Cont.unlockScene(S)}catch(_){};S.world.scene={ort:cutStr(dest,80),zeit:phaseLabel(),anwesend:whoHere(dest).slice(0,6)};try{Cont.lockScene(S,'arrive')}catch(_){};
  applyActionDuration('reise nach '+dest, opts.hours?opts.hours*60:null);return finishTravel(from,dest)}
 function finishTravel(from,to){const node=locNode(to);const bg=node?.bg;
   const present=(S.world.scene?.ort===to && (S.world.scene.anwesend||[]).length)?S.world.scene.anwesend.slice():whoHere(to);
@@ -562,6 +562,7 @@ function migrate(raw){if(!raw)return null;const s=typeof raw==='string'?JSON.par
  if(s.ver<14){s.ver=14;try{Level.ensureProgress(s);Know.ensureKnow(s);Know.migrateKnow(s);s.met=s.met||{};s.romance=s.romance||{}}catch(e){console.warn('v14 migrate',e)}}
  if(Number(s.ver)<17){s.ver=17;try{Jobs.ensureJobs(s);Gems.ensureGems(s);Summons.ensureSummons(s);Equip.ensureEquip(s);s.cfgBattleDiff=s.cfgBattleDiff||'normal';s.cfgAtbMode=s.cfgAtbMode||'active'}catch(e){console.warn('v17 migrate',e)}}
  if(Number(s.ver)<17.1){s.ver=17.1;try{Jobs.ensureJobs(s);Gems.ensureGems(s);Summons.ensureSummons(s);Equip.ensureEquip(s);s.battle=s.battle||{};s.battle.gambitMap=s.battle.gambitMap||{}}catch(e){console.warn('v17.1 migrate',e)}}
+ if(Number(s.ver)<17.2){s.ver=17.2;try{Cont.ensureCont(s);Cont.updateStoryStand(s);if(s.world?.scene)Cont.lockScene(s,'migrate')}catch(e){console.warn('v17.2 migrate',e)}}
  // v13.1 continuity+time always (kept in v14)
  try{Cont.ensureCont(s);if(s.cal&&s.cal.minute==null)s.cal.minute=0;if(s.cfgCatchupOptIn==null)s.cfgCatchupOptIn=false}catch(e){console.warn('cont migrate',e)}
  if(s.ver<14)s.ver=14;
@@ -867,26 +868,31 @@ function matchSchedule(entry,phase){if(!entry)return false;const e=String(entry)
  const map={nacht:['nacht','night','mitternacht'],morgen:['morgen','früh','morning'],mittag:['mittag','noon'],nachmittag:['nachmittag'],abend:['abend','evening'],spät:['spät','spaet','late']};
  const keys=map[p]||[p];return keys.some(k=>e.includes(k))}
 function worldTick(){if(!S.world||!S.setup?.done)return;
- // v13.1: do NOT advance hours here — clock moves via applyActionDuration after the reply
+ // v17.2: clock via applyActionDuration; scene lock freezes present cast & location
+ const locked=Cont.isSceneLocked(S);
  const phase=Cont.phaseFromClock(S)||S.time?.phase||Sim.phaseFromHour(S.cal?.hour||12);
  const npcs=Object.entries(S.world.npcs||{});if(!npcs.length)return;
  if(S.world.scene?.anwesend)S.world.scene.anwesend=S.world.scene.anwesend.filter(n=>!Sim.isDead(S,n)||S.world.npcs[n]?.undead);
  const present=new Set((S.world.scene.anwesend||[]).map(String));
- for(const[name,n]of npcs){if(n.alive===false||n.dead)continue;const sch=n.schedule||[];const hit=sch.find(s=>matchSchedule(s,phase));
+ for(const[name,n]of npcs){if(n.alive===false||n.dead)continue;
+  // LOCK: never move/remove NPCs who are currently present
+  if(locked && present.has(name)) continue;
+  const sch=n.schedule||[];const hit=sch.find(s=>matchSchedule(s,phase));
   if(hit){const bit=String(hit).split(':').slice(1).join(':').trim()||hit;n._schedNow=bit;
    const g=ensureGraph();let dest=null;if(g){for(const loc of Object.keys(g.nodes)){if(bit.toLowerCase().includes(loc.toLowerCase().slice(0,8))||loc.toLowerCase().includes(bit.toLowerCase().slice(0,8))){dest=loc;break}}
     if(!dest&&g.nodes[bit])dest=bit} if(dest)n.ort=dest;else if(!present.has(name)&&Math.random()<.35)n.ort=bit}
   else if(!present.has(name)&&n.home&&Math.random()<.2)n.ort=n.home}
- let aiNotes=[];try{aiNotes=Sim.runWorldAI(S,1)||[]}catch(_){}
- for(const note of aiNotes){if(note?.line){const clean=note.seek?Imm.seekPlayerLine(note.who||note.line.split(' ')[0]):Imm.cleanSnippet(note.line)||note.line; S.ticks.log=(S.ticks.log||[]).concat(clean).slice(-12);if(note.seek)eventToast(clean)}}
+ // Offscreen AI only — never alter locked scene.anwesend
+ let aiNotes=[];try{aiNotes=Sim.runWorldAI(S, locked?0:1)||[]}catch(_){}
+ for(const note of aiNotes){if(note?.line){const clean=note.seek?Imm.seekPlayerLine(note.who||note.line.split(' ')[0]):Imm.cleanSnippet(note.line)||note.line; S.ticks.log=(S.ticks.log||[]).concat(clean).slice(-12);/* seek toast only if idle/unlocked */ if(note.seek&&!locked)eventToast(clean)}}
  if(S.heat>30&&Math.random()<.4){S.ticks.rumours=(S.ticks.rumours||[]).concat(R(['Wachen fragen nach einem Fremden.','Ein Kopfgeld-Gerücht kursiert.','Jemand hat dein Gesicht skizziert.'])).slice(-10)}
- if(aiNotes.length&&S.turn>0&&S.turn%2===0){const n0=aiNotes[0]; eventToast(n0.seek?Imm.seekPlayerLine(n0.who||''): (Imm.cleanSnippet(n0.line)||n0.line));}
- if(Math.random()<.28){const here=[...present].filter(p=>S.world.npcs[p]&&!Sim.isDead(S,p));if(here.length){const who=R(here);const n=S.world.npcs[who];
+ // NPC-initiative: soft suggestion only when NOT locked (idle between scenes)
+ if(!locked && Math.random()<.22){const here=[...present].filter(p=>S.world.npcs[p]&&!Sim.isDead(S,p));if(here.length){const who=R(here);const n=S.world.npcs[who];
   const mem=(Sim.retrieveMemories(S,{npcNames:[who],limit:1})||[])[0];
   let label=who; try{label=Know.displayName(S,who,n)}catch(_){}
   const line=Imm.npcInitiativeLine(label, mem?.text||mem);
   S.flags.npcInit=who;eventToast(line);if(S.choices&&S.choices.length){const speak=Know.isNameKnown(S,who)?`Mit ${who} sprechen`:`Die Gestalt ansprechen`;S.choices=[speak,...S.choices.slice(0,3)]}
-  try{if(Know.isNameKnown(S,who))setPortrait(who,n)}catch(_){}}}}
+  /* do NOT steal portrait mid-scene */}}}
 
 function applyQuestUpdate(u){if(!u||!S.quests)return;const m=S.quests.main;
  if(u.mainObjectiveDone){const o=String(u.mainObjectiveDone);if(!(m.done||[]).includes(o)){m.done=m.done||[];m.done.push(o);toast('✓ Quest: '+o);pushSys('📜 '+o)}}
@@ -1087,14 +1093,27 @@ function worldText(){const w=S.world;if(!w)return '';
   const mem=(v.erinnerung||[]).slice(-1);if(mem.length)o.mem=mem[0];
   npcs[k]=o}
  return 'WELT-LEAN: '+JSON.stringify({ort:scene.ort,zeit:phaseLabel(),anwesend:present,npcs,heat:S.heat|0}).slice(0,1100)}
-function applyWorld(u){if(!u||!S.world)return;try{u=Sim.validateWorldUpdate(S,u)}catch(_){}try{u=guardNoRegression(u)}catch(_){}const w=S.world;const cut=(x,n)=>String(x||'').slice(0,n);const prevOrt=w.scene?.ort;
- if(u.scene&&u.scene.ort){w.scene={ort:cut(u.scene.ort,80),zeit:cut(u.scene.zeit,60)||phaseLabel(),anwesend:(u.scene.anwesend||[]).slice(0,8).map(x=>cut(x,40)).filter(n=>!Sim.isDead(S,n)||w.npcs[n]?.undead)};discover(w.scene.ort);
-  if(w.scene.ort!==prevOrt||u.scenePrompt||u.imagePrompt){S.flags.scenePrompt=u.scenePrompt||u.imagePrompt||scenePromptFor(w.scene.ort,w.scene.zeit);setSceneImage(S.flags.scenePrompt,w.scene.ort)}
+function applyWorld(u, playerAction=''){if(!u||!S.world)return;try{u=Sim.validateWorldUpdate(S,u)}catch(_){}try{u=Cont.filterWorldUpdate(S,u,playerAction)}catch(_){}try{u=guardNoRegression(u)}catch(_){}const w=S.world;const cut=(x,n)=>String(x||'').slice(0,n);const prevOrt=w.scene?.ort;const prevAnw=[...(w.scene?.anwesend||[])];
+ // under lock: never replace scene wholesale from empty/partial AI JSON
+ if(u.scene){
+  const locked=Cont.isSceneLocked(S);
+  let ort=cut(u.scene.ort||prevOrt,80)||prevOrt;
+  let anwesend=(u.scene.anwesend||prevAnw).slice(0,8).map(x=>cut(x,40)).filter(n=>n&&(!Sim.isDead(S,n)||w.npcs[n]?.undead));
+  if(!anwesend.length) anwesend=prevAnw.slice();
+  if(locked && !Cont.playerWantsExit(playerAction)){ ort=prevOrt||ort; anwesend=prevAnw.length?prevAnw.slice():anwesend; }
+  w.scene={ort,zeit:cut(u.scene.zeit,60)||phaseLabel(),anwesend};
+  if(ort&&ort!==prevOrt){discover(ort); if(u.scenePrompt||u.imagePrompt||!locked){S.flags.scenePrompt=u.scenePrompt||u.imagePrompt||scenePromptFor(ort,w.scene.zeit);setSceneImage(S.flags.scenePrompt,ort)}}
   maybePortraitsPresent()}
- if(u.speaker)S.flags.speaker=cut(u.speaker,40);
+ // speaker only from present cast
+ if(u.speaker){const sp=cut(u.speaker,40); const present=(w.scene?.anwesend||[]).map(String);
+  if(present.some(p=>p===sp||p.includes(sp)||sp.includes(p.split(' ')[0])) || /^(Erzähler|Nebel|Göttin)$/i.test(sp)) S.flags.speaker=sp;
+ }
  (u.npcUpdates||[]).forEach(n=>{if(!n||!n.name)return;let k=Object.keys(w.npcs).find(x=>x.toLowerCase()===String(n.name).toLowerCase());
-  if(!k){if(Object.keys(w.npcs).length>=16)return;k=cut(n.name,40);w.npcs[k]={art:'',ziel:'',geheimnis:'',beziehung:'Fremd',erinnerung:[],e:'👤',plan:[]};if(!S.romance[k])S.romance[k]={affection:0,trust:0,stage:0,events:[]}}
-  const p=w.npcs[k];['art','ziel','geheimnis','beziehung','ort'].forEach(f=>{if(n[f])p[f]=cut(n[f],140)});if(n.erinnerung){p.erinnerung.push(cut(n.erinnerung,140));p.erinnerung=p.erinnerung.slice(-6)};if(n.plan)p.plan=[cut(n.plan,80),...(p.plan||[])].slice(0,5);
+  if(!k){if(Cont.isSceneLocked(S))return; if(Object.keys(w.npcs).length>=16)return;k=cut(n.name,40);w.npcs[k]={art:'',ziel:'',geheimnis:'',beziehung:'Fremd',erinnerung:[],e:'👤',plan:[]};if(!S.romance[k])S.romance[k]={affection:0,trust:0,stage:0,events:[]}}
+  const p=w.npcs[k]; const fields=['art','ziel','geheimnis','beziehung'];
+  // locked present NPCs cannot be relocated by narrator JSON
+  if(!(Cont.isSceneLocked(S) && (w.scene?.anwesend||[]).includes(k))) fields.push('ort');
+  fields.forEach(f=>{if(n[f])p[f]=cut(n[f],140)});if(n.erinnerung){p.erinnerung.push(cut(n.erinnerung,140));p.erinnerung=p.erinnerung.slice(-6)};if(n.plan)p.plan=[cut(n.plan,80),...(p.plan||[])].slice(0,5);
   if(n.portraitPrompt&&!S.imgCache.portraits[k]){S.imgCache.portraits[k]=imgUrl(n.portraitPrompt,256,256,hashSeed('port:'+k),isG())}});
  (u.newLocations||[]).forEach(l=>{if(l&&l.name&&Object.keys(w.orte).length<20){w.orte[cut(l.name,50)]=cut(l.desc,140);discover(cut(l.name,50))}});
  if(Array.isArray(u.ereignisse)&&u.ereignisse.length)w.ereignisse=u.ereignisse.slice(0,6).map(x=>cut(x,140))}
@@ -1407,7 +1426,7 @@ REGELN: ${((k.regeln_der_stadt||[]).slice(0,8)).map((x,i)=>(i+1)+') '+x).join(' 
 SPOILERSCHUTZ: ${k.spoilerschutz||''}
 ${romanceHint()}
 ${questHint()}
-ERZÄHLREGELN: 1) Erster Satz reagiert direkt. Fragen werden beantwortet. 2) 2. Person, nie Erzähler-Ich. 3) Kein Splatter/Anime-Fenster. 4) NPCs eigenständig (können ablehnen). 5) 4-9 Sätze. 6) Romanzen: zurückhaltend, melancholisch, passend zur Stadt.
+ERZÄHLREGELN: 1) Erster Satz reagiert direkt. Fragen werden beantwortet. 2) 2. Person, nie Erzähler-Ich. 3) Kein Splatter/Anime-Fenster. 4) NPCs eigenständig (können ablehnen). 5) 4-7 Sätze, ca. 120–160 Wörter. 6) Romanzen: zurückhaltend, melancholisch, passend zur Stadt. 7) Ort/Anwesende gesperrt bis Spieler geht.
 ${stream?`AUSGABE: Erzähltext, dann Zeile „${STREAM_DELIM}“, dann JSON: choices[4], changes{verstand,schuld,affinity,trust,xp,items,removeItems}, summary, world{scene,npcUpdates,newLocations,ereignisse,scenePrompt?,speaker?}, speaker, scenePrompt (engl. Bildprompt zur Szene), quests{mainObjectiveDone?,advanceAct?,sideComplete?}, durationMin. optional ending.`:`JSON mit narration, choices, changes, summary, durationMin, world, speaker, scenePrompt, quests.`}`}
 function voiceHint(){const pack=PACKS[S.role];if(!pack?.npcs)return '';
  return 'STIMMEN: '+Object.entries(pack.npcs).slice(0,6).map(([k,v])=>k+': '+(v.stimme||v.art||'').slice(0,60)).join(' | ')}
@@ -1427,7 +1446,8 @@ FREIHEIT (HARTE REGELN):
 4. NPCs haben Gedächtnis (siehe NPC-GEDÄCHTNIS): Bezug auf Vergangenes nehmen. Sie leben weiter (Routinen, Ziele, Beziehungen untereinander).
 5. Romanzen: nur einvernehmlich, nur Erwachsene. NPCs dürfen NEIN sagen (Affection/Trust/Persönlichkeit). Kuss/Date/Beziehung/Nacht möglich; sexuelle Szenen IMMER Fade-to-Black, danach Erinnerung. Nie non-konsensual.
 6. Gewalt/Crime: Töten und Raub möglich (dark-fantasy anime, nicht grafisch). Tote NPCs bleiben tot. Zeugen → Heat, Trauer, Rache, Ermittlung, Kopfgeld.
-7. Erster Satz reagiert DIREKT. 4-9 Sätze, 2. Person. Anime-Mittel sparsam.
+7. Erster Satz reagiert DIREKT. 4-7 Sätze, ca. 120–160 Wörter, 2. Person. Anime-Mittel sparsam.
+8. Ort und Anwesende der AKTUELLEN SZENE sind gesperrt — kein Ortswechsel, keine Fremden als Sprecher, außer der Spieler geht explizit.
 ${stream?`AUSGABE: Erzähltext, dann „${STREAM_DELIM}“, dann JSON: choices[4] (ortsbezogen, keine Start-Halle-Zwänge), changes{hp,mp,str,cha,ruf,xp,gold,affinity,trust,items,newSkills,removeItems,killed?,robbed?}, summary, world{scene,npcUpdates,newLocations,ereignisse,scenePrompt?,speaker?}, speaker, scenePrompt, quests{...optional}, durationMin (Minuten dieser Handlung, Gespräch 5-15). optional ending.`:`JSON: narration, choices, changes, summary, durationMin, world, speaker, scenePrompt, quests.`}`}
 function greyDetails(a){const B=GREY||PACKS.grey;if(!B)return '';const txt=(a+' '+JSON.stringify(S.world.scene)+' '+(S.hist||[]).slice(-4).map(h=>h.content).join(' ')).toLowerCase();
  const pick=(obj,force)=>Object.entries(obj||{}).filter(([k])=>(force||[]).includes(k)||k.toLowerCase().split(/[ \/–-]+/).some(w=>w.length>3&&txt.includes(w)));
@@ -1449,7 +1469,7 @@ function msgs(a){ // Pollinations / WebLLM / API — same continuity block, comp
  let h=(S.hist||[]).slice(-8);
  if(!h.length){const last=(S.log||[]).filter(m=>m.k==='n').slice(-1)[0];if(last)h=[{role:'assistant',content:last.t}]}
  // hist in messages is short; full verbatim lives in turnMsg scene-last block
- return [{role:'system',content:sysPrompt(false)},...h.map(m=>({role:m.role,content:String(m.content||'').slice(0,500)})),{role:'user',content:turnMsg(a)}]}
+ return [{role:'system',content:sysPrompt(true)},...h.map(m=>({role:m.role,content:String(m.content||'').slice(0,400)})),{role:'user',content:turnMsg(a)}]}
 function turnMsg(a){
   Cont.ensureCont(S);
   return Cont.buildTurnUserMessage(S,a,{
@@ -1484,14 +1504,14 @@ function packStream(text,o){const ch=Object.assign({},o.changes||{});if(o.choice
  for(const k of ['verstand','schuld','hp','mp','str','cha','ruf','xp','gold','affinity','trust','items','newSkills','removeItems']){if(k in o&&!(k in ch))ch[k]=o[k]}
  return {text:String(text||'…'),changes:ch}}
 
-const G_FALLBACK=['gemini-2.5-flash','gemini-flash-latest','gemini-2.5-flash-lite','gemini-2.0-flash'];
+const G_FALLBACK=['gemini-2.5-flash-lite','gemini-2.0-flash-lite','gemini-2.0-flash','gemini-2.5-flash','gemini-flash-latest'];
 const GM_KEY='isekai_gmodels';
 const G_SAFE=['HARM_CATEGORY_HARASSMENT','HARM_CATEGORY_HATE_SPEECH','HARM_CATEGORY_SEXUALLY_EXPLICIT','HARM_CATEGORY_DANGEROUS_CONTENT'].map(category=>({category,threshold:'BLOCK_ONLY_HIGH'}));
 const G_TIMEOUT=25000;
 function gmStore(){try{return JSON.parse(localStorage.getItem(GM_KEY))||{}}catch(_){return {}}}
 function gmSave(o){localStorage.setItem(GM_KEY,JSON.stringify(o))}
 function gmScore(id){const n=id.toLowerCase();const v=(n.match(/gemini-(\d+(?:\.\d+)?)/)||[])[1];let s=(v?+v:0)*100;
- if(/flash-lite/.test(n))s+=15;else if(/flash/.test(n))s+=45;else if(/pro/.test(n))s-=30;
+ if(/flash-lite/.test(n))s+=80;else if(/flash/.test(n))s+=40;else if(/pro/.test(n))s-=30;
  if(/-latest$/.test(n))s+=350;if(/preview|exp/.test(n))s-=60;if(/gemma/.test(n))s-=400;return s}
 function gmRank(list){const bad=/embed|image|imagen|tts|audio|live|vision|aqa|veo|lyria|robotics|computer-use|learnlm|native|thinking-exp|nano|banana|deep-research/i;
  const ids=list.filter(m=>(m.supportedGenerationMethods||[]).includes('generateContent')).map(m=>String(m.name||'').replace(/^models\//,'')).filter(id=>/^gemini/i.test(id)&&!bad.test(id));
@@ -1522,7 +1542,7 @@ function gBody(a){Cont.ensureCont(S);const contents=[];
  if(contents[0]&&contents[0].role==='model')contents.unshift({role:'user',parts:[{text:'(Spielbeginn)'}]});
  contents.push({role:'user',parts:[{text:turnMsg(a)}]});
  // stream-friendly: slightly lower max to first finish JSON faster after prose
- return {systemInstruction:{parts:[{text:sysPrompt(true)}]},contents,generationConfig:{temperature:.85,maxOutputTokens:700},safetySettings:G_SAFE}}
+ return {systemInstruction:{parts:[{text:sysPrompt(true)}]},contents,generationConfig:{temperature:.85,maxOutputTokens:350},safetySettings:G_SAFE}}
 function friendlyAIFail(){return 'Die Erzählerin stockt kurz. Versuch es noch einmal – oder spiele ohne sie weiter.'}
 function setNarratorMode(mode){ // gemini | free | offline
   S._narratorMode=mode||'gemini';
@@ -1598,14 +1618,93 @@ async function loadWebLLM(){if(engine)return engine;if(!navigator.gpu)throw new 
  const w=await import('https://esm.run/@mlc-ai/web-llm');$('#wstatus').textContent='Lade Modell…';
  engine=await w.CreateMLCEngine(cfg.wmodel||'Qwen2.5-1.5B-Instruct-q4f16_1-MLC',{initProgressCallback:p=>{$('#wstatus').textContent=p.text}});$('#wstatus').textContent='✅ Modell bereit';return engine}
 async function streamTo(el,iter){let raw='';for await(const c of iter){raw+=c;el.textContent=raw.split('```')[0]}return raw}
+
+/* ---- v17.2 free path: openai-fast SSE, TTFT budget, local beat ---- */
+const FREE_MODEL='openai-fast';
+const FREE_TTFT_MS=6000;
+const FREE_TOTAL_MS=22000;
+function localBeatLine(a){
+  const t0=performance.now();
+  const here=(S?.world?.scene?.anwesend||[]).filter(n=>S.world?.npcs?.[n]?.alive!==false);
+  const who=here[0]||S.flags?.speaker||'jemand';
+  let label=who; try{label=Know.displayName(S,who)}catch(_){}
+  const ort=S?.world?.scene?.ort||'hier';
+  const low=String(a||'').toLowerCase();
+  let line;
+  if(/frag|\?/.test(low)) line=`${label} hebt den Blick, noch in ${ort}. Die Antwort formt sich.`;
+  else if(/geh|reise|lauf/.test(low)) line=`Du rührst dich — ${ort} bleibt einen Atemzug lang hinter dir.`;
+  else if(/küss|umarm|flirt/.test(low)) line=`Ein kurzer Moment zwischen dir und ${label}.`;
+  else if(/wart|schau|beobacht/.test(low)) line=`Die Luft in ${ort} hält still. ${label} bemerkt dich.`;
+  else line=`${label} reagiert — noch hier, in ${ort}.`;
+  S._beatMs=Math.round(performance.now()-t0);
+  return line;
+}
+async function readOpenAISSE(res, onText){
+  const reader=res.body.getReader(); const dec=new TextDecoder(); let buf='', raw='';
+  while(true){const {done,value}=await reader.read(); if(done)break; buf+=dec.decode(value,{stream:true});
+    let idx; while((idx=buf.indexOf('\n'))>=0){ let line=buf.slice(0,idx); buf=buf.slice(idx+1); if(line.endsWith('\r'))line=line.slice(0,-1);
+      if(!line.startsWith('data:'))continue; const data=line.slice(5).trim(); if(!data||data==='[DONE]')continue;
+      try{ const j=JSON.parse(data); const t=j.choices?.[0]?.delta?.content||j.choices?.[0]?.message?.content||'';
+        if(t){ raw+=t; if(onText) onText(raw); }
+      }catch(_){}}}
+  return raw;
+}
+async function freeStream(a, el){
+  const t0=performance.now();
+  // instant local beat — zero dead air
+  const beat=localBeatLine(a);
+  if(el){ el.textContent=beat; el.classList.add('typing'); }
+  const body={model:FREE_MODEL, messages:msgs(a), temperature:0.85, max_tokens:320, stream:true, referrer:'https://markusstol.github.io/isekai-game/'};
+  S._promptChars=(JSON.stringify(body).length)|0;
+  let err;
+  for(let attempt=0; attempt<2; attempt++){
+    try{
+      const ac=new AbortController();
+      const hard=setTimeout(()=>ac.abort(), FREE_TOTAL_MS);
+      // race: if no first token in FREE_TTFT_MS, abort and try fallback model once
+      let ttftTimer, gotToken=false;
+      const ttftPromise=new Promise((_,rej)=>{ ttftTimer=setTimeout(()=>{ if(!gotToken) { try{ac.abort()}catch(_){ } rej(Object.assign(new Error('ttft'),{ttft:1})) } }, FREE_TTFT_MS)});
+      const fetchP=fetch(FREE_URL,{method:'POST',signal:ac.signal,headers:{'Content-Type':'application/json'},body:JSON.stringify(attempt===0?body:{...body,model:'openai'})});
+      let res;
+      try{ res=await Promise.race([fetchP, ttftPromise.then(()=>null)]); }catch(e){ clearTimeout(hard); clearTimeout(ttftTimer); if(e.ttft&&attempt===0){ err=e; continue } throw e }
+      // if fetch won
+      res=res||await fetchP;
+      clearTimeout(ttftTimer);
+      if(!res||!res.ok){ clearTimeout(hard); const e=new Error('Gratis-KI '+(res&&res.status)); e.ra=+(res&&res.headers.get('Retry-After'))||0; throw e }
+      let raw='';
+      raw=await readOpenAISSE(res, r=>{
+        if(!gotToken && r && r.trim()){ gotToken=true; S._ttft=Math.round(performance.now()-t0); }
+        // replace beat with stream as soon as real text arrives
+        showNarration(el, r);
+      });
+      clearTimeout(hard);
+      if(!raw||raw.trim().length<8){ const e=new Error('leere Antwort'); e.ra=1; throw e }
+      // obey check — regenerate once quickly if ignored
+      let packed=raw.includes(STREAM_DELIM)?parseStream(raw):parse(raw);
+      if(packed && packed.text && !Cont.addressesPlayer(a, packed.text) && attempt===0){
+        el.textContent=beat+' …';
+        // one fast retry with stronger obey prefix
+        const retryMsgs=msgs(a);
+        retryMsgs[retryMsgs.length-1]={role:'user', content:turnMsg(a)+'\n\nWICHTIG: Deine letzte Antwort ignorierte den Spieler. Antworte JETZT auf: „'+a+'“'};
+        const ac2=new AbortController(); const to2=setTimeout(()=>ac2.abort(),12000);
+        const res2=await fetch(FREE_URL,{method:'POST',signal:ac2.signal,headers:{'Content-Type':'application/json'},body:JSON.stringify({model:FREE_MODEL,messages:retryMsgs,temperature:0.7,max_tokens:280,stream:true,referrer:'https://markusstol.github.io/isekai-game/'})});
+        clearTimeout(to2);
+        if(res2.ok){ const raw2=await readOpenAISSE(res2, r=>showNarration(el,r)); if(raw2&&raw2.trim().length>8) raw=raw2; }
+      }
+      S._turnTotal=Math.round(performance.now()-t0);
+      showNarration(el, raw);
+      return raw;
+    }catch(e){ err=e; if(attempt<1){ await new Promise(r=>setTimeout(r, Math.min(2,e.ra||1)*400)); } }
+  }
+  throw err||new Error('Gratis-KI');
+}
+
+
 async function aiTurn(a,el,mode=cfg.mode){if(mode==='webllm'){const e=await loadWebLLM();const it=await e.chat.completions.create({messages:msgs(a),stream:true,temperature:.8,max_tokens:400});
   return streamTo(el,(async function*(){for await(const c of it)yield c.choices[0]?.delta?.content||''})())}
  if(mode==='api'){const res=await fetch((cfg.aurl||'').replace(/\/$/,'')+'/chat/completions',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+cfg.akey},body:JSON.stringify({model:cfg.amodel,messages:msgs(a),temperature:.8,max_tokens:500})});
   if(!res.ok)throw new Error('API '+res.status);const j=await res.json();const t=j.choices[0].message.content;el.textContent=t.split('```')[0];return t}
- if(mode==='free'){let err;for(let i=0;i<2;i++){try{const ac=new AbortController(),to=setTimeout(()=>ac.abort(),25000);
-   const res=await fetch(FREE_URL,{method:'POST',signal:ac.signal,headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'openai',messages:msgs(a),temperature:.9,reasoning_effort:'low',referrer:'https://markusstol.github.io/isekai-game/'})});clearTimeout(to);
-   if(!res.ok){const e=new Error('Gratis-KI '+res.status);e.ra=+res.headers.get('Retry-After')||0;throw e}const j=await res.json();const mm=j.choices?.[0]?.message||{};let t=(mm.content||'').trim()||(mm.reasoning_content||'').trim();if(!t){const e=new Error('leere Antwort');e.ra=1;throw e}showNarration(el,t);return t}
-  catch(e){err=e;if(i<1){el.textContent='…';await new Promise(r=>setTimeout(r,Math.min(3,e.ra||1)*1000))}}}throw err}
+ if(mode==='free'){return await freeStream(a,el)}
  throw new Error('offline')}
 
 /* ---------- v16 encounter (choice-first, never forced) ---------- */
@@ -1712,13 +1811,17 @@ async function act(a){if(busy||!a.trim())return;
    }
   }
  }
- setBusy(true);const t0=performance.now();try{await loadPack(S.role)}catch(_){}
+ setBusy(true);const t0=performance.now();
+ // v17.2: defer pack reload; lock scene BEFORE first token; instant beat
+ try{ if(!Cont.playerWantsExit(a)) Cont.lockScene(S,'talk'); else Cont.unlockScene(S); }catch(_){}
  if(!hasKey()&&cfg.mode==='gemini'){cfg.mode='free';try{localStorage.setItem(CFG,JSON.stringify(cfg))}catch(_){}}
- try{Imm.uiTick()}catch(_){}
- // show player intent briefly
- const prevSp=$('#speaker').textContent;$('#speaker').textContent='Du';$('#speaker').classList.remove('hidden');$('#vnText').textContent='„'+a+'“';
+ const el=$('#vnText');
+ // instant local beat (<50ms) — zero dead time
+ try{ const beat=localBeatLine(a); $('#speaker').textContent=(S.world?.scene?.anwesend||[])[0]||(isG()?'Nebel':'Erzähler'); $('#speaker').classList.remove('hidden'); el.textContent=beat; }catch(_){ el.innerHTML='<span class="caret">…</span>'; }
  S.turn++;S.log.push({k:'p',t:a});
- $('#vnText').innerHTML='<span class="caret">Schreibe</span>';let res;let softFail=false;const el=$('#vnText');
+ let res;let softFail=false;
+ // loadPack deferred — never block TTFT
+ scheduleAfterReply([()=>{try{loadPack(S.role)}catch(_){}}, ()=>{try{Imm.uiTick()}catch(_){}}]);
  let modelSummary,scenePrompt,worldUpdate,questUpdate;
  try{if(cfg.mode==='offline')throw 0;
   if(cfg.mode==='gemini'||(cfg.mode!=='webllm'&&cfg.mode!=='api'&&cfg.mode!=='free'&&hasKey())){
@@ -1757,7 +1860,7 @@ async function act(a){if(busy||!a.trim())return;
  const _worldUpdate=worldUpdate, _scenePrompt=scenePrompt, _questUpdate=questUpdate, _modelSummary=modelSummary, _a=a, _text=res.text;
  scheduleAfterReply([
   ()=>{try{if(_modelSummary)Cont.ingestModelSummary(S,_modelSummary); else Cont.rollChapterAsync(S)}catch(_){}},
-  ()=>{try{if(_worldUpdate)applyWorld(_worldUpdate)}catch(_){}},
+  ()=>{try{if(_worldUpdate)applyWorld(_worldUpdate,_a)}catch(_){}},
   ()=>{try{if(_questUpdate)applyQuestUpdate(_questUpdate)}catch(_){}},
   ()=>{try{if(_scenePrompt){S.flags.scenePrompt=String(_scenePrompt).slice(0,220);setSceneImage(S.flags.scenePrompt,'ai_'+S.turn)}}catch(_){}},
   ()=>{try{setPortraitFromSpeaker(S.flags?.speaker)}catch(_){}},
@@ -1847,7 +1950,7 @@ $('#btnGateSave').onclick=()=>{const gk=$('#gateKey').value.trim();if(!gk){toast
  toast('Alles bereit.');gmFetch(gk,true).then(()=>gmProbe(gk).catch(()=>{}));enterPlay()};
 $('#btnGateSkip').onclick=()=>{cfg.mode='free';cfg.v2=1;localStorage.setItem(CFG,JSON.stringify(cfg));toast('Erzählerin: Pollinations (ohne Schlüssel)');enterPlay()};
 
-window.__setCfg=o=>{cfg=Object.assign(cfg||{},o||{});try{localStorage.setItem(CFG,JSON.stringify(cfg))}catch(_){}};window.__game={Battle,Jobs,Gems,Summons,Equip,Jrpg,openPendingEncounter,Imm,discoverThing,showCodexInline,Level,UI14,UI17,Know,Cont,lastPromptDump,advanceTimeMinutes,applyActionDuration,newGrey,greyDetails,loadGrey,loadPack,get S(){return S},act,newLife,gBody,msgs,gmRank,gmProbe,parseStream,thinkingCfg,gmOrder,readSSE,STREAM_DELIM,migrate,worldTick,bumpRel,openMenu,stageName,offline,startIntro,setSceneImage,setPortrait,imgUrl,advanceTime,phaseLabel,typewrite,enterPlay,showTitle,analyzeImage,applySceneTheme,themeFromText,loadValidatedImage,openingNarration,travelTo,parseTravel,killNPC,robNPC,addMemory,memoryHint,startProcedural,offlineGenerateWorld,generateWorldPack,GENRES,travelChoices,ensureGraph,whoHere,parseLifeSim,Sim,Persist,WorldMap,Econ,Codex,UI13,save,loadSave,applyCatchUp,findAnyNpc};
+window.__setCfg=o=>{cfg=Object.assign(cfg||{},o||{});try{localStorage.setItem(CFG,JSON.stringify(cfg))}catch(_){}};window.__game={Battle,Jobs,Gems,Summons,Equip,Jrpg,localBeatLine,freeStream,FREE_MODEL,openPendingEncounter,Imm,discoverThing,showCodexInline,Level,UI14,UI17,Know,Cont,lastPromptDump,advanceTimeMinutes,applyActionDuration,newGrey,greyDetails,loadGrey,loadPack,get S(){return S},act,newLife,gBody,msgs,gmRank,gmProbe,parseStream,thinkingCfg,gmOrder,readSSE,STREAM_DELIM,migrate,worldTick,bumpRel,openMenu,stageName,offline,startIntro,setSceneImage,setPortrait,imgUrl,advanceTime,phaseLabel,typewrite,enterPlay,showTitle,analyzeImage,applySceneTheme,themeFromText,loadValidatedImage,openingNarration,travelTo,parseTravel,killNPC,robNPC,addMemory,memoryHint,startProcedural,offlineGenerateWorld,generateWorldPack,GENRES,travelChoices,ensureGraph,whoHere,parseLifeSim,Sim,Persist,WorldMap,Econ,Codex,UI13,save,loadSave,applyCatchUp,findAnyNpc};
 window.__game.askNPC=a=>askNPC(a);window.__game.gemini=gemini;
 if(cfg.gkey)gmFetch(cfg.gkey.trim()).then(()=>gmProbe(cfg.gkey.trim()).catch(()=>{})).catch(()=>{});
 (function(){const root=document.documentElement;const apply=()=>{try{const vv=window.visualViewport;if(!vv)return;const kb=Math.max(0,window.innerHeight-vv.height-vv.offsetTop);root.style.setProperty('--kb',kb+'px')}catch(_){}};
