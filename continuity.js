@@ -168,7 +168,7 @@ export function compactContinuity(S, playerAction){
   ].join('\n');
 }
 
-const OBEY = 'Reagiere direkt und ausschließlich auf diese Handlung; erfinde keinen Ortswechsel und keine fremden Handlungen des Spielers. Nur Deutsch, kein Meta, keine englischen Wörter, keine System-/JSON-Texte. Max 120–160 Wörter.';
+const OBEY = 'Reagiere direkt und ausschließlich auf diese Handlung. Erfinde keinen Ortswechsel, keine Ankunft/Tür-Szene und keine fremden Handlungen des Spielers. Wiederhole die Spielereingabe nicht wörtlich. Nur Deutsch, kein Meta, kein Englisch, kein JSON. Max 110–150 Wörter.';
 
 export function buildTurnUserMessage(S, playerAction, extras={}){
   const bits=[];

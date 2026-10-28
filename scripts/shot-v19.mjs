@@ -38,7 +38,7 @@ const page=await browser.newPage();
 await page.setViewport({width:390,height:844,deviceScaleFactor:2,isMobile:true,hasTouch:true});
 page.setDefaultTimeout(30000);
 
-await page.goto(`http://127.0.0.1:${PORT}/index.html?v=19`,{waitUntil:'networkidle0'});
+await page.goto(`http://127.0.0.1:${PORT}/index.html?v=19.1`,{waitUntil:'networkidle0'});
 await page.evaluate(()=>{localStorage.clear();sessionStorage.clear()});
 await page.reload({waitUntil:'networkidle0'});
 await new Promise(r=>setTimeout(r,500));
@@ -50,8 +50,8 @@ const started=await page.evaluate(async()=>{
   window.__setCfg?.({mode:'offline',debug:1,v2:1});
   try{
     await g.newLife('held',{lives:0,soul:0,keptSkills:[]},{skipSetup:true,name:'Aki'});
-    if(g.S.setup&&!g.S.setup.done){g.S.setup.done=true;g.S.ver='19';g.enterPlay()}
-    g.S.ver='19';
+    if(g.S.setup&&!g.S.setup.done){g.S.setup.done=true;g.S.ver='19.1';g.enterPlay()}
+    g.S.ver='19.1';
     g.S.world.scene={ort:'Taverne „Zum Silberkelch“',anwesend:['Lyra','Wirt Brok'],phase:'Abend',zeit:'Abend'};
     try{g.Cont?.lockScene?.(g.S,'shot')}catch(_){}
     document.body.classList.add('genre-held','hud-dim');

@@ -7,7 +7,7 @@ const ok=(n,c,d='')=>{if(c){pass++;console.log('OK',n)}else{fail++;console.error
 
 function blankS(){
   return {
-    ver:19, turn:5, pc:{name:'Aki'},
+    ver:19.1, turn:5, pc:{name:'Aki'},
     world:{scene:{ort:'Taverne „Zum Silberkelch“',zeit:'Abend',anwesend:['Lyra','Wirt Brok']},
       npcs:{'Lyra':{art:'kühl',alive:true,ort:'Taverne „Zum Silberkelch“'},'Wirt Brok':{art:'rau',alive:true},'Garrick':{art:'ritter',alive:true,ort:'Nordwall'}}},
     hist:[
@@ -106,8 +106,8 @@ const transcript=[
 }
 
 // --- VER files ---
-ok('game 19', /VER='19'/.test(fs.readFileSync('./game.js','utf8')));
-ok('index 19', /v19/.test(fs.readFileSync('./index.html','utf8')));
+ok('game 19.1', /VER='19\.1'/.test(fs.readFileSync('./game.js','utf8')));
+ok('index 19.1', /v19\.1/.test(fs.readFileSync('./index.html','utf8')));
 ok('free model openai-fast', /FREE_MODEL='openai-fast'/.test(fs.readFileSync('./game.js','utf8')));
 ok('freeStream exists', /async function freeStream/.test(fs.readFileSync('./game.js','utf8')));
 ok('maxOutputTokens 350', /maxOutputTokens:350/.test(fs.readFileSync('./game.js','utf8')));
