@@ -208,6 +208,21 @@ export const NAME_POOLS={
     sur:['Hartmann','Keller','Weber','Schulz','Braun','Hoffmann','Richter','Klein','Wolf','Schröder','Neumann','Schwarz','Zimmermann','Krüger','Hartmann','Lange','Werner','Jäger','Lehmann','König']}
 };
 
+/** Global first-name uniqueness for the active world (all pickGenreName calls). */
+let _usedFirst=new Set();
+export function getUsedFirst(){ return _usedFirst; }
+export function resetUsedFirst(seed=null){
+  _usedFirst=new Set();
+  if(seed instanceof Set){ for(const x of seed) _usedFirst.add(String(x).toLowerCase()); }
+  else if(Array.isArray(seed)){ for(const x of seed) if(x) _usedFirst.add(String(x).split(/\s+/)[0].toLowerCase()); }
+  return _usedFirst;
+}
+/** Seed tracker from existing NPC keys + optional PC name. */
+export function resetUsedFirstFromWorld(S, pcName=''){
+  const names=Object.keys(S?.world?.npcs||{});
+  if(pcName) names.push(pcName);
+  return resetUsedFirst(names);
+}
 export function pickGenreName(genre, seedStr='', usedFirst=null){
   const g=String(genre||'').toLowerCase();
   let pool=NAME_POOLS.default;
@@ -217,17 +232,23 @@ export function pickGenreName(genre, seedStr='', usedFirst=null){
   else if(/cyber|neon|netz|punk/.test(g)) pool=NAME_POOLS.cyberpunk;
   else if(/desert|wüste|sand/.test(g)) pool=NAME_POOLS.desert;
   else if(/survival|wildnis|überleben/.test(g)) pool=NAME_POOLS.survival;
-  const used=usedFirst instanceof Set?usedFirst:null;
+  // v37: always track globally; optional Set merges into global
+  const used=_usedFirst;
+  if(usedFirst instanceof Set){
+    for(const x of usedFirst) used.add(String(x).toLowerCase());
+  }
   const h0=Math.abs(hash(String(seedStr||Math.random())+g));
   let first=pool.first[h0%pool.first.length];
-  // v36: unique first names within a world
-  if(used){
-    for(let k=0;k<pool.first.length;k++){
-      const cand=pool.first[(h0+k)%pool.first.length];
-      if(!used.has(cand.toLowerCase())){ first=cand; break; }
-    }
-    used.add(first.toLowerCase());
+  for(let k=0;k<pool.first.length;k++){
+    const cand=pool.first[(h0+k)%pool.first.length];
+    if(!used.has(cand.toLowerCase())){ first=cand; break; }
   }
+  // pool exhausted — suffix digit rather than collide
+  if(used.has(first.toLowerCase())){
+    let n=2; while(used.has((first+n).toLowerCase()) && n<50) n++;
+    first=first+n;
+  }
+  used.add(first.toLowerCase());
   let sur=pool.sur[(h0>>5)%pool.sur.length];
   return first+' '+sur;
 }
@@ -594,7 +615,7 @@ export default {
   styleBible, capabilityBlock, situationSeed, npcDepthBlurb, presentNpcDepth,
   generateProcNpc, homeBenefits, homeStatusLine, ensureDeepNeeds, tickNeedsDeep,
   maybeHomeRaid, offlineFlavor, OFFLINE_FRAGMENTS,
-  ensureReveal, bumpReveal, backstorySlice, NAME_POOLS, pickGenreName, livedMemoryFor, livedMemoryLine,
+  ensureReveal, bumpReveal, backstorySlice, NAME_POOLS, pickGenreName, getUsedFirst, resetUsedFirst, resetUsedFirstFromWorld, livedMemoryFor, livedMemoryLine,
   campRepairOptions, applyCampRepair, campDamageLine,
   fightDesignBlock, lifeStatusLine, campUpgradeOptions, applyCampUpgrade, restAtHomeDeep
 };

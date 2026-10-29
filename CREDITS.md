@@ -1,4 +1,4 @@
-# Pixel Art Credits (v26–v36)
+# Pixel Art Credits (v26–v37)
 
 All art under `assets/pixel/` is derived from the following sources. Original
 pack archives are **not** committed; only cropped/composited game assets are.
@@ -82,3 +82,8 @@ Genre packs `arch_fan*`, `arch_zom*`, `arch_cyb*`, `arch_des*`, `arch_dark*` plu
 - Burnt/ash/ember/fence_broken/camp_burnt tiles for damaged-home overworld overlay.
 - FF6/Chrono Trigger–inspired UI polish (opaque gold-border panels, less candy glass).
 - Regional floorplan variants (cyber/wastes/dark/desert/walled/harborish/gardenish/marketish/fantasy).
+
+## v37 UX + narrator
+
+- Global first-name uniqueness; FF6/CT candy CSS removal; iPhone onboard coach; battle touch targets.
+- Compact Pollinations lean pack + multi-endpoint failover for Classic 503s.

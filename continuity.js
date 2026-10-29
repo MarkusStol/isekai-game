@@ -386,3 +386,4 @@ export default {
   lockScene,unlockScene,isSceneLocked,reinforceLock,playerWantsExit,updateStoryStand,storyStandBlock,
   addressesPlayer,filterWorldUpdate,OBEY
 };
+export { OBEY };

@@ -25,9 +25,9 @@ import * as OW from './overworld.js';
 import * as Aud from './audio.js';
 import { hasBg } from './bg-manifest.js';
 try{ Aud.unlockOnGesture?.(); }catch(_){} // v28 first-tap music
- // v36: unique first names, OW camp damage, regional floorplans, Pollinations A/B, UI polish
+ // v37: global names, online A/B, UX onboard, candy CSS gone, OW camp damage, regional floorplans, Pollinations A/B, UI polish
 const $=s=>document.querySelector(s);const $$=s=>[...document.querySelectorAll(s)];const R=a=>a[Math.floor(Math.random()*a.length)];const rnd=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
-const VER='36',CACHE_V='v36';
+const VER='37',CACHE_V='v37';
 const ROLES={
  held:{e:'⚔️',name:'Held mit Status-System',d:'Ein blaues Fenster erscheint: [Status]. Die Welt braucht dich.',world:'Königreich Aldheim',
   base:{hp:100,mp:40,str:12,cha:8,ruf:10,gold:40},cls:['Abenteurer','Ritter','Held','Legendärer Held'],pack:'worlds/held.json',
@@ -702,6 +702,7 @@ function migrate(raw){if(!raw)return null;const s=typeof raw==='string'?JSON.par
  if(Number(s.ver)<34){s.ver=34;s.flags=s.flags||{};s.flags.travel=s.flags.travel||{airship:false,boatPass:false};try{Econ.ensureMarket?.(s);Econ.marketFromLedger?.(s)}catch(_){}; try{ enrichPlaceDescs?.(s) }catch(_){}; for(const n of Object.values(s.world?.npcs||{})){ if(n&&n.revealTier==null) n.revealTier=0; } }
  if(Number(s.ver)<35){s.ver=35;s.camp=s.camp||{upgrades:[],morale:40,watch:false,garden:0,stash:[],raidThreat:0}; if(s.camp.damage==null)s.camp.damage={burnt:0,palisadeBroken:false,tasks:[]}; for(const n of Object.values(s.world?.npcs||{})){ if(n&&n.revealTier==null) n.revealTier=0; } try{Econ.ensureMarket?.(s)}catch(_){} }
  if(Number(s.ver)<36){s.ver=36;s.camp=s.camp||{upgrades:[],morale:40,watch:false,garden:0,stash:[],raidThreat:0}; if(!s.camp.damage)s.camp.damage={burnt:0,palisadeBroken:false,tasks:[]}; try{Econ.ensureMarket?.(s)}catch(_){} }
+ if(Number(s.ver)<37){s.ver=37;s.flags=s.flags||{}; if(s.flags.onboarded==null)s.flags.onboarded=false; try{ Depth.resetUsedFirstFromWorld?.(s) }catch(_){} }
  // v13.1 continuity+time always (kept in v14)
  try{Cont.ensureCont(s);if(s.cal&&s.cal.minute==null)s.cal.minute=0;if(s.cfgCatchupOptIn==null)s.cfgCatchupOptIn=false}catch(e){console.warn('cont migrate',e)}
  // Heal incomplete worlds from old saves (missing orte/graph)
@@ -1116,6 +1117,22 @@ function setPortraitFromSpeaker(name){if(!name||!S.world?.npcs){$('#portraitWrap
  if(key){try{if(!Know.isNameKnown(S,key)){$('#portraitWrap').classList.add('hidden');return}}catch(_){}
   setPortrait(key,S.world.npcs[key])}else $('#portraitWrap').classList.add('hidden')}
 
+function showOnboardCoach(){
+  const el=$('#onboardCoach'); if(!el) return;
+  S.flags=S.flags||{};
+  if(S.flags.onboarded){ el.classList.add('hidden'); return; }
+  el.classList.remove('hidden');
+  const ok=$('#btnCoachOk');
+  if(ok && !ok._bound){
+    ok._bound=1;
+    ok.onclick=()=>{
+      S.flags.onboarded=true;
+      el.classList.add('hidden');
+      try{save()}catch(_){}
+      try{toast('Tipp: Schreibe z.B. „hallo“ oder tippe eine Wahl.')}catch(_){}
+    };
+  }
+}
 function enterPlay(){$('#keyGate')&&$('#keyGate').classList.add('hidden');$('#title').classList.add('hidden');
  document.body.classList.toggle('greyw',isG());$('#stage').classList.remove('hidden');
  $('.top-actions').style.visibility='';$('#hud').style.visibility='';
@@ -1140,6 +1157,7 @@ function enterPlay(){$('#keyGate')&&$('#keyGate').classList.add('hidden');$('#ti
  }catch(_){}
  typewrite(isG()?'Nebel':'Erzähler', last.t, ()=>{});
  hud();renderChoices();
+ try{showOnboardCoach()}catch(_){}
  try{const w=Imm.weatherFor(S);S.flags=S.flags||{};S.flags.weather=w;Imm.setWeather(w==='klar'?'none':w);Imm.applyDayNightTint(S);applyGenreTheme(S.genre||S.role)}catch(_){}
  try{
    try{Aud.restore(); Aud.unlockOnGesture?.()}catch(_){}
@@ -1791,7 +1809,8 @@ function offlineGenerateWorld(genreInput,pcName){const g=pickGenre(genreInput);c
  }
  const npcs={};const seeds=(g.npcSeeds||[]).slice(0,12);
  while(seeds.length<12) seeds.push({e:'👤',art:'Einheimische:r',ziel:'Überleben'});
- const usedFirst=new Set();
+ try{ Depth.resetUsedFirst(pcName?[pcName]:[]); }catch(_){ }
+ const usedFirst=Depth.getUsedFirst?.()||new Set();
  seeds.forEach((seed,i)=>{
   let proc=null; try{ proc=Depth.generateProcNpc((seed.art||'')+i+g.id, places[i%places.length], g.id); }catch(_){}
   let nmBase=''; try{ nmBase=Depth.pickGenreName(g.id, seed.art+i+g.id+(pcName||''), usedFirst); }catch(_){ nmBase=(R(namesA.filter(n=>!usedFirst.has(n.toLowerCase())))||R(namesA))+' '+R(['Hartmann','Keller','Weber','Schulz','Braun']); usedFirst.add(nmBase.split(' ')[0].toLowerCase()); }
@@ -2269,6 +2288,12 @@ function parseCreatureEncounter(a){
   return name;
 }
 const FREE_URL='https://text.pollinations.ai/openai';
+/** Classic openai-compatible + plain POST; gen requires key (tried last if cfg.pollenKey set — never ship secrets). */
+const FREE_URLS=[
+  'https://text.pollinations.ai/openai',
+  'https://text.pollinations.ai/',
+  'https://gen.pollinations.ai/v1/chat/completions',
+];
 const STREAM_DELIM='###DATA###';
 function romanceHint(){const lines=[];for(const[n,r]of Object.entries(S.romance||{})){if((r.affection|0)>5||(r.stage|0)>0)lines.push(n+':'+stageName(r.stage)+'(♡'+r.affection+'/T'+r.trust+')')}
  return lines.length?'BEZIEHUNGEN: '+lines.slice(0,6).join('; ')+'. Stufen: Fremd→Bekannt→Freund→Vertraut→Verliebt→Partner. Keine expliziten Inhalte (13+). Eifersucht möglich.':'BEZIEHUNGEN: noch dünn – organisch wachsen lassen.'}
@@ -2333,6 +2358,29 @@ function msgs(a){ // Pollinations / WebLLM / API — same continuity block, comp
  if(!h.length){const last=(S.log||[]).filter(m=>m.k==='n').slice(-1)[0];if(last)h=[{role:'assistant',content:last.t}]}
  // hist in messages is short; full verbatim lives in turnMsg scene-last block
  return [{role:'system',content:sysPrompt(true)},...h.map(m=>({role:m.role,content:String(m.content||'').slice(0,400)})),{role:'user',content:turnMsg(a)}]}
+/** v37: tiny continuity pack for free Classic API (503-prone on huge bodies). Keeps SCENE LOCK + depth + player input. */
+function msgsLean(a){
+  Cont.ensureCont(S);
+  const ort=S.world?.scene?.ort||'?';
+  const anw=(S.world?.scene?.anwesend||[]).slice(0,3);
+  let depth='';
+  try{
+    const bits=anw.map(n=>{
+      const npc=S.world?.npcs?.[n]; if(!npc) return '';
+      const live=(()=>{try{return Depth.livedMemoryLine(S,n)}catch(_){return ''}})();
+      const bl=(()=>{try{return Depth.npcDepthBlurb(n,npc,S)}catch(_){return n}})();
+      return [bl,live].filter(Boolean).join(' | ');
+    }).filter(Boolean).join('\n');
+    depth=bits.slice(0,700);
+  }catch(_){}
+  const sys=('Erzähler DE. SCENE LOCK Ort='+ort+'; Sprecher nur: '+(anw.join(', ')||'–')+
+    '. Online=Offline-Tiefe (Rede, RevealTier, Gelebtes Gedächtnis). Kein Teleport, kein Meta, kein Englisch. Erster Satz beantwortet die Spielereingabe. 90–130 Wörter.').slice(0,500);
+  const user=['ORT: '+ort,'ANWESEND: '+(anw.join(', ')||'–'),
+    depth?'TIEFE:\n'+depth:'',
+    'SPIELER: „'+String(a||'').slice(0,180)+'“',
+    Cont.OBEY||'Reagiere direkt. SCENE LOCK. Nur Deutsch.'].filter(Boolean).join('\n\n');
+  return [{role:'system',content:sys},{role:'user',content:user.slice(0,1600)}];
+}
 function turnMsg(a){
   Cont.ensureCont(S);
   let depthExtra='';
@@ -2572,27 +2620,63 @@ async function readOpenAISSE(res, onText){
 function continuityPack(a){ return msgs(a) }
 
 /** One Pollinations attempt. Resolves {raw,ttft} or rejects with .status / .ttft / .abort */
-function pollinationsAttempt(a, el, {model, signal, onFirst}={}){
-  const body={model:model||FREE_MODEL, messages:continuityPack(a), temperature:0.85, max_tokens:260, stream:true, referrer:FREE_REFERRER};
+function pollinationsAttempt(a, el, {model, signal, onFirst, lean, url}={}){
+  const messages=lean?msgsLean(a):continuityPack(a);
+  const body={model:model||FREE_MODEL, messages, temperature:0.85, max_tokens:lean?200:260, stream:true, referrer:FREE_REFERRER};
   S._promptChars=(JSON.stringify(body).length)|0;
+  const urls=url?[url]:FREE_URLS.slice();
   return (async()=>{
     const t0=performance.now();
-    const res=await fetch(FREE_URL,{method:'POST',signal, headers:{'Content-Type':'application/json','Referer':FREE_REFERRER}, body:JSON.stringify(body)});
-    if(!res.ok){
-      let msg=''; try{msg=await res.text()}catch(_){}
-      const e=new Error('free_'+res.status); e.status=res.status; e.body=msg;
-      e.ra=+(res.headers.get('Retry-After')||0);
-      if(res.status===402||res.status===429) freeGateTrip(res.status, e.ra, msg);
-      throw e;
+    let lastE=null;
+    for(const endpoint of urls){
+      if(signal?.aborted){ const e=new Error('aborted'); e.abort=1; throw e; }
+      // gen.pollinations needs a key — skip unless player set cfg.pollenKey (never logged)
+      const needsKey=/gen\.pollinations/.test(endpoint);
+      const key=(cfg&&cfg.pollenKey)||'';
+      if(needsKey && !key) continue;
+      try{
+        const headers={'Content-Type':'application/json','Referer':FREE_REFERRER};
+        if(needsKey && key) headers.Authorization='Bearer '+key;
+        const res=await fetch(endpoint,{method:'POST',signal, headers, body:JSON.stringify(body)});
+        if(!res.ok){
+          let msg=''; try{msg=await res.text()}catch(_){}
+          const e=new Error('free_'+res.status); e.status=res.status; e.body=msg;
+          e.ra=+(res.headers.get('Retry-After')||0);
+          if(res.status===402||res.status===429) freeGateTrip(res.status, e.ra, msg);
+          // 503/401 → try next endpoint / lean
+          lastE=e; continue;
+        }
+        let got=false;
+        let raw='';
+        const ct=res.headers.get('content-type')||'';
+        if(/event-stream|octet|text\/plain|text\/event/i.test(ct) || body.stream){
+          try{ raw=await readOpenAISSE(res, r=>{
+            if(!got && r && r.trim()){ got=true; const tt=Math.round(performance.now()-t0); S._ttft=tt; if(onFirst) onFirst(tt); }
+            showNarration(el, r);
+          }); }catch(se){
+            // non-SSE JSON body fallback
+            const j=await res.clone().json().catch(()=>null);
+            raw=j?.choices?.[0]?.message?.content||j?.content||'';
+          }
+        } else {
+          const j=await res.json().catch(async()=>{ const t=await res.text(); return {content:t}; });
+          raw=j?.choices?.[0]?.message?.content||j?.content||(typeof j==='string'?j:'');
+          if(raw && el) showNarration(el, raw);
+          if(raw){ got=true; S._ttft=Math.round(performance.now()-t0); if(onFirst) onFirst(S._ttft); }
+        }
+        if(!raw||raw.trim().length<8){ lastE=Object.assign(new Error('leere Antwort'),{empty:1}); continue; }
+        freeGateOk();
+        return {raw, ttft:S._ttft|0, provider:'free', endpoint, lean:!!lean};
+      }catch(e){
+        if(e && (e.name==='AbortError' || /abort/i.test(String(e.message||e)))) throw e;
+        lastE=e;
+      }
     }
-    let got=false;
-    const raw=await readOpenAISSE(res, r=>{
-      if(!got && r && r.trim()){ got=true; const tt=Math.round(performance.now()-t0); S._ttft=tt; if(onFirst) onFirst(tt); }
-      showNarration(el, r);
-    });
-    if(!raw||raw.trim().length<8){ const e=new Error('leere Antwort'); e.empty=1; throw e }
-    freeGateOk();
-    return {raw, ttft:S._ttft|0, provider:'free'};
+    // one lean retry if full pack failed with 503
+    if(!lean && lastE && (lastE.status===503||lastE.status===402||lastE.status===429)){
+      return pollinationsAttempt(a, el, {model, signal, onFirst, lean:true, url:FREE_URL});
+    }
+    throw lastE||new Error('free_fail');
   })();
 }
 
@@ -3142,7 +3226,7 @@ $('#btnGateSave').onclick=()=>{const gk=$('#gateKey').value.trim();if(!gk){toast
  toast('Alles bereit.');gmFetch(gk,true).then(()=>gmProbe(gk).catch(()=>{}));enterPlay()};
 $('#btnGateSkip').onclick=()=>{cfg.mode='free';cfg.v2=1;localStorage.setItem(CFG,JSON.stringify(cfg));toast('Erzählerin: Pollinations (ohne Schlüssel)');enterPlay()};
 
-window.__setCfg=o=>{cfg=Object.assign(cfg||{},o||{});try{localStorage.setItem(CFG,JSON.stringify(cfg))}catch(_){}};window.__game={VER,Aud,setBusy,forceUnbusy,ACT_HARD_MS,V25,OW,Depth,Battle,Jobs,Gems,Summons,Equip,Jrpg,localBeatLine,parsePlayerIntent,offlineRespondIntent,freeStream,FREE_MODEL,openPendingEncounter,Imm,discoverThing,showCodexInline,Level,UI14,UI17,Know,Cont,lastPromptDump,advanceTimeMinutes,applyActionDuration,newGrey,greyDetails,loadGrey,loadPack,get S(){return S},act,newLife,gBody,msgs,gmRank,gmProbe,parseStream,thinkingCfg,gmOrder,readSSE,STREAM_DELIM,migrate,worldTick,bumpRel,openMenu,openPixelShop,openRegionTravelMap,stageName,offline,startIntro,setSceneImage,setPortrait,imgUrl,advanceTime,phaseLabel,typewrite,enterPlay,showTitle,analyzeImage,applySceneTheme,themeFromText,loadValidatedImage,openingNarration,travelTo,parseTravel,killNPC,robNPC,addMemory,memoryHint,startProcedural,offlineGenerateWorld,generateWorldPack,GENRES,travelChoices,ensureGraph,whoHere,parseLifeSim,Sim,Persist,WorldMap,TravelMap,Cut31,Econ,Codex,UI13,save,loadSave,applyCatchUp,findAnyNpc,placeFlavorText,enrichPlaceDescs};
+window.__setCfg=o=>{cfg=Object.assign(cfg||{},o||{});try{localStorage.setItem(CFG,JSON.stringify(cfg))}catch(_){}};window.__game={VER,Aud,setBusy,forceUnbusy,ACT_HARD_MS,V25,OW,Depth,Battle,Jobs,Gems,Summons,Equip,Jrpg,localBeatLine,parsePlayerIntent,offlineRespondIntent,freeStream,FREE_MODEL,msgsLean,FREE_URLS,openPendingEncounter,Imm,discoverThing,showCodexInline,Level,UI14,UI17,Know,Cont,lastPromptDump,advanceTimeMinutes,applyActionDuration,newGrey,greyDetails,loadGrey,loadPack,get S(){return S},act,newLife,gBody,msgs,gmRank,gmProbe,parseStream,thinkingCfg,gmOrder,readSSE,STREAM_DELIM,migrate,worldTick,bumpRel,openMenu,openPixelShop,openRegionTravelMap,stageName,offline,startIntro,setSceneImage,setPortrait,imgUrl,advanceTime,phaseLabel,typewrite,enterPlay,showTitle,analyzeImage,applySceneTheme,themeFromText,loadValidatedImage,openingNarration,travelTo,parseTravel,killNPC,robNPC,addMemory,memoryHint,startProcedural,offlineGenerateWorld,generateWorldPack,GENRES,travelChoices,ensureGraph,whoHere,parseLifeSim,Sim,Persist,WorldMap,TravelMap,Cut31,Econ,Codex,UI13,save,loadSave,applyCatchUp,findAnyNpc,placeFlavorText,enrichPlaceDescs};
 window.__game.askNPC=a=>askNPC(a);window.__game.gemini=gemini;
 if(cfg.gkey)gmFetch(cfg.gkey.trim()).then(()=>gmProbe(cfg.gkey.trim()).catch(()=>{})).catch(()=>{});
 (function(){const root=document.documentElement;const apply=()=>{try{const vv=window.visualViewport;if(!vv)return;const kb=Math.max(0,window.innerHeight-vv.height-vv.offsetTop);root.style.setProperty('--kb',kb+'px')}catch(_){}};
