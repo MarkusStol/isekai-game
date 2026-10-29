@@ -3887,3 +3887,274 @@ body.pixel-jrpg:not(.pixel-ow) #portraitWrap.portrait-sprite img{
   object-position: center bottom !important;
   opacity: 1 !important;
 }
+
+
+/* ========== v49: multi-layer parallax battle + blended floor ========== */
+.battle-root.battle-pixel .battle-stage.battle-parallax{
+  position:relative;
+  overflow:hidden;
+}
+.battle-root.battle-pixel .battle-layer{
+  position:absolute; inset:0;
+  background-size:cover;
+  background-repeat:no-repeat;
+  background-position:center 30%;
+  pointer-events:none;
+  z-index:1;
+}
+.battle-root.battle-pixel .battle-layer-far{
+  z-index:0;
+  transform:scale(1.08);
+  animation: battleParallaxFar 22s ease-in-out infinite alternate;
+  filter:saturate(1.05) brightness(.85);
+}
+.battle-root.battle-pixel .battle-layer-mid{
+  z-index:1;
+  animation: battleParallaxMid 16s ease-in-out infinite alternate;
+  filter:saturate(1.1) contrast(1.05);
+}
+.battle-root.battle-pixel .battle-layer-near{
+  z-index:3;
+  animation: battleParallaxNear 11s ease-in-out infinite alternate;
+  mix-blend-mode:multiply;
+  opacity:.55;
+}
+.battle-root.battle-pixel .battle-layer-floor{
+  z-index:4;
+  inset:auto 0 0 0;
+  height:48%;
+  background-size:100% 100%;
+  background-position:center bottom;
+  animation:none;
+  filter:none;
+  opacity:1;
+}
+.battle-root.battle-pixel .battle-stage.battle-parallax > .battle-bg.pixel-battle-bg{
+  opacity:0 !important; /* layers replace plate */
+}
+.battle-root.battle-pixel .battle-stage:not(.battle-parallax) > .battle-bg{
+  opacity:1 !important;
+}
+@keyframes battleParallaxFar{
+  0%{ background-position:46% 28%; transform:scale(1.06); }
+  100%{ background-position:54% 34%; transform:scale(1.12); }
+}
+@keyframes battleParallaxMid{
+  0%{ background-position:48% 30%; }
+  100%{ background-position:52% 36%; }
+}
+@keyframes battleParallaxNear{
+  0%{ transform:translateX(-1.5%); }
+  100%{ transform:translateX(1.5%); }
+}
+.battle-root.battle-pixel .pixel-battle-floor.floor-blend{
+  z-index:4 !important;
+  bottom:0 !important;
+  height:42% !important;
+  opacity:.55 !important;
+  background: linear-gradient(180deg, transparent 0%, rgba(8,10,18,.35) 40%, rgba(8,10,18,.15) 100%) !important;
+  transform: perspective(640px) rotateX(52deg) !important;
+  transform-origin:center bottom !important;
+  box-shadow:none !important;
+  border-radius:0 !important;
+  mix-blend-mode:multiply;
+}
+.battle-root.battle-pixel .battle-foes{
+  z-index:6 !important;
+  bottom:30% !important;
+  top:8% !important;
+}
+.battle-root.battle-pixel .battle-party-spr{
+  z-index:7 !important;
+  bottom:16% !important;
+  right:4% !important;
+  width:44% !important;
+  display:flex !important;
+  flex-direction:row-reverse !important;
+  align-items:flex-end !important;
+  gap:18px !important;
+}
+.battle-root.battle-pixel .party-stage-spr{
+  filter:none !important;
+  outline:none !important;
+  box-shadow:none !important;
+  transform: translateY(calc(var(--i,0) * -10px));
+}
+.battle-root.battle-pixel .party-stage-spr.row-back{
+  transform: translateY(calc(var(--i,0) * -10px - 18px)) scale(0.9);
+  opacity:.95;
+}
+.battle-root.battle-pixel .party-stage-spr img,
+.battle-root.battle-pixel .party-stage-spr .pixel-hero-spr{
+  width:72px !important;
+  height:96px !important;
+  image-rendering:pixelated !important;
+  filter:none !important;
+  outline:none !important;
+  box-shadow:none !important;
+  -webkit-filter:none !important;
+}
+.battle-root.battle-pixel .party-stage-spr.active img{
+  filter:none !important;
+  outline:2px solid #ffe08a !important;
+  outline-offset:2px;
+}
+.battle-root.battle-pixel .party-stage-shadow{
+  background:radial-gradient(ellipse, rgba(0,0,0,.5), transparent 70%) !important;
+}
+.battle-root.battle-pixel .foe-normal .foe-art,
+.battle-root.battle-pixel .foe-normal .pixel-foe img{
+  width:112px !important; height:112px !important;
+  max-width:32vw !important; max-height:26vh !important;
+}
+.battle-root.battle-pixel .foe-large .foe-art,
+.battle-root.battle-pixel .foe-large .pixel-foe img{
+  width:144px !important; height:144px !important;
+  max-width:40vw !important; max-height:32vh !important;
+}
+.battle-root.battle-pixel .foe-boss .foe-art,
+.battle-root.battle-pixel .foe-boss .pixel-foe img{
+  width:200px !important; height:200px !important;
+  max-width:56vw !important; max-height:42vh !important;
+}
+@media (min-width:900px){
+  .battle-root.battle-pixel .foe-boss .foe-art{ width:260px !important; height:260px !important; }
+  .battle-root.battle-pixel .party-stage-spr img{ width:96px !important; height:128px !important; }
+  .battle-root.battle-pixel .party-meta .bar{ height:14px !important; }
+  .battle-root.battle-pixel .party-meta .bar em{ font-size:11px !important; line-height:14px !important; }
+  .battle-root.battle-pixel .party-card.pixel-party{ font-size:13px !important; padding:10px 12px !important; }
+  .battle-root.battle-pixel .bar.foe-hp{ height:10px !important; }
+  .battle-root.battle-pixel .dmg-pop{ font-size:32px !important; }
+}
+
+/* ========== v49: side-docked JRPG bust ========== */
+body.pixel-jrpg:not(.pixel-ow) #stage{
+  display:flex !important;
+  flex-direction:column !important;
+  justify-content:flex-end !important;
+}
+body.pixel-jrpg:not(.pixel-ow) .vn-wrap{
+  display:flex !important;
+  flex-direction:row !important;
+  align-items:flex-end !important;
+  gap:10px !important;
+  width:100% !important;
+  max-width:720px !important;
+  margin:0 auto 0 !important;
+  padding:0 10px calc(8px + env(safe-area-inset-bottom)) !important;
+}
+body.pixel-jrpg:not(.pixel-ow) #portraitWrap:not(.hidden),
+body.pixel-jrpg:not(.pixel-ow) #portraitWrap.portrait-bust:not(.hidden),
+body.pixel-jrpg:not(.pixel-ow) #portraitWrap.portrait-sprite:not(.hidden),
+body.pixel-jrpg:not(.pixel-ow) #portraitWrap.portrait-force-show:not(.hidden){
+  position:relative !important;
+  flex:0 0 auto !important;
+  width: min(38vw, 168px) !important;
+  height: min(48vw, 220px) !important;
+  max-width:168px !important;
+  max-height:32vh !important;
+  margin:0 !important;
+  border-radius: 10px 10px 4px 4px !important;
+  border:2px solid #c8d8ff !important;
+  background:linear-gradient(180deg,#243878,#0c1830) !important;
+  box-shadow: 0 0 0 1px #061028, 4px 4px 0 #0008 !important;
+  overflow:hidden !important;
+  align-self:flex-end !important;
+}
+body.pixel-jrpg:not(.pixel-ow) #portraitWrap img,
+body.pixel-jrpg:not(.pixel-ow) #portraitImg,
+body.pixel-jrpg:not(.pixel-ow) #portraitWrap.portrait-sprite img{
+  position:absolute !important;
+  left:50% !important; bottom:0 !important; top:auto !important;
+  transform:translateX(-50%) !important;
+  width:115% !important; height:108% !important;
+  object-fit:contain !important;
+  object-position:center bottom !important;
+  opacity:1 !important;
+}
+body.pixel-jrpg:not(.pixel-ow) .vn-wrap .vn-box,
+body.pixel-jrpg:not(.pixel-ow) #dlgBox,
+body.pixel-jrpg:not(.pixel-ow) .vn-wrap > .dlg,
+body.pixel-jrpg:not(.pixel-ow) .vn-wrap > #storyBox{
+  flex:1 1 auto !important;
+  min-width:0 !important;
+}
+@media (max-width:430px){
+  body.pixel-jrpg:not(.pixel-ow) .vn-wrap{ gap:6px !important; padding:0 6px 6px !important; }
+  body.pixel-jrpg:not(.pixel-ow) #portraitWrap:not(.hidden){
+    width: min(34vw, 132px) !important;
+    height: min(44vw, 180px) !important;
+  }
+}
+
+/* ========== v49: craft shop-row UX ========== */
+.craft-shop-body .pixel-shop-row,
+.craft-wrap .pixel-shop-row,
+#craftList .pixel-shop-row,
+#cookList .pixel-shop-row,
+#upList .pixel-shop-row,
+.pixel-shop-row.craft-row{
+  display:flex !important;
+  align-items:center !important;
+  gap:10px !important;
+  padding:10px 12px !important;
+  border-bottom:1px solid #ffffff18 !important;
+  min-height:56px !important;
+}
+.pixel-shop-row .shop-ico{
+  flex:0 0 36px; width:36px; height:36px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:22px;
+  background:#0c1838; border:1px solid #9eb6ff66; border-radius:6px;
+}
+.pixel-shop-row .shop-info{
+  flex:1 1 auto; min-width:0;
+  display:flex; flex-direction:column; gap:2px;
+}
+.pixel-shop-row .shop-info b{ font-size:13px; color:#eef4ff; }
+.pixel-shop-row .shop-info .meta{ font-size:11px; color:#9eb6ff; }
+.pixel-shop-row .shop-price{
+  flex:0 0 auto; font-size:12px; color:#ffe08a; font-weight:700;
+  min-width:64px; text-align:right;
+}
+.pixel-shop-row .shop-buy,
+.pixel-shop-row button.shop-buy{
+  flex:0 0 auto;
+  background:#243878 !important;
+  border:2px solid #9eb6ff !important;
+  color:#fff !important;
+  border-radius:4px !important;
+  padding:8px 12px !important;
+  font-size:12px !important;
+}
+.pixel-shop-row.locked{ opacity:.55; }
+
+/* v49b: no yellow glow/frame on party stage sprites */
+.battle-root.battle-pixel .party-stage-spr,
+.battle-root.battle-pixel .party-stage-spr *,
+.battle-root.battle-pixel .pixel-hero-spr.battler-spr{
+  outline:none !important;
+  box-shadow:none !important;
+  filter:none !important;
+  border:none !important;
+  background:transparent !important;
+}
+.battle-root.battle-pixel .party-stage-spr.active{
+  outline:none !important;
+}
+.battle-root.battle-pixel .party-stage-spr.active::after{
+  content:'';
+  position:absolute; left:10%; right:10%; bottom:-6px; height:4px;
+  background:#ffe08a; border-radius:2px;
+}
+@media (min-width:900px){
+  .battle-root.battle-pixel .party-meta .bar.hp,
+  .battle-root.battle-pixel .party-meta .bar.mp,
+  .battle-root.battle-pixel .party-meta .bar.atb,
+  .battle-root.battle-pixel .party-meta .bar.lim{
+    height:16px !important;
+    margin:4px 0 !important;
+  }
+  .battle-root.battle-pixel .battle-log{ font-size:15px !important; padding:10px 14px !important; }
+  .battle-root.battle-pixel .battle-cmd .bcm{ font-size:14px !important; padding:12px 14px !important; }
+}

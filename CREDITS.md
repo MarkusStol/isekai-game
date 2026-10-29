@@ -106,3 +106,8 @@ Genre packs `arch_fan*`, `arch_zom*`, `arch_cyb*`, `arch_des*`, `arch_dark*` plu
 - Every NPC gets wound/desire/secret arc hooks.
 - Hard craft tier gating via stations/skills.
 - Dungeon minimap + pixel boss intro cutscenes.
+
+## v49 Battle battlers (CC0)
+- **Kica's Enemy Pack** by Fava Beans (OpenGameArt) — CC0 1.0 — slime/wolf/skeleton/bat/imp/golem/bandit/boss sprites under `assets/pixel/enemy/`
+- **Pixel Bosses. Yes!** by Monster Logix Studio (OpenGameArt) — CC0 1.0 — sheet kept in `assets/pixel/enemy/src/pixel_bosses_sheet.png`
+- **50+ Monsters Pack 2D** by isaiah658 (OpenGameArt) — CC0 1.0 — credited; see `assets/pixel/enemy/src/isaiah658_credits.txt`

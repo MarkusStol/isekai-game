@@ -1141,6 +1141,17 @@ function aiCompanion(c){
 /* ---- UI ---- */
 
 
+
+function battleTerrainLayers(S, bg){
+  try{
+    const C49=window.__game?.C49;
+    if(C49?.battleLayerUrls){
+      const key=C49.battleLayerKey?.(S, bg) || 'fantasy';
+      return C49.battleLayerUrls(key);
+    }
+  }catch(_){}
+  return null;
+}
 function battleFloorClass(bg){
   const u=String(bg||'').toLowerCase();
   if(/dungeon|kerker|cave|crypt|gruft/.test(u)) return 'floor-dungeon';
@@ -1192,10 +1203,14 @@ export function renderBattleUI(){
   const B=_B;
   root.classList.remove('battle-25d');
   root.innerHTML=`
-  <div class="battle-stage" id="battleStage">
+  <div class="battle-stage battle-parallax" id="battleStage" data-terrain="${(battleTerrainLayers(B.S,B.bg)||{}).key||battleFloorClass(B.bg)}">
     <div class="battle-bg pixel-battle-bg battle-bg-live" id="battleBg" style="background-image:url('${B.bg}')"></div>
-    <div class="battle-bg-parallax" aria-hidden="true"></div>
-    <div class="pixel-battle-floor ${battleFloorClass(B.bg)}" aria-hidden="true"><div class="battle-floor-grid"></div></div>
+    ${(()=>{ const L=battleTerrainLayers(B.S,B.bg); if(!L) return '<div class="battle-bg-parallax" aria-hidden="true"></div>'; return `
+    <div class="battle-layer battle-layer-far" style="background-image:url('${L.far}')" aria-hidden="true"></div>
+    <div class="battle-layer battle-layer-mid" style="background-image:url('${L.mid}')" aria-hidden="true"></div>
+    <div class="battle-layer battle-layer-near" style="background-image:url('${L.near}')" aria-hidden="true"></div>
+    <div class="battle-layer battle-layer-floor" style="background-image:url('${L.floor}')" aria-hidden="true"></div>`; })()}
+    <div class="pixel-battle-floor ${battleFloorClass(B.bg)} floor-blend" aria-hidden="true"><div class="battle-floor-grid"></div></div>
     <div class="battle-veil"></div>
     <div class="battle-foes" id="battleFoes"></div>
     <div class="battle-party-spr" id="battlePartySpr"></div>
@@ -1275,11 +1290,14 @@ function refreshUI(){
   }
   const pspr=el('battlePartySpr');
   if(pspr){
-    pspr.innerHTML=B.party.map((p,i)=>`
-      <div class="party-stage-spr row-${p.row||'front'} ${p.alive?'':'dead'} ${B.selecting?.actor===p?'active':''}" data-iid="${p._iid}" style="--i:${i}">
+    pspr.innerHTML=B.party.map((p,i)=>{
+      const row=p.row||'front';
+      const slot=row==='back'?i:i;
+      return `
+      <div class="party-stage-spr row-${row} ${p.alive?'':'dead'} ${B.selecting?.actor===p?'active':''}" data-iid="${p._iid}" style="--i:${i};--slot:${slot}">
         <img class="pixel-hero-spr battler-spr pixelated" src="${partySpriteUrl(p)}" alt="" data-role="${p.kind==='hero'?'hero':sheetRoleForCompanion(p)}" onerror="this.onerror=null;this.src=this.dataset.fb1||this.dataset.fb2||'./assets/pixel/npc/villager_idle.png';" data-fb1="${p.kind==='hero'?'':('./assets/pixel/npc/'+sheetRoleForCompanion(p)+'_idle.png')}" data-fb2="./assets/pixel/npc/villager_idle.png"/>
         <div class="party-stage-shadow" aria-hidden="true"></div>
-      </div>`).join('');
+      </div>`;}).join('');
   }
   // log
   const log=el('battleLog');
@@ -1507,9 +1525,9 @@ function battlerSheetFor(unit, action){
 }
 
 function partySpriteUrl(p){
-  if(p.kind==='hero') return './assets/pixel/hero/battle.png';
+  if(p.kind==='hero') return './assets/pixel/hero/stage.png';
   const role=sheetRoleForCompanion(p);
-  return './assets/pixel/chars/'+role+'_battle.png';
+  return './assets/pixel/chars/'+role+'_stage.png';
 }
 function sheetRoleForCompanion(unit){
   const art=String(unit?.npcRef||unit?.name||'').toLowerCase();

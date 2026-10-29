@@ -214,6 +214,7 @@ export function renderJobs(body, S, helpers){
 /* ---- Craft / Upgrade ---- */
 export function renderCraft(body, S, helpers){
   const {toast, save}=helpers;
+  body.classList.add('craft-shop-body');
   Equip.ensureEquip(S);
   try{ window.__game?.C40?.ensureCraft40?.(S); window.__game?.C40?.syncCraftProgress?.(S); }catch(_){}
   const mats=S.equip.mats||{};
@@ -254,9 +255,9 @@ export function renderCraft(body, S, helpers){
   Equip.CRAFT_RECIPES.forEach(rec=>{
     const it=Equip.getItem(rec.id);
     const gate=(window.__game?.C41?.canCraftRecipe41||window.__game?.C40?.canCraftRecipe)?.(S,rec.id,'craft')||{ok:true};
-    const row=document.createElement('div'); row.className='craft-row'+(gate.ok?'':' locked');
-    row.innerHTML=`<div><b>${it?.icon||'📦'} ${it?.name||rec.id}</b><br><span class="meta">T${(rec.tier||1)} · ${Object.entries(rec.mats).map(([k,v])=>`${k}×${v}`).join(', ')} · ${rec.gold} Gil${gate.ok?'':' · 🔒 '+String(gate.reason||'').slice(0,60)}</span></div>`;
-    const b=btn(gate.ok?'Herstellen':'Gesperrt'); b.disabled=!gate.ok;
+    const row=document.createElement('div'); row.className='pixel-shop-row craft-row'+(gate.ok?'':' locked');
+    row.innerHTML=`<div class="shop-ico">${it?.icon||'📦'}</div><div class="shop-info"><b>${it?.name||rec.id}</b><span class="meta">T${(rec.tier||1)} · ${Object.entries(rec.mats).map(([k,v])=>`${k}×${v}`).join(', ')}${gate.ok?'':' · 🔒'}</span></div><div class="shop-price">${rec.gold} Gil</div>`;
+    const b=btn(gate.ok?'Herstellen':'Gesperrt'); b.className='shop-buy'; b.disabled=!gate.ok;
     b.onclick=()=>{ const r=Equip.craftItem(S,rec.id); toast?.(r.text); save?.(); body.innerHTML=''; renderCraft(body,S,helpers) };
     row.appendChild(b); list.appendChild(row);
   });
@@ -266,9 +267,9 @@ export function renderCraft(body, S, helpers){
   const cl=cook.querySelector('#cookList');
   (Equip.COOK_RECIPES||[]).forEach(rec=>{
     const gate=(window.__game?.C41?.canCraftRecipe41||window.__game?.C40?.canCraftRecipe)?.(S,rec.id,'cook')||{ok:true};
-    const row=document.createElement('div'); row.className='craft-row'+(gate.ok?'':' locked');
-    row.innerHTML=`<div><b>🍲 ${rec.name}</b><br><span class="meta">T${(rec.tier||1)} · ${Object.entries(rec.mats||{}).map(([k,v])=>`${k}×${v}`).join(', ')||'—'} · +${rec.heal|0}HP${rec.mp?` +${rec.mp}MP`:''}${gate.ok?'':' · 🔒'}</span></div>`;
-    const b=btn(gate.ok?'Kochen':'Gesperrt'); b.disabled=!gate.ok;
+    const row=document.createElement('div'); row.className='pixel-shop-row craft-row'+(gate.ok?'':' locked');
+    row.innerHTML=`<div class="shop-ico">🍲</div><div class="shop-info"><b>${rec.name}</b><span class="meta">T${(rec.tier||1)} · +${rec.heal|0}HP${rec.mp?` +${rec.mp}MP`:''}${gate.ok?'':' · 🔒'}</span></div><div class="shop-price">kochen</div>`;
+    const b=btn(gate.ok?'Kochen':'Gesperrt'); b.className='shop-buy'; b.disabled=!gate.ok;
     b.onclick=()=>{ const r=Equip.cookItem(S,rec.id); toast?.(r.text); save?.(); body.innerHTML=''; renderCraft(body,S,helpers) };
     row.appendChild(b); cl.appendChild(row);
   });
@@ -281,9 +282,9 @@ export function renderCraft(body, S, helpers){
     const it=Equip.getItem(id); if(!it)return;
     const lvl=S.equip.upgrades[id]|0;
     const cost=30+(lvl+1)*25;
-    const row=document.createElement('div'); row.className='craft-row';
-    row.innerHTML=`<div><b>${it.icon||''} ${it.name}</b> +${lvl}<br><span class="meta">Nächste Stufe: ${cost} Gil</span></div>`;
-    const b=btn('Upgrade');
+    const row=document.createElement('div'); row.className='pixel-shop-row craft-row';
+    row.innerHTML=`<div class="shop-ico">${it.icon||'⬆'}</div><div class="shop-info"><b>${it.name}</b> +${lvl}<span class="meta">Nächste Stufe</span></div><div class="shop-price">${cost} Gil</div>`;
+    const b=btn('Upgrade'); b.className='shop-buy';
     b.onclick=()=>{ const r=Equip.upgradeItem(S,id); toast?.(r.text); save?.(); body.innerHTML=''; renderCraft(body,S,helpers) };
     row.appendChild(b); ul.appendChild(row);
   });

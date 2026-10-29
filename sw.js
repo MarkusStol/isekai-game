@@ -1,5 +1,5 @@
 /* Isekai Reinkarnation – offline shell. Network-first for shell; self-heal on version mismatch. */
-const VER = '48';
+const VER = '49';
 const CACHE = 'isekai-v' + VER;
 const ASSETS = [
   './',
@@ -28,6 +28,7 @@ const ASSETS = [
   './content46.js?v=' + VER,
   './content47.js?v=' + VER,
   './content48.js?v=' + VER,
+  './content49.js?v=' + VER,
   './cutscene40.js?v=' + VER,
   './visual25d.js?v=' + VER,
   './overworld.js?v=' + VER,

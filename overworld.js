@@ -955,7 +955,7 @@ export function buildMapForLocation(S, ort){
     if(overlay[y][x]==='lamp') lights.push({x:x+0.5,y:y+0.5,r:2.2,color:'rgba(255,210,120,0.32)'});
   }
   // quest marks filled later in showOverworld
-  try{ const G=window.__game; if(G?.C48?.densifyTownMapV48) G.C48.densifyTownMapV48({w,h:ht,tiles,overlay,kind,overhead,genre}); else if(G?.C47?.densifyTownMapV47) G.C47.densifyTownMapV47({w,h:ht,tiles,overlay,kind,overhead,genre}); else if(G?.C46?.densifyTownMapV46) G.C46.densifyTownMapV46({w,h:ht,tiles,overlay,kind}); else if(G?.C45?.densifyTownMap) G.C45.densifyTownMap({w,h:ht,tiles,kind}); }catch(_){}
+  try{ const G=window.__game; if(G?.C49?.densifyTownMapV49) G.C49.densifyTownMapV49({w,h:ht,tiles,overlay,kind,overhead,genre}); else if(G?.C48?.densifyTownMapV48) G.C48.densifyTownMapV48({w,h:ht,tiles,overlay,kind,overhead,genre}); else if(G?.C47?.densifyTownMapV47) G.C47.densifyTownMapV47({w,h:ht,tiles,overlay,kind,overhead,genre}); else if(G?.C46?.densifyTownMapV46) G.C46.densifyTownMapV46({w,h:ht,tiles,overlay,kind}); else if(G?.C45?.densifyTownMap) G.C45.densifyTownMap({w,h:ht,tiles,kind}); }catch(_){}
   return {w,h:ht,tiles,overlay,doors:exits,spawn:{x:sx,y:sy},kind,name,npcs,interiors,overhead,animators,preset,chests,lights};
 }
 
@@ -1542,13 +1542,12 @@ function draw(){
     if(m.soft || m.kind==='hint'){
       if(Math.hypot(m.x-_hero.x, m.y-_hero.y)>5) continue;
     }
-    // v48b: dungeon/interior — only ! anchored to NPC/chest/door (no floating corridor pins)
+    // v49: dungeon/interior — exact NPC/chest/door only
     if(_map.kind==='dungeon'||_map.kind==='interior'){
       const onNpc=_npcs.some(n=>Math.round(n.x)===m.x&&Math.round(n.y)===m.y);
-      const onChest=_chests.some(c=>c.x===m.x&&c.y===m.y);
+      const onChest=_chests.some(c=>!c.open&&c.x===m.x&&c.y===m.y);
       const onDoor=(_map.doors||[]).some(d=>d.x===m.x&&d.y===m.y);
-      const nearNpc=_npcs.some(n=>Math.hypot(n.x-m.x,n.y-m.y)<1.6);
-      if(!(onNpc||onChest||onDoor||nearNpc||m.kind==='npc'||m.kind==='chest'||m.kind==='door')) continue;
+      if(!(onNpc||onChest||onDoor)) continue;
     }
     const sx=ox+(m.x-camX)*tw+tw/2, sy=oy+(m.y-camY)*tw-4;
     ctx.fillStyle='#ffd35a'; ctx.strokeStyle='#000'; ctx.lineWidth=3;
@@ -1749,8 +1748,7 @@ function resolveQuestMarker(S, mark, label, kind){
     const npc=_npcs.find(n=>n.name===mark.npc || String(n.name).toLowerCase().includes(want.slice(0,5)) || want.includes(String(n.name).toLowerCase().slice(0,5)));
     if(npc) return {x:Math.round(npc.x), y:Math.round(npc.y), label, kind:'npc'};
     // NPC not on this map — drop a hint pin at plaza so the mark still comes from quest data
-    if(_map?.kind==='dungeon'||_map?.kind==='interior') return null;
-    { const p=_walkablePinNear((_map.w/2)|0, ((_map.h/2)|0)-1); return {x:p.x, y:p.y, label, kind:kind||'hint', soft:true, wantNpc:mark.npc}; }
+    return null; // v49: no soft NPC hint pins
   }
   if(mark.ort){
     const o=String(mark.ort).toLowerCase();
@@ -1764,8 +1762,7 @@ function resolveQuestMarker(S, mark, label, kind){
       { const p=_walkablePinNear((_map.w/2)|0, (_map.h/2)|0); return {x:p.x, y:p.y, label, kind:'ort'}; }
     }
     // Different region — still show soft pin derived from quest.ort (not text heuristic)
-    if(_map?.kind==='dungeon'||_map?.kind==='interior') return null;
-    { const p=_walkablePinNear((_map.w/2)|0, ((_map.h/2)|0)+1); return {x:p.x, y:p.y, label, kind:'ort', soft:true, wantOrt:mark.ort}; }
+    return null; // v49: no soft ort pins
   }
   if(mark.chest && _chests[0]) return {x:_chests[0].x,y:_chests[0].y,label,kind:'chest'};
   return null;
@@ -1809,8 +1806,20 @@ function rebuildQuestMarks(S){
       if(tt && tt!=='void' && tt!=='wall' && !SOLID.has(tt)) marks.push(hit);
     }
   });
-  _questMarks=marks;
+  // v49: drop soft pins; dungeon/interior only exact NPC/chest/door tiles
+  _questMarks=marks.filter(m=>{
+    if(m.soft || m.kind==='hint' || m.kind==='ort') return false;
+    if(_map?.kind==='dungeon'||_map?.kind==='interior'){
+      const onNpc=_npcs.some(n=>Math.round(n.x)===m.x&&Math.round(n.y)===m.y);
+      const onChest=_chests.some(c=>!c.open&&c.x===m.x&&c.y===m.y);
+      const onDoor=(_map.doors||[]).some(d=>d.x===m.x&&d.y===m.y);
+      return onNpc||onChest||onDoor;
+    }
+    const tt=_map?.tiles?.[m.y]?.[m.x];
+    return !!(tt && tt!=='void' && tt!=='wall' && !SOLID.has(tt));
+  });
 }
+
 
 function loop(ts){
   if(!_active) return;
