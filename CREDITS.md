@@ -1,4 +1,4 @@
-# Pixel Art Credits (v26–v35)
+# Pixel Art Credits (v26–v36)
 
 All art under `assets/pixel/` is derived from the following sources. Original
 pack archives are **not** committed; only cropped/composited game assets are.
@@ -76,3 +76,9 @@ All `housebig*` / `hall*` rebuilt to ≥~0.85 opaque fill with consistent window
 
 ## v35 architecture variants
 Genre packs `arch_fan*`, `arch_zom*`, `arch_cyb*`, `arch_des*`, `arch_dark*` plus `housebig8–15` / `hall4–7` cropped from LPC city/cottage/desert (CC-BY) with genre accents.
+
+## v36 UI + camp tiles
+
+- Burnt/ash/ember/fence_broken/camp_burnt tiles for damaged-home overworld overlay.
+- FF6/Chrono Trigger–inspired UI polish (opaque gold-border panels, less candy glass).
+- Regional floorplan variants (cyber/wastes/dark/desert/walled/harborish/gardenish/marketish/fantasy).

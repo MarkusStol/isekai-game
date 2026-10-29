@@ -168,7 +168,7 @@ export function compactContinuity(S, playerAction){
   ].join('\n');
 }
 
-const OBEY = 'Reagiere direkt und ausschließlich auf diese Handlung. Erfinde keinen Ortswechsel, keine Ankunft/Tür-Szene und keine fremden Handlungen des Spielers. Wiederhole die Spielereingabe nicht wörtlich. Nur Deutsch, kein Meta, kein Englisch, kein JSON. Max 110–150 Wörter.';
+const OBEY = 'Reagiere direkt und ausschließlich auf diese Handlung. Erfinde keinen Ortswechsel, keine Ankunft/Tür-Szene und keine fremden Handlungen des Spielers. Wiederhole die Spielereingabe nicht wörtlich. Nutze RevealTier/Gelebtes Gedächtnis/Redeweise der ANWESENDEN NPCs — online = offline-Tiefe. Ort und Anwesende der Szene sind gesperrt. Nur Deutsch, kein Meta, kein Englisch, kein JSON. Max 110–150 Wörter.';
 
 export function buildTurnUserMessage(S, playerAction, extras={}){
   const bits=[];

@@ -25,9 +25,9 @@ import * as OW from './overworld.js';
 import * as Aud from './audio.js';
 import { hasBg } from './bg-manifest.js';
 try{ Aud.unlockOnGesture?.(); }catch(_){} // v28 first-tap music
- // v35: genre name pools, ledger memory, camp damage, arch variants, online NPC depth
+ // v36: unique first names, OW camp damage, regional floorplans, Pollinations A/B, UI polish
 const $=s=>document.querySelector(s);const $$=s=>[...document.querySelectorAll(s)];const R=a=>a[Math.floor(Math.random()*a.length)];const rnd=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
-const VER='35',CACHE_V='v35';
+const VER='36',CACHE_V='v36';
 const ROLES={
  held:{e:'⚔️',name:'Held mit Status-System',d:'Ein blaues Fenster erscheint: [Status]. Die Welt braucht dich.',world:'Königreich Aldheim',
   base:{hp:100,mp:40,str:12,cha:8,ruf:10,gold:40},cls:['Abenteurer','Ritter','Held','Legendärer Held'],pack:'worlds/held.json',
@@ -701,6 +701,7 @@ function migrate(raw){if(!raw)return null;const s=typeof raw==='string'?JSON.par
  if(Number(s.ver)<33){s.ver=33;s.flags=s.flags||{};s.flags.travel=s.flags.travel||{airship:false,boatPass:false};try{Econ.ensureMarket?.(s);Econ.marketFromLedger?.(s)}catch(_){}; try{ enrichPlaceDescs?.(s) }catch(_){} }
  if(Number(s.ver)<34){s.ver=34;s.flags=s.flags||{};s.flags.travel=s.flags.travel||{airship:false,boatPass:false};try{Econ.ensureMarket?.(s);Econ.marketFromLedger?.(s)}catch(_){}; try{ enrichPlaceDescs?.(s) }catch(_){}; for(const n of Object.values(s.world?.npcs||{})){ if(n&&n.revealTier==null) n.revealTier=0; } }
  if(Number(s.ver)<35){s.ver=35;s.camp=s.camp||{upgrades:[],morale:40,watch:false,garden:0,stash:[],raidThreat:0}; if(s.camp.damage==null)s.camp.damage={burnt:0,palisadeBroken:false,tasks:[]}; for(const n of Object.values(s.world?.npcs||{})){ if(n&&n.revealTier==null) n.revealTier=0; } try{Econ.ensureMarket?.(s)}catch(_){} }
+ if(Number(s.ver)<36){s.ver=36;s.camp=s.camp||{upgrades:[],morale:40,watch:false,garden:0,stash:[],raidThreat:0}; if(!s.camp.damage)s.camp.damage={burnt:0,palisadeBroken:false,tasks:[]}; try{Econ.ensureMarket?.(s)}catch(_){} }
  // v13.1 continuity+time always (kept in v14)
  try{Cont.ensureCont(s);if(s.cal&&s.cal.minute==null)s.cal.minute=0;if(s.cfgCatchupOptIn==null)s.cfgCatchupOptIn=false}catch(e){console.warn('cont migrate',e)}
  // Heal incomplete worlds from old saves (missing orte/graph)
@@ -1790,10 +1791,11 @@ function offlineGenerateWorld(genreInput,pcName){const g=pickGenre(genreInput);c
  }
  const npcs={};const seeds=(g.npcSeeds||[]).slice(0,12);
  while(seeds.length<12) seeds.push({e:'👤',art:'Einheimische:r',ziel:'Überleben'});
+ const usedFirst=new Set();
  seeds.forEach((seed,i)=>{
   let proc=null; try{ proc=Depth.generateProcNpc((seed.art||'')+i+g.id, places[i%places.length], g.id); }catch(_){}
-  let nmBase=''; try{ nmBase=Depth.pickGenreName(g.id, seed.art+i+g.id+(pcName||'')); }catch(_){ nmBase=(R(namesA)+' '+R(['Hartmann','Keller','Weber','Schulz','Braun'])); }
-  const name=nmBase+(npcs[nmBase]?(' '+i):'');
+  let nmBase=''; try{ nmBase=Depth.pickGenreName(g.id, seed.art+i+g.id+(pcName||''), usedFirst); }catch(_){ nmBase=(R(namesA.filter(n=>!usedFirst.has(n.toLowerCase())))||R(namesA))+' '+R(['Hartmann','Keller','Weber','Schulz','Braun']); usedFirst.add(nmBase.split(' ')[0].toLowerCase()); }
+  let name=nmBase; if(npcs[name]){ name=nmBase+' '+(i+1); }
   const home=places[i%places.length];
   const sch=['Morgen: '+home,'Mittag: '+places[(i+1)%places.length],'Nachmittag: '+places[(i+2)%places.length],'Abend: '+places[(i+3)%places.length],'Nacht: '+home];
   const base={e:seed.e||'👤',art:(proc?.art||seed.art||'')+', erwachsen',stimme:proc?.speechStyle||'knapp, menschlich',ziel:seed.ziel||proc?.desire,furcht:proc?.need||R(['Verlust','Verrat','Hunger','Vergessen']),geheimnis:(proc?.secrets&&proc.secrets[0])||R(['Hat jemanden im Stich gelassen.','Kennt einen geheimen Weg.','Schuldet einer Fraktion alles.']),
@@ -2299,6 +2301,7 @@ ${questHint()}
 ${memoryHint()}
 ${heatHint()}
 FREIHEIT (HARTE REGELN):
+0. SCENE LOCK: Bleib in world.scene.ort; Sprecher nur aus anwesend. Kein Teleport, keine neuen Hauptfiguren außer Spieler geht.
 1. Folge IMMER der Spielerabsicht. Ortwechsel ausführen, wenn der Spieler geht/reist – scene.ort aktualisieren.
 2. VERBOTEN: Spieler zurück zum Startort/Halle/Palast zu zerren; Szene gegen den Willen zurückzusetzen; NPCs die „wir müssen zurück“ erzwingen; Quests als Leine.
 3. Quests = optionale Hooks/Gerüchte. Die Welt reagiert, zwingt aber nicht.
@@ -2345,7 +2348,7 @@ function turnMsg(a){
     try{ const foes=S.flags?._offerEncounter?.foes; if(foes?.length) fight=Depth.fightDesignBlock(S,foes); }catch(_){}
     const livedBits=present.map(n=>{ try{return Depth.livedMemoryLine(S,n)}catch(_){return ''} }).filter(Boolean).join('\n');
     const dmg=(()=>{try{return Depth.campDamageLine(S)}catch(_){return ''}})();
-    const revealNote='NPC-TIEFE: Online muss dieselbe Tiefe wie Offline liefern (Rede, RevealTier, gelebtes Gedächtnis, keine Frage-Echos).';
+    const revealNote='NPC-TIEFE+LOCK: Online = Offline-Tiefe (Rede, RevealTier, Gelebtes Gedächtnis, keine Frage-Echos). SCENE LOCK: Ort und Anwesende unverändert außer Spieler geht. Erster Satz beantwortet die Spielereingabe direkt.';
     depthExtra=[sit,npcBits,livedBits,fight,Depth.lifeStatusLine(S),dmg,revealNote].filter(Boolean).join('\n').slice(0,1800);
   }catch(_){}
   return Cont.buildTurnUserMessage(S,a,{

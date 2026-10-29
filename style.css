@@ -1914,3 +1914,155 @@ body.pixel-ow .begegnung:not(.hidden){ /* soften so OW shots aren't fully blocke
 .camp-25d .camp-ash{position:absolute;inset:auto 10% 12% 10%;height:14%;background:radial-gradient(ellipse at center,rgba(40,20,10,.55),transparent 70%);pointer-events:none}
 .camp-25d.camp-burnt .camp-build{filter:brightness(.75) sepia(.25)}
 .camp-dmg{color:#ffb080;font-weight:600}
+
+
+/* ===== v36 FF6/CT UI polish ===== */
+/* Classic JRPG: opaque dark panels, gold hairline, less candy glass */
+:root{
+  --jrpg-panel:#0c1020f2;
+  --jrpg-panel2:#141a2eee;
+  --jrpg-border:#c9a227;
+  --jrpg-border-dim:#8a7020aa;
+  --jrpg-text:#f4efd8;
+  --jrpg-muted:#a89b78;
+}
+body.pixel-jrpg .logo,
+.logo{
+  background:none!important;
+  -webkit-background-clip:unset!important;
+  background-clip:unset!important;
+  color:var(--jrpg-text)!important;
+  text-shadow:0 2px 0 #000, 0 0 18px #c9a22755!important;
+  font-weight:800!important;
+  letter-spacing:.04em!important;
+}
+.logo span{color:#e8c47a!important; display:inline; text-shadow:0 2px 0 #000}
+.title-badge{
+  background:#000a!important;
+  border:1px solid var(--jrpg-border)!important;
+  color:#e8c47a!important;
+  box-shadow:none!important;
+  border-radius:4px!important;
+  letter-spacing:.2em!important;
+  opacity:.9!important;
+}
+.title-inner .tagline{color:var(--jrpg-muted)!important; letter-spacing:.06em}
+#title .big, button.big.glow{
+  background:linear-gradient(180deg,#2a3350,#141a2e)!important;
+  border:2px solid var(--jrpg-border)!important;
+  border-radius:6px!important;
+  box-shadow:0 3px 0 #000c, inset 0 1px 0 #ffffff22!important;
+  color:var(--jrpg-text)!important;
+  text-shadow:0 1px 0 #000!important;
+}
+#title .big.alt, button.big.alt{
+  background:linear-gradient(180deg,#1c2238,#0e121f)!important;
+  border-color:var(--jrpg-border-dim)!important;
+}
+#title .big.book{opacity:.75; border-style:dashed!important}
+.hud{
+  background:var(--jrpg-panel)!important;
+  border:2px solid var(--jrpg-border-dim)!important;
+  border-radius:6px!important;
+  backdrop-filter:none!important;
+  -webkit-backdrop-filter:none!important;
+  color:var(--jrpg-text)!important;
+  box-shadow:0 2px 0 #000a!important;
+}
+.vn-box, #vnBox{
+  background:var(--jrpg-panel)!important;
+  border:2px solid var(--jrpg-border)!important;
+  border-radius:8px!important;
+  box-shadow:0 4px 0 #000c, inset 0 0 0 1px #ffffff10!important;
+  backdrop-filter:none!important;
+}
+.vn-text, #vnText{color:var(--jrpg-text)!important; line-height:1.45!important; font-size:15px!important}
+.choices button{
+  background:linear-gradient(180deg,#1a2238,#101628)!important;
+  border:2px solid var(--jrpg-border-dim)!important;
+  border-radius:6px!important;
+  box-shadow:0 2px 0 #000a!important;
+  color:var(--jrpg-text)!important;
+  font-weight:600!important;
+}
+.choices button:hover, .choices button:focus{
+  border-color:var(--jrpg-border)!important;
+  background:linear-gradient(180deg,#2a3558,#182040)!important;
+  box-shadow:0 0 0 1px #e8c47a44!important;
+}
+.choices button::before{color:#e8c47a!important}
+.menu-tabs button{
+  background:#12182a!important;
+  border:1px solid var(--jrpg-border-dim)!important;
+  border-radius:4px!important;
+  color:var(--jrpg-muted)!important;
+  box-shadow:none!important;
+}
+.menu-tabs button.on{
+  background:#1e2a48!important;
+  border-color:var(--jrpg-border)!important;
+  color:#e8c47a!important;
+  box-shadow:inset 0 0 0 1px #e8c47a33!important;
+}
+.menu-tabs button[data-tab="hub"]{background:#1a2038!important}
+.menu-sheet, #menu, .menu-body, #menuBody{
+  /* keep readable */
+}
+#menu .card, .menu-body .card, #menuBody .card{
+  background:var(--jrpg-panel2)!important;
+  border:1px solid var(--jrpg-border-dim)!important;
+  border-radius:6px!important;
+  box-shadow:0 2px 0 #0008!important;
+}
+.begegnung-badge{
+  background:#1a2038!important;
+  color:#e8c47a!important;
+  border:1px solid var(--jrpg-border)!important;
+  border-radius:4px!important;
+  letter-spacing:.12em!important;
+}
+.input-row input, #inputRow input, #playerInput{
+  background:#0a0e1af2!important;
+  border:2px solid var(--jrpg-border-dim)!important;
+  border-radius:6px!important;
+  color:var(--jrpg-text)!important;
+}
+.input-row button, #inputRow button[type=submit]{
+  background:linear-gradient(180deg,#2a3350,#141a2e)!important;
+  border:2px solid var(--jrpg-border)!important;
+  border-radius:6px!important;
+}
+.genre-pick{
+  background:var(--jrpg-panel)!important;
+  border:2px solid var(--jrpg-border)!important;
+  border-radius:8px!important;
+  box-shadow:0 8px 0 #000a!important;
+}
+.genre-pick input, .genre-pick select{
+  background:#0a0e1a!important;
+  border:1px solid var(--jrpg-border-dim)!important;
+  color:var(--jrpg-text)!important;
+  border-radius:4px!important;
+}
+.icon-btn{
+  background:#12182a!important;
+  border:1px solid var(--jrpg-border-dim)!important;
+  border-radius:6px!important;
+  color:#e8c47a!important;
+}
+.event-toast{
+  background:var(--jrpg-panel)!important;
+  border:1px solid var(--jrpg-border)!important;
+  border-style:solid!important;
+  color:var(--jrpg-text)!important;
+  border-radius:6px!important;
+}
+.camp-dmg{color:#ffb080!important}
+/* iPhone: slightly larger tap targets, less blur cost */
+@media (max-width:480px){
+  .choices button{padding:12px 12px!important; font-size:14px!important}
+  .hud{font-size:11px!important; padding:7px 9px!important}
+  .vn-text, #vnText{font-size:14.5px!important}
+  .logo{font-size:34px!important}
+  .menu-tabs button{padding:9px 11px!important}
+}

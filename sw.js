@@ -1,5 +1,5 @@
 /* Isekai Reinkarnation – offline shell. Network-first for shell; self-heal on version mismatch. */
-const VER = '35';
+const VER = '36';
 const CACHE = 'isekai-v' + VER;
 const ASSETS = [
   './',

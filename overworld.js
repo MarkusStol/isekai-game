@@ -18,6 +18,11 @@ const BASE_TILES = {
   void: './assets/pixel/tiles/void.png',
   door: './assets/pixel/tiles/door.png',
   camp: './assets/pixel/tiles/camp.png',
+  camp_burnt: './assets/pixel/tiles/camp_burnt.png',
+  burnt: './assets/pixel/tiles/burnt.png',
+  ash: './assets/pixel/tiles/ash.png',
+  ember: './assets/pixel/tiles/ember.png',
+  fence_broken: './assets/pixel/tiles/fence_broken.png',
   house: './assets/pixel/tiles/house.png',
   ruin: './assets/pixel/tiles/ruin.png',
   fence: './assets/pixel/tiles/fence.png',
@@ -54,6 +59,8 @@ const DECOR = {
   house6: './assets/pixel/decor/house6.png',
   house7: './assets/pixel/decor/house7.png',
   house8: './assets/pixel/decor/house8.png',
+  ash: './assets/pixel/tiles/ash.png',
+  ember: './assets/pixel/tiles/ember.png',
 };
 const HOUSE_BIG = Array.from({length:16},(_,i)=>`./assets/pixel/decor/housebig${i}.png`);
 const HALL_BIG = Array.from({length:8},(_,i)=>`./assets/pixel/decor/hall${i}.png`);
@@ -105,7 +112,7 @@ const PORTRAITS = {
   hero: './assets/pixel/portrait/hero.png',
 };
 
-const SOLID = new Set(['wall','water','tree','void','house','ruin','fence','well','stall']);
+const SOLID = new Set(['wall','water','tree','void','house','ruin','fence','fence_broken','well','stall']);
 
 let _root=null, _canvas=null, _ctx=null, _imgs={}, _raf=0, _active=false;
 let _map={w:24,h:24,tiles:[], overlay:[], doors:[], name:'', npcs:[], kind:'town'};
@@ -249,6 +256,10 @@ export function buildMapForLocation(S, ort){
   if(/wüste|düne/.test(blob) && preset==='default') preset='desert';
   if(/schnee|eisberg|gletscher/.test(blob) && preset==='default') preset='snow';
   if(/strand|küste/.test(blob) && preset==='default') preset='beach';
+  // v36: owned home / camp kind always wins over genre neon/wasteland fallback
+  if(kind==='camp' || (S?.home?.owned && S.home.location===name)){
+    preset='camp'; kind='camp';
+  }
   // Kind overrides only when no named preset matched (keep throne/summon/etc.)
   if(preset==='default'){
     if(kind==='interior') preset='interior';
@@ -540,14 +551,35 @@ export function buildMapForLocation(S, ort){
     scatterGrass();
   } else if(preset==='camp'){
     kind='camp';
-    for(let y=0;y<ht;y++) for(let x=0;x<w;x++) tiles[y][x]='grass';
+    const dmg=S?.camp?.damage||{};
+    const burntN=dmg.burnt|0;
+    const palBroken=!!dmg.palisadeBroken || (dmg.tasks||[]).includes('palisade_repair');
+    for(let y=0;y<ht;y++) for(let x=0;x<w;x++) tiles[y][x]=(burntN>0 && ((h+x*5+y*9)%7===0))?'burnt':'grass';
     for(let i=0;i<w;i++){ tiles[0][i]='tree'; tiles[ht-1][i]='tree'; }
-    fill(5,4,8,6,'camp');
+    const pad=burntN>0?'camp_burnt':'camp';
+    fill(5,4,8,6,pad);
     fill(4,3,10,1,'path'); fill(4,10,10,1,'path');
-    fill(7,6,3,2,'plaza');
+    fill(7,6,3,2,burntN>1?'burnt':'plaza');
     tiles[7][8]='well';
-    ringFence(3,3,12,9); tiles[3][8]='path';
-    anim(8,6,'smoke'); prop(6,7,'crate'); prop(10,7,'barrel'); prop(9,8,'bench');
+    // Palisade: intact fence vs broken
+    if(palBroken){
+      for(let i=0;i<12;i++){ const xx=3+i; if(xx<w){ tiles[3][xx]=(i%3===1)?'fence_broken':'fence_broken'; tiles[11][xx]=(i%4===2)?'fence_broken':'fence'; } }
+      for(let j=0;j<9;j++){ const yy=3+j; if(yy<ht){ tiles[yy][3]=(j%3===0)?'fence_broken':'fence'; tiles[yy][14]=(j%2===1)?'fence_broken':'fence_broken'; } }
+      tiles[3][8]='path';
+      // ash & embers inside
+      for(const [ax,ay] of [[6,5],[9,5],[7,8],[10,7],[5,9]]){ if(ay<ht&&ax<w){ tiles[ay][ax]='burnt'; ov(ax,ay,'ash'); } }
+      anim(7,5,'smoke'); anim(10,6,'smoke');
+      prop(6,7,'ember'); prop(9,8,'ember');
+    } else {
+      ringFence(3,3,12,9); tiles[3][8]='path';
+      if(burntN>0){ ov(6,5,'ash'); ov(10,8,'ash'); anim(8,5,'smoke'); }
+    }
+    placeHouse(6, 4, 'Lagerhaus', {variant: burntN>0?3:0, w:3, h:3});
+    if((S?.camp?.upgrades||[]).includes('garten') || (S?.camp?.garden|0)>0){
+      fill(12,5,3,3,'grass'); ov(12,5,'flower'); ov(13,6,'flower'); anim(13,5,'flower');
+    }
+    prop(6,7,'crate'); prop(10,7,'barrel'); prop(9,8,'bench');
+    if(burntN>0) anim(8,6,'smoke'); else anim(8,6,'smoke');
     scatterGrass();
   } else if(preset==='ruins'){
     kind='ruins';
@@ -661,34 +693,135 @@ export function buildMapForLocation(S, ort){
     anim(cx-1,cy-3,'smoke'); anim(w-5,3,'smoke');
     scatterGrass();
   } else {
-    // default town
-    for(let y=0;y<ht;y++) for(let x=0;x<w;x++) tiles[y][x]='grass';
-    fill(0, cy-1, w, 3, 'path');
-    fill(cx-1, 0, 3, ht, 'path');
-    fill(cx-3, cy-3, 7, 7, 'plaza');
-    tiles[cy][cx]='well'; anim(cx,cy,'fountain');
-    for(let i=0;i<5;i++){
-      const sx=cx-6+i*3; if(sx<2||sx+2>=w) continue;
-      fill(sx, cy-6, 2, 2, 'stall'); ov(sx, cy-6, 'stall');
-      tiles[cy-4][sx]='path';
+    // v36 regional floorplans — distinct layouts by genre + ort hash
+    const region=(()=>{
+      if(/cyber|neon/.test(genre)) return 'cyber';
+      if(/zombie|apokal|seuche/.test(genre)) return 'wastes';
+      if(/dark|daemon|dämon/.test(genre)) return 'dark';
+      if(/desert|wüste/.test(genre)) return 'desert';
+      if(/high|fantasy|held|mensch/.test(genre)) return 'fantasy';
+      const rh=h%5; return ['fantasy','harborish','marketish','gardenish','walled'][rh];
+    })();
+    for(let y=0;y<ht;y++) for(let x=0;x<w;x++) tiles[y][x]=region==='desert'?'sand':(region==='wastes'?'stone':'grass');
+    if(region==='cyber'){
+      // grid plaza + towers
+      for(let y=0;y<ht;y++) for(let x=0;x<w;x++) tiles[y][x]=(x%5===0||y%4===0)?'path':'floor';
+      fill(cx-4, cy-4, 9, 9, 'plaza');
+      placeHouse(2, 2, 'Neon-Bar', {hall:true, variant:0, w:4, h:3});
+      placeHouse(w-7, 2, 'Daten-Turm', {hall:true, variant:1, w:4, h:3});
+      placeHouse(2, ht-7, 'Wohnblock', {variant:7});
+      placeHouse(w-6, ht-7, 'Klinik', {variant:4});
+      placeHouse(cx-3, cy-6, 'Terminal', {variant:5});
+      for(let i=0;i<4;i++){ fill(3+i*6, cy+3, 2, 2, 'stall'); ov(3+i*6, cy+3, 'stall'); }
+      anim(cx,cy,'fountain'); prop(cx-2,cy,'lamp'); prop(cx+2,cy,'lamp');
+    } else if(region==='wastes'){
+      for(let y=0;y<ht;y++) for(let x=0;x<w;x++){ const n=((h+x*9+y*17)%100); tiles[y][x]=n<18?'ruin':(n<28?'stone':'grass'); }
+      fill(0,cy,w,2,'path');
+      placeHouse(cx-3, cy-5, 'Barrikade', {hall:true, variant:2, w:4, h:3});
+      placeHouse(2, 2, 'Bunker', {variant:1});
+      placeHouse(w-6, ht-7, 'Wrack', {variant:3});
+      placeHouse(cx+4, cy+2, 'Zeltlager', {variant:5});
+      ringFence(cx-5, cy-1, 11, 7); tiles[cy-1][cx]='path';
+      anim(cx-1,cy-3,'smoke'); prop(cx,cy,'barrel'); prop(cx+2,cy,'crate');
+    } else if(region==='dark'){
+      for(let y=0;y<ht;y++) for(let x=0;x<w;x++) tiles[y][x]=((x+y+h)%9===0)?'stone':'grass';
+      fill(cx-1,0,3,ht,'path'); fill(0,cy,w,2,'path');
+      fill(cx-4,cy-4,9,9,'plaza');
+      placeHouse(cx-4, cy-7, 'Kapelle', {hall:true, variant:3, w:4, h:3});
+      placeHouse(2, 2, 'Krypta', {variant:2});
+      placeHouse(w-6, 2, 'Turm', {variant:1});
+      placeHouse(2, ht-7, 'Söldnerhaus', {variant:4});
+      placeHouse(w-6, ht-7, 'Markt der Schatten', {variant:6});
+      anim(cx,cy,'torch'); anim(cx-3,cy-2,'torch'); prop(cx+3,cy,'statue');
+    } else if(region==='desert'){
+      fill(0, cy, w, 2, 'path'); fill(cx-1, 2, 3, ht-4, 'path');
+      fill(cx-3, cy-3, 7, 7, 'plaza');
+      placeHouse(cx-3, cy-5, 'Oasenwirt', {hall:true, variant:1, w:4, h:3});
+      placeHouse(2, 2, 'Zelt', {variant:0});
+      placeHouse(w-6, 2, 'Brunnenhaus', {variant:3});
+      placeHouse(2, ht-7, 'Karawanserei', {variant:5});
+      fill(w-9, 4, 5, 4, 'water');
+      anim(cx,cy,'fountain');
+    } else if(region==='walled'){
+      fill(0,0,w,2,'wall'); fill(0,ht-2,w,2,'wall'); fill(0,0,2,ht,'wall'); fill(w-2,0,2,ht,'wall');
+      fill(0, cy-1, w, 3, 'path'); fill(cx-1, 0, 3, ht, 'path');
+      fill(cx-3, cy-3, 7, 7, 'plaza'); tiles[cy][cx]='well';
+      placeHouse(3, 3, 'Kaserne', {hall:true, variant:2, w:4, h:3});
+      placeHouse(w-8, 3, 'Turm', {variant:1});
+      placeHouse(3, ht-8, 'Magazin', {variant:4});
+      placeHouse(w-8, ht-8, 'Wache', {variant:0});
+      placeHouse(cx-2, cy-6, 'Hauptquartier', {variant:6});
+    } else if(region==='harborish'){
+      fill(0, ht-5, w, 5, 'water');
+      fill(0, cy-1, w, 3, 'path'); fill(cx-1, 0, 3, cy+2, 'path');
+      placeHouse(2, 2, 'Zollhaus', {variant:1});
+      placeHouse(cx-3, 2, 'Taverne', {variant:0});
+      placeHouse(w-7, 2, 'Lagerhaus', {hall:true, variant:1, w:4, h:3});
+      placeHouse(2, cy-4, 'Kai-Laden', {variant:6});
+      for(let i=0;i<w;i+=3) prop(i, ht-6, 'barrel');
+      anim(cx, cy, 'fountain');
+    } else if(region==='gardenish'){
+      for(let y=0;y<ht;y++) for(let x=0;x<w;x++) tiles[y][x]='grass';
+      fill(cx-1,0,3,ht,'path'); fill(0,cy,w,2,'path');
+      ringFence(2,2,w-4,ht-4); tiles[2][cx]='path';
+      for(let j=0;j<4;j++) for(let i=0;i<6;i++){ ov(4+i,4+j,'flower'); anim(4+i,4+j,'flower'); }
+      placeHouse(cx-3, cy-5, 'Pavillon', {variant:7});
+      placeHouse(2, ht-8, 'Gärtnerhaus', {variant:2});
+      placeHouse(w-6, ht-8, 'Orangerie', {variant:5});
+      anim(cx,cy,'fountain');
+    } else if(region==='marketish'){
+      fill(0, cy-1, w, 3, 'path'); fill(cx-1, 0, 3, ht, 'path');
+      fill(cx-4, cy-4, 9, 9, 'plaza'); tiles[cy][cx]='well'; anim(cx,cy,'fountain');
+      for(let i=0;i<6;i++){ const sx=2+i*4; if(sx+2<w){ fill(sx, cy-6, 2, 2, 'stall'); ov(sx, cy-6, 'stall'); } }
+      for(let i=0;i<5;i++){ const sx=3+i*5; if(sx+2<w){ fill(sx, cy+4, 2, 2, 'stall'); ov(sx, cy+4, 'stall'); } }
+      placeHouse(2, 2, 'Kaufhaus', {variant:6});
+      placeHouse(w-6, 2, 'Zoll', {variant:1});
+      placeHouse(2, ht-7, 'Wirtshaus', {variant:0});
+      placeHouse(w-6, ht-7, 'Lager', {variant:4});
+    } else {
+      // fantasy classic — crossroads + temple wing
+      fill(0, cy-1, w, 3, 'path');
+      fill(cx-1, 0, 3, ht, 'path');
+      fill(cx-3, cy-3, 7, 7, 'plaza');
+      tiles[cy][cx]='well'; anim(cx,cy,'fountain');
+      for(let i=0;i<5;i++){
+        const sx=cx-6+i*3; if(sx<2||sx+2>=w) continue;
+        fill(sx, cy-6, 2, 2, 'stall'); ov(sx, cy-6, 'stall');
+        tiles[cy-4][sx]='path';
+      }
+      ringFence(2, cy+4, 7, 6);
+      fill(3, cy+5, 5, 4, 'grass');
+      for(let j=0;j<3;j++) for(let i=0;i<3;i++){ ov(4+i, cy+6+j, 'flower'); anim(4+i, cy+6+j, 'flower'); }
+      tiles[cy+4][5]='path';
+      placeHouse(2, 2, 'Gasthaus', {variant:0});
+      placeHouse(w-6, 2, 'Tempel', {variant:1, hall:true, w:4, h:3});
+      placeHouse(2, ht-7, 'Wohnhaus', {variant:4});
+      placeHouse(w-6, ht-7, 'Laden', {variant:6});
+      placeHouse(cx-8, cy-2, 'Bibliothek', {variant:2});
+      placeHouse(cx+5, cy-2, 'Wachstube', {variant:3});
+      placeHouse(cx-10, ht-8, 'Handwerkerhaus', {variant:8});
+      placeHouse(cx+6, ht-8, 'Nachbarhaus', {variant:11});
+      for(let i=0;i<w;i++){ if(i%3===0){ tiles[0][i]='tree'; tiles[ht-1][i]='tree'; } }
+      fill(w-8, 3, 4, 3, 'water');
     }
-    ringFence(2, cy+4, 7, 6);
-    fill(3, cy+5, 5, 4, 'grass');
-    for(let j=0;j<3;j++) for(let i=0;i<3;i++){ ov(4+i, cy+6+j, 'flower'); anim(4+i, cy+6+j, 'flower'); }
-    tiles[cy+4][5]='path';
-    placeHouse(2, 2, 'Gasthaus', {variant:0});
-    placeHouse(w-6, 2, 'Tempel', {variant:1, hall:true, w:4, h:3});
-    placeHouse(2, ht-7, 'Wohnhaus', {variant:4});
-    placeHouse(w-6, ht-7, 'Laden', {variant:6});
-    placeHouse(cx-8, cy-2, 'Bibliothek', {variant:2});
-    placeHouse(cx+5, cy-2, 'Wachstube', {variant:3});
-    placeHouse(cx-10, ht-8, 'Handwerkerhaus', {variant:8});
-    placeHouse(cx+6, ht-8, 'Nachbarhaus', {variant:11});
-    for(let i=0;i<w;i++){ if(i%3===0){ tiles[0][i]='tree'; tiles[ht-1][i]='tree'; } }
-    fill(w-8, 3, 4, 3, 'water');
     scatterGrass();
   }
 
+  // v36: if this is the player's home and damaged, overlay burn even on non-camp presets
+  if(S?.home?.owned && S.home.location===name && (S.camp?.damage?.burnt|0)>0){
+    const dmg=S.camp.damage;
+    const cx0=Math.floor(w/2), cy0=Math.floor(ht/2);
+    for(let j=-2;j<=2;j++) for(let i=-3;i<=3;i++){
+      const xx=cx0+i, yy=cy0+j;
+      if(yy>0&&yy<ht-1&&xx>0&&xx<w-1 && (tiles[yy][xx]==='grass'||tiles[yy][xx]==='plaza'||tiles[yy][xx]==='path'||tiles[yy][xx]==='camp')){
+        if(((i*3+j*5)&3)===0) tiles[yy][xx]='burnt';
+      }
+    }
+    if(dmg.palisadeBroken){
+      for(let i=cx0-4;i<=cx0+4;i++){ if(i>0&&i<w){ if(tiles[cy0-3]?.[i]==='fence') tiles[cy0-3][i]='fence_broken'; } }
+      ov(cx0-1,cy0,'ash'); ov(cx0+2,cy0+1,'ash'); anim(cx0,cy0-1,'smoke');
+    }
+  }
   let sx=Math.floor(w/2), sy=Math.floor(ht/2);
   // Prefer spawn near return door if exiting interior
   if(S?._owSpawn && typeof S._owSpawn.x==='number'){

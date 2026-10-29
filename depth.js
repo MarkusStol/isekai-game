@@ -208,7 +208,7 @@ export const NAME_POOLS={
     sur:['Hartmann','Keller','Weber','Schulz','Braun','Hoffmann','Richter','Klein','Wolf','Schröder','Neumann','Schwarz','Zimmermann','Krüger','Hartmann','Lange','Werner','Jäger','Lehmann','König']}
 };
 
-export function pickGenreName(genre, seedStr=''){
+export function pickGenreName(genre, seedStr='', usedFirst=null){
   const g=String(genre||'').toLowerCase();
   let pool=NAME_POOLS.default;
   if(/high|fantasy|held|elf|zwerg|magie/.test(g) && !/dark/.test(g)) pool=NAME_POOLS.highfantasy;
@@ -217,9 +217,18 @@ export function pickGenreName(genre, seedStr=''){
   else if(/cyber|neon|netz|punk/.test(g)) pool=NAME_POOLS.cyberpunk;
   else if(/desert|wüste|sand/.test(g)) pool=NAME_POOLS.desert;
   else if(/survival|wildnis|überleben/.test(g)) pool=NAME_POOLS.survival;
-  const h=Math.abs(hash(String(seedStr||Math.random())+g));
-  const first=pool.first[h%pool.first.length];
-  const sur=pool.sur[(h>>5)%pool.sur.length];
+  const used=usedFirst instanceof Set?usedFirst:null;
+  const h0=Math.abs(hash(String(seedStr||Math.random())+g));
+  let first=pool.first[h0%pool.first.length];
+  // v36: unique first names within a world
+  if(used){
+    for(let k=0;k<pool.first.length;k++){
+      const cand=pool.first[(h0+k)%pool.first.length];
+      if(!used.has(cand.toLowerCase())){ first=cand; break; }
+    }
+    used.add(first.toLowerCase());
+  }
+  let sur=pool.sur[(h0>>5)%pool.sur.length];
   return first+' '+sur;
 }
 
