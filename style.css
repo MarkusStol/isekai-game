@@ -1219,3 +1219,210 @@ body.busy #txt{opacity:.7}
   .map-iso-25d,.menu-body .map-wrap{transform:none}
   .battle-root.cam-zoom,.battle-root.cam-shake-hard{animation:none}
 }
+
+/* ===== v24 PIXEL JRPG ===== */
+
+body.pixel-jrpg{
+  --px-font: 'Press Start 2P', ui-monospace, monospace;
+  --px-win: #1a2458;
+  --px-border: #9eb6ff;
+  --px-border2: #4a6ad0;
+  --px-text: #e8f0ff;
+  --px-gold: #ffe08a;
+  image-rendering: pixelated;
+}
+body.pixel-jrpg .logo, body.pixel-jrpg .title-badge, body.pixel-jrpg .vn-text,
+body.pixel-jrpg .speaker, body.pixel-jrpg .hud, body.pixel-jrpg .choices button,
+body.pixel-jrpg .menu-panel, body.pixel-jrpg .card, body.pixel-jrpg .battle-cmd,
+body.pixel-jrpg .input-row input, body.pixel-jrpg .ow-keyboard{
+  font-family: var(--px-font);
+}
+body.pixel-jrpg .vn-text{ font-size: 11px; line-height: 1.7; letter-spacing: 0.02em; }
+body.pixel-jrpg .speaker{ font-size: 10px; }
+body.pixel-jrpg .hud{ font-size: 9px; }
+body.pixel-jrpg .choices button{ font-size: 9px; padding: 10px 8px; }
+
+/* Classic JRPG window chrome */
+body.pixel-jrpg .vn-box, body.pixel-jrpg .menu-panel, body.pixel-jrpg .card,
+body.pixel-jrpg .battle-cmd, body.pixel-jrpg .battle-log, body.pixel-jrpg .battle-end-card,
+body.pixel-jrpg .input-row{
+  background: linear-gradient(180deg, #243878 0%, #152050 100%) !important;
+  border: 3px solid var(--px-border) !important;
+  box-shadow: 0 0 0 2px #0a1030, inset 0 0 0 2px var(--px-border2) !important;
+  border-radius: 4px !important;
+  color: var(--px-text);
+}
+body.pixel-jrpg .vn-frame{ display:none; }
+body.pixel-jrpg .choices button{
+  background: #1a2458 !important;
+  border: 2px solid var(--px-border) !important;
+  color: var(--px-text) !important;
+  border-radius: 2px !important;
+  box-shadow: inset 0 0 0 1px var(--px-border2);
+}
+body.pixel-jrpg .choices button:active{ background:#2a3878 !important; }
+
+/* Genre palettes */
+body.pixel-jrpg.genre-zombie{ --px-win:#1a2818; --px-border:#8fbc6a; --px-border2:#3a5a28; }
+body.pixel-jrpg.genre-cyberpunk{ --px-win:#12082a; --px-border:#e040fb; --px-border2:#00e5ff; }
+body.pixel-jrpg.genre-darkfantasy{ --px-win:#1a0810; --px-border:#a05060; --px-border2:#501828; }
+body.pixel-jrpg.genre-postapoc{ --px-win:#2a2010; --px-border:#c4a060; --px-border2:#6a5020; }
+body.pixel-jrpg.greyw{ --px-win:#16181c; --px-border:#9fb3c8; --px-border2:#4a5560; }
+
+.pixelated, img.pixelated, .pixel-foe img, .pixel-hero-spr{
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+/* Overworld */
+.overworld{
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0 0;
+  background: #0a0810;
+}
+.overworld.hidden{ display:none !important; }
+#owCanvas{
+  display:block;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  border: 3px solid var(--px-border, #9eb6ff);
+  box-shadow: 0 0 0 2px #0a1030;
+  background: #0a0810;
+  max-width: 100%;
+  touch-action: none;
+}
+.ow-pad{
+  display: grid;
+  grid-template-rows: auto auto auto;
+  justify-items: center;
+  gap: 4px;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.ow-pad-mid{ display:flex; gap:8px; align-items:center; }
+.ow-pad button{
+  width: 48px; height: 48px;
+  font-size: 18px;
+  background: #1a2458;
+  color: #e8f0ff;
+  border: 3px solid #9eb6ff;
+  border-radius: 4px;
+  box-shadow: inset 0 0 0 2px #4a6ad0;
+  touch-action: manipulation;
+}
+.ow-pad button.ow-action{ width:56px; background:#2a1850; }
+.ow-keyboard{
+  font-size: 9px !important;
+  padding: 10px 14px;
+  background: #1a2458;
+  color: #ffe08a;
+  border: 2px solid #9eb6ff;
+  border-radius: 2px;
+  margin-bottom: 4px;
+}
+
+/* When exploring: compress VN to bottom strip; expand on dialogue/keyboard */
+body.pixel-ow:not(.ow-dialogue) .scene-bg,
+body.pixel-ow:not(.ow-dialogue) .scene-grad{ display:none; }
+body.pixel-ow:not(.ow-dialogue) .vn-wrap{
+  max-height: 120px;
+  margin-top: 0;
+}
+body.pixel-ow:not(.ow-dialogue) .portrait-wrap{ display:none; }
+body.pixel-ow.ow-dialogue .overworld{ max-height: 28vh; overflow:hidden; }
+body.pixel-ow.ow-dialogue #owCanvas{ max-height: 22vh; }
+body.pixel-ow.ow-dialogue .vn-wrap{ max-height: none; }
+
+/* Battle FF6-style */
+.battle-root.battle-pixel{
+  background: #101828;
+  font-family: var(--px-font, monospace);
+}
+.battle-root.battle-pixel .battle-bg{
+  image-rendering: pixelated;
+  filter: contrast(1.05) saturate(1.1);
+}
+.pixel-battle-floor{
+  position:absolute; left:0; right:0; bottom:22%; height:28%;
+  background: repeating-linear-gradient(90deg, #3a2a18 0 8px, #2a1c10 8px 16px);
+  opacity: .55; pointer-events:none; z-index:2;
+  transform: perspective(400px) rotateX(50deg); transform-origin: center bottom;
+}
+.battle-root.battle-pixel .battle-foes{
+  left: 4%; right: auto; width: 46%; top: 18%;
+  display:flex; flex-direction:column; gap:8px; z-index:5;
+}
+.battle-root.battle-pixel .foe-card{
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  text-align: left;
+}
+.battle-root.battle-pixel .pixel-foe{
+  width: 64px; height: 64px;
+  image-rendering: pixelated;
+}
+.battle-root.battle-pixel .pixel-foe img{
+  width: 64px; height: 64px; object-fit: contain;
+  image-rendering: pixelated;
+  filter: drop-shadow(2px 3px 0 #0008);
+}
+.battle-root.battle-pixel .battle-party{
+  right: 2%; left: auto; width: 52%; bottom: 28%; top: auto; z-index:5;
+}
+.battle-root.battle-pixel .party-card.pixel-party{
+  display:flex; align-items:center; gap:6px;
+  background: linear-gradient(180deg,#243878,#152050) !important;
+  border: 2px solid #9eb6ff !important;
+  font-size: 8px;
+}
+.pixel-hero-spr{
+  width: 40px; height: 54px; object-fit: contain;
+  image-rendering: pixelated;
+  filter: drop-shadow(2px 3px 0 #0008);
+}
+.battle-root.battle-pixel .battle-cmd{
+  font-size: 9px;
+  bottom: 4px;
+}
+.battle-root.battle-pixel .battle-cmd button,
+.battle-root.battle-pixel .bcm{
+  font-family: var(--px-font, monospace) !important;
+  font-size: 8px !important;
+  background: #1a2458 !important;
+  border: 2px solid #9eb6ff !important;
+  color: #e8f0ff !important;
+  border-radius: 2px !important;
+}
+.battle-root.battle-pixel .bar i{
+  image-rendering: pixelated;
+}
+
+/* Title pixel */
+body.pixel-jrpg .title-badge{
+  font-size: 10px;
+  border: 2px solid var(--px-border);
+  background: var(--px-win);
+  padding: 4px 8px;
+}
+body.pixel-jrpg .logo{
+  font-size: 22px;
+  line-height: 1.35;
+  text-shadow: 3px 3px 0 #000;
+}
+body.pixel-jrpg .big{
+  font-family: var(--px-font);
+  font-size: 11px;
+  border: 3px solid var(--px-border);
+  border-radius: 2px;
+  box-shadow: inset 0 0 0 2px var(--px-border2), 4px 4px 0 #0006;
+}
+
+@media (prefers-reduced-motion: reduce){
+  .ow-pad button{ transition:none; }
+}

@@ -19,8 +19,9 @@ import * as Equip from './equip.js';
 import * as Jrpg from './jrpg.js';
 import * as Depth from './depth.js';
 import * as V25 from './visual25d.js';
+import * as OW from './overworld.js';
 const $=s=>document.querySelector(s);const $$=s=>[...document.querySelectorAll(s)];const R=a=>a[Math.floor(Math.random()*a.length)];const rnd=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
-const VER='23',CACHE_V='v23';
+const VER='24',CACHE_V='v24';
 const ROLES={
  held:{e:'⚔️',name:'Held mit Status-System',d:'Ein blaues Fenster erscheint: [Status]. Die Welt braucht dich.',world:'Königreich Aldheim',
   base:{hp:100,mp:40,str:12,cha:8,ruf:10,gold:40},cls:['Abenteurer','Ritter','Held','Legendärer Held'],pack:'worlds/held.json',
@@ -644,6 +645,8 @@ function migrate(raw){if(!raw)return null;const s=typeof raw==='string'?JSON.par
  if(Number(s.ver)<21){s.ver=21}
  if(Number(s.ver)<21.1){s.ver=21.1}
  if(Number(s.ver)<22){s.ver=22}
+ if(Number(s.ver)<23){s.ver=23}
+ if(Number(s.ver)<24){s.ver=24}
  // v13.1 continuity+time always (kept in v14)
  try{Cont.ensureCont(s);if(s.cal&&s.cal.minute==null)s.cal.minute=0;if(s.cfgCatchupOptIn==null)s.cfgCatchupOptIn=false}catch(e){console.warn('cont migrate',e)}
  // Heal incomplete worlds from old saves (missing orte/graph)
@@ -1004,7 +1007,7 @@ function applyQuestUpdate(u){if(!u||!S.quests)return;const m=S.quests.main;
  if(u.sideUnlock){const id=String(u.sideUnlock);const sq=(S.quests.side||[]).find(q=>q.id===id);if(sq&&sq.status==='offen')sq.status='aktiv'}}
 
 /* ---------- HUD / choices / log ---------- */
-function hud(){if(!S)return;if(isG())hudG();else hudI();dbgLine();try{V25.syncSceneActors(S);V25.setParallaxTheme(document.getElementById('sceneBg')?.dataset?.theme)}catch(_){}}
+function hud(){if(!S)return;if(isG())hudG();else hudI();dbgLine();try{V25.syncSceneActors(S);V25.setParallaxTheme(document.getElementById('sceneBg')?.dataset?.theme)}catch(_){}; try{ if(OW.isOverworldActive()){ /* keep running */ } }catch(_){}}
 function bar(v,m,col){return `<div class="bar"><i style="width:${Math.max(0,Math.min(100,v/Math.max(1,m)*100))}%;background:${col}"></i></div>`}
 function hudI(){const s=S.st,r=ROLES[S.role];
  $('#hud').innerHTML=`<div class="hud-top"><b>${r.e} ${S.pc?.name&&S.pc.name!=='???'?S.pc.name:r.cls[S.cls]}</b><span>Lv ${s.lvl} · 🪙${s.gold|0}</span></div>
@@ -1057,7 +1060,17 @@ function enterPlay(){$('#keyGate')&&$('#keyGate').classList.add('hidden');$('#ti
  }catch(_){}
  typewrite(isG()?'Nebel':'Erzähler', last.t, ()=>{});
  hud();renderChoices();
- try{const w=Imm.weatherFor(S);S.flags=S.flags||{};S.flags.weather=w;Imm.setWeather(w==='klar'?'none':w);Imm.applyDayNightTint(S);applyGenreTheme(S.genre||S.role)}catch(_){}}
+ try{const w=Imm.weatherFor(S);S.flags=S.flags||{};S.flags.weather=w;Imm.setWeather(w==='klar'?'none':w);Imm.applyDayNightTint(S);applyGenreTheme(S.genre||S.role)}catch(_){}
+ try{
+   OW.mountOverworld({
+     act:(t)=>act(t),
+     getS:()=>S,
+     onLocation:(dest)=>{ try{ const r=travelTo(dest); if(r?.text){ add('n',r.text); apply(r.changes||{}); if(r.changes?.world)applyWorld(r.changes.world); hud(); renderChoices(); OW.refreshOverworld(S); typewrite(isG()?'Nebel':'Erzähler', r.text, ()=>{}); save(); } }catch(e){ console.warn('ow-travel',e);} }
+   });
+   OW.showOverworld(S);
+   document.body.classList.add('pixel-jrpg');
+ }catch(e){ console.warn('overworld',e); }
+}
 
 function show(){enterPlay()}
 
@@ -2503,7 +2516,8 @@ function stopMusic(){if(!_musicNodes)return;try{_musicNodes.oscs.forEach(o=>{try
 function openGenrePicker(){const el=$('#genrePick');if(!el)return;el.classList.remove('hidden');const sel=$('#genreSelect');if(sel&&!sel.options.length){Object.values(GENRES).forEach(g=>{const o=document.createElement('option');o.value=g.id;o.textContent=g.icon+' '+g.label;sel.appendChild(o)})}}
 function closeGenrePicker(){$('#genrePick')?.classList.add('hidden')}
 function showTitle(){_mode='title';$('#stage').classList.add('hidden');$('#keyGate').classList.add('hidden');$('#title').classList.remove('hidden');
- document.body.classList.remove('greyw');
+ document.body.classList.remove('greyw','pixel-jrpg','pixel-ow','ow-dialogue');
+ try{OW.hideOverworld()}catch(_){};
  const sv=localStorage.getItem(KEY);if(sv)$('#btnContinue').classList.remove('hidden');else $('#btnContinue').classList.add('hidden');
  runParticles()}
 
@@ -2561,7 +2575,7 @@ $('#btnGateSave').onclick=()=>{const gk=$('#gateKey').value.trim();if(!gk){toast
  toast('Alles bereit.');gmFetch(gk,true).then(()=>gmProbe(gk).catch(()=>{}));enterPlay()};
 $('#btnGateSkip').onclick=()=>{cfg.mode='free';cfg.v2=1;localStorage.setItem(CFG,JSON.stringify(cfg));toast('Erzählerin: Pollinations (ohne Schlüssel)');enterPlay()};
 
-window.__setCfg=o=>{cfg=Object.assign(cfg||{},o||{});try{localStorage.setItem(CFG,JSON.stringify(cfg))}catch(_){}};window.__game={VER,setBusy,forceUnbusy,ACT_HARD_MS,V25,Depth,Battle,Jobs,Gems,Summons,Equip,Jrpg,localBeatLine,parsePlayerIntent,offlineRespondIntent,freeStream,FREE_MODEL,openPendingEncounter,Imm,discoverThing,showCodexInline,Level,UI14,UI17,Know,Cont,lastPromptDump,advanceTimeMinutes,applyActionDuration,newGrey,greyDetails,loadGrey,loadPack,get S(){return S},act,newLife,gBody,msgs,gmRank,gmProbe,parseStream,thinkingCfg,gmOrder,readSSE,STREAM_DELIM,migrate,worldTick,bumpRel,openMenu,stageName,offline,startIntro,setSceneImage,setPortrait,imgUrl,advanceTime,phaseLabel,typewrite,enterPlay,showTitle,analyzeImage,applySceneTheme,themeFromText,loadValidatedImage,openingNarration,travelTo,parseTravel,killNPC,robNPC,addMemory,memoryHint,startProcedural,offlineGenerateWorld,generateWorldPack,GENRES,travelChoices,ensureGraph,whoHere,parseLifeSim,Sim,Persist,WorldMap,Econ,Codex,UI13,save,loadSave,applyCatchUp,findAnyNpc};
+window.__setCfg=o=>{cfg=Object.assign(cfg||{},o||{});try{localStorage.setItem(CFG,JSON.stringify(cfg))}catch(_){}};window.__game={VER,setBusy,forceUnbusy,ACT_HARD_MS,V25,OW,Depth,Battle,Jobs,Gems,Summons,Equip,Jrpg,localBeatLine,parsePlayerIntent,offlineRespondIntent,freeStream,FREE_MODEL,openPendingEncounter,Imm,discoverThing,showCodexInline,Level,UI14,UI17,Know,Cont,lastPromptDump,advanceTimeMinutes,applyActionDuration,newGrey,greyDetails,loadGrey,loadPack,get S(){return S},act,newLife,gBody,msgs,gmRank,gmProbe,parseStream,thinkingCfg,gmOrder,readSSE,STREAM_DELIM,migrate,worldTick,bumpRel,openMenu,stageName,offline,startIntro,setSceneImage,setPortrait,imgUrl,advanceTime,phaseLabel,typewrite,enterPlay,showTitle,analyzeImage,applySceneTheme,themeFromText,loadValidatedImage,openingNarration,travelTo,parseTravel,killNPC,robNPC,addMemory,memoryHint,startProcedural,offlineGenerateWorld,generateWorldPack,GENRES,travelChoices,ensureGraph,whoHere,parseLifeSim,Sim,Persist,WorldMap,Econ,Codex,UI13,save,loadSave,applyCatchUp,findAnyNpc};
 window.__game.askNPC=a=>askNPC(a);window.__game.gemini=gemini;
 if(cfg.gkey)gmFetch(cfg.gkey.trim()).then(()=>gmProbe(cfg.gkey.trim()).catch(()=>{})).catch(()=>{});
 (function(){const root=document.documentElement;const apply=()=>{try{const vv=window.visualViewport;if(!vv)return;const kb=Math.max(0,window.innerHeight-vv.height-vv.offsetTop);root.style.setProperty('--kb',kb+'px')}catch(_){}};
@@ -2601,4 +2615,5 @@ try{if('serviceWorker' in navigator&&navigator.serviceWorker){
   navigator.serviceWorker.addEventListener('controllerchange',()=>{if(sessionStorage.getItem('isekai_sw_reloaded_'+VER))return;sessionStorage.setItem('isekai_sw_reloaded_'+VER,'1');location.reload()});
 }}catch(_){}
 try{V25.boot25d()}catch(_){}
+document.body.classList.add('pixel-jrpg');
 showTitle();

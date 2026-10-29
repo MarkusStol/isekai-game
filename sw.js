@@ -1,5 +1,5 @@
 /* Isekai Reinkarnation – offline shell. Network-first for shell; self-heal on version mismatch. */
-const VER = '23';
+const VER = '24';
 const CACHE = 'isekai-v' + VER;
 const ASSETS = [
   './',
@@ -19,6 +19,7 @@ const ASSETS = [
   './jrpg.js?v=' + VER,
   './depth.js?v=' + VER,
   './visual25d.js?v=' + VER,
+  './overworld.js?v=' + VER,
   './equip.js?v=' + VER,
   './summons.js?v=' + VER,
   './gems.js?v=' + VER,
@@ -29,6 +30,13 @@ const ASSETS = [
   './leveling.js?v=' + VER,
   './manifest.json',
   './icon.svg',
+  './assets/pixel/hero/walk.png',
+  './assets/pixel/hero/battle.png',
+  './assets/pixel/tiles/grass.png',
+  './assets/pixel/tiles/path.png',
+  './assets/pixel/tiles/floor.png',
+  './assets/pixel/tiles/wall.png',
+  './assets/pixel/ui/window.png',
   './favicon.svg',
   './assets/ui/title-held.webp',
   './assets/ui/icons.svg',

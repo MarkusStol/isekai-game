@@ -962,6 +962,21 @@ function aiCompanion(c){
 }
 
 /* ---- UI ---- */
+
+function pixelEnemyArt(f){
+  const n=String(f?.id||f?.name||'').toLowerCase();
+  let key='slime';
+  if(/bat|fledermaus/.test(n)) key='bat';
+  else if(/bandit|räuber|rauber|dieb/.test(n)) key='bandit';
+  else if(/wolf|hound/.test(n)) key='wolf';
+  else if(/skel|knochen|undead/.test(n)) key='skeleton';
+  else if(/boss|drache|dragon|könig|demon/.test(n) || f?.boss) key='boss';
+  else if(/imp|goblin/.test(n)) key='imp';
+  else if(/golem|stein/.test(n)) key='golem';
+  else if(/schleim|slime|blob/.test(n)) key='slime';
+  return './assets/pixel/enemy/'+key+'.png';
+}
+
 function el(id){return document.getElementById(id)}
 
 function ensureRoot(){
@@ -976,10 +991,11 @@ function ensureRoot(){
 export function renderBattleUI(){
   const root=ensureRoot();
   if(!_B){ root.classList.add('hidden'); return }
-  root.classList.remove('hidden');
+  root.classList.remove('hidden'); root.classList.add('battle-pixel');
   const B=_B;
   root.innerHTML=`
-  <div class="battle-bg" id="battleBg" style="background-image:url('${B.bg}')"></div>
+  <div class="battle-bg pixel-battle-bg" id="battleBg" style="background-image:url('${B.bg}')"></div>
+  <div class="pixel-battle-floor" aria-hidden="true"></div>
   <div class="battle-veil"></div>
   <div class="battle-stage-25d"><div class="bstage-floor"></div></div>
   <div class="battle-atb-mode">${B.atbMode==='wait'?'WAIT':'ACTIVE'}</div>
@@ -1009,7 +1025,7 @@ function refreshUI(){
   if(foes){
     foes.innerHTML=B.foes.map(f=>`
       <button type="button" class="foe-card ${f.alive?'':'dead'} ${B.selecting&&needsTarget()?(_B._hover===f._iid?'target':''):''}" data-iid="${f._iid}" ${f.alive?'':'disabled'}>
-        <div class="foe-art-wrap"><img class="foe-art" src="${f.art}" alt="${f.name}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/><div class="foe-fallback" style="display:none">${f.icon||'👹'}</div></div>
+        <div class="foe-art-wrap pixel-foe"><img class="foe-art pixelated" src="${pixelEnemyArt(f)}" alt="${f.name}" loading="lazy" onerror="this.onerror=null;this.src='${f.art||''}';"/><div class="foe-fallback" style="display:none">${f.icon||'👹'}</div></div>
         <div class="foe-name">${f.name}${f.analyzed?' · ✦':''}${f.boss?' · BOSS':''}${f.staggered?' · BRUCH':''}${f.rare?' · SELTEN':''}</div>
         <div class="bar foe-hp"><i style="width:${Math.max(0,f.hp/f.maxhp*100)}%"></i></div>
         <div class="bar foe-stagger ${f.staggered?'broken':''}" title="Bruch"><i style="width:${Math.max(0,(f.stagger||0)/Math.max(1,f.staggerMax||1)*100)}%"></i></div>
@@ -1037,7 +1053,8 @@ function refreshUI(){
   const party=el('battleParty');
   if(party){
     party.innerHTML=B.party.map(p=>`
-      <div class="party-card ${p.alive?'':'dead'} ${B.selecting?.actor===p?'active':''} row-${p.row||'front'}">
+      <div class="party-card pixel-party ${p.alive?'':'dead'} ${B.selecting?.actor===p?'active':''} row-${p.row||'front'}">
+        <img class="pixel-hero-spr pixelated" src="./assets/pixel/hero/battle.png" alt="" width="40" height="54"/>
         <div class="party-port">${p.portrait?`<img src="${p.portrait}" alt="" loading="lazy"/>`:`<span>${(p.name||'?')[0]}</span>`}</div>
         <div class="party-meta">
           <b>${p.name}${p.job?' · '+((Jobs.JOBS[p.job]||{}).name||p.job):''}<small>${p.row==='back'?' hinten':' vorn'}</small></b>

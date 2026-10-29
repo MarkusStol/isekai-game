@@ -108,17 +108,18 @@ const report={paths:{}, samples:{}};
 let server, browser, page;
 
 async function boot(role, name){
-  await page.goto(`http://127.0.0.1:${PORT}/index.html?v=22&gate=1`,{waitUntil:'domcontentloaded',timeout:60000});
+  await page.goto(`http://127.0.0.1:${PORT}/index.html?v=24&gate=1`,{waitUntil:'domcontentloaded',timeout:60000});
   await page.evaluate(()=>localStorage.clear());
   await page.reload({waitUntil:'networkidle0',timeout:60000});
   await page.waitForFunction(()=>window.__game&&window.__game.newLife,{timeout:30000});
-  return page.evaluate(async({role,name})=>{
+  const info=await page.evaluate(async({role,name})=>{
     window.__FAST=true; window.__SKIP_REMOTE_IMG=true; window.__FORCE_CSS_SCENES=true;
     window.__setCfg({mode:'offline', v2:1, debug:1});
     const g=window.__game;
     await g.newLife(role,{lives:0,soul:0,keptSkills:[]},{skipSetup:true,name});
     if(g.S.setup&&!g.S.setup.done){g.S.setup.done=true; try{g.enterPlay()}catch(_){}}
-    g.S.ver='21'; g.S.romance={}; g.S.turn=Math.min(g.S.turn|0,5);
+    else { try{g.enterPlay()}catch(_){ } }
+    g.S.romance=g.S.romance||{}; g.S.turn=Math.min(g.S.turn|0,5);
     const sc=g.S.world?.scene;
     if(sc&&(!sc.anwesend||!sc.anwesend.length)){
       const names=Object.keys(g.S.world.npcs||{}).filter(n=>g.S.world.npcs[n].alive!==false).slice(0,3);
@@ -127,18 +128,18 @@ async function boot(role, name){
     try{g.Cont.lockScene(g.S,'gate')}catch(_){}
     document.getElementById('title')?.classList.add('hidden');
     document.getElementById('stage')?.classList.remove('hidden');
+    try{ g.OW?.showOverworld(g.S); }catch(_){}
     return {ort:g.S.world.scene.ort, anw:g.S.world.scene.anwesend||[], role:g.S.role};
   },{role,name});
-  // Never hang on encounter UI during gate
   await page.evaluate(()=>{
     const g=window.__game;
     if(g.Battle){
       g.Battle.offerEncounter=async()=>({ok:true, fled:true, summary:{text:'Begegnung beigelegt (Gate).', fled:true}});
       g.Battle.isActive=()=>false;
     }
-    // neutralize scheduleAfterReply encounter opener hanging the page
     window.__gateNoBattle=true;
   });
+  return info;
 }
 
 /** Path A: direct offline() — core narrator fix */
@@ -347,7 +348,7 @@ async function runLiveSiteBrowser(){
   const label='live-site';
   let fails=0, total=0;
   const LIVE=process.env.GATE_LIVE_URL||'https://markusstol.github.io/isekai-game/';
-  const versions=['13','16','18','20','22'];
+  const versions=['13','16','18','20','22','23'];
   const safariUA='Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1';
 
   async function oneProfile(name, {ua, seedVer}={}){
@@ -564,6 +565,85 @@ async function runHungFetchReply(){
 }
 
 
+/** Path H: overworld movement + NPC talk opens dialogue / act reply */
+async function runOverworldGate(){
+  const label='overworld';
+  let fails=0, total=0;
+  console.log('\n=== OVERWORLD MOVE + NPC TALK ===');
+  await boot('held','OwTest');
+  total++;
+  const r=await page.evaluate(async()=>{
+    const g=window.__game;
+    if(!g.OW) return {ok:false, reason:'no-OW'};
+    try{ g.OW.showOverworld(g.S); }catch(e){ return {ok:false, reason:'show:'+e.message}; }
+    await new Promise(r=>setTimeout(r,200));
+    const d0=g.OW.__debug();
+    const moved=g.OW.__tryMove(1,0) || g.OW.__tryMove(0,1) || g.OW.__tryMove(-1,0) || g.OW.__tryMove(0,-1);
+    await new Promise(r=>setTimeout(r,200));
+    const d1=g.OW.__debug();
+    // Walk toward first NPC if any
+    if(d1.npcs?.length){
+      const n=d1.npcs[0];
+      for(let i=0;i<20;i++){
+        const h=g.OW.__debug().hero;
+        const dx=Math.sign(n.x-h.x), dy=Math.sign(n.y-h.y);
+        if(dx||dy) g.OW.__tryMove(dx||0, dy&&!dx?dy:0);
+        await new Promise(r=>setTimeout(r,50));
+        if(Math.abs(g.OW.__debug().hero.x-n.x)+Math.abs(g.OW.__debug().hero.y-n.y)<=1) break;
+      }
+    }
+    const before=(document.getElementById('vnText')?.textContent||'').trim();
+    const who=g.OW.__talkNearest();
+    // wait for reply
+    let last={};
+    for(let i=0;i<40;i++){
+      await new Promise(r=>setTimeout(r,250));
+      const vn=(document.getElementById('vnText')?.textContent||'').trim();
+      last={vn, busy:document.body.classList.contains('busy'), same:vn===before, who};
+      if(!last.busy && !last.same && vn.length>=8) break;
+    }
+    const canvas=document.getElementById('owCanvas');
+    return {
+      ok:true, moved:!!moved || (d1.hero.x!==d0.hero.x||d1.hero.y!==d0.hero.y),
+      hasCanvas:!!canvas, map:d1.map?.name, npcs:(d1.npcs||[]).length,
+      who:last.who, vn:(last.vn||'').slice(0,80), busy:last.busy, same:last.same,
+      active:g.OW.isOverworldActive()
+    };
+  });
+  if(!r.ok){ fails++; failures.push({path:label, reason:r.reason}); console.log('  FAIL', r); }
+  else if(!r.hasCanvas || !r.active){ fails++; failures.push({path:label, reason:'no-canvas'}); console.log('  FAIL canvas', r); }
+  else if(!r.moved && !(r.npcs>0)){ fails++; failures.push({path:label, reason:'no-move'}); console.log('  FAIL move', r); }
+  else if(r.busy || r.same || (r.vn||'').length<8){ fails++; failures.push({path:label, reason:r.busy?'busy':'no-talk-reply', text:r.vn}); console.log('  FAIL talk', r); }
+  else console.log('  OK overworld', r.map, 'npcs='+r.npcs, 'talk='+(r.who||'-'), '→', (r.vn||'').slice(0,50));
+  // movement alone OK even without NPC if map built
+  if(r.ok && r.hasCanvas && r.active && !r.moved){
+    // try more moves
+    const m2=await page.evaluate(()=>{ const g=window.__game; let ok=false; for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1],[1,1]]){ if(g.OW.__tryMove(dx,dy)) ok=true; } return ok||g.OW.__debug().map?.w>0; });
+    if(!m2){ fails++; console.log('  FAIL cannot move'); }
+  }
+  total++;
+  // free text still works while OW active
+  const r2=await page.evaluate(async()=>{
+    const before=(document.getElementById('vnText')?.textContent||'').trim();
+    document.getElementById('txt').value='hallo';
+    document.getElementById('inputRow').requestSubmit();
+    let last={};
+    for(let i=0;i<40;i++){
+      await new Promise(r=>setTimeout(r,250));
+      const vn=(document.getElementById('vnText')?.textContent||'').trim();
+      last={vn, busy:document.body.classList.contains('busy'), same:vn===before};
+      if(!last.busy && !last.same && vn.length>=8) break;
+    }
+    return last;
+  });
+  if(r2.busy||r2.same||(r2.vn||'').length<8){ fails++; failures.push({path:label, a:'freetext', reason:'no-reply'}); console.log('  FAIL freetext', r2); }
+  else console.log('  OK freetext-while-ow');
+  report.paths[label]={fails,total};
+  console.log(`=== ${label}: ${fails}/${total} fails ===`);
+  return fails;
+}
+
+
 try{
   server=await serve();
   browser=await puppeteer.launch({
@@ -588,6 +668,7 @@ try{
   console.log('\n=== BUSY + PAGEERROR ===');
   await runBusyPageerror();
   await runHungFetchReply();
+  await runOverworldGate();
   // Live site last (needs network); skip if GATE_SKIP_LIVE=1
   if(process.env.GATE_SKIP_LIVE==='1'){
     console.log('\n=== LIVE SITE skipped (GATE_SKIP_LIVE=1) ===');
