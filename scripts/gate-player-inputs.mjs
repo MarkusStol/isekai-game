@@ -348,7 +348,7 @@ async function runLiveSiteBrowser(){
   const label='live-site';
   let fails=0, total=0;
   const LIVE=process.env.GATE_LIVE_URL||'https://markusstol.github.io/isekai-game/';
-  const versions=['13','16','18','20','22','23','24','25','26','27','28','29','30','31','32','33','34','35','36','37','38','39','40'];
+  const versions=['13','16','18','20','22','23','24','25','26','27','28','29','30','31','32','33','34','35','36','37','38','39','40','41'];
   const safariUA='Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1';
 
   async function oneProfile(name, {ua, seedVer}={}){
@@ -362,7 +362,17 @@ async function runLiveSiteBrowser(){
     pg.on('pageerror', e=>errs.push(String(e.message||e).split('\n')[0]));
     try{
       await pg.goto(LIVE,{waitUntil:'networkidle2',timeout:90000});
-      await pg.waitForFunction(()=>window.__game&&window.__game.act,{timeout:30000});
+      // Wait for game + tolerate SW heal reload after VER bump
+      for(let attempt=0; attempt<3; attempt++){
+        try{
+          await pg.waitForFunction(()=>window.__game&&window.__game.act,{timeout:45000});
+          break;
+        }catch(waitErr){
+          if(attempt===2) throw waitErr;
+          await pg.goto(LIVE,{waitUntil:'networkidle2',timeout:90000}).catch(()=>{});
+          await new Promise(r=>setTimeout(r,1500));
+        }
+      }
       if(seedVer){
         await pg.evaluate((save)=>{ localStorage.setItem('isekai_save_v1', JSON.stringify(save)); }, fakeOldSave(seedVer));
         await pg.reload({waitUntil:'networkidle2',timeout:90000});
@@ -430,11 +440,11 @@ async function runLiveSiteBrowser(){
       }
     }catch(e){
       const msg=String(e.message||e);
-      if(/Execution context was destroyed|Target closed|Session closed/i.test(msg)){
+      if(/Execution context was destroyed|Target closed|Session closed|Waiting failed|Timeout/i.test(msg)){
         // SW heal / version bump reload — retry once
         try{
           await pg.goto(LIVE,{waitUntil:'networkidle2',timeout:90000});
-          await pg.waitForFunction(()=>window.__game&&window.__game.act,{timeout:30000});
+          await pg.waitForFunction(()=>window.__game&&window.__game.act,{timeout:45000});
           await pg.evaluate(async()=>{
             window.__FAST=true;
             const g=window.__game;
