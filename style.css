@@ -5347,3 +5347,290 @@ body.battle-open .composer,
 #app:has(.battle-root:not(.hidden)) .input-row{
   display:none !important;
 }
+
+/* ========== v53: FF two-level cmds, pixel TL, companions = hero, foe plate, empty states ========== */
+.battle-root.battle-pixel .cmd-ff-main{
+  display:grid !important;
+  grid-template-columns:repeat(2, minmax(0,1fr)) !important;
+  gap:8px !important;
+  padding:8px 10px calc(10px + env(safe-area-inset-bottom)) !important;
+}
+.battle-root.battle-pixel .cmd-ff-main .bcm-flucht{
+  grid-column:1 / -1 !important;
+}
+.battle-root.battle-pixel .cmd-ff-main .bcm-lg{
+  min-height:48px !important;
+  font-size:15px !important;
+  padding:10px 8px !important;
+}
+.battle-root.battle-pixel .cmd-technik,
+.battle-root.battle-pixel .cmd-sub{
+  display:grid !important;
+  grid-template-columns:repeat(2, minmax(0,1fr)) !important;
+  gap:6px !important;
+  max-height:none !important;
+  overflow:visible !important;
+}
+.battle-root.battle-pixel .cmd-technik .bcm-back,
+.battle-root.battle-pixel .cmd-sub .bcm-back{
+  grid-column:1 / -1 !important;
+}
+.battle-root.battle-pixel .battle-cmd{
+  max-height:none !important;
+  overflow:visible !important;
+}
+.battle-root.battle-pixel .battle-free,
+#battleFree,
+.battle-root form.battle-free{ display:none !important; height:0 !important; overflow:hidden !important; }
+/* Pixel timeline icons */
+.battle-root.battle-pixel .tl-item{
+  width:30px !important; height:30px !important;
+  display:flex; align-items:center; justify-content:center;
+  overflow:hidden !important;
+}
+.battle-root.battle-pixel .tl-item .tl-ico,
+.battle-root.battle-pixel img.tl-ico{
+  width:16px !important; height:16px !important;
+  image-rendering:pixelated !important;
+  image-rendering:crisp-edges !important;
+  display:block !important;
+  filter:none !important;
+  font-size:0 !important;
+}
+.battle-root.battle-pixel .party-port .ph-role-img{
+  width:18px; height:18px;
+  image-rendering:pixelated;
+}
+/* Companions same visual size as hero — no back-row shrink */
+.battle-root.battle-pixel .party-stage-spr,
+.battle-root.battle-pixel .party-stage-spr.row-back{
+  transform: translateY(calc(var(--i,0) * -8px)) !important;
+  opacity:1 !important;
+  filter:none !important;
+  z-index:4 !important;
+}
+.battle-root.battle-pixel .party-stage-spr img,
+.battle-root.battle-pixel .party-stage-spr .pixel-hero-spr,
+.battle-root.battle-pixel .party-stage-spr.row-back img{
+  width:104px !important;
+  height:140px !important;
+  object-fit:contain !important;
+  object-position:center bottom !important;
+  opacity:1 !important;
+  filter:none !important;
+  -webkit-filter:none !important;
+  image-rendering:pixelated !important;
+}
+@media (max-height:700px){
+  .battle-root.battle-pixel .party-stage-spr img,
+  .battle-root.battle-pixel .party-stage-spr.row-back img{
+    width:84px !important; height:112px !important;
+  }
+  .battle-root.battle-pixel .cmd-ff-main .bcm-lg{
+    min-height:42px !important; font-size:13px !important; padding:8px 6px !important;
+  }
+  .battle-root.battle-pixel .battle-stage{
+    min-height:34dvh !important; max-height:42dvh !important;
+  }
+}
+@media (min-width:900px){
+  .battle-root.battle-pixel .party-stage-spr img,
+  .battle-root.battle-pixel .party-stage-spr.row-back img{
+    width:128px !important; height:168px !important;
+  }
+}
+/* Foe plate never occludes party — plate stays left, party right, plate below sprites in stack when overlap */
+.battle-root.battle-pixel .battle-foes{
+  z-index:2 !important;
+  justify-content:flex-start !important;
+  padding-right:42% !important;
+  pointer-events:none;
+}
+.battle-root.battle-pixel .battle-foes .foe-card{
+  pointer-events:auto;
+  z-index:2 !important;
+}
+.battle-root.battle-pixel .foe-plate{
+  z-index:2 !important;
+  max-width:min(160px,42vw) !important;
+  align-self:flex-start;
+}
+.battle-root.battle-pixel .battle-party-spr{
+  z-index:5 !important;
+  pointer-events:none;
+}
+.battle-root.battle-pixel .battle-timeline{ z-index:8 !important; }
+/* Inventory empty */
+.inv-empty{
+  text-align:center;
+  padding:28px 18px !important;
+  display:flex; flex-direction:column; align-items:center; gap:10px;
+}
+.inv-empty-ico{ font-size:42px; line-height:1; opacity:.9; }
+.inv-empty h3{ margin:0; color:#e8c47a; font-family:var(--font-display,serif); }
+.inv-empty-actions{ justify-content:center; gap:10px; margin-top:8px; }
+/* Home empty */
+.home-empty-cta{
+  display:flex; gap:12px; align-items:flex-start;
+  padding:8px 4px 4px;
+}
+.home-empty-ico{ font-size:32px; line-height:1; }
+.home-panel.no-plot .camp-stage-vis{
+  height:100px;
+  border:1px dashed #e8c47a55;
+}
+.home-panel.no-plot .camp-build.s0{
+  width:64px; height:14px;
+  background:repeating-linear-gradient(90deg,#5a4630 0 8px,transparent 8px 14px);
+}
+
+/* ========== v53b: foe plate HUD dock; 4-party compress; bigger TL icons ========== */
+.battle-root.battle-pixel .foe-card{
+  display:flex !important;
+  flex-direction:column !important;
+  align-items:flex-start !important;
+  background:transparent !important;
+  border:none !important;
+  box-shadow:none !important;
+}
+.battle-root.battle-pixel .foe-card .foe-art-wrap{
+  order:1;
+}
+.battle-root.battle-pixel .foe-card .foe-plate{
+  position:fixed !important;
+  top:calc(8px + env(safe-area-inset-top,0px) + 28px) !important;
+  left:8px !important;
+  right:auto !important;
+  bottom:auto !important;
+  z-index:9 !important;
+  max-width:min(168px, 46vw) !important;
+  margin:0 !important;
+  pointer-events:none;
+  background:#0b1a2ef5 !important;
+  border:1px solid #ffffff44 !important;
+  border-radius:8px !important;
+  padding:6px 8px !important;
+  box-shadow:0 4px 14px #0008 !important;
+}
+.battle-root.battle-pixel .battle-foes{
+  padding-right:38% !important;
+  align-items:flex-end !important;
+  justify-content:flex-start !important;
+}
+.battle-root.battle-pixel .battle-party-spr{
+  z-index:5 !important;
+  right:2% !important;
+  left:auto !important;
+}
+/* 4-party HUD compress */
+.battle-root.battle-pixel .battle-party{
+  display:flex; flex-direction:column; gap:4px !important;
+  max-height:28dvh !important;
+  overflow-y:auto !important;
+  padding:4px 8px !important;
+}
+.battle-root.battle-pixel .party-card.pixel-party{
+  padding:4px 8px !important;
+  min-height:0 !important;
+  gap:6px !important;
+}
+.battle-root.battle-pixel .party-card .party-bars .bar{ height:7px !important; }
+.battle-root.battle-pixel .party-name-row{
+  font-size:12px !important;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.battle-root.battle-pixel .battle-cmd.cmd-ff-wrap,
+.battle-root.battle-pixel .battle-cmd:has(.cmd-ff-main){
+  flex-shrink:0 !important;
+}
+.battle-root.battle-pixel img.tl-ico{
+  width:20px !important; height:20px !important;
+}
+.battle-root.battle-pixel .tl-item{
+  width:32px !important; height:32px !important;
+}
+@media (max-height:700px){
+  .battle-root.battle-pixel .battle-party{ max-height:18dvh !important; }
+  .battle-root.battle-pixel .party-card .bar.mp,
+  .battle-root.battle-pixel .party-card .bar.lim{ display:none !important; }
+  .battle-root.battle-pixel .cmd-ff-main{
+    gap:6px !important;
+    padding:6px 8px calc(8px + env(safe-area-inset-bottom)) !important;
+  }
+}
+.battle-root.battle-pixel .battle-party-spr{
+  position:absolute !important;
+  right:0; bottom:8%; left:45% !important;
+  display:flex !important;
+  flex-direction:row-reverse !important;
+  align-items:flex-end !important;
+  justify-content:flex-start !important;
+  gap:2px !important;
+  z-index:5 !important;
+  pointer-events:none;
+}
+.battle-root.battle-pixel .party-stage-spr{
+  position:relative !important;
+  flex:0 0 auto !important;
+  margin:0 !important;
+}
+
+/* ========== v53c: no peek controls; companion fill ========== */
+body.battle-open #btnAudio,
+body.battle-open .input-row,
+body.battle-open #say,
+body.battle-open button[title*="Senden"],
+body.battle-open .composer,
+html.battle-open #btnAudio{
+  display:none !important;
+  visibility:hidden !important;
+  opacity:0 !important;
+  pointer-events:none !important;
+}
+.battle-root.battle-pixel ~ *,
+.battle-root.battle-pixel + .input-row{ display:none !important; }
+/* Don't let fixed audio sit above battle */
+#btnAudio{ z-index: 40; }
+body.battle-open #btnAudio{ z-index: 0 !important; }
+
+/* ========== v53d: companion scale boost; foe plate clear of party; fog DE ========== */
+.battle-root.battle-pixel .party-stage-spr:not([data-iid=""]):nth-child(n) img{
+  transform:none;
+}
+.battle-root.battle-pixel .party-stage-spr img{
+  width:112px !important;
+  height:150px !important;
+}
+.battle-root.battle-pixel .party-stage-spr[data-role],
+.battle-root.battle-pixel .party-stage-spr img[data-role]:not([data-role="hero"]){
+  /* companions get slight upscale to match hero visual mass */
+}
+.battle-root.battle-pixel .party-stage-spr img[data-role="hero"]{
+  width:112px !important; height:150px !important;
+}
+.battle-root.battle-pixel .party-stage-spr img:not([data-role="hero"]){
+  width:118px !important; height:158px !important;
+}
+.battle-root.battle-pixel .foe-card .foe-plate{
+  max-width:min(148px, 40vw) !important;
+  top:calc(6px + env(safe-area-inset-top,0px)) !important;
+  left:6px !important;
+  /* keep away from party (right half) */
+  right:auto !important;
+  width:auto !important;
+}
+.battle-root.battle-pixel .battle-party-spr{
+  left:48% !important;
+  right:1% !important;
+  bottom:6% !important;
+}
+@media (max-height:700px){
+  .battle-root.battle-pixel .party-stage-spr img,
+  .battle-root.battle-pixel .party-stage-spr img:not([data-role="hero"]){
+    width:88px !important; height:118px !important;
+  }
+  .battle-root.battle-pixel .foe-card .foe-plate{
+    max-width:min(130px, 36vw) !important;
+    font-size:11px !important;
+  }
+}

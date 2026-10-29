@@ -94,6 +94,7 @@ export function buildParty(S){
       limit:0, maxLimit:100, limitTier:1, limitAcc:0,
       skills:companionSkills(npc),
       portrait:null, npcRef:n, row:'back',
+      job:companionJobId(npc,n),
       statuses:[], guard:1, alive:true, aggro:0.8,
       gambits:Jrpg.defaultGambits()
     });
@@ -102,6 +103,16 @@ export function buildParty(S){
   return [hero,...comps];
 }
 
+
+function companionJobId(npc,name){
+  const art=String(npc?.art||npc?.stimme||name||'').toLowerCase();
+  if(/mag|zauber|hex|orren/.test(art)) return 'magier';
+  if(/heil|priester|arzt/.test(art)) return 'heiler';
+  if(/dieb|assass|schleich|lyra|späh/.test(art)) return 'dieb';
+  if(/wache|ritter|soldat|garrick/.test(art)) return 'krieger';
+  if(/händl|kauf|wirt/.test(art)) return 'dieb';
+  return 'krieger';
+}
 function companionSkills(npc){
   const art=String(npc?.art||npc?.stimme||'').toLowerCase();
   if(/mag|zauber|hex/.test(art)) return [{name:'Funke',...COMBAT_SKILLS.Funke},{name:'Schild',...COMBAT_SKILLS.Schild}];
@@ -1236,8 +1247,9 @@ function refreshUI(){
       .sort((a,b)=>b.pct-a.pct).slice(0,8);
     tl.innerHTML=units.map(({u,pct})=>{
       const ally=u.kind==='hero'||u.kind==='companion';
-      const icon=ally?(u.kind==='hero'?'🗡️':'⭐'):(u.boss?'💀':'👾');
-      return `<div class="tl-item ${ally?'ally':'foe'}${u.boss?' boss':''}" title="${u.name}" aria-label="${u.name}"><i style="height:${pct}%"></i><span class="tl-ico">${icon}</span></div>`;
+      const kind=ally?(u.kind==='hero'?'hero':'ally'):(u.boss?'boss':'foe');
+      const src=`./assets/pixel/ui/tl/${kind}.png`;
+      return `<div class="tl-item ${ally?'ally':'foe'}${u.boss?' boss':''}" title="${u.name}" aria-label="${u.name}"><i style="height:${pct}%"></i><img class="tl-ico" src="${src}" alt="" width="16" height="16" decoding="async"/></div>`;
     }).join('');
   }
   // foes
@@ -1281,9 +1293,9 @@ function refreshUI(){
   if(party){
     party.innerHTML=B.party.map(p=>`
       <div class="party-card pixel-party jrpg-window ${p.alive?'':'dead'} ${B.selecting?.actor===p?'active':''} row-${p.row||'front'}" data-iid="${p._iid}">
-        <div class="party-port">${p.portrait?`<img src="${p.portrait}" alt="" loading="lazy"/>`:`<span class="ph-role">${p.kind==='hero'?'🗡️':(p.icon||'⭐')}</span>`}</div>
+        <div class="party-port">${p.portrait?`<img src="${p.portrait}" alt="" loading="lazy"/>`:`<img class="ph-role-img" src="./assets/pixel/ui/tl/${p.kind==='hero'?'hero':'ally'}.png" alt="" width="16" height="16"/>`}</div>
         <div class="party-meta">
-          <div class="party-name-row"><b>${p.name}</b>${p.job?` · <span class="party-job">${(Jobs.JOBS[p.job]||{}).name||p.job}</span>`:''}<span class="party-rowtag"> · ${p.row==='back'?'hinten':'vorn'}</span></div>
+          <div class="party-name-row"><b>${p.name}</b> · <span class="party-job">${p.kind==='hero'?jobLabelDE(p.job||(_B?.S?.jobs?.active)||'krieger'):companionRoleLabel(p)}</span><span class="party-rowtag"> · ${p.row==='back'?'hinten':'vorn'}</span></div>
           <div class="party-bars">
             <div class="bar hp" title="HP"><i style="width:${Math.max(0,p.hp/p.maxhp*100)}%"></i><em>${p.hp|0}/${p.maxhp|0}</em></div>
             <div class="bar mp" title="MP"><i style="width:${Math.max(0,p.mp/Math.max(1,p.maxmp)*100)}%"></i></div>
@@ -1298,8 +1310,9 @@ function refreshUI(){
     pspr.innerHTML=B.party.map((p,i)=>{
       const row=p.row||'front';
       const slot=row==='back'?i:i;
+      const n=B.party.length;
       return `
-      <div class="party-stage-spr row-${row} ${p.alive?'':'dead'} ${B.selecting?.actor===p?'active':''}" data-iid="${p._iid}" style="--i:${i};--slot:${slot}">
+      <div class="party-stage-spr row-${row} ${p.alive?'':'dead'} ${B.selecting?.actor===p?'active':''}" data-iid="${p._iid}" style="--i:${i};--slot:${slot};--n:${n};--right:${6+i*14}%">
         <img class="pixel-hero-spr battler-spr pixelated" src="${partySpriteUrl(p)}" alt="" data-role="${p.kind==='hero'?'hero':sheetRoleForCompanion(p)}" onerror="this.onerror=null;this.src=this.dataset.fb1||this.dataset.fb2||'./assets/pixel/npc/villager_idle.png';" data-fb1="${p.kind==='hero'?'':('./assets/pixel/npc/'+sheetRoleForCompanion(p)+'_idle.png')}" data-fb2="./assets/pixel/npc/villager_idle.png"/>
         <div class="party-stage-shadow" aria-hidden="true"></div>
       </div>`;}).join('');
@@ -1350,44 +1363,21 @@ function refreshUI(){
       return;
     }
     if(sel.mode==='main'){
-      const limReady=(sel.actor.limit|0)>=100;
       cmd.innerHTML=`
-        <div class="cmd-primary">
+        <div class="cmd-primary cmd-ff-main">
           <button type="button" class="bcm bcm-lg" data-c="attack">Angriff</button>
           <button type="button" class="bcm bcm-lg" data-c="skills">Fähigkeit</button>
           <button type="button" class="bcm bcm-lg" data-c="items">Item</button>
+          <button type="button" class="bcm bcm-lg" data-c="technik">Technik</button>
           <button type="button" class="bcm bcm-lg social" data-c="talk">Reden</button>
           <button type="button" class="bcm bcm-lg ghost bcm-flucht" data-c="flee">Flucht</button>
-        </div>
-        <div class="cmd-classic cmd-secondary">
-          <button type="button" class="bcm" data-c="magic">Magie</button>
-          <button type="button" class="bcm" data-c="summon">Beschwörung</button>
-          <button type="button" class="bcm" data-c="job">Beruf</button>
-          <button type="button" class="bcm" data-c="steal">Stehlen</button>
-          <button type="button" class="bcm" data-c="analyze">Analysieren</button>
-          <button type="button" class="bcm" data-c="defend">Schützen</button>
-          <button type="button" class="bcm" data-c="row">Reihe</button>
-          <button type="button" class="bcm accent" data-c="limit" ${limReady?'':'disabled'}>Limit ${sel.actor.limitTier||1}</button>
-          <button type="button" class="bcm" data-c="combo">Duett</button>
-          <button type="button" class="bcm social" data-c="spare">Verschonen</button>
-          <button type="button" class="bcm social" data-c="threaten">Drohen</button>
-          <button type="button" class="bcm ghost" data-c="atbMode">ATB ${(_B.atbMode||'active')==='wait'?'Wait':'Active'}</button>
-          <button type="button" class="bcm ghost" data-c="auto">Auto</button>
-          <button type="button" class="bcm ghost" data-c="surrender">Kapitulieren</button>
-        </div>
-        <form class="battle-free" id="battleFree"><input name="t" placeholder="Freitext…" autocomplete="off"/><button type="submit">➤</button></form>`;
+        </div>`;
       cmd.querySelectorAll('.bcm').forEach(b=>b.onclick=()=>{
         const c=b.dataset.c;
+        if(c==='technik'){ _B.selecting={actor:sel.actor,mode:'technik'}; refreshUI(); return }
         if(c==='attack'){ _B.selecting={actor:sel.actor,mode:'attack'}; refreshUI(); toastPick() }
-        else if(c==='skills'||c==='magic'){ _B.selecting={actor:sel.actor,mode:'skills'}; refreshUI() }
+        else if(c==='skills'){ _B.selecting={actor:sel.actor,mode:'skills'}; refreshUI() }
         else if(c==='items'){ _B.selecting={actor:sel.actor,mode:'items'}; refreshUI() }
-        else if(c==='summon'){ _B.selecting={actor:sel.actor,mode:'summon'}; refreshUI() }
-        else if(c==='job'){ _B.selecting={actor:sel.actor,mode:'job'}; refreshUI() }
-        else if(c==='steal'){ _B.selecting={actor:sel.actor,mode:'steal'}; if(living(_B.foes).length===1) playerCommand('steal',{targetId:living(_B.foes)[0]._iid}); else { refreshUI(); toastPick() } }
-        else if(c==='defend') playerCommand('defend')
-        else if(c==='row') playerCommand('row')
-        else if(c==='atbMode') playerCommand('atbMode')
-        else if(c==='analyze'){ _B.selecting={actor:sel.actor,mode:'analyze'}; refreshUI(); toastPick() }
         else if(c==='talk'){
           const foesNow=living(_B.foes);
           const one=foesNow.length===1?foesNow[0]:null;
@@ -1400,16 +1390,45 @@ function refreshUI(){
             else { refreshUI(); toastPick() }
           }
         }
+        else if(c==='flee') playerCommand('flee')
+      });
+    } else if(sel.mode==='technik'){
+      const limReady=(sel.actor.limit|0)>=100;
+      const atbLab=(_B.atbMode||'active')==='wait'?'Warten':'Aktiv';
+      cmd.innerHTML=`<div class="cmd-sub cmd-technik"><button type="button" class="bcm ghost bcm-back" data-c="back">◀ Zurück</button>
+        <button type="button" class="bcm" data-c="magic">Magie</button>
+        <button type="button" class="bcm" data-c="summon">Beschwörung</button>
+        <button type="button" class="bcm" data-c="job">Beruf</button>
+        <button type="button" class="bcm" data-c="steal">Stehlen</button>
+        <button type="button" class="bcm" data-c="analyze">Analysieren</button>
+        <button type="button" class="bcm" data-c="defend">Schützen</button>
+        <button type="button" class="bcm" data-c="row">Reihe</button>
+        <button type="button" class="bcm accent" data-c="limit" ${limReady?'':'disabled'}>Limit ${sel.actor.limitTier||1}</button>
+        <button type="button" class="bcm" data-c="combo">Duett</button>
+        <button type="button" class="bcm social" data-c="spare">Verschonen</button>
+        <button type="button" class="bcm social" data-c="threaten">Drohen</button>
+        <button type="button" class="bcm ghost" data-c="atbMode">ATB ${atbLab}</button>
+        <button type="button" class="bcm ghost" data-c="auto">Auto</button>
+        <button type="button" class="bcm ghost" data-c="surrender">Kapitulieren</button>
+      </div>`;
+      cmd.querySelectorAll('.bcm').forEach(b=>b.onclick=()=>{
+        const c=b.dataset.c;
+        if(c==='back'){ _B.selecting={actor:sel.actor,mode:'main'}; refreshUI(); return }
+        if(c==='magic'||c==='skills'){ _B.selecting={actor:sel.actor,mode:'skills'}; refreshUI() }
+        else if(c==='summon'){ _B.selecting={actor:sel.actor,mode:'summon'}; refreshUI() }
+        else if(c==='job'){ _B.selecting={actor:sel.actor,mode:'job'}; refreshUI() }
+        else if(c==='steal'){ _B.selecting={actor:sel.actor,mode:'steal'}; if(living(_B.foes).length===1) playerCommand('steal',{targetId:living(_B.foes)[0]._iid}); else { refreshUI(); toastPick() } }
+        else if(c==='defend') playerCommand('defend')
+        else if(c==='row') playerCommand('row')
+        else if(c==='atbMode') playerCommand('atbMode')
+        else if(c==='analyze'){ _B.selecting={actor:sel.actor,mode:'analyze'}; refreshUI(); toastPick() }
         else if(c==='spare'){ _B.selecting={actor:sel.actor,mode:'spare'}; if(living(_B.foes).length===1) playerCommand('spare',{targetId:living(_B.foes)[0]._iid}); else { refreshUI(); toastPick() } }
         else if(c==='threaten'){ _B.selecting={actor:sel.actor,mode:'threaten'}; if(living(_B.foes).length===1) playerCommand('threaten',{targetId:living(_B.foes)[0]._iid}); else { refreshUI(); toastPick() } }
         else if(c==='limit'){ playerCommand('limit',{targetId:living(_B.foes)[0]?._iid}) }
         else if(c==='combo'){ const p=_B.party[1]; if(p) playerCommand('combo',{partnerId:p.id}); else { _B.log.push('Kein Partner.'); refreshUI() } }
         else if(c==='auto') playerCommand('auto')
         else if(c==='surrender') playerCommand('surrender')
-        else if(c==='flee') playerCommand('flee')
       });
-      const bf=cmd.querySelector('#battleFree');
-      if(bf) bf.onsubmit=(ev)=>{ev.preventDefault(); const v=bf.t.value.trim(); if(v) playerCommand('freetext',{text:v}); bf.t.value=''};
     } else if(sel.mode==='skills'){
       const skills=sel.actor.skills||[];
       cmd.innerHTML=`<div class="cmd-sub"><button type="button" class="bcm ghost bcm-back" data-c="back">◀ Zurück</button>`+
@@ -1440,7 +1459,7 @@ function refreshUI(){
       Jobs.ensureJobs(_B.S);
       const unlocked=_B.S.jobs.unlocked||[];
       cmd.innerHTML=`<div class="cmd-sub"><button type="button" class="bcm ghost bcm-back" data-c="back">◀ Zurück</button>`+
-        unlocked.map(id=>{const j=Jobs.JOBS[id]; const lv=_B.S.jobs.levels[id]|1; return `<button type="button" class="bcm ${id===_B.S.jobs.active?'accent':''}" data-j="${id}">${j?.icon||''} ${j?.name||id}<small>Lv ${lv}</small></button>`}).join('')+`</div>`;
+        unlocked.map(id=>{const j=Jobs.JOBS[id]; const lv=_B.S.jobs.levels[id]|1; return `<button type="button" class="bcm ${id===_B.S.jobs.active?'accent':''}" data-j="${id}">${j?.icon||''} ${jobLabelDE(id)}<small>Lv ${lv}</small></button>`}).join('')+`</div>`;
       cmd.querySelector('[data-c=back]').onclick=()=>{_B.selecting={actor:sel.actor,mode:'main'};refreshUI()};
       cmd.querySelectorAll('[data-j]').forEach(b=>b.onclick=()=>playerCommand('job',{job:b.dataset.j}));
     } else if(['attack','skill','analyze','limit','talk','spare','threaten','steal'].includes(sel.mode)){
@@ -1542,6 +1561,31 @@ function partySpriteUrl(p){
   const role=sheetRoleForCompanion(p);
   return './assets/pixel/chars/'+role+'_stage.png';
 }
+
+const ROLE_LABEL_DE={
+  hero:'Held', krieger:'Krieger', spy:'Späher', mage:'Magier', magier:'Magier',
+  guard:'Wache', merchant:'Händler', princess:'Prinzessin', daemon:'Dämon',
+  villager:'Dorfbewohner', neutral:'Gefährte', dieb:'Dieb', heiler:'Heiler',
+  paladin:'Paladin', dragoner:'Dragoner', beschwoerer:'Beschwörer', monch:'Mönch',
+  jaeger:'Jäger', medic:'Heiler', tech:'Techniker', wait:'Warten', active:'Aktiv'
+};
+function jobLabelDE(jobOrRole){
+  if(!jobOrRole) return '';
+  const id=String(jobOrRole);
+  const j=Jobs.JOBS?.[id];
+  if(j?.name) return j.name;
+  const low=id.toLowerCase();
+  if(ROLE_LABEL_DE[id]) return ROLE_LABEL_DE[id];
+  if(ROLE_LABEL_DE[low]) return ROLE_LABEL_DE[low];
+  if(/[äöüÄÖÜß]/.test(id) || /^[A-ZÄÖÜ][a-zäöüß\-]+$/.test(id)) return id;
+  return 'Gefährte';
+}
+function companionRoleLabel(p){
+  if(p?.job && Jobs.JOBS?.[p.job]?.name) return Jobs.JOBS[p.job].name;
+  if(p?.job && ROLE_LABEL_DE[String(p.job).toLowerCase()]) return ROLE_LABEL_DE[String(p.job).toLowerCase()];
+  try{ return jobLabelDE(sheetRoleForCompanion(p)); }catch(_){ return 'Gefährte'; }
+}
+
 function sheetRoleForCompanion(unit){
   const art=String(unit?.npcRef||unit?.name||unit?.job||'').toLowerCase();
   if(/wache|ritter|guard|soldat|garrick/.test(art)) return 'guard';

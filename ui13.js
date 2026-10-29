@@ -9,7 +9,7 @@ export function renderHome(body, S, {act, closeMenu, phaseLabel}){
   const h=S.home||Sim.blankHome(); const st=Sim.HOME_STAGES[h.stage]||Sim.HOME_STAGES[0]; const next=Sim.HOME_STAGES[h.stage+1];
   try{ setTimeout(()=>V25.decorateCamp25d(document.querySelector('.home-panel')||document.getElementById('menuBody'), h, S),0)}catch(_){}
   const card=document.createElement('div'); card.className='card home-panel';
-  let homeHtml='Kein Grundstück – Land beanspruchen.';
+  let homeHtml='<div class="home-empty-cta"><div class="home-empty-ico" aria-hidden="true">🏕</div><div><b>Noch kein Zuhause</b><br><span class="meta">Beanspruche ein Grundstück in der Wildnis — Bau, Garten und Rast folgen.</span></div></div>';
   if(h.owned){
     const plots=(S.farm?.plots||[]).map(p=>{
       if(!p.crop)return 'leer';
@@ -161,6 +161,7 @@ export function renderMap(body, S, {act, closeMenu, toast}){
   const worldToScreen=(x,y)=>({x:(x-a.pan.x)*a.zoom+canvas.width/2, y:(y-a.pan.y)*a.zoom+canvas.height/2});
   const screenToWorld=(sx,sy)=>({x:(sx-canvas.width/2)/a.zoom+a.pan.x, y:(sy-canvas.height/2)/a.zoom+a.pan.y});
   function paint(){
+    paint._labs=[];
     ctx.clearRect(0,0,canvas.width,canvas.height);
     // fog backdrop
     ctx.fillStyle='#071018'; ctx.fillRect(0,0,canvas.width,canvas.height);
@@ -181,14 +182,27 @@ export function renderMap(body, S, {act, closeMenu, toast}){
       ctx.globalAlpha=fog==='rumored'?0.45:1;
       ctx.fillStyle=fog==='visited'?'#f0d59a':fog==='known'?'#a78bfa':fog==='rumored'?'#94a3b8':'#334155';
       ctx.beginPath(); ctx.arc(s.x,s.y,fog==='visited'?6:4,0,6.28); ctx.fill();
-      // v52: declutter — rumored=dot only; known labels only when zoomed; visited always
-      if(fog!=='rumored' && (fog==='visited' || a.zoom>=1.15)){
-        const lab=(loc.icon||'•')+' '+(loc.name||'').slice(0,16);
-        ctx.font='9px monospace';
-        ctx.fillStyle='#000c'; ctx.fillText(lab, s.x+7, s.y+4);
-        ctx.fillStyle=fog==='visited'?'#fef3c7':'#e2e8f0';
-        ctx.fillText(lab, s.x+6, s.y+3);
+      // v53: visited always; known only nearest 5 to player / non-colliding; rumored=dot
+      if(fog==='rumored'){ ctx.globalAlpha=1; continue; }
+      const lab=(loc.name||'').slice(0,11);
+      const placed=paint._labs||(paint._labs=[]);
+      const knownCount=placed.filter(p=>p.fog==='known').length;
+      if(fog==='known' && knownCount>=5){ ctx.globalAlpha=1; continue; }
+      let ox=7, oy=-2, ok=true;
+      for(let attempt=0; attempt<5; attempt++){
+        ok=true;
+        const tx=s.x+ox, ty=s.y+oy-(attempt*10);
+        for(const prev of placed){
+          if(Math.abs(prev.x-tx)<52 && Math.abs(prev.y-ty)<12){ ok=false; break; }
+        }
+        if(ok){ oy=oy-(attempt*10); break; }
       }
+      if(!ok){ ctx.globalAlpha=1; continue; }
+      ctx.font='9px monospace';
+      ctx.fillStyle='#000d'; ctx.fillText(lab, s.x+ox+1, s.y+oy+1);
+      ctx.fillStyle=fog==='visited'?'#fef3c7':'#ddd6fe';
+      ctx.fillText(lab, s.x+ox, s.y+oy);
+      placed.push({x:s.x+ox,y:s.y+oy,fog});
       ctx.globalAlpha=1;
     }
     // marks
@@ -222,7 +236,8 @@ export function renderMap(body, S, {act, closeMenu, toast}){
   btn('Norden',()=>{closeMenu();act('Ich erkunde nach Norden')});
   btn('Karte nutzen',()=>{closeMenu();act('Ich studiere eine gefundene Landkarte')});
   // list nearby
-  const list=document.createElement('div'); list.className='card map-card'; list.innerHTML='<h3>Sichtbar</h3>'+Map.listVisible(S).slice(0,12).map(l=>`<div class="lex-item">${l.icon} <b>${l.fog==='rumored'?'???':l.name}</b> <span class="meta">${l.fog}</span></div>`).join('');
+  const list=document.createElement('div'); list.className='card map-card'; const FOG_DE={visited:'besucht',known:'bekannt',rumored:'Gerücht',unknown:'?'};
+  list.innerHTML='<h3>Sichtbar</h3>'+Map.listVisible(S).slice(0,12).map(l=>`<div class="lex-item">${l.icon} <b>${l.fog==='rumored'?'???':l.name}</b> <span class="meta">${FOG_DE[l.fog]||l.fog}</span></div>`).join('');
   body.appendChild(list);
 }
 

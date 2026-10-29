@@ -174,7 +174,7 @@ export function renderJobs(body, S, helpers){
   const j=S.jobs;
   const active=Jobs.JOBS[j.active];
   const head=card(`<h3>🏷 Berufe</h3>
-    <p>Aktiv: <b>${active?.icon||''} ${active?.name||j.active}</b> · Lv ${j.levels[j.active]|1} · AP ${j.ap[j.active]|0}/100</p>
+    <p>Aktiv: <b>${active?.icon||''} ${active?.name||'Unbekannt'}</b> · Lv ${j.levels[j.active]|1} · AP ${j.ap[j.active]|0}/100</p>
     <p class="meta">${active?.desc||''}</p>
     <div class="ap-bar"><i style="width:${(j.ap[j.active]|0)}%"></i></div>`);
   body.appendChild(head);
@@ -255,7 +255,7 @@ export function renderCraft(body, S, helpers){
     const it=Equip.getItem(rec.id);
     const gate=(window.__game?.C41?.canCraftRecipe41||window.__game?.C40?.canCraftRecipe)?.(S,rec.id,'craft')||{ok:true};
     const row=document.createElement('div'); row.className='pixel-shop-row craft-row'+(gate.ok?'':' locked');
-    row.innerHTML=`<div class="shop-ico">${it?.icon||'📦'}</div><div class="shop-info"><b>${it?.name||rec.id}</b><span class="meta">T${(rec.tier||1)} · ${Object.entries(rec.mats).map(([k,v])=>`${k}×${v}`).join(', ')}${gate.ok?'':' · 🔒'}</span></div><div class="shop-side"><div class="shop-price">${rec.gold} Gil</div></div>`;
+    row.innerHTML=`<div class="shop-ico">${it?.icon||'📦'}</div><div class="shop-info"><b>${it?.name||'Rezept'}</b><span class="meta">T${(rec.tier||1)} · ${Object.entries(rec.mats).map(([k,v])=>`${k}×${v}`).join(', ')}${gate.ok?'':' · 🔒'}</span></div><div class="shop-side"><div class="shop-price">${rec.gold} Gil</div></div>`;
     const b=btn(gate.ok?'Herstellen':'Gesperrt'); b.className='shop-buy'; b.disabled=!gate.ok;
     b.onclick=()=>{ const r=Equip.craftItem(S,rec.id); toast?.(r.text); save?.(); body.innerHTML=''; renderCraft(body,S,helpers) };
     (row.querySelector('.shop-side')||row).appendChild(b); list.appendChild(row);
