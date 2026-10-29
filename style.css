@@ -3153,3 +3153,270 @@ body.pixel-jrpg:not(.pixel-ow) .vn-wrap{
 body.pixel-jrpg:not(.pixel-ow) #portraitWrap{
   margin-bottom: 4px !important;
 }
+
+
+/* ========== v47: smaller translucent d-pad; VN hugs bottom ========== */
+body.pixel-ow .ow-pad,
+body.pixel-ow .ow-pad-float{
+  bottom: calc(18px + env(safe-area-inset-bottom)) !important;
+  opacity: 0.48 !important;
+  padding: 4px 6px !important;
+  border-radius: 12px !important;
+  border: 1px solid rgba(212,180,90,0.22) !important;
+  background: rgba(8,12,28,0.22) !important;
+  transform: translateX(-50%) scale(0.78) !important;
+  transform-origin: bottom center !important;
+}
+body.pixel-ow .ow-pad button{
+  width: 36px !important;
+  height: 36px !important;
+  font-size: 14px !important;
+  background: rgba(26,36,88,0.4) !important;
+  border-width: 2px !important;
+}
+body.pixel-ow .ow-pad button.ow-action{
+  width: 42px !important;
+}
+body.pixel-ow .ow-keyboard{ display:none !important; }
+
+/* VN portrait+dialogue glued to bottom */
+body.pixel-jrpg:not(.pixel-ow) #stage{
+  justify-content: flex-end !important;
+}
+body.pixel-jrpg:not(.pixel-ow) .vn-wrap{
+  margin-top: auto !important;
+  margin-bottom: 0 !important;
+  padding: 0 8px 0 !important;
+  gap: 4px !important;
+}
+body.pixel-jrpg:not(.pixel-ow) #portraitWrap:not(.hidden),
+body.pixel-jrpg:not(.pixel-ow) #portraitWrap.portrait-force-show:not(.hidden){
+  width: 84px !important;
+  height: 84px !important;
+  max-height: 11vh !important;
+  margin: 0 auto 4px !important;
+}
+body.pixel-jrpg:not(.pixel-ow) .vn-box{
+  min-height: 72px !important;
+  max-height: 16vh !important;
+  margin-bottom: 0 !important;
+}
+body.pixel-jrpg:not(.pixel-ow) .vn-text,
+body.pixel-jrpg:not(.pixel-ow) #vnText{
+  max-height: 10vh !important;
+  min-height: 2.2em !important;
+  font-size: 13px !important;
+}
+body.pixel-jrpg:not(.pixel-ow) .choices{
+  padding: 2px 10px calc(4px + env(safe-area-inset-bottom)) !important;
+  max-height: 24vh !important;
+  gap: 2px !important;
+}
+body.pixel-jrpg:not(.pixel-ow) .choices button{
+  padding: 7px 10px !important;
+  margin: 1px 0 !important;
+  font-size: 12.5px !important;
+}
+body.pixel-jrpg:not(.pixel-ow) #inputRow.hidden + .choices,
+body.pixel-jrpg:not(.pixel-ow) #inputRow.hidden{
+  /* keep dock tight when input hidden */
+}
+
+/* v47b: absolute bottom dock for VN — portrait sits on dialogue, choices flush to bottom */
+body.pixel-jrpg:not(.pixel-ow) #stage{
+  display:flex !important;
+  flex-direction:column !important;
+  justify-content:flex-end !important;
+  position:relative !important;
+}
+body.pixel-jrpg:not(.pixel-ow) .vn-wrap{
+  position: relative !important;
+  margin-top: auto !important;
+  margin-bottom: 0 !important;
+  padding: 0 8px 0 !important;
+  order: 2;
+}
+body.pixel-jrpg:not(.pixel-ow) .choices{
+  order: 3;
+  margin: 0 !important;
+  padding: 2px 10px calc(2px + env(safe-area-inset-bottom)) !important;
+  max-height: 22vh !important;
+}
+body.pixel-jrpg:not(.pixel-ow) #inputRow:not(.hidden){
+  order: 4;
+  padding: 2px 10px calc(4px + env(safe-area-inset-bottom)) !important;
+}
+body.pixel-jrpg:not(.pixel-ow) #inputRow.hidden{
+  display:none !important;
+  height:0 !important;
+  padding:0 !important;
+  margin:0 !important;
+}
+
+
+/* ========== v47c: absolute bottom VN dock; battle foe size; title ========== */
+body.pixel-jrpg:not(.pixel-ow) #stage{
+  display:flex !important;
+  flex-direction:column !important;
+  justify-content:flex-end !important;
+}
+body.pixel-jrpg:not(.pixel-ow) .vn-wrap{
+  position:relative !important;
+  margin-top:auto !important;
+  margin-bottom:0 !important;
+  padding:0 8px 0 !important;
+  gap:2px !important;
+  max-height:none !important;
+  order:2 !important;
+}
+body.pixel-jrpg:not(.pixel-ow) #portraitWrap:not(.hidden),
+body.pixel-jrpg:not(.pixel-ow) #portraitWrap.portrait-bust:not(.hidden),
+body.pixel-jrpg:not(.pixel-ow) #portraitWrap.portrait-sprite:not(.hidden){
+  position:relative !important;
+  left:auto !important; right:auto !important; top:auto !important; bottom:auto !important;
+  transform:none !important;
+  width:72px !important; height:72px !important;
+  max-width:22vw !important; max-height:9vh !important;
+  margin:0 auto 2px !important;
+  border:2px solid #d4b45a !important;
+  border-radius:10px !important;
+  background:#0b1224 !important;
+  overflow:hidden !important;
+}
+body.pixel-jrpg:not(.pixel-ow) #portraitWrap img,
+body.pixel-jrpg:not(.pixel-ow) #portraitImg{
+  position:absolute !important;
+  inset:0 !important;
+  width:100% !important; height:100% !important;
+  object-fit:contain !important;
+  object-position:center center !important;
+  image-rendering:pixelated !important;
+  left:0 !important; bottom:0 !important;
+  transform:none !important;
+  -webkit-mask-image:none !important; mask-image:none !important;
+}
+body.pixel-jrpg:not(.pixel-ow) .vn-box{
+  min-height:64px !important;
+  max-height:14vh !important;
+  margin:0 auto 0 !important;
+  padding:10px 12px 12px !important;
+}
+body.pixel-jrpg:not(.pixel-ow) .vn-text,
+body.pixel-jrpg:not(.pixel-ow) #vnText{
+  max-height:9vh !important;
+  min-height:2em !important;
+  font-size:13px !important;
+}
+body.pixel-jrpg:not(.pixel-ow) .choices{
+  order:3 !important;
+  margin:0 !important;
+  padding:2px 10px calc(2px + env(safe-area-inset-bottom)) !important;
+  max-height:20vh !important;
+  gap:2px !important;
+}
+body.pixel-jrpg:not(.pixel-ow) .choices button{
+  padding:6px 10px !important;
+  margin:1px 0 !important;
+  font-size:12px !important;
+}
+/* Battle: keep foes on stage, not full-bleed silhouettes */
+.battle-root.battle-pixel .battle-foes{
+  top: 12% !important;
+  left: 6% !important;
+  width: 42% !important;
+  max-height: 48% !important;
+}
+.battle-root.battle-pixel .pixel-foe{
+  width: 88px !important;
+  height: 88px !important;
+}
+.battle-root.battle-pixel .pixel-foe img,
+.battle-root.battle-pixel .foe-art{
+  width: 88px !important;
+  height: 88px !important;
+  max-width: 88px !important;
+  max-height: 88px !important;
+  object-fit: contain !important;
+  object-position: center bottom !important;
+}
+.battle-root.battle-pixel .pixel-battle-floor{
+  bottom: 18% !important;
+  height: 32% !important;
+  opacity: .78 !important;
+  background:
+    linear-gradient(180deg, transparent 0%, rgba(0,0,0,.35) 100%),
+    repeating-linear-gradient(90deg, #5a4030 0 12px, #3a2818 12px 24px) !important;
+  border-radius: 8px 8px 0 0;
+}
+.battle-root.battle-pixel .battle-bg{
+  background-size: cover !important;
+  background-position: center top !important;
+  filter: brightness(.85) saturate(1.05) !important;
+}
+.foe-art-wrap{ overflow:hidden !important; }
+
+
+/* v47d: hard-pin VN chrome to bottom edge — portrait+dlg+choices as one stack */
+body.pixel-jrpg:not(.pixel-ow) #stage{
+  position:relative !important;
+  display:flex !important;
+  flex-direction:column !important;
+  justify-content:flex-end !important;
+}
+body.pixel-jrpg:not(.pixel-ow) .vn-wrap{
+  position:relative !important;
+  left:auto; right:auto; bottom:auto; top:auto;
+  margin:auto 0 0 0 !important;
+  padding:0 8px 0 !important;
+  gap:2px !important;
+  z-index:20 !important;
+  order:2 !important;
+}
+body.pixel-jrpg:not(.pixel-ow) .choices{
+  position:relative !important;
+  left:auto; right:auto; bottom:auto; top:auto;
+  margin:0 !important;
+  padding:2px 10px calc(4px + env(safe-area-inset-bottom, 0px)) !important;
+  max-height:22vh !important;
+  z-index:21 !important;
+  order:3 !important;
+  background:transparent !important;
+}
+body.pixel-jrpg:not(.pixel-ow) #inputRow:not(.hidden){
+  position:relative !important;
+  order:4 !important;
+  margin:0 !important;
+  padding:2px 10px calc(4px + env(safe-area-inset-bottom, 0px)) !important;
+}
+body.pixel-jrpg:not(.pixel-ow) #portraitWrap:not(.hidden){
+  width:76px !important; height:76px !important;
+  max-height:10vh !important;
+  margin:0 auto 2px !important;
+}
+body.pixel-jrpg:not(.pixel-ow) .vn-box{
+  margin-bottom:2px !important;
+}
+
+
+/* v47d battle full-bleed — no black band under floor */
+.battle-root.battle-pixel{
+  background:#0a0c14 !important;
+}
+.battle-root.battle-pixel .battle-bg,
+.battle-root.battle-pixel .pixel-battle-bg{
+  inset:0 !important;
+  bottom:0 !important;
+  background-size:cover !important;
+  background-position:center center !important;
+}
+.battle-root.battle-pixel .pixel-battle-floor{
+  left:4% !important; right:4% !important;
+  bottom: 14% !important;
+  height: 34% !important;
+  border-radius:10px 10px 0 0 !important;
+}
+.battle-root.battle-pixel .battle-log,
+.battle-root.battle-pixel .battle-cmd{
+  bottom:0 !important;
+  margin-bottom:0 !important;
+}

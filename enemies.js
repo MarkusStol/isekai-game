@@ -138,7 +138,7 @@ export function battleBgFor(S){
   const genre=String(S.genre||S.role||'held').toLowerCase();
   const ort=String(S.world?.scene?.ort||'').toLowerCase();
   if(/wald|forest|elfen/.test(ort)) return BATTLE_BG.forest;
-  if(/kerker|dungeon|höhle|keller/.test(ort)) return BATTLE_BG.dungeon;
+  if(/kerker|dungeon|höhle|keller|verlies|katakomb|gruft|bunker/.test(ort)) return BATTLE_BG.dungeon;
   if(BATTLE_BG[genre]) return BATTLE_BG[genre];
   if(/zombie/.test(genre)) return BATTLE_BG.zombie;
   if(/cyber/.test(genre)) return BATTLE_BG.cyberpunk;

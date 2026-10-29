@@ -99,8 +99,8 @@ export function densifyTownMap(map){
   }
   // sprinkle overlays only — never flower as ground (transparent → black)
   if(!map.overlay) map.overlay=Array.from({length:h},()=>Array(w).fill(null));
-  const overlays=['barrel','crate','lamp','bush','bench','sign','flower'];
-  for(let i=0;i<32;i++){
+  const overlays=['bush','flower','lamp','bush','flower','bench','flower','bush'];
+  for(let i=0;i<18;i++){
     const a=(i*37+11)%(w-4)+2, b=(i*53+7)%(h-4)+2;
     if(Math.abs(a-cx)<=1 && Math.abs(b-cy)<=1) continue;
     const cur=map.tiles[b][a];

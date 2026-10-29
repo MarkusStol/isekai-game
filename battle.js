@@ -1202,7 +1202,7 @@ function refreshUI(){
   if(foes){
     foes.innerHTML=B.foes.map(f=>`
       <button type="button" class="foe-card ${f.alive?'':'dead'} ${B.selecting&&needsTarget()?(_B._hover===f._iid?'target':''):''}" data-iid="${f._iid}" ${f.alive?'':'disabled'}>
-        <div class="foe-art-wrap pixel-foe"><img class="foe-art battler-spr pixelated" src="${pixelEnemyArt(f)}" alt="${f.name}" loading="lazy" onerror="this.onerror=null;this.src='${f.art||''}';"/><div class="foe-fallback" style="display:none">${f.icon||'👹'}</div></div>
+        <div class="foe-art-wrap pixel-foe"><img class="foe-art battler-spr pixelated" src="${pixelEnemyArt(f)}" alt="${f.name}" loading="lazy" onerror="this.onerror=null;this.style.display='none';this.nextElementSibling&&(this.nextElementSibling.style.display='flex');"/><div class="foe-fallback" style="display:none">${f.icon||'👹'}</div></div>
         <div class="foe-name">${f.name}${f.analyzed?' · ✦':''}${f.boss?' · BOSS':''}${f.staggered?' · BRUCH':''}${f.rare?' · SELTEN':''}</div>
         <div class="bar foe-hp"><i style="width:${Math.max(0,f.hp/f.maxhp*100)}%"></i></div>
         <div class="bar foe-stagger ${f.staggered?'broken':''}" title="Bruch"><i style="width:${Math.max(0,(f.stagger||0)/Math.max(1,f.staggerMax||1)*100)}%"></i></div>
