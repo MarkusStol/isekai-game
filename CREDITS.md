@@ -1,4 +1,4 @@
-# Pixel Art Credits (v26–v39)
+# Pixel Art Credits (v26–v40)
 
 All art under `assets/pixel/` is derived from the following sources. Original
 pack archives are **not** committed; only cropped/composited game assets are.
@@ -99,3 +99,10 @@ Genre packs `arch_fan*`, `arch_zom*`, `arch_cyb*`, `arch_des*`, `arch_dark*` plu
 - Emergent per-genre threads (factions, escalating rumours), NPC side arcs with endings.
 - Optional dungeons (puzzle/trap/loot/multi-phase boss), cooking + expanded craft tiers, mid-game job unlocks.
 - Nothing railroaded.
+
+## v40 Boss E2E + craft stations + minimap
+
+- Full dungeon boss fights (phases, win/flee/talk/spare) in real battle UI.
+- Every NPC gets wound/desire/secret arc hooks.
+- Hard craft tier gating via stations/skills.
+- Dungeon minimap + pixel boss intro cutscenes.

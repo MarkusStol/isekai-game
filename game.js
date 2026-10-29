@@ -21,14 +21,16 @@ import * as Equip from './equip.js';
 import * as Jrpg from './jrpg.js';
 import * as Depth from './depth.js';
 import * as C39 from './content39.js';
+import * as C40 from './content40.js';
+import * as Cut40 from './cutscene40.js';
 import * as V25 from './visual25d.js';
 import * as OW from './overworld.js';
 import * as Aud from './audio.js';
 import { hasBg } from './bg-manifest.js';
 try{ Aud.unlockOnGesture?.(); }catch(_){} // v28 first-tap music
- // v39: emergent threads, side arcs, dungeons, craft/cook, mid-game, online A/B, UX onboard, candy CSS gone, OW camp damage, regional floorplans, Pollinations A/B, UI polish
+ // v40: boss E2E, all-NPC arcs, hard craft stations, dungeon minimap + boss cutscene, side arcs, dungeons, craft/cook, mid-game, online A/B, UX onboard, candy CSS gone, OW camp damage, regional floorplans, Pollinations A/B, UI polish
 const $=s=>document.querySelector(s);const $$=s=>[...document.querySelectorAll(s)];const R=a=>a[Math.floor(Math.random()*a.length)];const rnd=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
-const VER='39',CACHE_V='v39';
+const VER='40',CACHE_V='v40';
 const ROLES={
  held:{e:'⚔️',name:'Held mit Status-System',d:'Ein blaues Fenster erscheint: [Status]. Die Welt braucht dich.',world:'Königreich Aldheim',
   base:{hp:100,mp:40,str:12,cha:8,ruf:10,gold:40},cls:['Abenteurer','Ritter','Held','Legendärer Held'],pack:'worlds/held.json',
@@ -706,6 +708,7 @@ function migrate(raw){if(!raw)return null;const s=typeof raw==='string'?JSON.par
  if(Number(s.ver)<37){s.ver=37;s.flags=s.flags||{}; if(s.flags.onboarded==null)s.flags.onboarded=false; try{ Depth.resetUsedFirstFromWorld?.(s) }catch(_){} }
  if(Number(s.ver)<38){s.ver=38;s._offlineRecent=s._offlineRecent||{};s._offlineOut=s._offlineOut||[]; s.flags=s.flags||{}; }
  if(Number(s.ver)<39){s.ver=39; try{ C39.ensureContent39(s); C39.seedThreads(s); C39.seedSideArcsFromNpcs(s,4); Equip.ensureEquip(s); Jobs.ensureJobs(s); C39.midgameUnlocks(s,{toast:false}); }catch(e){console.warn('v39 migrate',e)} }
+ if(Number(s.ver)<40){ try{ C40.migrateV40(s); }catch(e){console.warn('v40 migrate',e)} }
  // v13.1 continuity+time always (kept in v14)
  try{Cont.ensureCont(s);if(s.cal&&s.cal.minute==null)s.cal.minute=0;if(s.cfgCatchupOptIn==null)s.cfgCatchupOptIn=false}catch(e){console.warn('cont migrate',e)}
  // Heal incomplete worlds from old saves (missing orte/graph)
@@ -770,7 +773,7 @@ async function newLife(role,meta,opts){const r=ROLES[role];meta=meta||{lives:0,s
   time:{day:1,hour:18,phase:'Abend'},imgCache:{scenes:{},portraits:{},ok:{},fail:{},next:{}}};
  S.world=world;S.heat=0;S.wanted=[];S.dead=[];S.ledger=[];S.needs={hunger:20,fatigue:10,ageYears:18};S.home=Sim.blankHome();S.cal=Sim.blankCalendar(S.time);S.saveSeq=0;
  try{Sim.migrateToV13(S);Econ.ensureEcon(S);try{Econ.ensureMarket?.(S)}catch(_){};Codex.ensureCodex(S);WorldMap.ensureSpawn(S);Level.ensureProgress(S);Know.ensureKnow(S);Know.migrateKnow(S);Jobs.ensureJobs(S);Equip.ensureEquip(S)}catch(_){}
- try{ C39.ensureContent39(S); C39.seedThreads(S); C39.seedSideArcsFromNpcs(S,4); C39.midgameUnlocks(S,{toast:false}); }catch(_){}
+ try{ C39.ensureContent39(S); C39.seedThreads(S); C40.seedAllNpcArcs(S); C40.ensureCraft40(S); C40.syncCraftProgress(S); C39.midgameUnlocks(S,{toast:false}); }catch(_){}
  if(opts.skipSetup){finishSetup(pack);gateOrShow();return}
  // If cinematic already covered death, skip first setup beat when it is 'tod'
  if(opts.fromIntro){S.flags.introDeath=true;S.setup.answers.tod={label:'(Intro)',past:opts.trait||''};S.setup.beat=1}
@@ -1914,9 +1917,9 @@ async function startProcedural(genreInput,pcName){const pack=await generateWorld
   cls:0,turn:0,hist:[],log:[],flags:{},setup:{done:true,beat:0,answers:{}},summary:pack.conflict||'',
   time:{day:1,hour:18,phase:'Abend'},imgCache:{scenes:{},portraits:{},ok:{},fail:{},next:{}},heat:0,wanted:[],dead:[],world};
  enrichNpcs(S.world);ensureGraph(S);try{Sim.migrateToV13(S);Econ.ensureEcon(S);try{Econ.ensureMarket?.(S)}catch(_){};Codex.ensureCodex(S);WorldMap.ensureSpawn(S);Level.ensureProgress(S);Know.ensureKnow(S);Know.migrateKnow(S);Jobs.ensureJobs(S);Gems.ensureGems(S);Summons.ensureSummons(S);Equip.ensureEquip(S);S.ver=VER}catch(_){}if(S.world.systems||S.genre==='zombie')ensureSystems();try{enrichPlaceDescs(S)}catch(_){};
- try{ C39.ensureContent39(S); C39.seedThreads(S); C39.seedSideArcsFromNpcs(S,4); C39.midgameUnlocks(S,{toast:false});
+ try{ C39.ensureContent39(S); C39.seedThreads(S); C40.seedAllNpcArcs(S); C40.ensureCraft40(S); C40.syncCraftProgress(S); C39.midgameUnlocks(S,{toast:false});
    const rum=(S.content39?.rumours||[])[0]; if(rum){ S.ticks=S.ticks||{rumours:[],log:[]}; S.ticks.rumours=(S.ticks.rumours||[]).concat(rum).slice(-10); }
- }catch(e){console.warn('c39 seed',e)}
+ }catch(e){console.warn('c39/c40 seed',e)}
  const bridge=`${pack.titel}.\n\n${pack.conflict||pack.geschichte}\n\nDu – ${S.pc.name} – stehst in ${world.scene.ort}. Die Welt wartet nicht. Wohin du gehst, ist deine Sache.`;
  S.log=[{k:'n',t:bridge}];S.hist=[{role:'assistant',content:bridge}];S.choices=travelChoices(world.scene.ort);
  save();enterPlay();typewrite('Erzähler',bridge,()=>{});hud();renderChoices();
@@ -2974,7 +2977,6 @@ function allyWouldRefuseFight(name){
 async function openPendingEncounter(res){
   if(typeof window!=='undefined'&&window.__gateNoBattle){ if(S.flags){ delete S.flags._offerEncounter; delete S.flags.narratorCombat } return; }
   if(Battle.isActive())return;
-  // Choice-first: if the player already sees Kämpfen/Reden, wait for their pick — don't steal the turn
   if(S.flags?._offerEncounter && Array.isArray(S.choices) && S.choices.some(c=>/kämpfen|reden|fliehen/i.test(c))) return;
   const offer=S.flags?._offerEncounter;
   const combatFlag=res?.changes?._combat||res?.changes?.combat||S.flags?.narratorCombat;
@@ -2987,10 +2989,17 @@ async function openPendingEncounter(res){
     return true;
   });
   if(!foes.length){ pushSys('Ein Verbündeter weigert sich zu kämpfen.'); return }
+  const dungeonBoss=!!(offer?.dungeonBoss||S.flags?.dungeonBoss||foes.some(f=>f.boss&&S.content39?.dungeon));
+  if(dungeonBoss || S.flags?._bossIntroPending){
+    const pending=S.flags?._bossIntroPending||{name:foes[0]?.name, genre:S.genre};
+    try{ delete S.flags._bossIntroPending }catch(_){}
+    try{ await Cut40.playBossIntroCutscene({genre:pending.genre||S.genre, bossName:pending.name||foes[0]?.name, fast:!!window.__gateFastCut}); }catch(_){}
+  }
   const result=await Battle.offerEncounter(S,{
     enemies:foes,
     blurb:offer?.blurb||(`Konflikt mit ${foes.map(f=>f.name).join(', ')}. Deine Entscheidung.`),
-    bg:battleBgFor(S)
+    bg:battleBgFor(S),
+    dungeonBoss,
   });
   if(result) await afterEncounterResolved(result);
 }
@@ -3118,8 +3127,14 @@ async function act(a){
     add('p',a); setBusy(true);
     try{
      const foes=S.flags._offerEncounter.foes; const blurb=S.flags._offerEncounter.blurb;
+     const dungeonBoss=!!(S.flags._offerEncounter.dungeonBoss||S.flags.dungeonBoss||(foes||[]).some(f=>f.boss&&S.content39?.dungeon));
      try{ delete S.flags._offerEncounter; delete S.flags.narratorCombat }catch(_){}
-     const result=await Battle.offerEncounter(S,{enemies:foes,blurb:blurb||'Deine Entscheidung.',bg:battleBgFor(S)});
+     if(dungeonBoss || S.flags?._bossIntroPending){
+       const pending=S.flags?._bossIntroPending||{name:foes?.[0]?.name, genre:S.genre};
+       try{ delete S.flags._bossIntroPending }catch(_){}
+       try{ await Cut40.playBossIntroCutscene({genre:pending.genre||S.genre, bossName:pending.name||foes?.[0]?.name, fast:!!window.__gateFastCut}); }catch(_){}
+     }
+     const result=await Battle.offerEncounter(S,{enemies:foes,blurb:blurb||'Deine Entscheidung.',bg:battleBgFor(S),dungeonBoss});
      if(result) await afterEncounterResolved(result);
     }finally{setBusy(false)} return;
    }
@@ -3333,7 +3348,7 @@ $('#btnGateSave').onclick=()=>{const gk=$('#gateKey').value.trim();if(!gk){toast
  toast('Alles bereit.');gmFetch(gk,true).then(()=>gmProbe(gk).catch(()=>{}));enterPlay()};
 $('#btnGateSkip').onclick=()=>{cfg.mode='offline';cfg.v2=1;localStorage.setItem(CFG,JSON.stringify(cfg));try{if(S)S._narratorMode='offline';updateNarratorDot()}catch(_){} toast('Erzählerin: Offline (lokal, ohne Schlüssel)');enterPlay()};
 
-window.__setCfg=o=>{cfg=Object.assign(cfg||{},o||{});try{localStorage.setItem(CFG,JSON.stringify(cfg))}catch(_){}};window.__game={VER,Aud,C39,updateNarratorDot,narratorStatusText,openSheet,setBusy,forceUnbusy,ACT_HARD_MS,V25,OW,Depth,Battle,Jobs,Gems,Summons,Equip,Jrpg,localBeatLine,parsePlayerIntent,offlineRespondIntent,freeStream,FREE_MODEL,msgsLean,FREE_URLS,openPendingEncounter,Imm,discoverThing,showCodexInline,Level,UI14,UI17,Know,Cont,lastPromptDump,advanceTimeMinutes,applyActionDuration,newGrey,greyDetails,loadGrey,loadPack,get S(){return S},act,newLife,gBody,msgs,gmRank,gmProbe,parseStream,thinkingCfg,gmOrder,readSSE,STREAM_DELIM,migrate,worldTick,bumpRel,openMenu,openPixelShop,openRegionTravelMap,stageName,offline,startIntro,setSceneImage,setPortrait,imgUrl,advanceTime,phaseLabel,typewrite,enterPlay,showTitle,analyzeImage,applySceneTheme,themeFromText,loadValidatedImage,openingNarration,travelTo,parseTravel,killNPC,robNPC,addMemory,memoryHint,startProcedural,offlineGenerateWorld,generateWorldPack,GENRES,travelChoices,ensureGraph,whoHere,parseLifeSim,Sim,Persist,WorldMap,TravelMap,Cut31,Econ,Codex,UI13,save,loadSave,applyCatchUp,findAnyNpc,placeFlavorText,enrichPlaceDescs};
+window.__setCfg=o=>{cfg=Object.assign(cfg||{},o||{});try{localStorage.setItem(CFG,JSON.stringify(cfg))}catch(_){}};window.__game={VER,Aud,C39,C40,Cut40,updateNarratorDot,narratorStatusText,openSheet,setBusy,forceUnbusy,ACT_HARD_MS,V25,OW,Depth,Battle,Jobs,Gems,Summons,Equip,Jrpg,localBeatLine,parsePlayerIntent,offlineRespondIntent,freeStream,FREE_MODEL,msgsLean,FREE_URLS,openPendingEncounter,Imm,discoverThing,showCodexInline,Level,UI14,UI17,Know,Cont,lastPromptDump,advanceTimeMinutes,applyActionDuration,newGrey,greyDetails,loadGrey,loadPack,get S(){return S},act,newLife,gBody,msgs,gmRank,gmProbe,parseStream,thinkingCfg,gmOrder,readSSE,STREAM_DELIM,migrate,worldTick,bumpRel,openMenu,openPixelShop,openRegionTravelMap,stageName,offline,startIntro,setSceneImage,setPortrait,imgUrl,advanceTime,phaseLabel,typewrite,enterPlay,showTitle,analyzeImage,applySceneTheme,themeFromText,loadValidatedImage,openingNarration,travelTo,parseTravel,killNPC,robNPC,addMemory,memoryHint,startProcedural,offlineGenerateWorld,generateWorldPack,GENRES,travelChoices,ensureGraph,whoHere,parseLifeSim,Sim,Persist,WorldMap,TravelMap,Cut31,Econ,Codex,UI13,save,loadSave,applyCatchUp,findAnyNpc,placeFlavorText,enrichPlaceDescs};
 window.__game.askNPC=a=>askNPC(a);window.__game.gemini=gemini;
 if(cfg.gkey)gmFetch(cfg.gkey.trim()).then(()=>gmProbe(cfg.gkey.trim()).catch(()=>{})).catch(()=>{});
 (function(){const root=document.documentElement;const apply=()=>{try{const vv=window.visualViewport;if(!vv)return;const kb=Math.max(0,window.innerHeight-vv.height-vv.offsetTop);root.style.setProperty('--kb',kb+'px')}catch(_){}};

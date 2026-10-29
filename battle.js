@@ -339,7 +339,7 @@ function canAct(unit){
 }
 
 /* ---- Battle state machine ---- */
-let _B=null; // active battle
+let _B=null; let lastBattleSummary=null; let lastBattleFlags=null; let lastBattlePhaseLog=[]; // active battle
 let _music=null;
 
 export function isActive(){return !!_B && !_B.done}
@@ -364,13 +364,22 @@ export function startBattle(S, opts={}){
 
   const foes=opts.enemies?.length?spawnFoes(opts.enemies,S):spawnFoes(pickEncounter(S,{count:opts.count,boss:opts.boss,noBoss:opts.noBoss}),S);
   if(!foes.length) return null;
+  // ensure boss phases survive spawn
+  for(const f of foes){
+    if(f.boss && (!f.phases||!f.phases.length)){
+      f.phases=[
+        {at:0.66,buff:{atk:1.15},announce:'Phase 2 — die Haltung ändert sich.'},
+        {at:0.33,buff:{atk:1.25,spd:1.1},announce:'Phase 3 — Bruchfenster!'},
+      ];
+    }
+    if(f.phases) f.phaseIdx=f.phaseIdx|0;
+  }
   const party=buildParty(S);
-  // sync portrait urls if provided
   if(opts.heroPortrait) party[0].portrait=opts.heroPortrait;
   if(opts.companionPortraits){
     for(const c of party){ if(c.npcRef && opts.companionPortraits[c.npcRef]) c.portrait=opts.companionPortraits[c.npcRef]}
   }
-  for(const f of foes){ if(!f.art || f.art.startsWith('assets/')){ /* keep */ } }
+  const dungeonBoss=!!(opts.dungeonBoss||opts.flags?.dungeonBoss||S.flags?.dungeonBoss||foes.some(f=>f.boss&&S.content39?.dungeon));
   _B={
     S, party, foes,
     bg:opts.bg||battleBgFor(S),
@@ -381,17 +390,85 @@ export function startBattle(S, opts={}){
     escaped:false, analyzed:{},
     onEnd:opts.onEnd||null,
     startedAt:Date.now(),
-    atbMode:(opts.atbMode||S.cfgAtbMode||S.flags?.atbMode||'active'), // active|wait
+    atbMode:(opts.atbMode||S.cfgAtbMode||S.flags?.atbMode||'active'),
     _waiting:false,
     skillBanner:null,
-    victoryRewards:null
+    victoryRewards:null,
+    flags:{ dungeonBoss, scripted:!!opts.scripted, ...(opts.flags||{}) },
+    phaseLog:[],
+    scripted:!!opts.scripted,
   };
-  // init ATB
   for(const u of [...party,...foes]) u.atb=Math.random()*30+(u.spd||8);
+  if(opts.scripted || dungeonBoss && opts.atbMode==='wait'){
+    // Give hero the first turn; freeze foe ATB for deterministic E2E / boss scripted runs
+    for(const f of foes) f.atb=0;
+    const hero=party.find(p=>p.kind==='hero')||party[0];
+    if(hero) hero.atb=100;
+  }
   renderBattleUI();
   startBattleMusic(S);
-  advanceUntilPlayer();
+  if(!(opts.scripted || _B.scripted)) advanceUntilPlayer();
+  else { _B.selecting={actor:party.find(p=>p.kind==='hero')||party[0], mode:null}; refreshUI(); }
   return _B;
+}
+
+/** Playtest / scripted drive: force hero turn, attack, flee, talk, spare. */
+export function __testDrive(cmd, payload={}){
+  if(!_B||_B.done){
+    if(cmd==='dump'){
+      return {ok:true, done:true, result:lastBattleSummary?.result, flags:lastBattleFlags, foe:null, log:lastBattleSummary?.log||[], phaseLog:lastBattlePhaseLog||[], summary:lastBattleSummary};
+    }
+    return {ok:false, reason:'no battle', result:lastBattleSummary?.result, summary:lastBattleSummary};
+  }
+  _B.scripted=true; _B.flags=_B.flags||{}; _B.flags.scripted=true;
+  const hero=_B.party.find(p=>p.kind==='hero')||_B.party[0];
+  if(!hero||!hero.alive) return {ok:false, reason:'no hero'};
+  if(payload.freezeFoes!==false){ for(const f of _B.foes) f.atb=0; }
+  hero.atb=100; _B.selecting={actor:hero, mode:null};
+  if(cmd==='buff'){
+    hero.atk=payload.atk||999; hero.spd=payload.spd||40; hero.hp=hero.maxhp;
+    return {ok:true, atk:hero.atk};
+  }
+  if(cmd==='setHpRatio'){
+    const t=_B.foes.find(f=>f.alive)||_B.foes[0];
+    if(!t) return {ok:false};
+    t.hp=Math.max(1, Math.floor(t.maxhp*(payload.ratio??0.5)));
+    return {ok:true, hp:t.hp, maxhp:t.maxhp, phaseIdx:t.phaseIdx};
+  }
+  if(cmd==='attack'){
+    const t=living(_B.foes)[0]; if(!t) return {ok:false, reason:'no foe'};
+    const before={hp:t.hp, phaseIdx:t.phaseIdx|0, phases:(t.phases||[]).length};
+    doAttack(hero, t._iid);
+    // capture phase announces from log
+    return {ok:true, before, hp:t.hp, phaseIdx:t.phaseIdx||0, alive:t.alive, done:_B.done, result:_B.result, phaseLog:(_B.phaseLog||[]).slice(-5), log:_B.log.slice(-6)};
+  }
+  if(cmd==='flee'){
+    // guarantee flee for E2E
+    const old=Math.random;
+    Math.random=()=>0; // doFlee uses random < chance
+    try{ doFlee(hero, 1); } finally { Math.random=old; }
+    return {ok:true, done:_B.done, result:_B.result, log:_B.log.slice(-4)};
+  }
+  if(cmd==='talk'){
+    const t=living(_B.foes)[0]; if(!t) return {ok:false};
+    doTalk(hero, {targetId:t._iid, text:payload.text||'bitte frieden, lass uns reden'});
+    return {ok:true, talked:!!t._talked, surrendered:!!t._surrendered, done:_B.done, result:_B.result, log:_B.log.slice(-4)};
+  }
+  if(cmd==='spare'){
+    const t=_B.foes.find(f=>f.alive)||_B.foes[0];
+    if(!t) return {ok:false};
+    t._talked=true; t.hp=Math.min(t.hp, Math.floor(t.maxhp*0.4));
+    doSpare(hero, t._iid);
+    return {ok:true, ended:t._ended, done:_B.done, result:_B.result, log:_B.log.slice(-4)};
+  }
+  if(cmd==='dump'){
+    if(!_B){
+      return {ok:true, done:true, result:lastBattleSummary?.result, flags:lastBattleFlags, foe:null, log:lastBattleSummary?.log||[], phaseLog:lastBattlePhaseLog||[], summary:lastBattleSummary};
+    }
+    const t=_B.foes[0];
+    return {ok:true, done:_B.done, result:_B.result, flags:_B.flags, foe:{name:t?.name,hp:t?.hp,maxhp:t?.maxhp,phaseIdx:t?.phaseIdx,phases:(t?.phases||[]).map(p=>p.at),boss:t?.boss}, log:_B.log.slice(-12), phaseLog:_B.phaseLog||[]};
+  }
+  return playerCommand(cmd, payload);
 }
 
 function allUnits(){return [..._B.party,..._B.foes]}
@@ -451,6 +528,8 @@ function afterAction(){
   checkEnd();
   if(_B.done)return;
   refreshUI();
+  // Scripted E2E / __testDrive: no ATB AI — player commands only
+  if(_B.scripted || _B.flags?.scripted) return;
   requestAnimationFrame(()=>setTimeout(()=>advanceUntilPlayer(),180));
 }
 
@@ -469,6 +548,7 @@ function finish(result){
   showEndScreen(result, summary);
   // apply to S after short delay so UI shows
   const B=_B;
+  try{ lastBattleSummary=summary; lastBattleFlags=B.flags||{}; lastBattlePhaseLog=(B.phaseLog||[]).slice(); }catch(_){}
   setTimeout(()=>{
     applyRewards(B, result, summary);
     const cb=B.onEnd;
@@ -802,6 +882,17 @@ function resolveHit(attacker, target, skill){
     shakeScreen();
   }
   if(skill.status && Math.random()<(skill.statusChance||0.35)){ Jrpg.applyStatus(target, skill.status, 3); _B.log.push(`${target.name}: ${Jrpg.STATUS_DEFS[skill.status]?.name||skill.status}!`) }
+  // Multi-phase bosses: fire phases when thresholds are crossed (including killing blow)
+  if(target.boss && target.phases && target.phases.length){
+    const ratio=Math.max(0, target.hp)/Math.max(1,target.maxhp);
+    while(target.phaseIdx<target.phases.length && ratio<=target.phases[target.phaseIdx].at){
+      const ph=target.phases[target.phaseIdx++];
+      if(ph.announce){ _B.log.push(ph.announce); (_B.phaseLog=_B.phaseLog||[]).push(ph.announce); }
+      if(ph.buff && target.hp>0){ for(const[k,v] of Object.entries(ph.buff)) target[k]=Math.round((target[k]||1)*v) }
+      showSkillBanner(ph.announce||('Phase '+(target.phaseIdx+1)));
+      shakeScreen();
+    }
+  }
   if(target.hp<=0){
     target.alive=false; target.hp=0;
     if(mercyNeeded(target, _B.S) && target.kind!=='hero' && target.kind!=='companion'){
@@ -810,14 +901,6 @@ function resolveHit(attacker, target, skill){
     } else {
       target._ended=target._ended||'killed';
       _B.log.push(`${target.name} besiegt!`);
-    }
-  } else if(target.boss && target.phases){
-    const ratio=target.hp/target.maxhp;
-    while(target.phaseIdx<target.phases.length && ratio<=target.phases[target.phaseIdx].at){
-      const ph=target.phases[target.phaseIdx++];
-      if(ph.announce) _B.log.push(ph.announce);
-      if(ph.buff){ for(const[k,v] of Object.entries(ph.buff)) target[k]=Math.round((target[k]||1)*v) }
-      shakeScreen();
     }
   }
 }
@@ -1461,7 +1544,7 @@ export function offerEncounter(S, opts={}){
     const done=(choice, text='')=>{
       root.classList.add('hidden');
       if(choice==='fight' || choice==='attack'){
-        startBattle(S,{...opts, enemies:foes, onEnd:(sum)=>resolve({choice:'fight', summary:sum, foes})});
+        startBattle(S,{...opts, enemies:foes, dungeonBoss:!!(opts.dungeonBoss||S.flags?.dungeonBoss), flags:{dungeonBoss:!!(opts.dungeonBoss||S.flags?.dungeonBoss)}, onEnd:(sum)=>resolve({choice:'fight', summary:sum, foes})});
         return;
       }
       // non-combat resolutions
@@ -1525,7 +1608,7 @@ export default {
   startBattle, isActive, getBattle, playerCommand, buildParty, renderBattleUI,
   maybeRandomEncounter, offerEncounter, COMBAT_SKILLS,
   isStoryNpcFoe, storyNpcName, mercyNeeded, applyMercyDecision,
-  __playSprite: playSpriteAnim,
+  __playSprite: playSpriteAnim, __testDrive,
   Jrpg, Jobs, Gems, Summons, Equip
 };
 

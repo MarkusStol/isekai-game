@@ -2104,3 +2104,33 @@ body.pixel-jrpg .logo,
 /* Kill leftover candy glows */
 .big.glow, button.glow{box-shadow:0 3px 0 #000c, inset 0 1px 0 #ffffff18!important}
 .aff-bar i{background:linear-gradient(90deg,#c9a227,#e8c47a)!important}
+
+/* v40 dungeon minimap + craft locks + boss cutscene */
+.dungeon-minimap-root{
+  position:fixed; right:8px; top:72px; z-index:40;
+  max-width:min(92vw,280px); pointer-events:none;
+}
+.dungeon-minimap-root.hidden{display:none!important}
+.dungeon-mm{
+  background:#120e1cee; border:2px solid #6a5a90; border-radius:10px;
+  padding:8px 10px; color:#e8e0ff; font:12px/1.35 ui-monospace,monospace;
+  box-shadow:0 6px 18px #0008;
+}
+.mm-title{font-weight:700; margin-bottom:6px; letter-spacing:.02em}
+.mm-row{display:flex; flex-wrap:wrap; gap:4px}
+.mm-cell{
+  width:28px; height:28px; border-radius:4px; display:flex; align-items:center; justify-content:center;
+  background:#2a2440; border:1px solid #4a4068; font-size:11px; font-weight:700;
+  image-rendering:pixelated;
+}
+.mm-cell.puzzle{background:#5a4a18; border-color:#d4b84a}
+.mm-cell.trap{background:#5a1820; border-color:#d44a4a}
+.mm-cell.loot{background:#184a28; border-color:#4ad47a}
+.mm-cell.combat{background:#5a3018; border-color:#d47a4a}
+.mm-cell.boss{background:#4a1848; border-color:#d44ac8}
+.mm-cell.done{opacity:.55}
+.mm-cell.here{outline:2px solid #ffe566; box-shadow:0 0 0 2px #0008}
+.mm-legend{margin-top:6px; opacity:.75; font-size:10px}
+.craft-row.locked{opacity:.55}
+.craft-row.locked button{cursor:not-allowed}
+.boss-cutscene{z-index:80}

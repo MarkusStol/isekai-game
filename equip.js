@@ -45,13 +45,13 @@ export const CRAFT_RECIPES=[
 
 /** Cooking / camping recipes — restore HP/MP, buff flags */
 export const COOK_RECIPES=[
-  {id:'kraeutersuppe', name:'Kräutersuppe', mats:{'Kräuter':2}, gold:0, heal:35, mp:0, desc:'Einfacher Eintopf vom Wegrand.'},
-  {id:'reisebrot', name:'Reisebrot', mats:{'Mehl':1,'Kräuter':1}, gold:2, heal:20, mp:5, desc:'Hält den Hunger fern.'},
-  {id:'feuerfleisch', name:'Feuerfleisch', mats:{'Fleisch':1,'Kräuter':1}, gold:5, heal:50, mp:0, desc:'Gebraten, würzig, stärkend.'},
-  {id:'stimtee', name:'Stimtee', mats:{'Kräuter':3,'Eiskristall':1}, gold:8, heal:10, mp:40, desc:'Klarer Kopf, warmes Mana.'},
-  {id:'notnahrung', name:'Notnahrung', mats:{'Dosenreste':1}, gold:0, heal:25, mp:0, genre:['zombie'], desc:'Überlebensration.'},
-  {id:'synth_bowl', name:'Synth-Bowl', mats:{'Synth-Paste':1,'Elektrolyt':1}, gold:6, heal:30, mp:15, genre:['cyberpunk'], desc:'Neon-Kantinenklassiker.'},
-  {id:'siegeltrank', name:'Siegeltrank', mats:{'Kräuter':2,'Runensplitter':1}, gold:20, heal:40, mp:25, desc:'Alchemie light — Lagerfeuer-tauglich.'},
+  {id:'kraeutersuppe', name:'Kräutersuppe', mats:{'Kräuter':2}, gold:0, heal:35, mp:0, tier:1, desc:'Einfacher Eintopf vom Wegrand.'},
+  {id:'reisebrot', name:'Reisebrot', mats:{'Mehl':1,'Kräuter':1}, gold:2, heal:20, mp:5, tier:1, desc:'Hält den Hunger fern.'},
+  {id:'feuerfleisch', name:'Feuerfleisch', mats:{'Fleisch':1,'Kräuter':1}, gold:5, heal:50, mp:0, tier:1, desc:'Gebraten, würzig, stärkend.'},
+  {id:'stimtee', name:'Stimtee', mats:{'Kräuter':3,'Eiskristall':1}, gold:8, heal:10, mp:40, tier:2, desc:'Klarer Kopf, warmes Mana.'},
+  {id:'notnahrung', name:'Notnahrung', mats:{'Dosenreste':1}, gold:0, heal:25, mp:0, tier:1, genre:['zombie'], desc:'Überlebensration.'},
+  {id:'synth_bowl', name:'Synth-Bowl', mats:{'Synth-Paste':1,'Elektrolyt':1}, gold:6, heal:30, mp:15, tier:1, genre:['cyberpunk'], desc:'Neon-Kantinenklassiker.'},
+  {id:'siegeltrank', name:'Siegeltrank', mats:{'Kräuter':2,'Runensplitter':1}, gold:20, heal:40, mp:25, tier:2, desc:'Alchemie light — Lagerfeuer-tauglich.'},
 ];
 
 export function blankEquip(S){
@@ -120,10 +120,20 @@ export function upgradeItem(S, id){
 export function craftItem(S, recipeId){
   ensureEquip(S);
   const rec=CRAFT_RECIPES.find(r=>r.id===recipeId); if(!rec) return {ok:false,text:'Rezept unbekannt.'};
-  const tierNeed=rec.tier|1;
-  const tierHave=(S.content39?.flags?.gearTier)|1;
-  if(tierNeed>tierHave && (S.st?.lvl|1)<(tierNeed*4)){
-    return {ok:false,text:`Ausrüstungsstufe ${tierNeed} nötig (aktuell ${tierHave}). Mehr Level, Nebenwege oder Dungeon.`};
+  const tierNeed=(rec.tier||1);
+  // v40 hard gate via content40 stations/skills (no soft level bypass)
+  try{
+    const C40=window.__game?.C40;
+    if(C40?.canCraftRecipe){
+      const gate=C40.canCraftRecipe(S, recipeId, 'craft');
+      if(!gate.ok) return {ok:false,text:gate.reason};
+    } else {
+      const tierHave=(S.content39?.flags?.gearTier)||1;
+      if(tierNeed>tierHave) return {ok:false,text:`Ausrüstungsstufe ${tierNeed} nötig (aktuell ${tierHave}).`};
+    }
+  }catch(_){
+    const tierHave=(S.content39?.flags?.gearTier)||1;
+    if(tierNeed>tierHave) return {ok:false,text:`Ausrüstungsstufe ${tierNeed} nötig (aktuell ${tierHave}).`};
   }
   if((S.st?.gold|0)<rec.gold) return {ok:false,text:'Nicht genug Gil.'};
   for(const [m,n] of Object.entries(rec.mats)){
@@ -153,6 +163,13 @@ export function craftItem(S, recipeId){
 export function cookItem(S, recipeId){
   ensureEquip(S);
   const rec=COOK_RECIPES.find(r=>r.id===recipeId); if(!rec) return {ok:false,text:'Kochrezept unbekannt.'};
+  try{
+    const C40=window.__game?.C40;
+    if(C40?.canCraftRecipe){
+      const gate=C40.canCraftRecipe(S, recipeId, 'cook');
+      if(!gate.ok) return {ok:false,text:gate.reason};
+    }
+  }catch(_){}
   if(rec.genre && S.genre && !rec.genre.includes(S.genre) && !rec.genre.some(g=>String(S.genre).includes(g))){
     // still allow — genre hint only
   }

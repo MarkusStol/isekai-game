@@ -349,6 +349,7 @@ export function enterDungeon(S, forceName){
   S.flags=S.flags||{};
   S.flags._preDungeonOrt=S.world?.scene?.ort;
   if(S.world?.scene) S.world.scene.ort=c.dungeon.name+' · Raum 1';
+  try{ window.__game?.C40?.onDungeonEnterHook?.(S); }catch(_){}
   return {ok:true, text:`Du betrittst ${c.dungeon.name}. Fackeln. Staub. Ein Weg vorwärts — und jederzeit ein Rückzug. (Optional.)\n\n${describeRoom(S)}`};
 }
 
@@ -367,12 +368,14 @@ function describeRoom(S){
 export function dungeonAction(S, a){
   const c=ensureContent39(S);
   const d=c.dungeon; if(!d) return null;
+  const _mm=()=>{ try{ window.__game?.C40?.refreshMinimap?.(S); }catch(_){} };
   const t=String(a||'').toLowerCase();
   if(/zurück|flucht|verlass|raus|exit|gehe raus/.test(t)){
     const prev=S.flags?._preDungeonOrt;
     if(prev && S.world?.scene) S.world.scene.ort=prev;
     c.dungeon=null;
-    return {text:`Du verlässt ${d.name}. Die Gänge warten — ohne Timer, ohne Pflicht.`, changes:{xp:5, choices:['Umsehen','Weiter','Ruhen']}, _intent:'dungeon_leave'};
+    try{ window.__game?.C40?.onDungeonLeaveHook?.(S); }catch(_){}
+    _mm(); return {text:`Du verlässt ${d.name}. Die Gänge warten — ohne Timer, ohne Pflicht.`, changes:{xp:5, choices:['Umsehen','Weiter','Ruhen']}, _intent:'dungeon_leave'};
   }
   const room=d.rooms[d.room];
   if(!room){
@@ -383,7 +386,7 @@ export function dungeonAction(S, a){
   if(room.done){
     d.room++;
     if(S.world?.scene) S.world.scene.ort=`${d.name} · Raum ${d.room+1}`;
-    return {text:`Weiter.\n\n${describeRoom(S)}`, changes:{choices:['Weiter','Umsehen','zurück']}};
+    _mm(); return {text:`Weiter.\n\n${describeRoom(S)}`, changes:{choices:['Weiter','Umsehen','zurück']}};
   }
 
   if(room.type==='puzzle'){
@@ -394,7 +397,7 @@ export function dungeonAction(S, a){
         d.room++;
         if(S.world?.scene) S.world.scene.ort=`${d.name} · Raum ${d.room+1}`;
         try{ Equip.ensureEquip(S); S.equip.mats['Runensplitter']=(S.equip.mats['Runensplitter']|0)+1; }catch(_){}
-        return {text:`Das Siegel gibt nach — Klicken, dann Luftzug. (+Runensplitter)\n\n${describeRoom(S)}`, changes:{xp:25, choices:['Weiter','prüfen','zurück']}};
+        _mm(); return {text:`Das Siegel gibt nach — Klicken, dann Luftzug. (+Runensplitter)\n\n${describeRoom(S)}`, changes:{xp:25, choices:['Weiter','prüfen','zurück']}};
       }
       if(S.st) S.st.hp=Math.max(1,(S.st.hp|0)-rnd(4,10));
       return {text:`Falsche Reihenfolge — ein Schlag Licht, Schmerz. Noch ein Versuch oder zurück.`, changes:{hp:-rnd(4,10), choices:['Sonne-Mond-Stern','Mond-Stern-Sonne','zurück']}};
@@ -405,13 +408,13 @@ export function dungeonAction(S, a){
     if(/vorsicht|langsam|prüf|entschärf|umgeh/.test(t)){
       room.done=true; d.room++;
       if(S.world?.scene) S.world.scene.ort=`${d.name} · Raum ${d.room+1}`;
-      return {text:`Du entdeckst den Druckstein rechtzeitig. Vorbei.\n\n${describeRoom(S)}`, changes:{xp:20, choices:['Weiter','zurück']}};
+      _mm(); return {text:`Du entdeckst den Druckstein rechtzeitig. Vorbei.\n\n${describeRoom(S)}`, changes:{xp:20, choices:['Weiter','zurück']}};
     }
     if(/spring|renn|stur/.test(t)){
       room.done=true; d.room++;
       if(S.st) S.st.hp=Math.max(1,(S.st.hp|0)-rnd(8,18));
       if(S.world?.scene) S.world.scene.ort=`${d.name} · Raum ${d.room+1}`;
-      return {text:`Pfeile. Du kommst durch — blutend, lebendig.\n\n${describeRoom(S)}`, changes:{hp:-rnd(8,18), xp:15, choices:['Weiter','heilen','zurück']}};
+      _mm(); return {text:`Pfeile. Du kommst durch — blutend, lebendig.\n\n${describeRoom(S)}`, changes:{hp:-rnd(8,18), xp:15, choices:['Weiter','heilen','zurück']}};
     }
     return {text:describeRoom(S), changes:{choices:['vorsichtig gehen','springen','zurück']}};
   }
@@ -423,7 +426,7 @@ export function dungeonAction(S, a){
       try{ Equip.ensureEquip(S); S.equip.mats[mat]=(S.equip.mats[mat]|0)+n; }catch(_){}
       const gold=rnd(15,45); if(S.st) S.st.gold=(S.st.gold|0)+gold;
       if(S.world?.scene) S.world.scene.ort=`${d.name} · Raum ${d.room+1}`;
-      return {text:`In der Truhe: ${n}× ${mat}, ${gold} Gold.\n\n${describeRoom(S)}`, changes:{gold, xp:18, choices:['Weiter','Rezept kochen','zurück']}};
+      _mm(); return {text:`In der Truhe: ${n}× ${mat}, ${gold} Gold.\n\n${describeRoom(S)}`, changes:{gold, xp:18, choices:['Weiter','Rezept kochen','zurück']}};
     }
     if(/prüf|untersuch/.test(t)){
       return {text:`Keine sichtbare Falle. Die Truhe riecht nach altem Öl — wahrscheinlich sicher.`, changes:{choices:['öffnen','zurück']}};
@@ -434,7 +437,7 @@ export function dungeonAction(S, a){
     if(/schleich|vermeid|umgeh/.test(t)){
       room.done=true; d.room++;
       if(S.world?.scene) S.world.scene.ort=`${d.name} · Raum ${d.room+1}`;
-      return {text:`Du gleitest vorbei. Kein Kampf.\n\n${describeRoom(S)}`, changes:{xp:12, choices:['Weiter','zurück']}};
+      _mm(); return {text:`Du gleitest vorbei. Kein Kampf.\n\n${describeRoom(S)}`, changes:{xp:12, choices:['Weiter','zurück']}};
     }
     if(/kämpf|angriff|stell/.test(t)){
       room.done=true;
@@ -442,7 +445,7 @@ export function dungeonAction(S, a){
       S.flags._offerEncounter={foes, blurb:`Dungeon-Patrouille in ${d.name}.`, forceAttack:true};
       d.room++;
       if(S.world?.scene) S.world.scene.ort=`${d.name} · Raum ${d.room+1}`;
-      return {text:`Kampfbereit — ${foes.map(f=>f.name).join(', ')}. Danach geht der Gang weiter.`, changes:{xp:10, choices:['Kämpfen','Fliehen']}};
+      _mm(); return {text:`Kampfbereit — ${foes.map(f=>f.name).join(', ')}. Danach geht der Gang weiter.`, changes:{xp:10, choices:['Kämpfen','Fliehen']}};
     }
     return {text:describeRoom(S), changes:{choices:['kämpfen','schleichen','zurück']}};
   }
@@ -462,7 +465,8 @@ export function dungeonAction(S, a){
       room.done=true;
       S.flags._offerEncounter={foes:[foe], blurb:`Dungeon-Boss: ${foe.name}. Mehrphasig.`, forceAttack:true, dungeonBoss:true}; S.flags.dungeonBoss=1;
       c.flags.bossFaced=1;
-      return {text:`${foe.name} erhebt sich. Mehrere Phasen. Flucht bleibt erlaubt.\n(Starte den Kampf über „Kämpfen“.)`, changes:{xp:20, choices:['Kämpfen','Fliehen','zurück']}};
+      S.flags._bossIntroPending={name:foe.name, genre:genreKey(S), foe};
+      _mm(); return {text:`${foe.name} erhebt sich. Mehrere Phasen. Flucht bleibt erlaubt.\n(Boss-Intro + Kampf folgen über „Kämpfen“.)`, changes:{xp:20, choices:['Kämpfen','Fliehen','zurück'], _bossIntro:true}};
     }
     return {text:describeRoom(S), changes:{choices:['Boss angreifen','zurück']}};
   }
@@ -480,6 +484,7 @@ export function afterDungeonBossWin(S){
     S.equip.mats['Boss-Essenz']=(S.equip.mats['Boss-Essenz']|0)+1;
   }catch(_){}
   midgameUnlocks(S,{reason:'dungeon_boss'});
+  try{ window.__game?.C40?.syncCraftProgress?.(S); window.__game?.C40?.unlockStation?.(S,'forge','boss'); window.__game?.C40?.grantCraftSkill?.(S,'schmieden',3); }catch(_){}
   const prev=S.flags?._preDungeonOrt;
   if(prev && S.world?.scene) S.world.scene.ort=prev;
   c.dungeon=null;
@@ -495,7 +500,7 @@ export const GEAR_TIERS={
 };
 
 export function gearTierAvailable(S){
-  const lvl=S.st?.lvl|1;
+  const lvl=S.st?.lvl||1;
   const c=ensureContent39(S);
   const boss=!!c.flags.bossFaced || (c.clearedDungeons||[]).length>0;
   let tier=1;
@@ -507,7 +512,7 @@ export function gearTierAvailable(S){
 
 export function midgameUnlocks(S, opts={}){
   Jobs.ensureJobs(S);
-  const lvl=S.st?.lvl|1;
+  const lvl=S.st?.lvl||1;
   const c=ensureContent39(S);
   const unlocked=[];
   const tryUnlock=(id, cond)=>{
@@ -524,7 +529,7 @@ export function midgameUnlocks(S, opts={}){
   tryUnlock('beschwoerer', lvl>=10 || (c.clearedDungeons||[]).length>0);
   // gear tier flag
   const tier=gearTierAvailable(S);
-  if((c.flags.gearTier|0)<tier){
+  if((c.flags.gearTier||0)<tier){
     c.flags.gearTier=tier;
     unlocked.push('Ausrüstungsstufe '+tier+' ('+(GEAR_TIERS[tier]?.label||'')+')');
   }
