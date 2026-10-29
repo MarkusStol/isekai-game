@@ -223,7 +223,7 @@ export function homeBenefits(S){
     farm: st>=5 || up.has('garten'),
     recruit: st>=3,
     defense: (st>=4?0.5: st>=2?0.25:0) + (up.has('palisade')?0.2:0) + (S?.camp?.watch||up.has('wache')?0.1:0),
-    raidChance: owned ? Math.max(0.02, 0.12 - st*0.015 + (S.heat|0)/400 + ((S.camp?.raidThreat|0)/500)) : 0,
+    raidChance: owned ? Math.max(0.02, Math.min(0.85, 0.12 - st*0.015 + (S.heat|0)/400 + ((S.camp?.raidThreat|0)/180))) : 0,
     // v22 keys
     restMult:1+st*0.12+(up.has('bett')?0.1:0),
     cookBonus:st>=1||up.has('herd'),
@@ -305,22 +305,76 @@ export function tickNeedsDeep(S, hours=1){
   return '';
 }
 
+/** v34: gradual backstory layers unlocked by repeated talk */
+export function ensureReveal(npc){
+  if(!npc) return 0;
+  if(npc.revealTier==null) npc.revealTier=0;
+  return npc.revealTier|0;
+}
+export function bumpReveal(npc, amount=1){
+  if(!npc) return 0;
+  npc.revealTier=Math.min(3, (npc.revealTier|0)+amount);
+  npc.talkCount=(npc.talkCount|0)+1;
+  return npc.revealTier;
+}
+/** Layered spoilers — never dump full bio on first hello */
+export function backstorySlice(npc, tier){
+  if(!npc) return '';
+  const t=tier==null?ensureReveal(npc):tier;
+  const ziel=npc.ziel||npc.desire||'';
+  const wound=npc.wound||'';
+  const back=String(npc.backstory||'');
+  const need=npc.need||npc.furcht||'';
+  const contra=npc.contradiction||'';
+  if(t<=0) return ziel?`Wirkt, als ginge es um ${String(ziel).slice(0,40)}.`:'';
+  if(t===1) return [ziel&&`Will ${String(ziel).slice(0,50)}.`, wound&&`Eine alte Narbe: ${String(wound).slice(0,50)}.`].filter(Boolean).join(' ');
+  if(t===2) return [back.split(/[.;]/)[0].slice(0,110), need&&`Braucht eigentlich ${String(need).slice(0,40)}.`].filter(Boolean).join(' ');
+  return [back.slice(0,160), contra&&`Widerspruch: ${String(contra).slice(0,80)}.`].filter(Boolean).join(' ');
+}
+
 export function maybeHomeRaid(S){
   ensureDeepNeeds(S);
   const b=homeBenefits(S);
   if(!S.home?.owned || Math.random()>b.raidChance) return null;
-  const atHome=S.flags?.atHome || S.world?.scene?.ort===S.home.location;
+  const atHome=!!(S.flags?.atHome || S.world?.scene?.ort===S.home.location);
+  const kind=/zombie|grey/i.test(S.genre||S.role||'')?'Untote':(/cyber/i.test(S.genre||'')?'Gang-Crew':'Banditen');
+  // At home + defence → full hold
   if(atHome && ((S.home.housemates||[]).length || b.defence)){
     if(S.camp) S.camp.raidThreat=Math.max(0,(S.camp.raidThreat|0)-20);
-    const kind=/zombie|grey/i.test(S.genre||S.role||'')?'Untote':'Banditen';
-    return {text:`${kind} nähern sich — doch ${(b.defence?'Palisade/Wache':'Mitbewohner')} und deine Anwesenheit halten stand. Camp sicher.`, loss:0, kind:'raid_held', line:`Überfall abgewehrt (${b.label}).`, goldLost:0, held:true};
+    return {text:`${kind} nähern sich — doch ${(b.defence?'Palisade/Wache':'Mitbewohner')} und deine Anwesenheit halten stand. Camp sicher.`, loss:0, kind:'raid_held', line:`Überfall abgewehrt (${b.label}).`, goldLost:0, held:true, away:false};
   }
-  const loss=Math.min(S.st?.gold|0, Math.floor((5+Math.floor(Math.random()*20))*(1-b.defense)));
+  // Away raids ALWAYS can hit — defence only softens
+  const def=Math.min(0.85, b.defense||0);
+  const baseLoss=8+Math.floor(Math.random()*22);
+  const loss=Math.min(S.st?.gold|0, Math.floor(baseLoss*(1-def)*(atHome?0.6:1)));
   if(S.st) S.st.gold=Math.max(0,(S.st.gold|0)-loss);
-  if(!b.defence && Math.random()<0.25 && (S.home.stage|0)>1) S.home.stage=Math.max(1,(S.home.stage|0)-1);
-  if(S.camp){S.camp.raidThreat=0;S.camp.morale=Math.max(0,(S.camp.morale|0)-15)}
-  const kind=/zombie|grey/i.test(S.genre||S.role||'')?'Untote':'Banditen';
-  return {text:`Überfall auf dein Camp (${kind})! Verteidigung ${(b.defense*100)|0}%. Verlust: ${loss} Gold. Wache/Palisade oder Anwesenheit hätten geholfen.`, loss, kind:'raid', line:`Dein ${b.label} wurde geplündert`+(loss?` (−${loss} Gold)`:'')+'.', goldLost:loss};
+  // Stash / camp morale consequences when away
+  let stashLost=0;
+  if(!atHome && S.camp){
+    S.camp.morale=Math.max(0,(S.camp.morale|0)-(b.defence?8:18));
+    S.camp.raidThreat=0;
+    if(!b.defence && Math.random()<0.4){
+      stashLost=1+Math.floor(Math.random()*2);
+      S.camp.stash=(S.camp.stash||[]).slice(stashLost);
+    }
+    if(!b.defence && Math.random()<0.3 && (S.home.stage|0)>1) S.home.stage=Math.max(1,(S.home.stage|0)-1);
+  } else if(S.camp){
+    S.camp.raidThreat=0; S.camp.morale=Math.max(0,(S.camp.morale|0)-10);
+  }
+  if(!b.defence && atHome && Math.random()<0.2 && (S.home.stage|0)>1) S.home.stage=Math.max(1,(S.home.stage|0)-1);
+  const where=atHome?'während du da bist':'während du fort bist';
+  const tip=b.defence
+    ? (atHome?'':` Die Palisade begrenzte den Schaden.`)
+    : ` Wache/Palisade oder Anwesenheit hätten geholfen.`;
+  const stashBit=stashLost?` Vorräte geplündert (${stashLost}).`:'';
+  const text=`Überfall auf dein Camp (${kind}, ${where})! Verteidigung ${(def*100)|0}%. Verlust: ${loss} Gold.${stashBit}${tip}`;
+  try{
+    // Ledger news so markets/world feel it
+    if(typeof window!=='undefined' && window.__game?.Sim?.ledgerPush){
+      window.__game.Sim.ledgerPush(S,{type:'raid',who:kind,what:text,where:S.home.location,importance:65,emotion:'Angst',meta:{away:!atHome,loss,defence:!!b.defence}});
+    }
+  }catch(_){}
+  return {text, loss, kind: atHome?'raid':'raid_away', line:`Dein ${b.label} wurde ${(atHome?'angegriffen':'in deiner Abwesenheit geplündert')}`+(loss?` (−${loss} Gold)`:'')+'.', goldLost:loss, away:!atHome, held:false, stashLost};
 }
 
 /** Offline high-quality fragments */
@@ -356,5 +410,6 @@ export default {
   styleBible, capabilityBlock, situationSeed, npcDepthBlurb, presentNpcDepth,
   generateProcNpc, homeBenefits, homeStatusLine, ensureDeepNeeds, tickNeedsDeep,
   maybeHomeRaid, offlineFlavor, OFFLINE_FRAGMENTS,
+  ensureReveal, bumpReveal, backstorySlice,
   fightDesignBlock, lifeStatusLine, campUpgradeOptions, applyCampUpgrade, restAtHomeDeep
 };

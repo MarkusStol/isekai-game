@@ -1,4 +1,4 @@
-# Pixel Art Credits (v26–v33)
+# Pixel Art Credits (v26–v34)
 
 All art under `assets/pixel/` is derived from the following sources. Original
 pack archives are **not** committed; only cropped/composited game assets are.
@@ -68,3 +68,7 @@ obligations for LPC-derived character sprites.
 
 ## v33 house crops
 Rebuilt denser exterior crops from LPC city_outside / cottage / thatched-roof / desert_house and zelda-like atlas; window/door/chimney overlays. Same CC-BY licenses as LPC sources listed above.
+
+
+## v34 house density
+All `housebig*` / `hall*` rebuilt to ≥~0.85 opaque fill with consistent window/door/chimney overlays from LPC city/cottage sources (CC-BY).

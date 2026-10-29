@@ -25,9 +25,9 @@ import * as OW from './overworld.js';
 import * as Aud from './audio.js';
 import { hasBg } from './bg-manifest.js';
 try{ Aud.unlockOnGesture?.(); }catch(_){} // v28 first-tap music
- // v33: rich place flavor, ledger markets, forage hunger, NPC depth, house crops
+ // v34: gradual backstory, rich askNPC, away-raids, evocative starts, houses, airship replay
 const $=s=>document.querySelector(s);const $$=s=>[...document.querySelectorAll(s)];const R=a=>a[Math.floor(Math.random()*a.length)];const rnd=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
-const VER='33',CACHE_V='v33';
+const VER='34',CACHE_V='v34';
 const ROLES={
  held:{e:'⚔️',name:'Held mit Status-System',d:'Ein blaues Fenster erscheint: [Status]. Die Welt braucht dich.',world:'Königreich Aldheim',
   base:{hp:100,mp:40,str:12,cha:8,ruf:10,gold:40},cls:['Abenteurer','Ritter','Held','Legendärer Held'],pack:'worlds/held.json',
@@ -699,6 +699,7 @@ function migrate(raw){if(!raw)return null;const s=typeof raw==='string'?JSON.par
   try{ if(s.quests?.main && !s.quests.main.objectiveMarks){ const bq=buildQuests(PACKS[s.role]||{}); s.quests.main.objectiveMarks=bq.main.objectiveMarks; s.quests.main.marker=bq.main.marker; (s.quests.side||[]).forEach((q,i)=>{ if(!q.marker && bq.side[i]?.marker) q.marker=bq.side[i].marker; }); } }catch(_){} }
  if(Number(s.ver)<32){s.ver=32;s.flags=s.flags||{};s.flags.travel=s.flags.travel||{airship:false,boatPass:false};s.market=s.market||null;try{Econ.ensureMarket?.(s)}catch(_){}}
  if(Number(s.ver)<33){s.ver=33;s.flags=s.flags||{};s.flags.travel=s.flags.travel||{airship:false,boatPass:false};try{Econ.ensureMarket?.(s);Econ.marketFromLedger?.(s)}catch(_){}; try{ enrichPlaceDescs?.(s) }catch(_){} }
+ if(Number(s.ver)<34){s.ver=34;s.flags=s.flags||{};s.flags.travel=s.flags.travel||{airship:false,boatPass:false};try{Econ.ensureMarket?.(s);Econ.marketFromLedger?.(s)}catch(_){}; try{ enrichPlaceDescs?.(s) }catch(_){}; for(const n of Object.values(s.world?.npcs||{})){ if(n&&n.revealTier==null) n.revealTier=0; } }
  // v13.1 continuity+time always (kept in v14)
  try{Cont.ensureCont(s);if(s.cal&&s.cal.minute==null)s.cal.minute=0;if(s.cfgCatchupOptIn==null)s.cfgCatchupOptIn=false}catch(e){console.warn('cont migrate',e)}
  // Heal incomplete worlds from old saves (missing orte/graph)
@@ -1516,14 +1517,65 @@ function askNPC(a){if(!isQ(a)||!S)return null;const t=a.toLowerCase();const pres
  const STOP=/^(der|die|das|ein|eine|einer|im|am|zug|von|und)$/;const find=n=>{const w=n.toLowerCase();return Object.entries(bible).find(([k])=>k.toLowerCase()===w)||Object.entries(bible).find(([k])=>k.toLowerCase().split(/[ \/–_-]+/).some(p=>p.length>3&&!STOP.test(p)&&w.includes(p)))};
  let who=pres.map(p=>{const f=find(p);return f?{n:f[0],d:f[1],label:p}:{n:p,d:null,label:p}});if(!who.length){const here=whoHere();who=here.slice(0,2).map(k=>({n:k,d:bible[k],label:k}));if(!who.length)return null}
  const named=who.filter(w=>t.includes(w.n.toLowerCase().split(' ')[0]));const sp=(named.length?named:who).slice(0,/ihr|euch|alle|seid/.test(t)?3:1);
- const first=s=>String(s||'').split(/[.;]/)[0].trim();const lines=sp.map(w=>{const nm=w.n.split(' / ')[0];const desc=first(w.d?.art||w.d?.stimme);
-  const rom=S.romance?.[w.n];const st=rom?stageName(rom.stage):'Fremd';
-  if(/wer|seid|bist|name/.test(t)){return `${w.label} ${R(['mustert dich','hebt den Blick','zögert kurz'])}. „${nm}.“${desc?' '+desc+'.':''} (${st})`}
-  if(/wo|wohin|woher/.test(t)){const o=S.world?.scene?.ort||'hier';return `${w.label}: „Du bist ${/^(in|im|am|auf|an)\b/i.test(o)?o:'in '+o}.“`}
-  return `${w.label} ${R(['runzelt die Stirn','sieht dich lange an','senkt die Stimme'])}: „${R(['Das ist eine gute Frage.','Nicht hier. Nicht jetzt.','Wenn du das wirklich wissen willst, bleib in meiner Nähe.'])}“`});
+ const weather=(()=>{try{return Imm.weatherFor(S)}catch(_){return 'klar'}})();
+ const phase=phaseLabel();
+ const ort=S.world?.scene?.ort||'hier';
+ const lines=sp.map(w=>{
+  const npc=w.d||bible[w.n]||{};
+  let label=w.n; try{label=Know.displayName(S,w.n,npc)}catch(_){}
+  if(/^jemand\b/i.test(label)) label=w.n.split(/[\/]/)[0];
+  const style=String(npc.speechStyle||npc.stimme||'').split(/[.,;]/)[0].slice(0,48);
+  const art=String(npc.art||'').split(/[.;]/)[0].slice(0,70);
+  try{ Depth.bumpReveal(npc, /wer|bist|name|heiß|erzähl|vergangen|geschichte|warum|ziel|du |dein/.test(t)?1:0); }catch(_){}
+  const tier=(()=>{try{return Depth.ensureReveal(npc)}catch(_){return npc.revealTier|0}})();
+  const slice=(()=>{try{return Depth.backstorySlice(npc,tier)}catch(_){return String(npc.backstory||'').split(/[.;]/)[0]}})();
+  const memRaw=(npc.memories||[]).concat(npc.erinnerung||[]).slice(-1)[0];
+  let mem=typeof memRaw==='string'?memRaw:(memRaw?.text||'');
+  try{ mem=Imm.cleanSnippet(mem)||mem; }catch(_){ mem=String(mem).replace(/^\[[^\]]+\]\s*/,''); }
+  if(/^(greet|ask|talk)\s*:/i.test(mem)) mem='';
+  const sm=(npc.samples&&npc.samples[0])?String(npc.samples[0]).replace(/^[„"«]+|[“"»]+$/g,'').slice(0,70):'';
+  const bits=[];
+  bits.push(art?`${label} (${art}${style?', '+style:''}) in ${ort}.`:`${label} in ${ort}.`);
+  if(mem && tier>=1) bits.push(`${label} erinnert sich an euer Gespräch: ${String(mem).slice(0,80)}.`);
+  if(/wer|seid|bist|name|heiß/.test(t)){
+    bits.push(`${label} ${R(['mustert dich','hebt den Blick','zögert kurz'])}. „Ich bin ${w.n.split(' / ')[0]}.“`);
+    if(slice) bits.push(slice);
+    if(sm) bits.push(`Im eigenen Ton: „${sm}“`);
+  } else if(/wo|wohin|woher/.test(t)){
+    bits.push(`${label}: „Du bist ${/^(in|im|am|auf|an)\b/i.test(ort)?ort:'in '+ort}.“`);
+    const d=String(S.world?.orte?.[ort]||S.world?.graph?.nodes?.[ort]?.desc||'').slice(0,120);
+    if(d) bits.push(d);
+  } else if(/erzähl|vergangen|geschichte|wer bist|über dich|von dir|warum|ziel|wunsch/.test(t)){
+    bits.push(!/wütend|feindlich|rachsüchtig/.test(String(npc.mood||''))
+      ? `${label} atmet aus. „Gut — ein Stück Wahrheit.“`
+      : `${label} zögert. „Nur das Nötigste.“`);
+    if(slice) bits.push(slice);
+    else if(npc.ziel) bits.push(`„Mein Ziel: ${String(npc.ziel).slice(0,60)}.“`);
+    if(tier>=2 && npc.wound) bits.push(`Die Stimme knickt kurz: ${String(npc.wound).slice(0,60)}.`);
+    if(tier>=3 && npc.contradiction) bits.push(`Und doch: ${String(npc.contradiction).slice(0,70)}.`);
+    if(sm) bits.push(`„${sm}“`);
+  } else if(/ort|hier|lage|los|passiert/.test(t)){
+    const d=String(S.world?.orte?.[ort]||S.world?.graph?.nodes?.[ort]?.desc||'').slice(0,160);
+    bits.push(`${label} überlegt. „Hier in ${ort}…“`);
+    if(d) bits.push(d);
+    else bits.push(R(['„Halt die Augen offen.“','„Vertrau niemandem zu schnell.“','„Die Lage ändert sich stündlich.“']));
+  } else {
+    bits.push(`${label} ${R(['runzelt die Stirn','sieht dich lange an','senkt die Stimme'])}.`);
+    bits.push(R(['„Das ist eine gute Frage — und keine kurze Antwort.“','„Nicht alles gehört auf den Marktplatz.“','„Wenn du das wissen willst, bleib in meiner Nähe.“']));
+    if(slice && tier>=1) bits.push(slice);
+  }
+  if(style) bits.push(`(${style})`);
+  bits.push({regen:'Feiner Regen trommelt.',schnee:'Schnee flirrt.',nebel:'Nebel schiebt sich dazwischen.',klar:'Die Luft ist klar.',wind:'Ein Windstoß trägt Gerüche.'}[weather]||`Es ist ${phase}.`);
+  return bits.filter(Boolean).join(' ');
+ });
  const aff={};sp.forEach(w=>{aff[w.n]=2});
- try{ for(const w of sp){ Know.markInteracted(S,w.n); if(/wer|bist|name|heiß/i.test(t)) Know.learnName(S,w.n,'told'); } }catch(_){}
- return {text:lines.join('\n\n'),changes:{xp:5,affinity:aff,choices:defChoices()}}}
+ try{ for(const w of sp){ Know.markInteracted(S,w.n); if(/wer|bist|name|heiß/i.test(t)) Know.learnName(S,w.n,'told');
+   const n=bible[w.n]; if(n){ addMemory(w.n, `Du hast ${w.n} gefragt: „${String(a).slice(0,50)}“.`,'Gespräch'); }
+ } }catch(_){}
+ return {text:lines.join('\n\n'),changes:{xp:8,affinity:aff,choices:defChoices()}}}
+
+
+
 
 
 function ensureSystems(){if(!S.world)return {};if(!S.world.systems)S.world.systems={};const sys=S.world.systems;
@@ -1583,13 +1635,13 @@ const GENRES={
   npcSeeds:[{e:'🕶️',art:'Fixer, lächelt nie echt',ziel:'Deals brokern'},{e:'💊',art:'Street-Doc',ziel:'Schulden tilgen'},{e:'🖥️',art:'Netrunnerin',ziel:'ICE brechen'},{e:'🏍️',art:'Nomadin',ziel:'Raus aus der Stadt'},{e:'👔',art:'Konzern-Agent',ziel:'Asset bergen'},{e:'🎤',art:'Club-Sängerin',ziel:'Vertrag lösen'},{e:'🤖',art:'Android mit Glitch',ziel:'Freiheit'},{e:'🔧',art:'Techie',ziel:'Legende bauen'}]},
  darkfantasy:{id:'darkfantasy',label:'Dark Fantasy',ton:'Bleicher Mond, Flüche, Königreiche aus Asche.',icon:'🦇',
   systems:{kind:'dark',corruption:0},
-  places:['Asche-Thron','Blutmoor','Verfluchte Kapelle','Söldnerlager','Knochenbrücke','Hexenwald','Ruinenstadt Vael','Katakomben','Mondsee','Galgenhügel','Flüsterarchiv','Opferstein','Schwarzer Markt','Nebelkloster','Drachengrab','Blutbad-Furt'],
+  places:['Asche-Thron','Blutmoor','Verfluchte Kapelle','Söldnerlager','Knochenbrücke','Hexenwald','Ruinenstadt Vael','Katakomben','Mondsee','Galgenhügel','Flüsterarchiv','Opferstein','Schwarzer Markt','Nebelkloster','Drachengrab','Blutbad-Furt','Nebel-Kai'],
   factions:['Aschenkirche','Nachtfürsten','Söldnerbund','Hexenzirkel'],
   conflict:'Der Mond blutet. Ein Fluch frisst Namen – und deiner steht als Nächstes auf der Liste.',
   npcSeeds:[{e:'🕯️',art:'Priesterin mit Rissen in den Handflächen',ziel:'Fluch binden'},{e:'🐺',art:'Verfluchter Jäger',ziel:'Erlösung oder Beute'},{e:'🗡️',art:'Söldnerhauptmann',ziel:'Gold und Überleben'},{e:'📜',art:'Chronistin',ziel:'Wahrheit aufschreiben'},{e:'🧙',art:'Hexenmeister',ziel:'Macht um jeden Preis'},{e:'👑',art:'Exil-Prinz',ziel:'Thron zurück'},{e:'🪶',art:'Rabenbotin',ziel:'Botschaften liefern'},{e:'💀',art:'Untoter Ritter',ziel:'Eid erfüllen'}]},
  highfantasy:{id:'highfantasy',label:'High Fantasy',ton:'Episch, Magie, Drachenferne, Hoffnung mit Preis.',icon:'🐉',
   systems:{kind:'fantasy',mana_tide:1},
-  places:['Kristallspitze','Elfenhain','Zwergenhalle','Drachenpass','Magierakademie','Königsmarkt','Ork-Grenzstein','Sternentempel','Himmelsbrücke','Runenschmiede','Seewacht','Glühwürmchenhain','Adlerhorst','Portalruine','Bardenlaube','Silberminen'],
+  places:['Kristallspitze','Elfenhain','Zwergenhalle','Drachenpass','Magierakademie','Königsmarkt','Ork-Grenzstein','Sternentempel','Himmelsbrücke','Runenschmiede','Seewacht','Hafenstadt Silberkai','Glühwürmchenhain','Adlerhorst','Portalruine','Bardenlaube','Silberminen'],
   factions:['Magierzirkel','Drachenbund','Händlerliga','Ork-Clans'],
   conflict:'Ein Drache erwacht nicht aus Gier – sondern aus einem gebrochenen Pakt. Die Reiche rüsten.',
   npcSeeds:[{e:'✨',art:'Magierlehrling',ziel:'Meister werden'},{e:'🏹',art:'Elfenwächterin',ziel:'Hain schützen'},{e:'⛏️',art:'Zwergen-Schmied',ziel:'Legendäre Klinge'},{e:'🛡️',art:'Paladin',ziel:'Licht tragen'},{e:'🐲',art:'Drachenblütige',ziel:'Herkunft verstehen'},{e:'🎪',art:'Barde',ziel:'Lied der Wahrheit'},{e:'🔮',art:'Orakel',ziel:'Schicksal biegen'},{e:'⚔️',art:'Ritterin',ziel:'Ehre halten'}]},
@@ -1609,15 +1661,16 @@ const GENRES={
 
 function pickGenre(idOrText){const s=String(idOrText||'').toLowerCase().trim();
  if(GENRES[s])return GENRES[s];
+ if(s==='fantasy'||s==='held'||s==='proc')return GENRES.highfantasy;
  if(/zombie|untot|beißer|infekt/.test(s))return GENRES.zombie;
  if(/cyber|neon|konzern|netrunner/.test(s))return GENRES.cyberpunk;
  if(/dark\s*fantasy|dunkel|fluch|blutmond/.test(s))return GENRES.darkfantasy;
- if(/high\s*fantasy|drache|elfen|magier/.test(s))return GENRES.highfantasy;
+ if(/high\s*fantasy|drache|elfen|magier|^fantasy$|held|aldheim/.test(s))return GENRES.highfantasy;
  if(/survival|überleben|wildnis|camping/.test(s))return GENRES.survival;
  if(/post|wüste|radioaktiv|staub/.test(s))return GENRES.postapoc;
- // custom
+ // custom — evocative starts, never „Ausgangspunkt“
  return {id:'custom',label:s.slice(0,40)||'Custom',ton:'Frei nach Vorgabe: '+s,icon:'🎲',systems:{kind:'custom'},
-  places:['Ausgangspunkt','Grenzmarkt','Verlassene Station','Hochland','Untergrund','Hafenruine','Observatorium','Lager der Fraktion'],
+  places:['Nebelsteig-Tor','Grenzmarkt der Verlorenen','Verlassene Station Meridian','Hochland-Wacht','Untergrund-Arkaden','Hafenruine Salzturm','Observatorium Vespera','Lager der Fraktion Dorn'],
   factions:['Einheimische','Außenseiter','Alte Macht','Neue Ordnung'],
   conflict:'Etwas in dieser Welt verlangt eine Entscheidung – und wartet nicht.',
   npcSeeds:[{e:'👤',art:'Fremde:r mit Geheimnis',ziel:'Überleben'},{e:'🧭',art:'Führer:in',ziel:'Den Weg kennen'},{e:'⚔️',art:'Kämpfer:in',ziel:'Stärke beweisen'},{e:'📚',art:'Gelehrte:r',ziel:'Wissen bergen'},{e:'💰',art:'Händler:in',ziel:'Profit'},{e:'🔮',art:'Seher:in',ziel:'Zukunft lesen'},{e:'🛡️',art:'Wächter:in',ziel:'Schützen'},{e:'🎭',art:'Trickser:in',ziel:'Spiel spielen'}],
@@ -1709,7 +1762,18 @@ function offlineGenerateWorld(genreInput,pcName){const g=pickGenre(genreInput);c
   const terrain=harbor?'water':(/wald|hain|forst/i.test(name)?'forest':/ruine|brache|trümmer/i.test(name)?'ruins':/markt|gasse|stadt|mall|neon|parkplatz/i.test(name)?'urban':/keller|safehouse|bunker|höhle/i.test(name)?'shelter':'default');
   nodes[name]={desc:placeFlavorText(name,{genre:g.id,terrain,season:'Herbst',phase:'Abend'}),tags,exits:[...new Set(exits)].slice(0,4),bg:slugify(name).split('-')[0]||'void',harbor:!!harbor,terrain, _flavored:1};
  });
- const start=places[0];const npcs={};const seeds=(g.npcSeeds||[]).slice(0,12);
+ const start=places[0];
+ // v34: guarantee ≥2 harbor nodes for boat travel
+ { const hNames=places.filter(p=>/hafen|küste|werft|kai|pier|dock|seewacht|container/i.test(p));
+   if(hNames.length<2){
+     const extraH=['Seewacht Ost','Hafenkai West'].filter(x=>!places.includes(x));
+     for(const eh of extraH){ if(hNames.length>=2) break; places.push(eh); hNames.push(eh);
+       nodes[eh]={desc:placeFlavorText(eh,{genre:g.id,terrain:'water',season:'Herbst',phase:'Abend'}),tags:[g.id,'harbor'],exits:[start,places[1]||start].filter(Boolean),bg:'water',harbor:true,terrain:'water',_flavored:1};
+     }
+   }
+   for(const hn of hNames){ if(nodes[hn]){ nodes[hn].harbor=true; nodes[hn].tags=[...new Set([...(nodes[hn].tags||[]),'harbor'])]; nodes[hn].terrain='water'; } }
+ }
+ const npcs={};const seeds=(g.npcSeeds||[]).slice(0,12);
  while(seeds.length<12) seeds.push({e:'👤',art:'Einheimische:r',ziel:'Überleben'});
  seeds.forEach((seed,i)=>{
   let proc=null; try{ proc=Depth.generateProcNpc((seed.art||'')+i+g.id, places[i%places.length], g.id); }catch(_){}
@@ -1925,10 +1989,11 @@ function npcLine(n, kind){
     `${label} mustert dich kurz. „Was willst du?“`,
     `${label} nickt knapp — eine Antwort auf deinen Gruß.`
   ]);
-  const back=String(npc.backstory||'').split(/[.;]/)[0].slice(0,110);
+  try{ Depth.bumpReveal(npc, kind==='ask_who'?1:0); }catch(_){ npc.revealTier=Math.min(3,(npc.revealTier|0)+(kind==='ask_who'?1:0)); }
+  let back=''; try{ back=Depth.backstorySlice(npc); }catch(_){ back=String(npc.backstory||'').split(/[.;]/)[0].slice(0,110); }
   const who=R([
-    `„Ich bin ${label}.“${styleBit} ${String(npc.art||'').split(/[.;]/)[0].slice(0,90)}.${back?` ${back}.`:''}${npc.ziel?` „Mein Ziel: ${String(npc.ziel).slice(0,50)}.“`:''}`,
-    `${label}${styleBit}: „Namen hast du gehört.“${back?` ${back}.`:''}${npc.ziel?` Will ${String(npc.ziel).slice(0,40)}.`:''}`
+    `„Ich bin ${label}.“${styleBit} ${String(npc.art||'').split(/[.;]/)[0].slice(0,90)}.${back?` ${back}`:''}${npc.ziel&&!(npc.revealTier|0)?` „Mein Ziel: ${String(npc.ziel).slice(0,50)}.“`:''}`,
+    `${label}${styleBit}: „Namen hast du gehört.“${back?` ${back}`:''}`
   ]);
   if(kind==='greet'){
     let sm=String(samples[0]||'').trim(); sm=sm.replace(/^[„"«]+/,'').replace(/[“"»]+$/,'').trim();

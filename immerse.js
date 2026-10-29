@@ -91,13 +91,23 @@ export function richOfflineProse(S, playerAction, opts={}){
   // Lead with the person and the answer — time/weather as color, not headline (seamless vs live narrators)
   if(who&&npc){
     const style=String(npc.speechStyle||npc.stimme||'').split(/[.,;]/)[0].slice(0,50);
-    const back=String(npc.backstory||'').split(/[.;]/)[0].slice(0,100);
+    // v34 gradual reveal
+    let tier=npc.revealTier|0;
+    try{
+      const Depth=window.__game?.Depth;
+      if(Depth?.bumpReveal){
+        const deep=/\bdu\b|dein|dich|dir|wer bist|geschichte|vergangen|backstory|ziel|warum|über dich|von dir|erzähl/.test(act.toLowerCase());
+        tier=Depth.bumpReveal(npc, deep?1:(Math.random()<0.35?1:0));
+      }
+    }catch(_){ tier=Math.min(3,(npc.revealTier|0)+1); npc.revealTier=tier; }
+    let back='';
+    try{ back=window.__game?.Depth?.backstorySlice?.(npc,tier)||''; }catch(_){}
+    if(!back) back=String(npc.backstory||'').split(/[.;]/)[0].slice(0,100);
     lines.push(art?`${label} (${art}${style?', '+style:''}) bleibt in ${ort}.`:`${label} bleibt dir in ${ort} zugewandt.`);
-    // Met NPCs: recall earlier talk; keep backstory visible when relevant
     if(mem) lines.push(Math.random()<0.72
       ? `${label} erinnert sich: ${mem}`
       : `Ein Blick sagt: ihr habt schon miteinander gesprochen.`);
-    if(back && (!mem || Math.random()<0.55)) lines.push(`Zwischen den Zeilen: ${back}.`);
+    if(back) lines.push(tier>=2?`Zwischen den Zeilen: ${back}.`:`Ein Hauch von Wahrheit: ${back}`);
     if(isQ){
       const topic=act.replace(/^[„"]?/,'').slice(0,80);
       const g=String(S.genre||S.world?.systems?.kind||'').toLowerCase();
@@ -123,8 +133,10 @@ export function richOfflineProse(S, playerAction, opts={}){
       if(/\bdu\b|dein|dich|\bdir\b|wer bist|geschichte|vergangen|backstory|ziel|warum|über dich|von dir/.test(topic.toLowerCase())){
         const sm=(npc.samples&&npc.samples[0])?`„${String(npc.samples[0]).replace(/^[„"]|[“"]$/g,'').slice(0,80)}“`:'';
         const ziel=npc.ziel||npc.desire||'';
-        if(back) lines.push(`${label} lässt etwas von sich durchblicken: ${back}.`);
-        if(ziel) lines.push(`„Mein Ziel? ${String(ziel).slice(0,70)}.“`);
+        if(back) lines.push(`${label} lässt Schicht ${tier||1} von sich durchblicken: ${back}.`);
+        else if(ziel) lines.push(`„Mein Ziel? ${String(ziel).slice(0,70)}.“`);
+        if(tier>=2 && npc.wound) lines.push(`Die Stimme knickt: ${String(npc.wound).slice(0,60)}.`);
+        if(tier>=3 && npc.contradiction) lines.push(`Widerspruch: ${String(npc.contradiction).slice(0,70)}.`);
         if(sm) lines.push(`${label} fällt in den eigenen Ton: ${sm}`);
       }
       // Quote in their speech style when answering

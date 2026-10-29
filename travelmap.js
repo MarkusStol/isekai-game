@@ -5,7 +5,7 @@ const MODES=[
   {id:'airship', label:'🛸 Luftschiff', hours:1.2, blurb:'Freigeschaltet durch Quest/Kauf'},
 ];
 
-const HARBOR_RE=/hafen|küste|seehafen|bucht|werft|kai|pier|docks?|marina|uferstadt|meerestor|hafenstadt/i;
+const HARBOR_RE=/hafen|küste|seehafen|bucht|werft|kai|pier|docks?|marina|uferstadt|meerestor|hafenstadt|seewacht|containerhafen|hafenlager|hafencontainer|hafenruine/i;
 
 export function isHarborName(name){
   return HARBOR_RE.test(String(name||''));
