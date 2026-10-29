@@ -348,7 +348,7 @@ async function runLiveSiteBrowser(){
   const label='live-site';
   let fails=0, total=0;
   const LIVE=process.env.GATE_LIVE_URL||'https://markusstol.github.io/isekai-game/';
-  const versions=['13','16','18','20','22','23','24','25','26','27','28','29','30','31','32','33','34','35','36','37','38','39','40','41','42','43','44','45','46','47','48','49','50','51','52','53'];
+  const versions=['13','16','18','20','22','23','24','25','26','27','28','29','30','31','32','33','34','35','36','37','38','39','40','41','42','43','44','45','46','47','48','49','50','51','52','53','54'];
   const safariUA='Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1';
 
   async function oneProfile(name, {ua, seedVer}={}){
@@ -761,6 +761,152 @@ async function runDesktopOverworldGate(){
   return fails;
 }
 
+
+/** Path X: crash-class regressions (v55+) — must stay green */
+async function runCrashClass(){
+  const label='crash-class';
+  let fails=0, total=0;
+  async function one(name, fn){
+    total++;
+    const errs=[];
+    const onErr=e=>errs.push(String(e.message||e));
+    page.on('pageerror', onErr);
+    try{
+      await fn();
+      const real=errs.filter(e=>!/AbortError/i.test(e));
+      if(real.length){
+        fails++; failures.push({path:label, world:name, reason:'pageerror:'+real[0].slice(0,100)});
+        console.log('  FAIL', name, real[0].slice(0,80));
+      } else console.log('  OK', name);
+    }catch(e){
+      fails++; failures.push({path:label, world:name, reason:'runner:'+String(e.message||e).slice(0,140)});
+      console.log('  FAIL', name, String(e.message||e).slice(0,100));
+    }finally{
+      page.off('pageerror', onErr);
+    }
+  }
+
+  await one('proc-continue', async()=>{
+    await page.goto(`http://127.0.0.1:${PORT}/index.html?v=55&crash=proc`,{waitUntil:'domcontentloaded',timeout:60000});
+    await page.waitForFunction(()=>window.__game?.VER,{timeout:30000});
+    await page.evaluate(()=>{
+      const pack={icon:'🎲',titel:'CrashWelt',_genreLabel:'zombie',ton:'x',genre:'zombie'};
+      const save={ver:20,role:'proc',genre:'zombie',worldPack:pack,setup:{done:true},pc:{name:'CrashProc'},
+        st:{lvl:1,hp:50,maxhp:50,mp:10,maxmp:20,gold:5,str:8,cha:8,ruf:0},
+        world:{scene:{ort:'X',anwesend:[],zeit:'Mittag'},npcs:{},titel:'CrashWelt'},
+        flags:{}, skills:[], inv:[], turn:2, choices:['Umsehen'], hist:[], log:[]};
+      localStorage.setItem('isekai_save_v1', JSON.stringify(save));
+    });
+    await page.reload({waitUntil:'domcontentloaded'});
+    await page.waitForFunction(()=>window.__game?.VER,{timeout:30000});
+    await page.evaluate(async()=>{
+      document.getElementById('btnContinue')?.click();
+      await new Promise(r=>setTimeout(r,1500));
+      try{ window.__game.hud?.(); }catch(_){}
+    });
+    const ok=await page.evaluate(()=>!!window.__game?.S?.pc?.name);
+    if(!ok) throw new Error('proc continue lost S');
+  });
+
+  await one('atlas-paint', async()=>{
+    await boot('held','CrashAtlas');
+    await page.evaluate(()=>window.__game.openMenu?.('atlas'));
+    await new Promise(r=>setTimeout(r,500));
+    const n=await page.evaluate(()=>document.querySelectorAll('.atlas-map-stage canvas, .map-canvas, canvas').length);
+    if(n<1) throw new Error('atlas missing canvas');
+  });
+
+  await one('markt-tags', async()=>{
+    await page.goto(`http://127.0.0.1:${PORT}/index.html?v=55&crash=markt`,{waitUntil:'domcontentloaded',timeout:60000});
+    await page.waitForFunction(()=>window.__game?.startProcedural,{timeout:30000});
+    const row=await page.evaluate(async()=>{
+      const G=window.__game; window.__FAST=true; window.__PLAYTEST=true; window.__setCfg?.({mode:'offline'});
+      await G.startProcedural?.('zombie','TagAlex');
+      G.S.setup={done:true}; try{G.enterPlay?.()}catch(_){};
+      // Travel-name choices alone must NOT be treated as shop CTAs — tags drive Zum Markt
+      G.S.choices=['Die Gestalt ansprechen','Umsehen','Nach Supermarkt Ruine gehen','Richtung Nachtmarkt'];
+      try{ G.renderChoices?.(); }catch(_){}
+      const labels=[...document.querySelectorAll('#choices button')].map(b=>b.textContent.trim());
+      const ort=G.S.world?.scene?.ort;
+      const node=G.S.world?.graph?.nodes?.[ort];
+      const travelOnly=labels.filter(t=>/Supermarkt|Nachtmarkt/i.test(t));
+      const travelOpenShop=travelOnly.some(t=>/^(Zum Markt|Markt besuchen|Zum Laden|Einkaufen)\b/i.test(t));
+      return {labels, hasCta: labels.some(t=>/^Zum Markt gehen$/.test(t)), tags:node?.tags, ort, travelOpenShop};
+    });
+    if(row.travelOpenShop) throw new Error('travel name falsely treated as shop CTA');
+    if(!row.hasCta) throw new Error('missing Zum Markt CTA ort='+row.ort+' tags='+JSON.stringify(row.tags)+' labels='+row.labels.join('|'));
+  });
+
+  await one('se-boss-talk', async()=>{
+    await page.setViewport({width:375,height:667,isMobile:true,hasTouch:true});
+    await boot('held','SeTalk');
+    await page.evaluate(async()=>{
+      const G=window.__game;
+      const {enemyById}=await import('./enemies.js');
+      G.Battle.startBattle(G.S,{enemies:[enemyById('boss_ogre')],atbMode:'wait',scripted:true,dungeonBoss:true});
+      const B=G.Battle.getBattle();
+      const hero=B.party.find(p=>p.kind==='hero')||B.party[0];
+      hero.atb=100; B.selecting={actor:hero,mode:'bossTalk'}; B.atbMode='wait';
+      G.Battle.renderBattleUI();
+    });
+    await new Promise(r=>setTimeout(r,400));
+    const row=await page.evaluate(()=>{
+      const odds=[...document.querySelectorAll('.bts-odds')].map(e=>({t:e.textContent.trim(), top:e.getBoundingClientRect().top, right:e.getBoundingClientRect().right}));
+      const sheet=document.querySelector('.boss-talk-sheet')?.getBoundingClientRect();
+      const clipped=odds.some(o=>sheet && (o.right>sheet.right+2 || o.top<sheet.top-2));
+      return {n:odds.length, clipped};
+    });
+    if(row.n<1) throw new Error('no talk odds');
+    if(row.clipped) throw new Error('talk odds clipped');
+  });
+
+  await one('se-menu-tabs', async()=>{
+    await page.setViewport({width:375,height:667,isMobile:true,hasTouch:true});
+    await boot('held','SeTabs');
+    await page.evaluate(()=>window.__game.openMenu?.('hub'));
+    await new Promise(r=>setTimeout(r,300));
+    const row=await page.evaluate(()=>{
+      const tabs=document.getElementById('menuTabs');
+      const vis=[...tabs.querySelectorAll('button')].filter(b=>b.offsetParent!==null).map(b=>b.textContent.trim());
+      return {compact:tabs.classList.contains('tabs-compact'), vis, more:vis.includes('Mehr')};
+    });
+    if(!row.compact) throw new Error('tabs not compact on SE');
+    if(!row.more) throw new Error('Mehr missing: '+row.vis.join('|'));
+    if(row.vis.length>8) throw new Error('too many SE tabs: '+row.vis.join('|'));
+    await page.setViewport({width:390,height:844,isMobile:true,hasTouch:true});
+  });
+
+  await one('v20-continue', async()=>{
+    await page.goto(`http://127.0.0.1:${PORT}/index.html?v=55&crash=v20`,{waitUntil:'domcontentloaded',timeout:60000});
+    await page.waitForFunction(()=>window.__game?.VER,{timeout:30000});
+    await page.evaluate(async ()=>{
+      localStorage.clear();
+      try{
+        try{ const db=await new Promise((res,rej)=>{const r=indexedDB.open('isekai_db_v13');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);}); db.close(); }catch(_){}
+        await new Promise((res)=>{ const r=indexedDB.deleteDatabase('isekai_db_v13'); r.onsuccess=r.onerror=r.onblocked=()=>res(); setTimeout(res,800); });
+      }catch(_){}
+    });
+    const v20=fakeOldSave('20'); v20.saveSeq=999001; v20.turn=5; v20.savedAt=Date.now();
+    await page.evaluate((save)=>{
+      localStorage.setItem('isekai_save_v1', JSON.stringify(save));
+      localStorage.setItem('isekai_save_meta_v1', JSON.stringify({seq:save.saveSeq,turn:save.turn,savedAt:save.savedAt,lsOk:true,idbOk:false}));
+    }, v20);
+    await page.reload({waitUntil:'domcontentloaded'});
+    await page.waitForFunction(()=>window.__game?.VER,{timeout:30000});
+    await page.evaluate(async()=>{
+      document.getElementById('btnContinue')?.click();
+      await new Promise(r=>setTimeout(r,1800));
+    });
+    const row=await page.evaluate(()=>({name:window.__game?.S?.pc?.name, ort:window.__game?.S?.world?.scene?.ort}));
+    if(!row.name || !String(row.name).startsWith('Alt20')) throw new Error('v20 not loaded: '+JSON.stringify(row));
+  });
+
+  report.paths[label]={fails,total};
+  console.log(`=== ${label}: ${fails}/${total} fails ===`);
+  return fails;
+}
+
+
 try{
   server=await serve();
   browser=await puppeteer.launch({
@@ -775,6 +921,7 @@ try{
   if(INPUTS.length<40) throw new Error('Need ≥40 inputs, got '+INPUTS.length);
 
   if(process.env.GATE_ONLY_LIVE==='1'){
+    await runCrashClass();
     await runLiveSiteBrowser();
   } else {
 
@@ -791,6 +938,8 @@ try{
   await runHungFetchReply();
   await runOverworldGate();
   await runDesktopOverworldGate();
+  console.log('\n=== CRASH-CLASS ===');
+  await runCrashClass();
   // Live site last (needs network); skip if GATE_SKIP_LIVE=1
   if(process.env.GATE_SKIP_LIVE==='1'){
     console.log('\n=== LIVE SITE skipped (GATE_SKIP_LIVE=1) ===');

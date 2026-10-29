@@ -37,6 +37,7 @@ import * as C51 from './content51.js';
 import * as C52 from './content52.js';
 import * as C53 from './content53.js';
 import * as C54 from './content54.js';
+import * as C55 from './content55.js';
 import * as V25 from './visual25d.js';
 import * as OW from './overworld.js';
 import * as Aud from './audio.js';
@@ -44,7 +45,7 @@ import { hasBg } from './bg-manifest.js';
 try{ Aud.unlockOnGesture?.(); }catch(_){} // v28 first-tap music
  // v41: test-only scripted, fair ATB bosses, boss dialogue talk-down, tilemap minimap, craft XP→T4
 const $=s=>document.querySelector(s);const $$=s=>[...document.querySelectorAll(s)];const R=a=>a[Math.floor(Math.random()*a.length)];const rnd=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
-const VER='54',CACHE_V='v54';
+const VER='55',CACHE_V='v55';
 try{ const _tb=document.querySelector('.title-badge'); if(_tb) _tb.textContent='v'+VER; }catch(_e){}
 
 const ROLES={
@@ -776,7 +777,9 @@ function migrate(raw){if(!raw)return null;const s=typeof raw==='string'?JSON.par
  if(Number(s.ver)<52){ try{ C52.migrateV52(s); }catch(e){console.warn('v52 migrate',e)} }
  if(Number(s.ver)<53){ try{ C53.migrateV53(s); }catch(e){console.warn('v53 migrate',e)} }
  if(Number(s.ver)<54){ try{ C54.migrateV54(s); }catch(e){console.warn('v54 migrate',e)} }
+ if(Number(s.ver)<55){ try{ C55.migrateV55(s); }catch(e){console.warn('v55 migrate',e)} }
  try{ if(s.role==='proc'||s.genre){ const pack=s.worldPack||PACKS.proc||{icon:'🎲',titel:s.world?.titel||'Welt',_genreLabel:s.genre||'Abenteuer',ton:'',genre:s.genre}; PACKS.proc=pack; ROLES.proc=ROLES.proc||{e:pack.icon||'🎲',name:pack._genreLabel||pack.titel||'Welt',d:pack.ton||'',world:pack.titel||'Welt',base:{hp:100,mp:30,str:10,cha:10,ruf:0,gold:20},cls:['Überlebende:r','Scavenger','Anführer:in','Legende'],pack:'',scene:pack.imageStyle||''}; } }catch(_){}
+ try{ ensurePlaceCommerceTags(s); }catch(_){}
  // v13.1 continuity+time always (kept in v14)
  try{Cont.ensureCont(s);if(s.cal&&s.cal.minute==null)s.cal.minute=0;if(s.cfgCatchupOptIn==null)s.cfgCatchupOptIn=false}catch(e){console.warn('cont migrate',e)}
  // Heal incomplete worlds from old saves (missing orte/graph)
@@ -841,7 +844,7 @@ async function newLife(role,meta,opts){const r=ROLES[role];meta=meta||{lives:0,s
   time:{day:1,hour:18,phase:'Abend'},imgCache:{scenes:{},portraits:{},ok:{},fail:{},next:{}}};
  S.world=world;S.heat=0;S.wanted=[];S.dead=[];S.ledger=[];S.needs={hunger:20,fatigue:10,ageYears:18};S.home=Sim.blankHome();S.cal=Sim.blankCalendar(S.time);S.saveSeq=0;
  try{Sim.migrateToV13(S);Econ.ensureEcon(S);try{Econ.ensureMarket?.(S)}catch(_){};Codex.ensureCodex(S);WorldMap.ensureSpawn(S);Level.ensureProgress(S);Know.ensureKnow(S);Know.migrateKnow(S);Jobs.ensureJobs(S);Equip.ensureEquip(S)}catch(_){}
- try{ C39.ensureContent39(S); C39.seedThreads(S); C40.seedAllNpcArcs(S); C40.ensureCraft40(S); C41.ensureCraft41(S); C41.syncCraftProgress41(S); C42.migrateV42(S); C43.migrateV43(S); C44.migrateV44(S); C45.migrateV45(S); C46.migrateV46(S); C47.migrateV47(S); C48.migrateV48(S); C49.migrateV49(S); C50.migrateV50(S); C51.migrateV51(S); C52.migrateV52(S); C53.migrateV53(S); C54.migrateV54(S); C39.midgameUnlocks(S,{toast:false}); }catch(_){}
+ try{ C39.ensureContent39(S); C39.seedThreads(S); C40.seedAllNpcArcs(S); C40.ensureCraft40(S); C41.ensureCraft41(S); C41.syncCraftProgress41(S); C42.migrateV42(S); C43.migrateV43(S); C44.migrateV44(S); C45.migrateV45(S); C46.migrateV46(S); C47.migrateV47(S); C48.migrateV48(S); C49.migrateV49(S); C50.migrateV50(S); C51.migrateV51(S); C52.migrateV52(S); C53.migrateV53(S); C54.migrateV54(S); C55.migrateV55(S); C39.midgameUnlocks(S,{toast:false}); }catch(_){}
  if(opts.skipSetup){finishSetup(pack);gateOrShow();return}
  // If cinematic already covered death, skip first setup beat when it is 'tod'
  if(opts.fromIntro){S.flags.introDeath=true;S.setup.answers.tod={label:'(Intro)',past:opts.trait||''};S.setup.beat=1}
@@ -1198,13 +1201,17 @@ function hudG(){const s=S.st;
 function renderChoices(){const c=$('#choices');if(S._setupChoices)return;c.innerHTML='';try{document.body.classList.remove('hud-dim')}catch(_){}; try{ $('#toast')?.classList.remove('on'); }catch(_){};
  const list=[...(S.choices||[])];
  try{
-   const ort=(S.world?.scene?.ort||'').toLowerCase();
-   const townish=/dorf|stadt|markt|plaza|tor|hafen|lager|quartier|thron|kapelle|moor/.test(ort);
-   if(townish && !list.some(t=>/markt|laden|kaufen|händler|shop/i.test(t)) && list.length<4){
+   const ort=S.world?.scene?.ort||'';
+   try{ ensurePlaceCommerceTags(S); }catch(_){}
+   const canShop=placeHasTag(ort,'market')||placeHasTag(ort,'settlement')||placeHasTag(ort,'shop');
+   const hasMarktCta=list.some(t=>/^(Zum Markt|Markt besuchen|Zum Laden|Einkaufen)\b/i.test(String(t).trim()));
+   if(canShop && !hasMarktCta){
+     // keep Markt CTA visible even if 4 travel choices — replace last
+     if(list.length>=4) list.pop();
      list.unshift('Zum Markt gehen');
    }
  }catch(_){}
- list.slice(0,4).forEach(t=>{const b=document.createElement('button');b.type='button';b.textContent=t;b.onclick=()=>{ if(/^Zum Markt/.test(t)){ openPixelShop('Markt'); return; } act(t); };c.appendChild(b)})}
+ list.slice(0,4).forEach(t=>{const b=document.createElement('button');b.type='button';b.textContent=t;b.onclick=()=>{ if(/^(Zum Markt|Markt besuchen|Zum Laden|Einkaufen)\b/i.test(String(t).trim())){ openPixelShop('Markt'); return; } act(t); };c.appendChild(b)})}
 
 function pushSys(t){if(!S.log)S.log=[];S.log.push({k:'s',t});if(S.log.length>80)S.log.shift();eventToast(t)}
 function add(k,t){
@@ -1236,7 +1243,7 @@ function showOnboardCoach(){
     };
   }
 }
-function enterPlay(){$('#keyGate')&&$('#keyGate').classList.add('hidden');$('#title').classList.add('hidden');
+function enterPlay(){try{ensurePlaceCommerceTags(S)}catch(_){}$('#keyGate')&&$('#keyGate').classList.add('hidden');$('#title').classList.add('hidden');
  document.body.classList.toggle('greyw',isG());$('#stage').classList.remove('hidden');
  $('.top-actions').style.visibility='';$('#hud').style.visibility='';
  if(S.setup&&!S.setup.done){_mode='setup';loadPack(S.role).then(p=>{S._setupPack=p;showBeat(p)});return}
@@ -1462,8 +1469,28 @@ function openRegionTravelMap(){
   });
 }
 
+
+function syncMenuTabOverflow(){
+  try{
+    const tabs=$('#menuTabs'); if(!tabs) return;
+    const narrow=window.innerWidth<=420 || window.innerHeight<=720;
+    tabs.classList.toggle('tabs-compact', narrow);
+    let more=tabs.querySelector('.menu-tab-more');
+    if(narrow){
+      if(!more){
+        more=document.createElement('button'); more.type='button'; more.className='menu-tab-more'; more.textContent='Mehr';
+        more.onclick=()=>{ tabs.classList.toggle('tabs-expanded'); more.textContent=tabs.classList.contains('tabs-expanded')?'Weniger':'Mehr'; };
+        tabs.appendChild(more);
+      }
+    } else {
+      tabs.classList.remove('tabs-compact','tabs-expanded');
+      more?.remove();
+    }
+  }catch(_){}
+}
+
 function openMenu(tab){
- try{ C43.screenTransition?.('menu', 300); Aud.playSfx?.('menu'); }catch(_){}_menuTab=tab||'hub';const m=$('#menu'); if(!m)return; m.classList.remove('hidden'); try{document.body.classList.add('menu-open');document.documentElement.classList.add('menu-open')}catch(_){};
+ try{ C43.screenTransition?.('menu', 300); Aud.playSfx?.('menu'); }catch(_){}_menuTab=tab||'hub';const m=$('#menu'); if(!m)return; m.classList.remove('hidden'); try{document.body.classList.add('menu-open');document.documentElement.classList.add('menu-open')}catch(_){}; try{syncMenuTabOverflow()}catch(_){};
  $$('#menuTabs button').forEach(b=>b.classList.toggle('on',b.dataset.tab===_menuTab));renderMenu()}
 function closeMenu(){$('#menu').classList.add('hidden'); try{document.body.classList.remove('menu-open');document.documentElement.classList.remove('menu-open')}catch(_){}}
 function renderMenu(){const body=$('#menuBody');if(!body||!S)return;body.innerHTML='';
@@ -1892,6 +1919,38 @@ function placeFlavorText(name, opts={}){
   const uniq=[...new Set(parts)].slice(0,4);
   return uniq.join(' ');
 }
+
+function placeHasTag(ort, tag){
+  try{
+    const n=locNode(ort);
+    const tags=(n?.tags||[]).map(t=>String(t).toLowerCase());
+    if(tags.includes(String(tag).toLowerCase())) return true;
+    if(tag==='market' && (n?.market || n?.settlement || tags.includes('shop') || tags.includes('settlement'))) return true;
+    if(tag==='settlement' && (n?.settlement || n?.market || tags.includes('market') || tags.includes('shop') || n?.terrain==='urban')) return true;
+  }catch(_){}
+  return false;
+}
+function ensurePlaceCommerceTags(state){
+  const st=state||S; const nodes=st?.world?.graph?.nodes; if(!nodes) return;
+  for(const [name,node] of Object.entries(nodes)){
+    if(!node || typeof node!=='object') continue;
+    node.tags=Array.isArray(node.tags)?node.tags:[];
+    const nm=String(name||'');
+    const urban=/markt|gasse|stadt|mall|neon|plaza|dorf|quartier|bazar|handel|shop|laden|enklave|block|sector|lager|safehouse|thron|bar|club|diner|klinik|clinic|arcology|slum/i.test(nm) || node.terrain==='urban';
+    if(urban || node.settlement || node.market){
+      node.settlement=true; node.market=true;
+      node.tags=[...new Set([...node.tags,'settlement','market','shop'])];
+    }
+    // procedural start places & first town always shoppable
+    if(node.harbor) node.tags=[...new Set([...node.tags,'harbor'])];
+  }
+  // Guarantee the current scene / start can shop if it's the hub
+  try{
+    const start=st.world?.graph?.start||Object.keys(nodes)[0];
+    if(start && nodes[start]){ nodes[start].settlement=true; nodes[start].market=true; nodes[start].tags=[...new Set([...(nodes[start].tags||[]),'settlement','market','shop'])]; }
+  }catch(_){}
+}
+
 function enrichPlaceDescs(state){
   const st=state||S; if(!st?.world) return;
   const nodes=st.world.graph?.nodes||{};
@@ -1918,11 +1977,15 @@ function offlineGenerateWorld(genreInput,pcName){const g=pickGenre(genreInput);c
  const places=[...basePlaces, ...extra.map((e,i)=> (basePlaces[i%Math.max(1,basePlaces.length)]?basePlaces[i%basePlaces.length].split(' ')[0]+' · '+e:e))].filter((x,i,a)=>a.indexOf(x)===i).slice(0,24);
  const nodes={};places.forEach((name,i)=>{const exits=[places[(i+1)%places.length],places[(i+2)%places.length],places[(i+5)%places.length]];if(i>0)exits.push(places[0]);
   const harbor=/hafen|küste|werft|kai|pier|containerhafen|hafenlager|hafencontainer|seewacht|dock/i.test(name);
-  const tags=[g.id].concat(harbor?['harbor']:[]) ;
-  const terrain=harbor?'water':(/wald|hain|forst/i.test(name)?'forest':/ruine|brache|trümmer/i.test(name)?'ruins':/markt|gasse|stadt|mall|neon|parkplatz/i.test(name)?'urban':/keller|safehouse|bunker|höhle/i.test(name)?'shelter':'default');
-  nodes[name]={desc:placeFlavorText(name,{genre:g.id,terrain,season:'Herbst',phase:'Abend'}),tags,exits:[...new Set(exits)].slice(0,4),bg:slugify(name).split('-')[0]||'void',harbor:!!harbor,terrain, _flavored:1};
+  const urban=/markt|gasse|stadt|mall|neon|parkplatz|plaza|dorf|quartier|bazar|basar|souk|handel|shop|laden|mall|arcology|block|sector|enklave|sicherheitszone|lager|safehouse|thron|kapelle|kirche|tempel|clinic|klinik|bar|club|diner/i.test(name);
+  const marketish=/markt|bazar|basar|souk|handel|shop|laden|mall|plaza|gasse|händler/i.test(name) || urban;
+  const settlement=/stadt|dorf|quartier|enklave|arcology|block|sector|sicherheitszone|hauptstadt|vorstadt|slum|neon|kamp|lager|safehouse|plaza|thron/i.test(name) || urban;
+  const tags=[g.id].concat(harbor?['harbor']:[]).concat(settlement?['settlement']:[]).concat(marketish?['market','shop']:[]);
+  const terrain=harbor?'water':(/wald|hain|forst/i.test(name)?'forest':/ruine|brache|trümmer/i.test(name)?'ruins':urban?'urban':/keller|safehouse|bunker|höhle/i.test(name)?'shelter':'default');
+  nodes[name]={desc:placeFlavorText(name,{genre:g.id,terrain,season:'Herbst',phase:'Abend'}),tags,exits:[...new Set(exits)].slice(0,4),bg:slugify(name).split('-')[0]||'void',harbor:!!harbor,terrain,settlement:!!settlement,market:!!marketish, _flavored:1};
  });
  const start=places[0];
+ try{ ensurePlaceCommerceTags({world:{graph:{nodes,start}}}); }catch(_){}
  // v34: guarantee ≥2 harbor nodes for boat travel
  { const hNames=places.filter(p=>/hafen|küste|werft|kai|pier|dock|seewacht|container/i.test(p));
    if(hNames.length<2){
@@ -2008,7 +2071,7 @@ async function startProcedural(genreInput,pcName){const pack=await generateWorld
   cls:0,turn:0,hist:[],log:[],flags:{},setup:{done:true,beat:0,answers:{}},summary:pack.conflict||'',
   time:{day:1,hour:18,phase:'Abend'},imgCache:{scenes:{},portraits:{},ok:{},fail:{},next:{}},heat:0,wanted:[],dead:[],world};
  enrichNpcs(S.world);ensureGraph(S);try{Sim.migrateToV13(S);Econ.ensureEcon(S);try{Econ.ensureMarket?.(S)}catch(_){};Codex.ensureCodex(S);WorldMap.ensureSpawn(S);Level.ensureProgress(S);Know.ensureKnow(S);Know.migrateKnow(S);Jobs.ensureJobs(S);Gems.ensureGems(S);Summons.ensureSummons(S);Equip.ensureEquip(S);S.ver=VER}catch(_){}if(S.world.systems||S.genre==='zombie')ensureSystems();try{enrichPlaceDescs(S)}catch(_){};
- try{ C39.ensureContent39(S); C39.seedThreads(S); C40.seedAllNpcArcs(S); C40.ensureCraft40(S); C41.ensureCraft41(S); C41.syncCraftProgress41(S); C42.migrateV42(S); C43.migrateV43(S); C44.migrateV44(S); C45.migrateV45(S); C46.migrateV46(S); C47.migrateV47(S); C48.migrateV48(S); C49.migrateV49(S); C50.migrateV50(S); C51.migrateV51(S); C52.migrateV52(S); C53.migrateV53(S); C54.migrateV54(S); C39.midgameUnlocks(S,{toast:false});
+ try{ C39.ensureContent39(S); C39.seedThreads(S); C40.seedAllNpcArcs(S); C40.ensureCraft40(S); C41.ensureCraft41(S); C41.syncCraftProgress41(S); C42.migrateV42(S); C43.migrateV43(S); C44.migrateV44(S); C45.migrateV45(S); C46.migrateV46(S); C47.migrateV47(S); C48.migrateV48(S); C49.migrateV49(S); C50.migrateV50(S); C51.migrateV51(S); C52.migrateV52(S); C53.migrateV53(S); C54.migrateV54(S); C55.migrateV55(S); C39.midgameUnlocks(S,{toast:false});
    const rum=(S.content39?.rumours||[])[0]; if(rum){ S.ticks=S.ticks||{rumours:[],log:[]}; S.ticks.rumours=(S.ticks.rumours||[]).concat(rum).slice(-10); }
  }catch(e){console.warn('c39/c40 seed',e)}
  const conflict=(pack.conflict||pack.geschichte||'Die Welt atmet Magie und Gefahr.').slice(0,90);
@@ -3449,7 +3512,7 @@ $('#btnGateSave').onclick=()=>{const gk=$('#gateKey').value.trim();if(!gk){toast
  toast('Alles bereit.');gmFetch(gk,true).then(()=>gmProbe(gk).catch(()=>{}));enterPlay()};
 $('#btnGateSkip').onclick=()=>{cfg.mode='offline';cfg.v2=1;localStorage.setItem(CFG,JSON.stringify(cfg));try{if(S)S._narratorMode='offline';updateNarratorDot()}catch(_){} toast('Erzählerin: Offline (lokal, ohne Schlüssel)');enterPlay()};
 
-window.__setCfg=o=>{cfg=Object.assign(cfg||{},o||{});try{localStorage.setItem(CFG,JSON.stringify(cfg))}catch(_){}};window.__game={VER,Aud,toast,clearTypewrite,renderChoices,C39,C40,C41,C42,C43,C44,C45,C46,C47,C48,C49,C50,C51,C52,C53,C54,Cut40,updateNarratorDot,narratorStatusText,openSheet,setBusy,forceUnbusy,ACT_HARD_MS,V25,OW,Depth,Battle,Jobs,Gems,Summons,Equip,Jrpg,localBeatLine,parsePlayerIntent,offlineRespondIntent,freeStream,FREE_MODEL,msgsLean,FREE_URLS,openPendingEncounter,Imm,discoverThing,showCodexInline,Level,UI14,UI17,Know,Cont,lastPromptDump,advanceTimeMinutes,applyActionDuration,newGrey,greyDetails,loadGrey,loadPack,get S(){return S},act,newLife,gBody,msgs,gmRank,gmProbe,parseStream,thinkingCfg,gmOrder,readSSE,STREAM_DELIM,migrate,worldTick,bumpRel,openMenu,openPixelShop,openRegionTravelMap,stageName,offline,startIntro,setSceneImage,setPortrait,imgUrl,advanceTime,phaseLabel,typewrite,enterPlay,showTitle,analyzeImage,applySceneTheme,themeFromText,loadValidatedImage,openingNarration,travelTo,parseTravel,killNPC,robNPC,addMemory,memoryHint,startProcedural,offlineGenerateWorld,generateWorldPack,GENRES,travelChoices,ensureGraph,whoHere,parseLifeSim,Sim,Persist,WorldMap,TravelMap,Cut31,Econ,Codex,UI13,save,loadSave,applyCatchUp,findAnyNpc,placeFlavorText,enrichPlaceDescs};
+window.__setCfg=o=>{cfg=Object.assign(cfg||{},o||{});try{localStorage.setItem(CFG,JSON.stringify(cfg))}catch(_){}};window.__game={VER,Aud,toast,clearTypewrite,renderChoices,C39,C40,C41,C42,C43,C44,C45,C46,C47,C48,C49,C50,C51,C52,C53,C54,C55,Cut40,updateNarratorDot,narratorStatusText,openSheet,setBusy,forceUnbusy,ACT_HARD_MS,V25,OW,Depth,Battle,Jobs,Gems,Summons,Equip,Jrpg,localBeatLine,parsePlayerIntent,offlineRespondIntent,freeStream,FREE_MODEL,msgsLean,FREE_URLS,openPendingEncounter,Imm,discoverThing,showCodexInline,Level,UI14,UI17,Know,Cont,lastPromptDump,advanceTimeMinutes,applyActionDuration,newGrey,greyDetails,loadGrey,loadPack,get S(){return S},act,newLife,gBody,msgs,gmRank,gmProbe,parseStream,thinkingCfg,gmOrder,readSSE,STREAM_DELIM,migrate,worldTick,bumpRel,openMenu,openPixelShop,openRegionTravelMap,stageName,offline,startIntro,setSceneImage,setPortrait,imgUrl,advanceTime,phaseLabel,typewrite,enterPlay,showTitle,analyzeImage,applySceneTheme,themeFromText,loadValidatedImage,openingNarration,travelTo,parseTravel,killNPC,robNPC,addMemory,memoryHint,startProcedural,offlineGenerateWorld,generateWorldPack,GENRES,travelChoices,ensureGraph,whoHere,parseLifeSim,Sim,Persist,WorldMap,TravelMap,Cut31,Econ,Codex,UI13,save,loadSave,applyCatchUp,findAnyNpc,placeFlavorText,enrichPlaceDescs};
 window.__game.askNPC=a=>askNPC(a);window.__game.gemini=gemini;
 if(cfg.gkey)gmFetch(cfg.gkey.trim()).then(()=>gmProbe(cfg.gkey.trim()).catch(()=>{})).catch(()=>{});
 (function(){const root=document.documentElement;const apply=()=>{try{const vv=window.visualViewport;if(!vv)return;const kb=Math.max(0,window.innerHeight-vv.height-vv.offsetTop);root.style.setProperty('--kb',kb+'px')}catch(_){}};

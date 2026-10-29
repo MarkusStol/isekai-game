@@ -153,7 +153,12 @@ export function renderMap(body, S, {act, closeMenu, toast}){
   body.appendChild(wrap);
   const cwrap=document.createElement('div'); cwrap.className='map-canvas-wrap';
   const canvas=document.createElement('canvas'); canvas.width=340; canvas.height=340; canvas.style.width='100%'; canvas.style.display='block'; canvas.style.touchAction='none'; canvas.style.background='#0a1620';
-  cwrap.appendChild(canvas); wrap.appendChild(cwrap);
+  const stage=document.createElement('div'); stage.className='atlas-map-stage'; stage.style.cssText='position:relative;width:100%';
+  stage.appendChild(canvas);
+  const domLabs=document.createElement('div'); domLabs.className='atlas-dom-labs'; domLabs.setAttribute('aria-hidden','true');
+  stage.appendChild(domLabs);
+  cwrap.appendChild(stage);
+  wrap.appendChild(cwrap);
   try{ cwrap.classList.add('map-wrap'); Map.decorateIso?.(cwrap); V25.decorateMapIso(cwrap);}catch(_){}
   const ctx=canvas.getContext('2d');
   const a=S.atlas;
@@ -175,44 +180,56 @@ export function renderMap(body, S, {act, closeMenu, toast}){
       ctx.strokeStyle=d.color||'#f0d59a'; ctx.lineWidth=2; ctx.beginPath();
       d.points.forEach((pt,i)=>{const s=worldToScreen(pt.x,pt.y); i?ctx.lineTo(s.x,s.y):ctx.moveTo(s.x,s.y)}); ctx.stroke();
     }
-    // locations — dots first, then non-colliding labels (visited always, ≤3 known)
+    // locations — dots first, then non-colliding labels (all visited + ≤6 nearest known + ≤2 rumored)
     const vis=Map.listVisible(S);
     const px0=a.playerPos.x, py0=a.playerPos.y;
-    const knownSorted=vis.filter(l=>l.fog==='known').slice().sort((A,B)=>{
-      const da=(A.x-px0)**2+(A.y-py0)**2, db=(B.x-px0)**2+(B.y-py0)**2; return da-db;
-    });
-    const knownLabel=new Set(knownSorted.slice(0,3).map(l=>l.id||l.name));
+    const dist2=(l)=>((l.x-px0)**2+(l.y-py0)**2);
+    const knownSorted=vis.filter(l=>l.fog==='known').slice().sort((A,B)=>dist2(A)-dist2(B));
+    const rumSorted=vis.filter(l=>l.fog==='rumored').slice().sort((A,B)=>dist2(A)-dist2(B));
+    const knownLabel=new Set(knownSorted.slice(0,6).map(l=>l.id||l.name));
+    const rumLabel=new Set(rumSorted.slice(0,2).map(l=>l.id||l.name));
     for(const loc of vis){
       const s=worldToScreen(loc.x,loc.y);
       const fog=loc.fog;
       ctx.globalAlpha=fog==='rumored'?0.45:1;
       ctx.fillStyle=fog==='visited'?'#f0d59a':fog==='known'?'#a78bfa':fog==='rumored'?'#94a3b8':'#334155';
       ctx.beginPath(); ctx.arc(s.x,s.y,fog==='visited'?6:4,0,6.28); ctx.fill();
+      if(fog==='visited'){ ctx.strokeStyle='#fff6'; ctx.lineWidth=1; ctx.stroke(); }
       ctx.globalAlpha=1;
     }
     paint._labs=[];
-    const labelCand=vis.filter(l=>l.fog==='visited' || (l.fog==='known' && knownLabel.has(l.id||l.name)));
-    const offsets=[[8,-4],[8,12],[-40,-4],[-40,12],[8,24],[-40,24],[14,-16]];
+    const labelCand=vis.filter(l=>l.fog==='visited' || (l.fog==='known' && knownLabel.has(l.id||l.name)) || (l.fog==='rumored' && rumLabel.has(l.id||l.name)));
+    const offsets=[[8,-6],[8,12],[-48,-6],[-48,12],[8,22],[-48,22],[16,-18],[-56,-18],[24,4],[-64,4],[0,-22],[0,28]];
     for(const loc of labelCand){
       const s=worldToScreen(loc.x,loc.y);
-      const lab=(loc.name||'').slice(0,10);
+      const lab=(loc.name||'').slice(0,14);
+      if(!lab) continue;
+      ctx.font=loc.fog==='visited'?'bold 10px monospace':'9px monospace';
+      const tw=Math.max(36, ctx.measureText(lab).width+2);
       let placedOk=null;
       for(const [ox,oy] of offsets){
         const tx=s.x+ox, ty=s.y+oy;
-        if(tx<4||ty<10||tx>canvas.width-40||ty>canvas.height-4) continue;
+        if(tx<4||ty<12||tx+tw>canvas.width-2||ty>canvas.height-4) continue;
         let hit=false;
         for(const prev of paint._labs){
-          if(Math.abs(prev.x-tx)<58 && Math.abs(prev.y-ty)<13){ hit=true; break; }
+          if(!(tx+tw<prev.x || tx>prev.x+prev.w || ty+12<prev.y || ty>prev.y+prev.h)){ hit=true; break; }
         }
-        if(!hit){ placedOk={x:tx,y:ty}; break; }
+        if(!hit){ placedOk={x:tx,y:ty,w:tw,h:12,lab,fog:loc.fog}; break; }
       }
       if(!placedOk) continue;
-      ctx.font='9px monospace';
+      ctx.fillStyle='#000c'; ctx.fillRect(placedOk.x-2, placedOk.y-9, placedOk.w+2, 12);
       ctx.fillStyle='#000e'; ctx.fillText(lab, placedOk.x+1, placedOk.y+1);
-      ctx.fillStyle=loc.fog==='visited'?'#fef3c7':'#ddd6fe';
+      ctx.fillStyle=loc.fog==='visited'?'#fef3c7':loc.fog==='known'?'#ddd6fe':'#94a3b8';
       ctx.fillText(lab, placedOk.x, placedOk.y);
-      paint._labs.push({...placedOk, fog:loc.fog});
+      paint._labs.push(placedOk);
     }
+    // DOM mirror for accessibility / no-collision readback
+    try{
+      const host=stage.querySelector('.atlas-dom-labs');
+      if(host){
+        host.innerHTML=paint._labs.map(L=>`<span class="atlas-dom-lab fog-${L.fog||''}" style="left:${L.x}px;top:${L.y-10}px">${L.lab||''}</span>`).join('');
+      }
+    }catch(_){}
     // marks
     for(const m of(a.marks||[])){
       const s=worldToScreen(m.x,m.y);

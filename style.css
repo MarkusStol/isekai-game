@@ -5962,3 +5962,59 @@ body.sheet-open .battle-root:not(.hidden){
   transform: scaleX(1.08) !important;
   transform-origin: center bottom !important;
 }
+
+/* ========== v55: SE compact menu tabs + boss-talk odds ========== */
+.atlas-map-stage{ position:relative; width:100%; }
+.atlas-dom-labs{ position:absolute; inset:0; pointer-events:none; overflow:hidden; }
+.atlas-dom-lab{
+  position:absolute; font:10px monospace; color:transparent; /* canvas is visual; DOM for a11y hit tests */
+  white-space:nowrap; transform:translateY(-2px);
+}
+#menuTabs.tabs-compact button:not([data-pri="1"]):not(.menu-tab-more){
+  display:none !important;
+}
+#menuTabs.tabs-compact.tabs-expanded button{
+  display:inline-flex !important;
+}
+#menuTabs .menu-tab-more{
+  flex:0 0 auto;
+  background:#e8c47a22 !important;
+  border:1px solid #e8c47a66 !important;
+  color:#e8c47a !important;
+  font-weight:700;
+}
+@media (max-width:420px), (max-height:720px){
+  #menuTabs{ gap:3px !important; flex-wrap:nowrap !important; overflow:hidden; }
+  #menuTabs button{ font-size:11px !important; padding:6px 7px !important; flex:0 0 auto; }
+  #menuTabs.tabs-compact button[data-pri="1"]{ max-width:4.6em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .boss-talk-sheet .bts-choices{
+    display:grid !important;
+    grid-template-columns:1fr 1fr !important;
+    gap:5px !important;
+  }
+  .boss-talk-sheet .bts{
+    flex:unset !important;
+    min-width:0 !important;
+    padding:6px 8px !important;
+    position:relative;
+    display:grid !important;
+    grid-template-columns:1fr auto !important;
+    align-items:center !important;
+    gap:2px 8px !important;
+  }
+  .boss-talk-sheet .bts-lab{ font-size:12px !important; line-height:1.15; padding-right:0 !important; grid-column:1; }
+  .boss-talk-sheet .bts-odds{
+    position:static !important;
+    top:auto; right:auto;
+    font-size:12px !important;
+    font-weight:700;
+    grid-column:2;
+    justify-self:end;
+  }
+  .boss-talk-sheet .bts-hint{ display:none !important; }
+  .boss-talk-sheet .bts-title{ font-size:12px !important; }
+  .boss-talk-sheet .bts-title small{ display:none; }
+  .boss-talk-sheet > .meta{ display:none !important; }
+  .boss-talk-sheet .bts-choices > .bts:nth-child(3){ grid-column:1 / -1; }
+  .boss-talk-sheet .bcm.ghost{ grid-column:1 / -1; }
+}
