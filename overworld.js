@@ -1,7 +1,7 @@
 /** v28 Pixel JRPG overworld — dense art, unique orts, soft FoW, day/night, weather, audio */
 const TILE = 16;
 const SPR = 64; // LPC frame size in walk sheets (256×256 = 4×4)
-const MOBILE_VIEW = { w: 13, h: 15 };
+const MOBILE_VIEW = { w: 7, h: 9 }; /* v44 readable sprites */
 const DESKTOP_LOGICAL = { w: 320, h: 180 }; // 16:9 pixel canvas before integer scale
 
 const BASE_TILES = {
@@ -1271,6 +1271,14 @@ function draw(){
           ctx.fillRect(sx,sy,tw,tw);
         }
       }
+      // v44 autotile edge blend
+      try{
+        const C44=window.__game?.C44;
+        if(C44?.neighborDiffMask && C44?.drawTileEdgeBlend){
+          const mask=C44.neighborDiffMask(_map,x,y);
+          if(mask) C44.drawTileEdgeBlend(ctx,sx,sy,tw,mask);
+        }
+      }catch(_){}
       const ov=_map.overlay?.[y]?.[x];
       if(ov && DECOR[ov] && !String(ov).startsWith('house')){
         const dim=loadImg(DECOR[ov]);
@@ -1303,7 +1311,7 @@ function draw(){
     drawSprite(ctx, im, n.frame|0, n.dir|0, sx+tw*0.0, sy, tw);
     ctx.fillStyle='rgba(0,0,0,.65)';
     const label=(n.name||'').split(' ')[0].slice(0,8);
-    ctx.font='8px monospace';
+    ctx.font='bold 11px "Press Start 2P",monospace';
     const twm=ctx.measureText(label).width;
     ctx.fillRect(sx+tw/2-twm/2-3, sy-12, twm+6, 12);
     ctx.fillStyle='#ffe8a0'; ctx.fillText(label, sx+tw/2-twm/2, sy-3);
@@ -1419,6 +1427,13 @@ function draw(){
     const sx=ox+(c.x-camX)*tw, sy=oy+(c.y-camY)*tw;
     ctx.fillStyle='rgba(0,0,0,0.35)'; ctx.fillRect(sx,sy,tw,tw);
   }
+  // v44 studio lighting: vignette + hero key light
+  try{
+    const C44=window.__game?.C44;
+    if(C44?.drawOwLighting){
+      C44.drawOwLighting(ctx, cssW, cssH, {x:hx+tw*0.5, y:hy+tw*0.6, r:tw*3.2}, _dayTint);
+    }
+  }catch(_){}
   // v42 region minimap from real OW tilemap (throttled)
   if((++_mmTick)%8===0){
     try{
@@ -1869,7 +1884,15 @@ export function showOverworld(S){
   loadFog(S);
   _root.classList.remove('hidden');
   document.body.classList.add('pixel-ow');
-  _active=true; _last=0;
+  _active=true;
+  try{
+    const S=_hooks.getS?.();
+    if(S && !S.flags?.visual44Tip && document.body.classList.contains('pixel-ow')){
+      S.flags=S.flags||{}; S.flags.visual44Tip=1;
+      setTimeout(()=>{ try{ window.__game?.toast?.('Tipp: Bewege dich mit dem Steuerkreuz. ! = reden.'); }catch(_){} }, 600);
+    }
+  }catch(_){}
+ _last=0;
   fitCanvas();
   updatePartyPanel();
   try{

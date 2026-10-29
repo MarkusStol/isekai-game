@@ -365,12 +365,14 @@ function playBattleSwirl(){
       document.body.appendChild(el);
     }
     el.classList.remove('hidden'); el.classList.add('on');
-    try{ window.__game?.Aud?.playSfx?.('alert', 0.5); }catch(_){}
-    setTimeout(()=>{ el.classList.remove('on'); el.classList.add('hidden'); res(); }, 720);
+    try{ window.__game?.Aud?.playSfx?.('alert', 0.35); }catch(_){}
+    // v44: shorter swirl so battlefield stays readable
+    setTimeout(()=>{ el.classList.remove('on'); el.classList.add('hidden'); res(); }, 380);
   });
 }
 export function startBattle(S, opts={}){
   try{ playBattleSwirl(); }catch(_){}
+  try{ window.__game?.C44?.ensureBattleBgAnim?.(); }catch(_){}
   try{ window.__game?.C43?.screenTransition?.('battle', 380); }catch(_){}
   try{ window.__game?.Aud?.fadeTo?.('battle'); window.__game?.Aud?.playSfx?.('whoosh',0.25); }catch(_){}
   try{ window.__game?.C43?.stopAmbient?.(); }catch(_){}

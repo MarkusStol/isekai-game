@@ -2170,7 +2170,7 @@ body.pixel-ow .dungeon-minimap-root{display:none!important}
 .fx-transition.hidden{display:none!important}
 .fx-transition.on{opacity:1; pointer-events:auto}
 .fx-transition.out{opacity:0}
-.fx-transition[data-kind="battle"]{background:radial-gradient(circle at 50% 40%, #3a1020ee, #05040af5)}
+.fx-transition[data-kind="battle"]{background:radial-gradient(circle at 50% 40%, #3a102088, #05040acc)} /* v44 softer */
 .fx-transition[data-kind="menu"]{background:#0a0810f2}
 img.px-port, #portraitImg.pixelated, #owDlgPort.pixelated{
   image-rendering: pixelated;
@@ -2193,3 +2193,166 @@ body.ow-dialogue #owDlg{ animation: dlgIn .22s ease; }
 @keyframes dlgIn{ from{ opacity:0; transform:translateY(8px);} to{ opacity:1; transform:none;} }
 #battleRoot:not(.hidden){ animation: battleIn .28s ease; }
 @keyframes battleIn{ from{ opacity:0; filter:brightness(.6);} to{ opacity:1; filter:none;} }
+
+/* ========== v44 STUDIO VISUAL PASS (Chrono/Octopath/Sea of Stars) ========== */
+:root{
+  --jrpg-navy:#0b1224;
+  --jrpg-navy-2:#121a32;
+  --jrpg-panel:#141c34ee;
+  --jrpg-gold:#d4b45a;
+  --jrpg-gold-dim:#8a7020;
+  --jrpg-ink:#e8eefc;
+  --jrpg-muted:#9aa8c7;
+  --jrpg-hp:#e85a5a;
+  --jrpg-mp:#4aa3e8;
+  --jrpg-radius:10px;
+  --jrpg-shadow:0 8px 28px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.08);
+  --jrpg-border:1.5px solid var(--jrpg-gold);
+}
+body.pixel-jrpg{
+  background: radial-gradient(120% 80% at 50% 20%, #1a2444 0%, #070b16 70%) !important;
+  color:var(--jrpg-ink);
+}
+/* Unified JRPG windows */
+#hudBar, #storyBox, .menu-panel, #sheet, #pixelShop, #settingsPane,
+.dialogue-box, #battleUI, .jrpg-window, #statusMini, .ow-hud-card{
+  background: linear-gradient(180deg, #1a2448f2 0%, #0e152cf5 100%) !important;
+  border: var(--jrpg-border) !important;
+  box-shadow: var(--jrpg-shadow), 0 0 0 1px #000 inset !important;
+  border-radius: var(--jrpg-radius) !important;
+  color: var(--jrpg-ink) !important;
+}
+#hudBar::before, #storyBox::before, .menu-panel::before{
+  content:''; pointer-events:none; position:absolute; inset:3px; border:1px solid rgba(212,180,90,.22); border-radius:7px;
+}
+#hudBar, #storyBox, .menu-panel{ position:relative; }
+/* Typography */
+#storyBox, .dialogue-box, .narrator-text{
+  font-family: "Noto Serif JP", "Noto Sans", Georgia, serif !important;
+  letter-spacing:.01em; line-height:1.45;
+}
+.menu-title, .hud-name, .battle-name, #titleLogo, .pixel-title{
+  font-family: Cinzel, "Press Start 2P", serif !important;
+  color: var(--jrpg-gold) !important;
+  text-shadow: 0 2px 0 #000, 0 0 12px rgba(212,180,90,.35);
+}
+.px-port, img.pixelated, .portrait-bust img{
+  image-rendering: pixelated !important;
+  image-rendering: crisp-edges !important;
+  border: 2px solid var(--jrpg-gold) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 6px 18px rgba(0,0,0,.5), inset 0 0 0 1px rgba(255,255,255,.08);
+  background: #0b1224;
+}
+#portraitWrap{
+  filter: drop-shadow(0 10px 18px rgba(0,0,0,.55));
+}
+#portraitWrap.portrait-bust img{
+  width: min(42vw, 168px) !important;
+  height: auto !important;
+  max-height: 42vh;
+}
+/* Bars */
+.hp-bar, .bar-hp, .hpfill{ background: linear-gradient(180deg,#ff8a8a,#c03030) !important; box-shadow:0 0 8px rgba(232,90,90,.35); }
+.mp-bar, .bar-mp, .mpfill{ background: linear-gradient(180deg,#7ec8ff,#2a6fb8) !important; box-shadow:0 0 8px rgba(74,163,232,.35); }
+.bar-track, .hpbar, .mpbar{ background:#0a1020 !important; border:1px solid #3a4568 !important; border-radius:4px; overflow:hidden; }
+/* Battle */
+#battleLayer, #battleUI, .battle-root{
+  backdrop-filter: blur(2px);
+}
+.battle-bg-live, #battleBg.battle-bg-live, #battleLayer .battle-bg{
+  background:
+    radial-gradient(ellipse at 50% 120%, rgba(212,180,90,.18), transparent 55%),
+    linear-gradient(180deg, #1a1030 0%, #2a1848 40%, #3a2058 70%, #1a1028 100%) !important;
+  animation: battleBgPulse 6s ease-in-out infinite alternate;
+}
+@keyframes battleBgPulse{
+  from{ filter:saturate(1) brightness(1); }
+  to{ filter:saturate(1.15) brightness(1.06); }
+}
+.battle-swirl{
+  background:
+    conic-gradient(from 0deg, transparent 0 40%, rgba(80,40,120,.35) 50%, transparent 60% 100%) !important;
+  mix-blend-mode: multiply;
+  opacity:.55 !important;
+}
+.battle-swirl.on{
+  animation: swirlIn .38s ease-out forwards !important;
+}
+@keyframes swirlIn{
+  0%{ transform:scale(1.4) rotate(0deg); opacity:.7; }
+  100%{ transform:scale(2.2) rotate(90deg); opacity:0; }
+}
+/* D-pad / touch */
+#dpad, .dpad, .touch-pad{
+  border: 2px solid rgba(212,180,90,.45) !important;
+  background: rgba(12,18,36,.72) !important;
+  box-shadow: 0 8px 24px rgba(0,0,0,.45) !important;
+}
+/* Title */
+#titleScreen, .title-screen{
+  background:
+    radial-gradient(80% 60% at 50% 30%, rgba(212,180,90,.12), transparent 60%),
+    linear-gradient(180deg,#121a32,#070b16) !important;
+}
+#titleScreen h1, .title-screen h1{
+  font-family: Cinzel, serif !important;
+  color: var(--jrpg-gold) !important;
+  letter-spacing:.08em;
+  text-shadow: 0 0 24px rgba(212,180,90,.4), 0 3px 0 #000;
+}
+/* Settings / menus */
+.menu-list button, .sheet-tab, .shop-item, .settings-row{
+  border: 1px solid rgba(212,180,90,.25) !important;
+  background: linear-gradient(180deg,#1c2648,#121a30) !important;
+  color: var(--jrpg-ink) !important;
+  border-radius: 8px !important;
+}
+.menu-list button:hover, .sheet-tab.active, .shop-item:focus{
+  border-color: var(--jrpg-gold) !important;
+  box-shadow: 0 0 0 1px var(--jrpg-gold), 0 0 16px rgba(212,180,90,.25) !important;
+}
+/* OW canvas soft frame */
+#owRoot, #owCanvas, .ow-wrap{
+  box-shadow: inset 0 0 80px rgba(0,0,0,.35);
+}
+/* Mobile readability */
+@media (max-width: 900px){
+  #storyBox{ font-size: 15px !important; }
+  .hud-name{ font-size: 14px !important; }
+  #portraitWrap.portrait-bust img{ width: min(48vw, 148px) !important; }
+}
+/* Reduce motion */
+@media (prefers-reduced-motion: reduce){
+  .battle-bg-live{ animation:none !important; }
+  .battle-swirl.on{ animation-duration:.01s !important; }
+}
+
+/* v44 portrait presence */
+#portraitWrap.portrait-bust:not(.hidden){
+  z-index: 40 !important;
+  display:flex !important;
+  justify-content:center;
+  margin: 6px auto 0;
+}
+#portraitWrap.portrait-bust img,
+#portraitImg.px-port,
+#portraitImg.pixelated{
+  width: min(56vw, 180px) !important;
+  height: auto !important;
+  min-width: 120px;
+  min-height: 120px;
+  object-fit: contain;
+  image-rendering: pixelated !important;
+  border: 3px solid #d4b45a !important;
+  border-radius: 10px !important;
+  background: #0b1224 !important;
+  box-shadow: 0 10px 28px rgba(0,0,0,.6), 0 0 0 1px #000 inset;
+}
+#owDlgPort{
+  width: 64px !important; height: 64px !important;
+  image-rendering: pixelated !important;
+  border: 2px solid #d4b45a !important;
+  border-radius: 8px;
+  background:#0b1224;
+}
