@@ -204,12 +204,162 @@ export function setTax(S,rate){
   return {ok:true,text:`Steuersatz: ${(S.kingdom.taxRate*100).toFixed(0)}%.`};
 }
 
+
+
+/* ===== v32 market sim: supply/demand by region, season, events ===== */
+const GOOD_CAT={
+  brot:'food', eintopf:'food', bier:'food', trank:'potion', äther:'potion', antidot:'potion', elixier:'potion',
+  dolch:'weapon', schwert:'weapon', schild:'armor', umhang:'armor', fackel:'misc', seil:'misc',
+  karte:'travel', feder:'rare', ring:'rare', luftschiff_ticket:'travel', raum:'service',
+};
+const REGION_BIAS={
+  harbor:{food:0.9, potion:1.05, weapon:1.1, travel:0.85, rare:1.15},
+  market:{food:0.95, potion:1.0, weapon:1.0, armor:0.95, misc:0.9},
+  village:{food:0.85, potion:1.15, weapon:1.2, rare:1.3},
+  guild:{weapon:0.9, armor:0.9, potion:1.05, food:1.1},
+  wild:{food:1.25, potion:1.3, weapon:1.15, travel:1.2},
+  default:{food:1, potion:1, weapon:1, armor:1, misc:1, rare:1.1, travel:1, service:1},
+};
+function regionKind(ort){
+  const s=String(ort||'').toLowerCase();
+  if(/hafen|küste|werft|bucht|kai/.test(s)) return 'harbor';
+  if(/markt|bazar|handels/.test(s)) return 'market';
+  if(/dorf|weiler|bauern/.test(s)) return 'village';
+  if(/gilde|söldner|wache|burg/.test(s)) return 'guild';
+  if(/wald|moor|ruine|höhle|wüste|berg/.test(s)) return 'wild';
+  return 'default';
+}
+export function blankMarket(){
+  return {
+    goods:{}, // id -> {supply, demand, base}
+    events:[], // {id,label,mult,untilDay,cats:[]}
+    lastTickDay:0,
+    lastSeason:'',
+  };
+}
+export function ensureMarket(S){
+  ensureEcon(S);
+  if(!S.market) S.market=blankMarket();
+  if(!S.market.goods) S.market.goods={};
+  if(!S.market.events) S.market.events=[];
+  // seed defaults once
+  const seeds={food:40, potion:20, weapon:12, armor:12, misc:25, rare:6, travel:8, service:15};
+  for(const [k,v] of Object.entries(seeds)){
+    if(!S.market.goods[k]) S.market.goods[k]={supply:v, demand:v, base:1};
+  }
+  return S.market;
+}
+function seasonMult(season, cat){
+  const s=season||'Sommer';
+  if(cat==='food'){
+    if(s==='Winter') return 1.35;
+    if(s==='Herbst') return 0.88;
+    if(s==='Frühling') return 1.05;
+    return 0.95;
+  }
+  if(cat==='potion'){
+    if(s==='Winter') return 1.15;
+    if(s==='Sommer') return 0.95;
+  }
+  if(cat==='travel'){
+    if(s==='Winter') return 1.25;
+    if(s==='Sommer') return 0.9;
+  }
+  return 1;
+}
+export function pushMarketEvent(S,{id,label,mult,days,cats}){
+  const m=ensureMarket(S);
+  const until=(S.cal?.day|1)+(days|3);
+  m.events=m.events.filter(e=>e.id!==id);
+  m.events.push({id,label,mult:mult||1.2,untilDay:until,cats:cats||['food']});
+  try{ ledgerPush(S,{type:'market',who:'Markt',what:label||id,where:S.world?.scene?.ort,importance:50,emotion:'unruhig'}); }catch(_){}
+}
+export function marketTick(S, hours){
+  const m=ensureMarket(S);
+  const days=(hours||0)/24; if(days<=0) return;
+  const season=S.cal?.season||'Sommer';
+  const day=S.cal?.day|1;
+  // expire events
+  m.events=(m.events||[]).filter(e=>(e.untilDay|0)>=day);
+  // seasonal shock once per season change
+  if(m.lastSeason && m.lastSeason!==season){
+    if(season==='Winter') pushMarketEvent(S,{id:'winter_food',label:'Wintervorräte knapper',mult:1.3,days:10,cats:['food']});
+    if(season==='Herbst') pushMarketEvent(S,{id:'harvest',label:'Ernte drückt Preise',mult:0.85,days:8,cats:['food']});
+  }
+  m.lastSeason=season;
+  // random regional events
+  if(Math.random()<days*0.12){
+    const pool=[
+      {id:'caravan',label:'Karawane trifft ein',mult:0.9,days:3,cats:['misc','rare','travel']},
+      {id:'raid',label:'Überfall auf Händler',mult:1.35,days:4,cats:['weapon','food']},
+      {id:'plague',label:'Seuchenangst',mult:1.4,days:5,cats:['potion']},
+      {id:'festival',label:'Fest inflates Bier',mult:1.2,days:2,cats:['food','service']},
+    ];
+    const e=pool[Math.floor(Math.random()*pool.length)];
+    pushMarketEvent(S,e);
+  }
+  // supply/demand drift toward equilibrium, affected by kingdom stock
+  for(const [cat,g] of Object.entries(m.goods)){
+    let targetSup=g.base*20;
+    if(cat==='food') targetSup=20+Math.min(40,(S.kingdom?.resources?.grain|0)/5);
+    if(cat==='weapon'||cat==='armor') targetSup=10+Math.min(20,(S.kingdom?.resources?.iron|0)/2);
+    // mean-revert
+    g.supply=Math.max(1, g.supply+(targetSup-g.supply)*0.15*days);
+    g.demand=Math.max(1, g.demand+(g.base*18-g.demand)*0.1*days + (Math.random()-0.5)*2*days);
+    // hunger / heat bump demand
+    if(cat==='food' && (S.needs?.hunger|0)>60) g.demand+=days*3;
+    if(cat==='weapon' && (S.heat|0)>40) g.demand+=days*2;
+  }
+  m.lastTickDay=day;
+}
+/** Price multiplier for a shop item id in current region */
+export function marketPriceMult(S, itemId, ort){
+  const m=ensureMarket(S);
+  const cat=GOOD_CAT[itemId]||GOOD_CAT[String(itemId||'').toLowerCase()]||'misc';
+  const g=m.goods[cat]||{supply:20,demand:20,base:1};
+  const ratio=g.demand/Math.max(1,g.supply); // >1 scarce
+  let mult=Math.pow(ratio, 0.55); // dampen
+  mult*=seasonMult(S.cal?.season, cat);
+  const rk=regionKind(ort||S.world?.scene?.ort);
+  const bias=(REGION_BIAS[rk]||REGION_BIAS.default)[cat];
+  if(bias) mult*=bias;
+  // kingdom scarcity
+  try{ mult*=regionalPrice(S, cat==='food'?'food':cat==='weapon'?'ore':'food')*0.5+0.5; }catch(_){}
+  // events
+  for(const e of(m.events||[])){
+    if((e.cats||[]).includes(cat)) mult*=e.mult||1;
+  }
+  // genre
+  const gen=S.genre||S.role||'';
+  if(gen==='zombie' && (cat==='food'||cat==='weapon')) mult*=1.35;
+  if(gen==='cyberpunk' && (cat==='rare'||cat==='travel')) mult*=1.2;
+  return Math.max(0.55, Math.min(2.4, mult));
+}
+export function marketBuy(S, itemId, qty){
+  const m=ensureMarket(S);
+  const cat=GOOD_CAT[itemId]||'misc';
+  if(m.goods[cat]){ m.goods[cat].supply=Math.max(0,m.goods[cat].supply-(qty||1)); m.goods[cat].demand+=0.5*(qty||1); }
+}
+export function marketSell(S, itemId, qty){
+  const m=ensureMarket(S);
+  const cat=GOOD_CAT[itemId]||'misc';
+  if(m.goods[cat]){ m.goods[cat].supply+=(qty||1); m.goods[cat].demand=Math.max(1,m.goods[cat].demand-0.3*(qty||1)); }
+}
+export function marketStatusLine(S){
+  const m=ensureMarket(S);
+  const ev=(m.events||[]).map(e=>e.label).slice(0,2).join('; ');
+  const food=m.goods.food; const ratio=food? (food.demand/Math.max(1,food.supply)):1;
+  const tag=ratio>1.3?'knapp':ratio<0.85?'überreich':'ausgeglichen';
+  return `Markt (${regionKind(S.world?.scene?.ort)}): Nahrung ${tag}`+(ev?` · ${ev}`:'');
+}
+
+
 export function econHourly(S,hours){
   personalFinanceTick(S,hours);
   farmTick(S,hours);
-  // kingdom less frequent: every call still ok with days fraction
   kingdomTick(S,hours);
+  try{ marketTick(S,hours); }catch(_){}
 }
 
 export {CROPS};
-export default {ensureEcon,blankFinance,blankKingdom,blankFarm,plantCrop,waterCrops,harvestReady,farmTick,personalFinanceTick,kingdomTick,econHourly,regionalPrice,takeLoan,bankDeposit,deposit,withdraw,setTax,syncGold,CROPS,seasonWeather};
+export default {ensureEcon,blankFinance,blankKingdom,blankFarm,plantCrop,waterCrops,harvestReady,farmTick,personalFinanceTick,kingdomTick,econHourly,regionalPrice,takeLoan,bankDeposit,deposit,withdraw,setTax,syncGold,CROPS,seasonWeather,ensureMarket,blankMarket,marketTick,marketPriceMult,marketBuy,marketSell,marketStatusLine,pushMarketEvent};

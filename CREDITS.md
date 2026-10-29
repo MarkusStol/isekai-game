@@ -57,3 +57,10 @@ obligations for LPC-derived character sprites.
 - Richer LPC thatched house composites (windows, chimney, beams)
 - Pixel intro cutscene; region travel map (horse/boat/airship)
 - Per-merchant shop stocks + reputation pricing; NPC clock calendars; quest markers from quest data
+
+## v32
+- Airship unlock gated (ticket / quest); boats only between harbor-tagged places
+- Full regional market sim (season, region, events) wired into shops
+- Bespoke pixel intro cutscene backgrounds + pose strips (`assets/pixel/cutscene/`)
+- Rebuilt LPC housebig0–7 and hall0–3 variants (richer windows/roofs)
+- First-hour genre playtest fixes (everyday intents, place descs, rest vs sleep)

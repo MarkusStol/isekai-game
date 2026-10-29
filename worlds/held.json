@@ -925,12 +925,14 @@
         "desc": "Schiffe, Salz, Schmugglerflüstern.",
         "tags": [
           "hafen",
-          "außen"
+          "außen",
+          "harbor"
         ],
         "exits": [
           "Osttor"
         ],
-        "bg": "hafen"
+        "bg": "hafen",
+        "harbor": true
       },
       "Nordwall": {
         "desc": "Steinmauer, Ruß, Dämonenheere in der Ferne.",

@@ -67,7 +67,9 @@ export function richOfflineProse(S, playerAction, opts={}){
   const art=String(npc?.art||npc?.stimme||'').split(/[.;]/)[0].trim().slice(0,90);
   const mood=npc?.mood||'neutral';
   const memRaw=(npc?.memories||[]).slice(-1)[0];
-  const mem=cleanSnippet(typeof memRaw==='string'?memRaw:(memRaw?.text||''));
+  let mem=cleanSnippet(typeof memRaw==='string'?memRaw:(memRaw?.text||''));
+  // Skip meta intent tags like "greet: hallo" / "act: ich warte" — they read as system spam
+  if(/^(greet|ask|ask_who|talk|act|look|rest|buy|wait|need|move|romance|flee|train|use|take)\s*:/i.test(mem)) mem='';
   const act=String(playerAction||'').trim().slice(0,120);
   const tone=String(S.world?.lore?.ton||S.genre||'').slice(0,60);
 
@@ -89,19 +91,29 @@ export function richOfflineProse(S, playerAction, opts={}){
   // Lead with the person and the answer — time/weather as color, not headline (seamless vs live narrators)
   if(who&&npc){
     lines.push(art?`${label} (${art}) bleibt in ${ort}.`:`${label} bleibt dir in ${ort} zugewandt.`);
-    if(mem) lines.push(`Etwas an dir erinnert ${label} an: ${mem}.`);
+    if(mem && Math.random()<0.28) lines.push(`Etwas an dir erinnert ${label} an: ${mem}.`);
     if(isQ){
       const topic=act.replace(/^[„"]?/,'').slice(0,80);
+      const g=String(S.genre||S.world?.systems?.kind||'').toLowerCase();
+      const genreAns=g.includes('zombie')
+        ? R([`${label} mustert die Barrikaden. „Hier draußen frisst die Stadt die Unvorsichtigen. Bleib an den Wänden.“`,`„Infizierte. Knappheit. Misstrauen. Mehr brauchst du nicht wissen — fürs Erste.“`])
+        : g.includes('cyber')
+        ? R([`${label} tippt an den Implant-Rand. „Frag nicht laut nach dem Datenträger. Die Wände haben Mikros.“`,`„Neon, Schulden, Konzerne. Willkommen in der Gasse.“`])
+        : null;
       lines.push(opts.good!==false
-        ? R([
+        ? (genreAns||R([
             `${label} überlegt. „Zu deiner Frage — ich sage dir, was ich weiß.“ Die Antwort bleibt knapp, aber ehrlich.`,
             `„Hm.“ ${label} senkt die Stimme. „Darüber spricht man hier nicht laut. Aber gut: ich erzähl’s dir.“`,
             `${label} nickt. Die Antwort kommt in ganzen Sätzen, ohne dich wegzuschicken.`
-          ])
+          ]))
         : R([
             `${label} schüttelt den Kopf. „Nicht hier. Nicht so.“`,
             `Ein kurzes Schweigen. „Frag etwas anderes.“`
           ]));
+      if(/ort|hier|lage|los|passiert/.test(topic.toLowerCase())){
+        const d=String(S.world?.orte?.[ort]||S.world?.graph?.nodes?.[ort]?.desc||'').slice(0,120);
+        if(d) lines.push(`Über ${ort}: ${d}`);
+      }
       lines.push(weatherLine);
     } else {
       lines.push(R([

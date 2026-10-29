@@ -1,17 +1,15 @@
-/** v31 pixel-style intro cutscene (canvas, no remote AI). */
+/** v32 pixel intro cutscene — bespoke backgrounds + pose strips. */
 const BEATS=[
-  {id:'crash', bg:'#0a0614', title:'Aufprall', lines:['Hupen. Licht. Asphalt.','Zwischen Herzschlag und Stille…'], spr:'hero', action:'hurt'},
-  {id:'void', bg:'#050818', title:'Dazwischen', lines:['Dunkelheit.','Wärme, die nicht von dieser Welt ist.'], spr:'princess', action:'cast'},
-  {id:'goddess', bg:'#12082a', title:'Die Stimme', lines:['„Du bist gestorben.','Das ist… ärgerlich. Aber nicht endgültig.“'], spr:'mage', action:'cast'},
-  {id:'paths', bg:'#1a0a30', title:'Pfade', lines:['Licht zerteilt sich.','Held · Intrige · Nacht · Alltag'], spr:'hero', action:'attack'},
-  {id:'fall', bg:'#0c1a2e', title:'Fall', lines:['Die andere Welt atmet bereits.','Du fällst — und landest.'], spr:'hero', action:'hurt'},
+  {id:'crash', title:'Aufprall', lines:['Hupen. Licht. Asphalt.','Zwischen Herzschlag und Stille…'], bg:'./assets/pixel/cutscene/crash.png', pose:'./assets/pixel/cutscene/pose_hero_hurt.png'},
+  {id:'void', title:'Dazwischen', lines:['Dunkelheit.','Wärme, die nicht von dieser Welt ist.'], bg:'./assets/pixel/cutscene/void.png', pose:'./assets/pixel/cutscene/pose_goddess_cast.png'},
+  {id:'goddess', title:'Die Stimme', lines:['„Du bist gestorben.','Das ist… ärgerlich. Aber nicht endgültig.“'], bg:'./assets/pixel/cutscene/goddess.png', pose:'./assets/pixel/cutscene/pose_goddess_cast.png'},
+  {id:'paths', title:'Pfade', lines:['Licht zerteilt sich.','Held · Intrige · Nacht · Alltag'], bg:'./assets/pixel/cutscene/paths.png', pose:'./assets/pixel/cutscene/pose_hero_reach.png'},
+  {id:'fall', title:'Fall', lines:['Die andere Welt atmet bereits.','Du fällst — und landest.'], bg:'./assets/pixel/cutscene/fall.png', pose:'./assets/pixel/cutscene/pose_hero_fall.png'},
 ];
 
-function loadSheet(role, action){
-  const map={attack:'slash', hurt:'hurt', cast:'spellcast'};
-  const a=map[action]||'hurt';
-  const src=`./assets/pixel/chars/${role}_${a}.png`;
+function loadImg(src){
   return new Promise(res=>{
+    if(!src) return res(null);
     const img=new Image();
     img.onload=()=>res(img);
     img.onerror=()=>res(null);
@@ -24,7 +22,6 @@ export function dismissIntroCutscene(){
   if(el){ el.classList.add('hidden'); clearTimeout(el._t); }
 }
 
-/** Play pixel cutscene; resolves when finished or skipped. */
 export async function playIntroCutscene(opts={}){
   dismissIntroCutscene();
   let root=document.getElementById('introCutscene');
@@ -50,13 +47,12 @@ export async function playIntroCutscene(opts={}){
   root.querySelector('#introSkip').onclick=skip;
   root.addEventListener('click', e=>{ if(e.target===root) skip(); });
 
-  const stars=Array.from({length:40},()=>({x:Math.random()*320,y:Math.random()*180,s:Math.random()*1.5+0.5}));
   for(let i=0;i<BEATS.length;i++){
     if(skipped) break;
     const b=BEATS[i];
     root.querySelector('#introCutTitle').textContent=b.title;
     root.querySelector('#introCutText').textContent='';
-    const img=await loadSheet(b.spr, b.action);
+    const [bg, pose]=await Promise.all([loadImg(b.bg), loadImg(b.pose)]);
     const start=performance.now();
     let lineIdx=0;
     const showLine=()=>{
@@ -67,35 +63,23 @@ export async function playIntroCutscene(opts={}){
       }
     };
     showLine();
-    const lineT=setInterval(()=>{ if(!skipped) showLine(); }, 900);
+    const lineT=setInterval(()=>{ if(!skipped) showLine(); }, 850);
     await new Promise(resolve=>{
       const tick=(ts)=>{
         if(skipped){ clearInterval(lineT); resolve(); return; }
         const t=(ts-start)/1000;
-        // bg
-        ctx.fillStyle=b.bg; ctx.fillRect(0,0,320,180);
-        // stars / particles
-        ctx.fillStyle='#ffffffaa';
-        stars.forEach((s,si)=>{
-          const yy=(s.y + t*8*(si%3+1))%180;
-          ctx.fillRect(s.x, yy, s.s, s.s);
-        });
-        // ground strip
-        ctx.fillStyle='#1a1028'; ctx.fillRect(0,140,320,40);
-        ctx.fillStyle='#2a1840'; ctx.fillRect(0,140,320,2);
-        // sprite
-        if(img){
-          const frame=Math.min(3, Math.floor(t*6)%4);
-          const fw=64, fh=64;
-          const sx=frame*fw, sy=0;
-          const dx=128, dy=70;
-          ctx.drawImage(img, sx, sy, fw, fh, dx, dy, 64, 64);
-        } else {
-          ctx.fillStyle='#f0d59a'; ctx.fillRect(148,100,24,32);
+        ctx.clearRect(0,0,320,180);
+        if(bg){ ctx.drawImage(bg,0,0,320,180); }
+        else { ctx.fillStyle='#0a0614'; ctx.fillRect(0,0,320,180); }
+        // animated pose overlay (bottom-right)
+        if(pose){
+          const bob=Math.sin(t*3)*3;
+          const dx=230, dy=95+bob;
+          ctx.drawImage(pose, 0, 0, pose.width, pose.height, dx, dy, 72, 72);
         }
-        // vignette bars
-        ctx.fillStyle='#0008'; ctx.fillRect(0,0,320,18); ctx.fillRect(0,162,320,18);
-        if(t<3.2 && !skipped) requestAnimationFrame(tick);
+        // letterbox
+        ctx.fillStyle='#0008'; ctx.fillRect(0,0,320,16); ctx.fillRect(0,164,320,16);
+        if(t<3.1 && !skipped) requestAnimationFrame(tick);
         else { clearInterval(lineT); resolve(); }
       };
       requestAnimationFrame(tick);

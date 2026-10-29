@@ -25,9 +25,9 @@ import * as OW from './overworld.js';
 import * as Aud from './audio.js';
 import { hasBg } from './bg-manifest.js';
 try{ Aud.unlockOnGesture?.(); }catch(_){} // v28 first-tap music
- // v31: merchant shops, NPC calendars, quest markers, intro cutscene, travel map
+ // v32: airship unlock, harbors, market sim, cutscene art, genre playtest fixes
 const $=s=>document.querySelector(s);const $$=s=>[...document.querySelectorAll(s)];const R=a=>a[Math.floor(Math.random()*a.length)];const rnd=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
-const VER='31',CACHE_V='v31';
+const VER='32',CACHE_V='v32';
 const ROLES={
  held:{e:'⚔️',name:'Held mit Status-System',d:'Ein blaues Fenster erscheint: [Status]. Die Welt braucht dich.',world:'Königreich Aldheim',
   base:{hp:100,mp:40,str:12,cha:8,ruf:10,gold:40},cls:['Abenteurer','Ritter','Held','Legendärer Held'],pack:'worlds/held.json',
@@ -697,6 +697,7 @@ function migrate(raw){if(!raw)return null;const s=typeof raw==='string'?JSON.par
  if(Number(s.ver)<30){s.ver=30;s.owFog=s.owFog||{};s.flags=s.flags||{};s.flags.shops=s.flags.shops||{}}
  if(Number(s.ver)<31){s.ver=31;s.owFog=s.owFog||{};s.flags=s.flags||{};s.flags.shops=s.flags.shops||{};
   try{ if(s.quests?.main && !s.quests.main.objectiveMarks){ const bq=buildQuests(PACKS[s.role]||{}); s.quests.main.objectiveMarks=bq.main.objectiveMarks; s.quests.main.marker=bq.main.marker; (s.quests.side||[]).forEach((q,i)=>{ if(!q.marker && bq.side[i]?.marker) q.marker=bq.side[i].marker; }); } }catch(_){} }
+ if(Number(s.ver)<32){s.ver=32;s.flags=s.flags||{};s.flags.travel=s.flags.travel||{airship:false,boatPass:false};s.market=s.market||null;try{Econ.ensureMarket?.(s)}catch(_){}}
  // v13.1 continuity+time always (kept in v14)
  try{Cont.ensureCont(s);if(s.cal&&s.cal.minute==null)s.cal.minute=0;if(s.cfgCatchupOptIn==null)s.cfgCatchupOptIn=false}catch(e){console.warn('cont migrate',e)}
  // Heal incomplete worlds from old saves (missing orte/graph)
@@ -760,7 +761,7 @@ async function newLife(role,meta,opts){const r=ROLES[role];meta=meta||{lives:0,s
   cls:0,turn:0,hist:[],log:[],flags:Object.assign({},opts.flags||{}),setup:{done:false,beat:0,answers:{}},summary:'',
   time:{day:1,hour:18,phase:'Abend'},imgCache:{scenes:{},portraits:{},ok:{},fail:{},next:{}}};
  S.world=world;S.heat=0;S.wanted=[];S.dead=[];S.ledger=[];S.needs={hunger:20,fatigue:10,ageYears:18};S.home=Sim.blankHome();S.cal=Sim.blankCalendar(S.time);S.saveSeq=0;
- try{Sim.migrateToV13(S);Econ.ensureEcon(S);Codex.ensureCodex(S);WorldMap.ensureSpawn(S);Level.ensureProgress(S);Know.ensureKnow(S);Know.migrateKnow(S)}catch(_){}
+ try{Sim.migrateToV13(S);Econ.ensureEcon(S);try{Econ.ensureMarket?.(S)}catch(_){};Codex.ensureCodex(S);WorldMap.ensureSpawn(S);Level.ensureProgress(S);Know.ensureKnow(S);Know.migrateKnow(S)}catch(_){}
  if(opts.skipSetup){finishSetup(pack);gateOrShow();return}
  // If cinematic already covered death, skip first setup beat when it is 'tod'
  if(opts.fromIntro){S.flags.introDeath=true;S.setup.answers.tod={label:'(Intro)',past:opts.trait||''};S.setup.beat=1}
@@ -974,7 +975,7 @@ function openingNarration(pack){if(isG())return (S.kind==='darren'?greyIntroDarr
  const vibe=String(pack.ton||'').slice(0,100);
  return (`Du öffnest die Augen. ${ort}${zeit?'. '+zeit:''}.${presence} Du kennst niemanden — nur Gestalten und Eindrücke. ${vibe}`).replace(/\s+/g,' ').trim()}
 
-function finishSetup(pack){S.setup.done=true;S._setupChoices=null;S._setupBeat=null;_mode='play';ensureGraph(S);enrichNpcs(S.world);S.heat=S.heat|0;S.wanted=S.wanted||[];S.dead=S.dead||[];try{Sim.migrateToV13(S);Econ.ensureEcon(S);Codex.ensureCodex(S);WorldMap.ensureSpawn(S);Level.ensureProgress(S);Know.ensureKnow(S);Know.migrateKnow(S);Cont.ensureCont(S);Jobs.ensureJobs(S);Gems.ensureGems(S);Summons.ensureSummons(S);Equip.ensureEquip(S);if(S.cal&&S.cal.minute==null)S.cal.minute=0;S.ver=VER;applyGenreTheme(S.genre||S.role||pack.genre)}catch(_){};
+function finishSetup(pack){S.setup.done=true;S._setupChoices=null;S._setupBeat=null;_mode='play';ensureGraph(S);enrichNpcs(S.world);S.heat=S.heat|0;S.wanted=S.wanted||[];S.dead=S.dead||[];try{Sim.migrateToV13(S);Econ.ensureEcon(S);Econ.ensureMarket?.(S);Codex.ensureCodex(S);WorldMap.ensureSpawn(S);Level.ensureProgress(S);Know.ensureKnow(S);Know.migrateKnow(S);Cont.ensureCont(S);Jobs.ensureJobs(S);Gems.ensureGems(S);Summons.ensureSummons(S);Equip.ensureEquip(S);if(S.cal&&S.cal.minute==null)S.cal.minute=0;S.ver=VER;applyGenreTheme(S.genre||S.role||pack.genre)}catch(_){};
  let bridge=openingNarration(pack)||'Du öffnest die Augen. Die Welt wartet. Du kennst niemanden.';
  S.log=[{k:'n',t:bridge}];S.hist=[{role:'assistant',content:bridge}];S.choices=defChoices();
  try{Know.ensureKnow(S);Know.migrateKnow(S);Level.ensureProgress(S);
@@ -1116,7 +1117,7 @@ function enterPlay(){$('#keyGate')&&$('#keyGate').classList.add('hidden');$('#ti
  $('.top-actions').style.visibility='';$('#hud').style.visibility='';
  if(S.setup&&!S.setup.done){_mode='setup';loadPack(S.role).then(p=>{S._setupPack=p;showBeat(p)});return}
  _mode='play';
- try{Sim.migrateToV13(S);Econ.ensureEcon(S);Codex.ensureCodex(S);WorldMap.ensureSpawn(S);Level.ensureProgress(S);Know.ensureKnow(S);Know.migrateKnow(S);Cont.ensureCont(S)}catch(_){}
+ try{Sim.migrateToV13(S);Econ.ensureEcon(S);try{Econ.ensureMarket?.(S)}catch(_){};Codex.ensureCodex(S);WorldMap.ensureSpawn(S);Level.ensureProgress(S);Know.ensureKnow(S);Know.migrateKnow(S);Cont.ensureCont(S)}catch(_){}
  try{applyGenreTheme(S.genre||S.role)}catch(_){}
  // never replay intro once setup done
  S.flags=S.flags||{}; S.flags.introDone=true;
@@ -1189,6 +1190,7 @@ const SHOP_CATALOGS={
     {id:'karte', name:'Reisekarte', price:30, desc:'Enthüllt Nachbarregionen', type:'misc', use:'map'},
     {id:'feder', name:'Greifenfeder', price:60, desc:'Seltenes Handwerksgut', type:'misc'},
     {id:'ring', name:'Glücksring', price:90, desc:'+Charme', type:'armor', equip:true, def:1},
+    {id:'luftschiff_ticket', name:'Luftschiff-Ticket', price:180, desc:'Freischaltet Luftschiff-Reisen', type:'key', use:'airship'},
   ],
 };
 const SHOP_STOCK=SHOP_CATALOGS.general; // legacy alias
@@ -1205,23 +1207,21 @@ function merchantKind(who){
   let h=0; for(const c of String(who||'x')) h=(h*31+c.charCodeAt(0))|0;
   return keys[Math.abs(h)%keys.length];
 }
-function shopPriceMult(who){
-  // Reputation + personal affinity drive prices (0.75 … 1.35)
+function shopPriceMult(who, itemId){
   const ruf=S?.st?.ruf|0;
   let aff=0;
   try{ aff=S?.romance?.[who]?.affection|0; }catch(_){}
   try{ if(!aff && S?.world?.npcs?.[who]?.meinung) aff=(Object.values(S.world.npcs[who].meinung)[0])|0; }catch(_){}
-  const rufPart = Math.max(-0.15, Math.min(0.15, ruf/400)); // ±15%
-  const affPart = Math.max(-0.2, Math.min(0.1, -aff/500)); // liked → cheaper
-  // Local economy scarcity
-  let econ=0;
-  try{ const w=S?.finance?.prices||S?.econ?.prices; if(w) econ=0.05; }catch(_){}
-  return Math.max(0.7, Math.min(1.4, 1 - rufPart - affPart + econ));
+  const rufPart = Math.max(-0.15, Math.min(0.15, ruf/400));
+  const affPart = Math.max(-0.2, Math.min(0.1, -aff/500));
+  let market=1;
+  try{ market=Econ.marketPriceMult?.(S, itemId||'brot', S.world?.scene?.ort)||1; }catch(_){}
+  return Math.max(0.55, Math.min(2.2, (1 - rufPart - affPart) * market));
 }
 function merchantStock(who){
+  try{ Econ.ensureMarket?.(S); }catch(_){}
   const kind=merchantKind(who);
   const base=(SHOP_CATALOGS[kind]||SHOP_CATALOGS.general).map(it=>({...it}));
-  // Persist per-merchant inventory depletion in flags
   S.flags=S.flags||{};
   S.flags.shops=S.flags.shops||{};
   const key=String(who||kind);
@@ -1229,14 +1229,21 @@ function merchantStock(who){
     S.flags.shops[key]={kind, stock:Object.fromEntries(base.map(i=>[i.id, 3+((Math.abs(hashSeed(key+i.id))%4))])), day:S.time?.day|1};
   }
   const shop=S.flags.shops[key];
-  // Restock daily
   if((shop.day|0)!==(S.time?.day|1)){
     shop.day=S.time?.day|1;
-    base.forEach(i=>{ shop.stock[i.id]=Math.min(6,(shop.stock[i.id]|0)+2); });
+    // Restock scales with market supply
+    base.forEach(i=>{
+      let add=2;
+      try{
+        const m=Econ.marketPriceMult?.(S,i.id,S.world?.scene?.ort)||1;
+        add = m>1.3?1:m<0.85?3:2;
+      }catch(_){}
+      shop.stock[i.id]=Math.min(8,(shop.stock[i.id]|0)+add);
+    });
   }
-  const mult=shopPriceMult(who);
   return base.map(it=>{
     const qty=shop.stock[it.id]|0;
+    const mult=shopPriceMult(who, it.id);
     const price=Math.max(1, Math.round(it.price*mult));
     return {...it, price, qty, kind, mult};
   }).filter(it=>it.qty>0);
@@ -1255,11 +1262,12 @@ function openPixelShop(who){
   const kind=merchantKind(who);
   const stock=merchantStock(who);
   const mult=shopPriceMult(who);
-  const tag=mult<0.95?'Freundschaftspreis':mult>1.1?'Misstrauen (+Aufschlag)':'Ortspreis';
+  const tag=mult<0.95?'Freundschaftspreis':mult>1.1?'Teuerung':'Ortspreis';
+  let mline=''; try{ mline=Econ.marketStatusLine?.(S)||''; }catch(_){}
   root.classList.remove('hidden');
   root.innerHTML=`<div class="pixel-shop-panel">
     <div class="pixel-shop-head"><b>🛒 ${who||'Händler'}</b><span>Gold: ${gold}</span><button type="button" class="px-x" id="shopClose">×</button></div>
-    <div class="pixel-shop-meta meta">${kind} · ${tag} · ×${mult.toFixed(2)}</div>
+    <div class="pixel-shop-meta meta">${kind} · ${tag} · ×${mult.toFixed(2)}${mline?' · '+mline:''}</div>
     <div class="pixel-shop-list" id="shopList"></div>
     <div class="pixel-shop-foot meta">Bestand pro Händler · Ruf & Beziehung ändern Preise. Esc schließt.</div>
   </div>`;
@@ -1278,12 +1286,18 @@ function openPixelShop(who){
       S.flags.shops[key].stock[it.id]=(S.flags.shops[key].stock[it.id]|0)-1;
       // Tiny reputation bump for trade
       try{ bumpRel(who, 1, 0, false); }catch(_){}
+      try{ Econ.marketBuy?.(S, it.id, 1); }catch(_){}
       if(it.use==='rest'){
         S.st.hp=S.st.maxhp; S.st.mp=S.st.maxmp;
         toast('Du ruhst dich aus.');
       } else if(it.use==='map'){
         try{ WorldMap.revealMapItem?.(S,{region:'nachbar'}); toast('Karte studiert — Regionen enthüllt.'); }catch(_){ toast('Karte erhalten'); }
         S.inv=S.inv||[]; S.inv.push({id:it.id, name:it.name, desc:it.desc, type:it.type});
+      } else if(it.use==='airship' || it.id==='luftschiff_ticket'){
+        try{ TravelMap.grantAirship?.(S,'ticket'); }catch(_){ S.flags=S.flags||{}; S.flags.airship=true; }
+        S.inv=S.inv||[]; S.inv.push({id:it.id, name:it.name, desc:it.desc, type:'key'});
+        try{ const sq=(S.quests?.side||[]).find(q=>q.id==='sq_airship'||q.reward==='airship'); if(sq){ sq.status='erledigt'; } }catch(_){}
+        toast('Luftschiff freigeschaltet!');
       } else {
         S.inv=S.inv||[];
         S.inv.push({id:it.id, name:it.name, desc:it.desc, type:it.type, use:it.use, heal:it.heal, equip:it.equip, atk:it.atk, def:it.def});
@@ -1425,7 +1439,7 @@ function apply(ch){if(!ch)return;try{ch=Sim.validateChanges(S,ch)}catch(_){}cons
  if(ch.trust&&typeof ch.trust==='object'&&!ch.affinity)for(const[n,v]of Object.entries(ch.trust))bumpRel(n,0,num(v),false);
  (ch.newSkills||ch.skills||[]).forEach(x=>{const sk=skillFromStr(x);if(!S.skills.some(s=>s.name===sk.name)&&S.skills.length<24){S.skills.push(sk);out.push('Skill: '+sk.name);toast('✨ Neue Fähigkeit: '+sk.name)}});
  if(ch.xp){try{const lr=Level.grantXp(S,ch.xp|0,'Aktion');if(lr.leveled?.length)toast('⬆ Level '+lr.leveled.join(', '))}catch(_){}}
- (ch.items||ch.addItems||[]).forEach(x=>{const it=itemFromStr(x);if(!it.rarity)it.rarity='uncommon';if(S.inv.length<40){S.inv.push(it);out.push('Item: '+it.name);toast('📦 '+it.name);try{const kind=/waffe|schwert|bogen|axt|dolch|stab|speer|schild|klinge/i.test(it.name+it.type)?'weapon':'item';discoverThing(kind,it.name,{...it,obtained:true,inline:true})}catch(_){}}});
+ (ch.items||ch.addItems||[]).forEach(x=>{const it=itemFromStr(x);if(!it.rarity)it.rarity='uncommon';if(S.inv.length<40){S.inv.push(it);out.push('Item: '+it.name);toast('📦 '+it.name);try{const kind=/waffe|schwert|bogen|axt|dolch|stab|speer|schild|klinge/i.test(it.name+it.type)?'weapon':'item';const routine=/food|consumable|brot|wasser|proviant|kerze|ration/i.test((it.name||'')+(it.type||'')+(it.rarity||''));discoverThing(kind,it.name,{...it,obtained:true,inline:!routine})}catch(_){}}});
  (ch.removeItems||[]).forEach(x=>{const name=typeof x==='string'?x:x.name;const i=S.inv.findIndex(it=>(typeof it==='string'?it:it.name)===name);if(i>=0)S.inv.splice(i,1)});
  if(Array.isArray(ch.choices)&&ch.choices.length)S.choices=ch.choices.filter(x=>typeof x==='string').map(x=>x.slice(0,50));
  if(ch.quests)applyQuestUpdate(ch.quests);
@@ -1613,7 +1627,16 @@ function offlineGenerateWorld(genreInput,pcName){const g=pickGenre(genreInput);c
  const extra=['Ostflügel','Außenposten','Unterführung','Lagerfeuer-Ring','Beobachtungsturm','Versorgungskeller','Grenzstein','Schleichweg','Markt der Verlorenen','Stiller Hof','Regenrinne','Dachland','Nebelsteig','Archivschacht','Wasserstelle','Schrottinsel'];
  const places=[...basePlaces, ...extra.map((e,i)=> (basePlaces[i%Math.max(1,basePlaces.length)]?basePlaces[i%basePlaces.length].split(' ')[0]+' · '+e:e))].filter((x,i,a)=>a.indexOf(x)===i).slice(0,24);
  const nodes={};places.forEach((name,i)=>{const exits=[places[(i+1)%places.length],places[(i+2)%places.length],places[(i+5)%places.length]];if(i>0)exits.push(places[0]);
-  nodes[name]={desc:R(['Staub und Echo.','Leben trotz allem.','Spuren von gestern.','Ein Ort mit Zähnen.','Ruhe, die lügt.','Hier entscheidet sich etwas.']),tags:[g.id],exits:[...new Set(exits)].slice(0,4),bg:slugify(name).split('-')[0]||'void'}});
+  const harbor=/hafen|küste|werft|kai|pier|containerhafen|hafenlager|hafencontainer|seewacht|dock/i.test(name);
+  const tags=[g.id].concat(harbor?['harbor']:[]) ;
+  nodes[name]=( ()=>{ const pool=['Staub und Echo.','Leben trotz allem.','Spuren von gestern.','Ein Ort mit Zähnen.','Ruhe, die lügt.','Hier entscheidet sich etwas.'];
+  if(harbor) pool.push('Salz in der Luft, Planken unter den Stiefeln.','Tauwerk, Möwen, der Geruch von Teer.');
+  // Genre-flavored place lines so look-around isn't generic
+  if(g.id==='zombie') pool.push('Barrikaden, Blutspuren, Quietschen von Blech.','Die Stille nach dem Schuss hält noch.');
+  if(g.id==='cyberpunk') pool.push('Neon spiegelt sich in Pfützen aus Öl.','Drohnen summen über den Dächern.');
+  if(g.id==='highfantasy'||g.id==='darkfantasy') pool.push('Alte Runen glimmen unter dem Schmutz.','Ein Banner flattert, zerrissen und stolz.');
+  return {desc:R(pool),tags,exits:[...new Set(exits)].slice(0,4),bg:slugify(name).split('-')[0]||'void',harbor:!!harbor,terrain:harbor?'water':undefined};
+ })() });
  const start=places[0];const npcs={};const seeds=(g.npcSeeds||[]).slice(0,12);
  while(seeds.length<12) seeds.push({e:'👤',art:'Einheimische:r',ziel:'Überleben'});
  seeds.forEach((seed,i)=>{
@@ -1639,7 +1662,10 @@ function offlineGenerateWorld(genreInput,pcName){const g=pickGenre(genreInput);c
   startSkills:g.id==='zombie'?[{name:'Erste Hilfe',icon:'🩹',cost:0,cd:0},{name:'Leise bewegen',icon:'🤫',cost:0,cd:0}]:[{name:'Beobachten',icon:'👁',cost:0,cd:0}],
   romanceable:keys.filter(k=>npcs[k].romance).slice(0,5),
   arc:{titel:'Konflikt',acts:[{id:'a1',titel:'Ankommen',ziel:'Verstehe die Lage – oder ignoriere sie',mile:['Einen sicheren Ort finden','Jemanden kennenlernen'],twist:'Nichts ist umsonst'}]},
-  sideQuests:keys.slice(0,3).map((k,i)=>({id:'sq'+i,titel:npcs[k].ziel,ziel:npcs[k].ziel,npc:k,ort:npcs[k].home})),
+  sideQuests:keys.slice(0,3).map((k,i)=>({id:'sq'+i,titel:npcs[k].ziel,ziel:npcs[k].ziel,npc:k,ort:npcs[k].home,marker:{npc:k}})).concat([
+    {id:'sq_airship',titel:'Himmelspfad',ziel:'Kaufe ein Luftschiff-Ticket bei einem Exotenhändler oder verdiene die Freischaltung',npc:keys[0],ort:places.find(p=>/hafen|markt|neon|container/i.test(p))||start,marker:{ort:places.find(p=>/hafen|markt/i.test(p))||start},reward:'airship'},
+    {id:'sq_harbor',titel:'Salzige Planken',ziel:'Reise per Boot zwischen zwei Häfen',ort:places.find(p=>/hafen/i.test(p))||start,marker:{ort:places.find(p=>/hafen/i.test(p))||start}}
+  ]),
   imageStyle:g.id==='zombie'?'cinematic realistic modern apocalypse, muted colors':g.id==='cyberpunk'?'anime cyberpunk neon night': 'anime detailed illustration',
   _generated:true,_genreLabel:g.label};
  return pack}
@@ -1673,13 +1699,13 @@ async function startProcedural(genreInput,pcName){const pack=await generateWorld
  const world=buildWorldFromPack(pack,'proc');
  const romNames=Object.keys(world.npcs);
  S={ver:VER,role:'proc',genre:pack.genre||pickGenre(genreInput).id,lives:1,soul:0,pc:{name:pcName||'Alex',bg:genreInput,look:'',trait:''},
-  st:{hp:100,maxhp:100,mp:30,maxmp:30,str:10,cha:10,ruf:0,gold:pack.genre==='zombie'?5:25,lvl:1,xp:0},
+  st:{hp:100,maxhp:100,mp:30,maxmp:30,str:10,cha:10,ruf:0,gold:pack.genre==='zombie'?18:(pack.genre==='cyberpunk'?30:25),lvl:1,xp:0},
   skills:(pack.startSkills||[]).map(x=>({...skillFromStr(x),_cd:0})),inv:(pack.startItems||[]).map(x=>({...itemFromStr(x)})),
   aff:Object.fromEntries(romNames.map(k=>[k,0])),romance:initRomance(pack,romNames),
   quests:buildQuests(pack),discovered:[world.scene.ort].filter(Boolean),ticks:{rumours:[],log:[]},
   cls:0,turn:0,hist:[],log:[],flags:{},setup:{done:true,beat:0,answers:{}},summary:pack.conflict||'',
   time:{day:1,hour:18,phase:'Abend'},imgCache:{scenes:{},portraits:{},ok:{},fail:{},next:{}},heat:0,wanted:[],dead:[],world};
- enrichNpcs(S.world);ensureGraph(S);try{Sim.migrateToV13(S);Econ.ensureEcon(S);Codex.ensureCodex(S);WorldMap.ensureSpawn(S);Level.ensureProgress(S);Know.ensureKnow(S);Know.migrateKnow(S);Jobs.ensureJobs(S);Gems.ensureGems(S);Summons.ensureSummons(S);Equip.ensureEquip(S);S.ver=VER}catch(_){}if(S.world.systems||S.genre==='zombie')ensureSystems();
+ enrichNpcs(S.world);ensureGraph(S);try{Sim.migrateToV13(S);Econ.ensureEcon(S);try{Econ.ensureMarket?.(S)}catch(_){};Codex.ensureCodex(S);WorldMap.ensureSpawn(S);Level.ensureProgress(S);Know.ensureKnow(S);Know.migrateKnow(S);Jobs.ensureJobs(S);Gems.ensureGems(S);Summons.ensureSummons(S);Equip.ensureEquip(S);S.ver=VER}catch(_){}if(S.world.systems||S.genre==='zombie')ensureSystems();
  const bridge=`${pack.titel}.\n\n${pack.conflict||pack.geschichte}\n\nDu – ${S.pc.name} – stehst in ${world.scene.ort}. Die Welt wartet nicht. Wohin du gehst, ist deine Sache.`;
  S.log=[{k:'n',t:bridge}];S.hist=[{role:'assistant',content:bridge}];S.choices=travelChoices(world.scene.ort);
  save();enterPlay();typewrite('Erzähler',bridge,()=>{});hud();renderChoices();
@@ -1728,7 +1754,7 @@ function parseLifeSim(a){const t=a.toLowerCase();
     const r=Sim.workJob(S,job);Econ.ensureEcon(S);Econ.deposit(S,r.pay,'wallet');advanceTime(r.hours);
     return {ok:true,text:r.text+` Hunger ${S.needs?.hunger|0}.`,changes:{xp:10,choices:travelChoices()}}
   }
-  if(/schlaf|ruhe|nacht verbring|ins bett|übernacht/.test(t)&&!/schlaf(en)? mit/.test(t)){
+  if((/schlaf|übernacht|ins bett|nacht verbring|ruhe mich aus bis/.test(t)||/^schlafe?\b/.test(t))&&!/schlaf(en)? mit/.test(t)&&!/^ich ruh|^ruh |^ausruh|kurze rast|ruhe mich aus$|ruhe mich aus\./.test(t)){
     const atHome=S.home?.owned&&S.world?.scene?.ort===S.home.location;
     if(atHome){
       try{ const deep=Depth.restAtHomeDeep(S); if(deep?.ok){ advanceTime(8); const r=Sim.sleepHome(S); return {ok:true,text:deep.line+'\n'+r.text,changes:{hp:20,mp:15,choices:['Heim ausbauen','Umsehen','Material sammeln','Weiter']}} } }catch(_){}
@@ -1774,7 +1800,11 @@ function parsePlayerIntent(a){
   if(/\bhilf|rett mich|zu hilfe/.test(t)) return {kind:'ask'};
   if(/geh|lauf|wander|reise|fahr|verlasse|auf dem weg|nach hause|fort\b|richtung/.test(t)) return {kind:'move'};
   if(/umseh|um\s*sehen|sehe mich um|sieh(?:st)? dich um|erkund|schau dich|untersuch|wohn/.test(t)||/^(schau|sieh|guck)\b/.test(t)) return {kind:'look'};
-  if(/kauf|handel|preis|verkauf|brot|trinken kaufen|laden/.test(t)) return {kind:'buy'};
+  if(/hungrig|hunger|durstig|durst|ich (hab|habe) hunger|etwas (zu )?essen|brauch(e)? (essen|wasser|vorrat)/.test(t)) return {kind:'need'};
+  if(/\bwarte\b|ich warte|abwarten|kurze pause|pausiere/.test(t)) return {kind:'wait'};
+  if(/ausgang|wo (geht|geht's|geht es)|welche wege|wohin (kann|geht)|fluchtweg|wie komme ich/.test(t)) return {kind:'exits'};
+  if(/was kostet|wie teuer|preis (für|von)|kostet das/.test(t)) return {kind:'price'};
+  if(/kauf|handel|verkauf|brot kaufen|trinken kaufen|laden/.test(t)) return {kind:'buy'};
   if(/nehm|nimm|heb|pick|sammel|nimm (den|die|das|es)/.test(t)) return {kind:'take'};
   if(/benutz|nutze|trink|iss\b|essen|heiltrank|item|equip|anlegen/.test(t)) return {kind:'use'};
   if(/schlaf|übernacht|ruh|rast|ausruhen|hinlegen/.test(t)) return {kind:'rest'};
@@ -1817,7 +1847,7 @@ function npcLine(n, kind){
     `„Ich bin ${label}.“ ${stimme?`(${stimme.trim()}) `:''}${String(npc.art||'').split(/[.;]/)[0].slice(0,90)}.`,
     `${label}: „Namen hast du gehört. Mehr verdienst du dir.“`
   ]);
-  if(kind==='greet') return `${label} erwidert deinen Gruß. ${samples[0]?`„${samples[0]}“`:greet}`;
+  if(kind==='greet'){ let sm=String(samples[0]||'').trim(); sm=sm.replace(/^[„"«]+/,'').replace(/[“"»]+$/,'').trim(); return `${label} erwidert deinen Gruß. ${sm?`„${sm}“`:greet}`; }
   if(kind==='ask_who') return who;
   return null;
 }
@@ -1859,10 +1889,56 @@ function offlineRespondIntent(a, intent){
     txt=Imm.richOfflineProse(S,a,{who:null,label:null,good:true,weather:Imm.weatherFor(S),phase:phaseLabel()});
     return {text:txt, changes:ch, _intent:kind};
   }
+  if(kind==='need'){
+    const sys=S.world?.systems||S.systems||{};
+    const hung=sys.hunger!=null?sys.hunger:(S.needs?.hunger|0);
+    const food=(S.inv||[]).find(it=>{const blob=(it.name||'')+' '+(it.type||''); if(/heil|trank|potion|medkit|verband|stim/i.test(blob)) return false; return /brot|proviant|essen|ration|wasser|flasche|food|nahrung|snack/i.test(blob)||(it.type==='food');});
+    if(food){
+      try{ /* soft eat */ const i=S.inv.indexOf(food); if(i>=0) S.inv.splice(i,1); if(sys.hunger!=null) sys.hunger=Math.max(0,(sys.hunger|0)-25); if(S.needs) S.needs.hunger=Math.max(0,(S.needs.hunger|0)-30); }catch(_){}
+      txt=`Du isst ${food.name} in ${ort}. Der Hunger weicht — fürs Erste.`;
+      return {text:txt, changes:{hp:rnd(8,16), xp:4, choices:travelChoices()}, _intent:kind};
+    }
+    if(sys.kind==='zombie'||S.genre==='zombie'){
+      txt=`Dein Magen knurrt in ${ort}. Hunger ${Math.round(hung)}/100. Vorräte sind knapp — suchen, handeln oder jemanden um eine Ration bitten.`;
+      return {text:txt, changes:{choices:['Vorräte suchen','Umsehen','Feilschen','Safehouse suchen'], xp:3}, _intent:kind};
+    }
+    if(sys.kind==='cyber'||S.genre==='cyberpunk'){
+      txt=`Neon-Hunger. Instant-Nudeln oder Synth-Bar am Automaten — Creds voraus. Du bist in ${ort}, Magen leer.`;
+      return {text:txt, changes:{choices:['Nachtmarkt','Automaten prüfen','Umsehen','Weiter'], xp:3}, _intent:kind};
+    }
+    txt=`Du hast Hunger in ${ort}. ${desc?desc+' ':''}Brot, Herberge oder Jagd — irgendetwas muss her.`;
+    return {text:txt, changes:{choices:['Brot kaufen','Herberge suchen','Umsehen','Warten'], xp:3}, _intent:kind};
+  }
+  if(kind==='wait'){
+    try{ advanceTimeMinutes?.(12,{allowLong:true}); }catch(_){ try{advanceTime(0)}catch(__){} }
+    const phase=phaseLabel();
+    txt=who
+      ? `${(()=>{let l=who;try{l=Know.displayName(S,who)}catch(_){ } return l;})()} wartet mit dir in ${ort}. Minuten vergehen (${phase}). Die Welt atmet weiter.`
+      : `Du wartest in ${ort}. ${phase}. Geräusche kommen und gehen — niemand drängt dich.`;
+    return {text:txt, changes:{xp:2, choices:travelChoices()}, _intent:kind};
+  }
+  if(kind==='exits'){
+    const ex=exitsFrom(ort);
+    txt=ex.length
+      ? `Von ${ort} aus erreichst du: ${ex.slice(0,6).join(', ')}. ${who?((()=>{let l=who;try{l=Know.displayName(S,who)}catch(_){} return l+' zeigt knapp mit dem Kinn.';})()):'Niemand hält dich auf.'}`
+      : `In ${ort} siehst du keinen klaren Ausgang — nur Wände und Entscheidung.`;
+    return {text:txt, changes:{xp:4, choices:ex.length?ex.slice(0,4).map(e=>'Nach '+e):travelChoices()}, _intent:kind};
+  }
+  if(kind==='price'){
+    let mult=1; try{ mult=Econ.marketPriceMult?.(S,'brot',ort)||Sim.priceMod(S)||1 }catch(_){ try{mult=Sim.priceMod(S)}catch(__){} }
+    const bread=Math.max(1, Math.round(4*mult));
+    const status=(()=>{try{return Econ.marketStatusLine?.(S)||''}catch(_){return ''}})();
+    txt=`Preise in ${ort}: einfaches Essen ca. ${bread} Gold (Markt ×${mult.toFixed(2)}). ${status} ${who?((()=>{let l=who;try{l=Know.displayName(S,who)}catch(_){} return l+': „Kommt drauf an, was du willst.“';})()):''}`;
+    return {text:txt, changes:{xp:3, choices:['Brot kaufen','Feilschen','Laden öffnen','Gehen']}, _intent:kind};
+  }
   if(kind==='look'){
     const ex=exitsFrom(ort);
     const cast=presentCast();
-    txt=`Du siehst dich in ${ort} um. ${desc||''}${cast.length?' Anwesend: '+cast.map(n=>{try{return Know.displayName(S,n)}catch(_){return n}}).join(', ')+'.':''}${ex.length?' Wege: '+ex.slice(0,4).join(', ')+'.':''}`;
+    const sys=S.world?.systems||S.systems||{};
+    let flavor='';
+    if(sys.kind==='zombie'||S.genre==='zombie') flavor=` Hunger ${Math.round(sys.hunger|0)}, Munition ${sys.ammo|0}.`;
+    if(sys.kind==='cyber'||S.genre==='cyberpunk') flavor=` Cred ${sys.cred|0}, Heat ${sys.heat_net|0}.`;
+    txt=`Du siehst dich in ${ort} um. ${desc||'Die Luft trägt Gerüche und Geräusche dieses Orts.'}${cast.length?' Anwesend: '+cast.map(n=>{try{return Know.displayName(S,n)}catch(_){return n}}).join(', ')+'.':''}${ex.length?' Wege: '+ex.slice(0,4).join(', ')+'.':''}${flavor}`;
     return {text:txt, changes:{xp:6, choices:travelChoices()}, _intent:kind};
   }
   if(kind==='rest'){
@@ -2794,7 +2870,7 @@ $('#btnContinue').onclick=async()=>{
   try{await loadPack(S.role)}catch(_){}
   if(!S.world&&PACKS[S.role])S.world=buildWorldFromPack(PACKS[S.role],S.role);
   try{ if(S.world){ if(!S.world.orte)S.world.orte={}; ensureGraph(S); enrichNpcs(S.world);} }catch(_){}
-  try{Sim.migrateToV13(S);Econ.ensureEcon(S);Codex.ensureCodex(S);WorldMap.ensureSpawn(S);Level.ensureProgress(S);Know.ensureKnow(S);Know.migrateKnow(S);Jobs.ensureJobs(S);Gems.ensureGems(S);Summons.ensureSummons(S);Equip.ensureEquip(S);S.ver=VER}catch(_){}
+  try{Sim.migrateToV13(S);Econ.ensureEcon(S);try{Econ.ensureMarket?.(S)}catch(_){};Codex.ensureCodex(S);WorldMap.ensureSpawn(S);Level.ensureProgress(S);Know.ensureKnow(S);Know.migrateKnow(S);Jobs.ensureJobs(S);Gems.ensureGems(S);Summons.ensureSummons(S);Equip.ensureEquip(S);S.ver=VER}catch(_){}
   gateOrShow();
 };
 $('#btnMusic').onclick=toggleMusic;

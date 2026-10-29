@@ -1904,3 +1904,5 @@ body.ow-desktop .ow-side{ z-index:3; }
 .begegnung{ z-index:45; } /* below travel map / intro, above OW */
 body.pixel-ow .begegnung:not(.hidden){ /* soften so OW shots aren't fully blocked forever */ }
 
+.tm-mode.locked{ opacity:.45; cursor:not-allowed; }
+.tm-mode.locked:hover{ border-color:#ffffff22; background:#161030; color:#eee; }

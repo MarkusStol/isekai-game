@@ -197,14 +197,15 @@ export function buildMapForLocation(S, ort){
 
   const genre=String(S?.genre||S?.role||S?.world?.genre||'').toLowerCase();
   if(preset==='default'){
-    if(/beschw/.test(low)) preset='summon';
+    if(/beschw|beschwörungshalle/.test(low)) preset='summon';
+    else if(/palast.*halle|halle.*palast|königspalast/.test(low) && !/garten/.test(low)) preset='summon';
     else if(/thron/.test(low)) preset='throne';
     else if(/markt|unterstadt|bazaar|souk/.test(low)) preset='market';
     else if(/taverne|gasthaus|silberfuchs|\binn\b|\bbar\b/.test(low)) preset='tavern';
-    else if(/hafen|myr|dock|kai|werft/.test(low)) preset='harbor';
+    else if(/hafen|\bmyr\b|von myr|dock|kai|werft/.test(low)) preset='harbor';
     else if(/elfen|sylvar|hain|dryade/.test(low)) preset='elfwood';
     else if(/nordwall|wall|festung|bastion|bollwerk/.test(low)) preset='wall';
-    else if(/garten|palastgarten|park/.test(low)) preset='garden';
+    else if(/garten|palastgarten|\bpark\b(?!platz)|stadtpark|palast.?park/.test(low)) preset='garden';
     else if(/kirche|tempel|solari|kathedrale|schrein|kapelle/.test(low)) preset='church';
     else if(/gilde|söldner|abenteurer/.test(low)) preset='guild';
     else if(/weidenau|dorf|bauern|weiler/.test(low)) preset='village';
@@ -219,7 +220,7 @@ export function buildMapForLocation(S, ort){
     else if(/schnee|gletscher|eis|frost|tundra|nord/.test(low)) preset='snow';
     else if(/friedhof|grab|nekropole|krypta/.test(low)) preset='graveyard';
     else if(/labor|werkstatt|fabrik|neon|station|cyber|netz/.test(low)) preset='neon';
-    else if(/seuche|zombie|quarantäne|barrikade/.test(low)) preset='wasteland';
+    else if(/seuche|zombie|quarantäne|barrikade|parkplatz|eastmall|safehouse|supermarkt ruine|tankstelle/.test(low)) preset='wasteland';
   }
 
   // Genre fallback when still default (unknown ort name)
