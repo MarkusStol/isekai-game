@@ -113,6 +113,10 @@ let _overhead=[]; // {x,y,src,w,h} world-tile anchored big sprites drawn after e
 export let __map=null; // last built map (gates/shots)
 let _animators=[]; // {x,y,kind} animated overlays
 let _animFrame=0;
+let _chests=[]; // {x,y,id,open,loot}
+let _questMarks=[]; // {x,y,label,kind}
+let _lights=[]; // {x,y,r,color} night readability
+
 
 function isDesktop(){
   return window.matchMedia('(min-width: 900px) and (min-aspect-ratio: 4/3)').matches
@@ -192,29 +196,32 @@ export function buildMapForLocation(S, ort){
   if(/^in:/.test(low) || /\(innen\)/.test(low)) { preset='interior'; kind='interior'; }
 
   const genre=String(S?.genre||S?.role||S?.world?.genre||'').toLowerCase();
-  if(/beschw/.test(low)) preset='summon';
-  else if(/thron/.test(low)) preset='throne';
-  else if(/markt|unterstadt|bazaar|souk/.test(low)) preset='market';
-  else if(/taverne|gasthaus|silberfuchs|\binn\b|\bbar\b/.test(low)) preset='tavern';
-  else if(/hafen|myr|dock|kai|werft/.test(low)) preset='harbor';
-  else if(/elfen|sylvar|hain|dryade/.test(low)) preset='elfwood';
-  else if(/nordwall|wall|festung|bastion|bollwerk/.test(low)) preset='wall';
-  else if(/garten|palastgarten|park/.test(low)) preset='garden';
-  else if(/kirche|tempel|solari|kathedrale|schrein|kapelle/.test(low)) preset='church';
-  else if(/gilde|söldner|abenteurer/.test(low)) preset='guild';
-  else if(/weidenau|dorf|bauern|weiler/.test(low)) preset='village';
-  else if(/osttor|tor|gate|portal/.test(low)) preset='gate';
-  else if(/königsburg|schloss|burg/.test(low) || (/\bhof\b/.test(low)) || (/palast/.test(low)&&!/garten/.test(low))) preset='courtyard';
-  else if(/waldweg|pfad|straße|strasse|landstraße/.test(low)) preset='road';
-  else if(/akademie|schule|bibliothek|archiv|universität/.test(low)) preset='academy';
-  else if(/mine|stollen|bergwerk|zwerg/.test(low)) preset='mine';
-  else if(/strand|küste|insel|meer|bucht/.test(low)) preset='beach';
-  else if(/sumpf|moor|marsch|nebelfenn/.test(low)) preset='swamp';
-  else if(/wüste|düne|oase|sand/.test(low)) preset='desert';
-  else if(/schnee|gletscher|eis|frost|tundra|nord/.test(low)) preset='snow';
-  else if(/friedhof|grab|nekropole|krypta/.test(low)) preset='graveyard';
-  else if(/labor|werkstatt|fabrik|neon|station|cyber|netz/.test(low)) preset='neon';
-  else if(/seuche|zombie|quarantäne|barrikade/.test(low)) preset='wasteland';
+  if(preset==='default'){
+    if(/beschw/.test(low)) preset='summon';
+    else if(/thron/.test(low)) preset='throne';
+    else if(/markt|unterstadt|bazaar|souk/.test(low)) preset='market';
+    else if(/taverne|gasthaus|silberfuchs|\binn\b|\bbar\b/.test(low)) preset='tavern';
+    else if(/hafen|myr|dock|kai|werft/.test(low)) preset='harbor';
+    else if(/elfen|sylvar|hain|dryade/.test(low)) preset='elfwood';
+    else if(/nordwall|wall|festung|bastion|bollwerk/.test(low)) preset='wall';
+    else if(/garten|palastgarten|park/.test(low)) preset='garden';
+    else if(/kirche|tempel|solari|kathedrale|schrein|kapelle/.test(low)) preset='church';
+    else if(/gilde|söldner|abenteurer/.test(low)) preset='guild';
+    else if(/weidenau|dorf|bauern|weiler/.test(low)) preset='village';
+    else if(/osttor|tor|gate|portal/.test(low)) preset='gate';
+    else if(/königsburg|schloss|burg/.test(low) || (/\bhof\b/.test(low)) || (/palast/.test(low)&&!/garten/.test(low))) preset='courtyard';
+    else if(/waldweg|pfad|straße|strasse|landstraße/.test(low)) preset='road';
+    else if(/akademie|schule|bibliothek|archiv|universität/.test(low)) preset='academy';
+    else if(/mine|stollen|bergwerk|zwerg/.test(low)) preset='mine';
+    else if(/strand|küste|insel|meer|bucht/.test(low)) preset='beach';
+    else if(/sumpf|moor|marsch|nebelfenn/.test(low)) preset='swamp';
+    else if(/wüste|düne|oase|sand/.test(low)) preset='desert';
+    else if(/schnee|gletscher|eis|frost|tundra|nord/.test(low)) preset='snow';
+    else if(/friedhof|grab|nekropole|krypta/.test(low)) preset='graveyard';
+    else if(/labor|werkstatt|fabrik|neon|station|cyber|netz/.test(low)) preset='neon';
+    else if(/seuche|zombie|quarantäne|barrikade/.test(low)) preset='wasteland';
+  }
+
   // Genre fallback when still default (unknown ort name)
   if(preset==='default'){
     if(/cyber|neon|netz/.test(genre)) preset='neon';
@@ -247,6 +254,8 @@ export function buildMapForLocation(S, ort){
   const interiors=[];
   const overhead=[]; // big sprites
   const animators=[];
+  const chests=[];
+  let _pendingLights=[];
   const fill=(x,y,tw,th,t)=>{ for(let j=0;j<th;j++) for(let i=0;i<tw;i++){ const xx=x+i,yy=y+j; if(yy>=0&&yy<ht&&xx>=0&&xx<w) tiles[yy][xx]=t; } };
   const ov=(x,y,id)=>{ if(y>=0&&y<ht&&x>=0&&x<w) overlay[y][x]=id; };
   const prop=(x,y,id)=>{ if(y>=0&&y<ht&&x>=0&&x<w){ overlay[y][x]=id; } };
@@ -266,6 +275,10 @@ export function buildMapForLocation(S, ort){
     overhead.push({x:bx, y:by, src, tw:opts.hall?4:3, th:3});
     // chimney smoke
     anim(bx+bw-1, by, 'smoke');
+    // window glow anchors (night lights)
+    _pendingLights = _pendingLights || [];
+    _pendingLights.push({x:bx+0.5, y:by+1, r:2.4, color:'rgba(255,200,90,0.55)'});
+    _pendingLights.push({x:bx+bw-1.5, y:by+1, r:2.2, color:'rgba(255,190,80,0.5)'});
     const dx=bx+Math.floor(bw/2), dy=by+bh;
     if(dy<ht){ tiles[dy][dx]='door'; overlay[dy][dx]=null; }
     if(by>0) fill(bx,by-1,bw,1,'path');
@@ -291,6 +304,11 @@ export function buildMapForLocation(S, ort){
   };
   const scatterProps=(list)=>{
     list.forEach(([x,y,id])=>prop(x,y,id));
+  };
+  const placeChest=(x,y,loot)=>{
+    if(y<0||x<0||y>=ht||x>=w) return;
+    prop(x,y,'chest');
+    chests.push({x,y,id:'chest_'+name+'_'+x+'_'+y, open:false, loot:loot||null});
   };
 
   // ---- Preset layouts ----
@@ -361,6 +379,8 @@ export function buildMapForLocation(S, ort){
     placeHouse(w-6,2,'Laden',{variant:6});
     placeHouse(2,ht-7,'Werkstatt',{variant:4});
     placeHouse(w-6,ht-7,'Haus',{variant:5});
+    placeChest(cx+3, cy, {gold:12, item:'Trank'});
+    placeChest(2, cy+2, {gold:6, item:'Brot'});
     ringFence(w-10, 2, 7, 5); fill(w-9,3,5,3,'grass');
     for(let j=0;j<2;j++) for(let i=0;i<3;i++){ anim(w-8+i,3+j,'flower'); ov(w-8+i,3+j,'flower'); }
     scatterGrass();
@@ -385,6 +405,7 @@ export function buildMapForLocation(S, ort){
     placeHouse(w-7, cy-6, 'Lagerhaus', {hall:true, variant:1, w:4, h:3});
     for(let i=0;i<4;i++){ prop(4+i*6, ht-11, 'crate'); prop(5+i*6, ht-11, 'barrel'); }
     prop(cx, ht-12, 'cart'); prop(2, ht-11, 'sign');
+    placeChest(cx+4, ht-12, {gold:20, item:'Seil'});
     anim(3,3,'smoke'); anim(w-5,3,'smoke');
     scatterGrass();
   } else if(preset==='elfwood'){
@@ -451,6 +472,8 @@ export function buildMapForLocation(S, ort){
     placeHouse(2,ht-7,'Scheune',{variant:4});
     placeHouse(w-6,ht-7,'Gasthof',{variant:6});
     placeHouse(cx-8,cy-2,'Schmiede',{variant:5});
+    placeChest(cx+1, cy-1, {gold:8, item:'Heilkraut'});
+    placeChest(w-8, cy+2, {gold:15});
     ringFence(cx+3,cy+3,6,5); fill(cx+4,cy+4,4,3,'grass');
     for(let j=0;j<2;j++) for(let i=0;i<3;i++) anim(cx+4+i,cy+4+j,'flower');
     prop(cx-1,cy+1,'bench'); prop(cx+3,cy,'cart');
@@ -528,7 +551,7 @@ export function buildMapForLocation(S, ort){
     fill(2,2,w-4,ht-4,'floor'); fill(cx-2,0,5,ht,'path');
     for(let i=0;i<6;i++){ const x=3+(i%3)*8, y=4+Math.floor(i/3)*8; fill(x,y,4,3,'stone'); prop(x+1,y+1,'crate'); }
     anim(4,3,'torch'); anim(w-5,3,'torch'); anim(4,ht-4,'torch'); anim(w-5,ht-4,'torch');
-    prop(cx,cy,'chest'); prop(cx+2,cy,'barrel');
+    placeChest(cx, cy, {gold:30, item:'Erz'}); prop(cx+2,cy,'barrel');
     placeHouse(w-8, cy-2, 'Förderhaus', {variant:3});
   } else if(preset==='beach'){
     for(let y=0;y<ht;y++) for(let x=0;x<w;x++) tiles[y][x]=(y>ht-7)?'water':(y>ht-10)?'path':'grass';
@@ -671,7 +694,19 @@ export function buildMapForLocation(S, ort){
       const key=xx+','+yy;
       if(!SOLID.has(tiles[yy][xx]) && !used.has(key)){ nx=xx; ny=yy; used.add(key); break; }
     }
-    npcs.push({name:nm, x:nx, y:ny, px:nx, py:ny, sheet, dir:0, frame:0, e:n.e||'👤'});
+    const home={x:nx,y:ny};
+    // simple schedule waypoints around spawn / plaza
+    const wps=[
+      {x:nx,y:ny},
+      {x:Math.max(1,Math.min(w-2,cx+(i%3)-1)), y:Math.max(1,Math.min(ht-2,cy+(i%2)))},
+      {x:Math.max(1,Math.min(w-2,nx+3)), y:ny},
+      {x:nx, y:Math.max(1,Math.min(ht-2,ny+2))},
+    ];
+    let pace='wander';
+    if(sheet==='guard') pace='patrol';
+    else if(sheet==='merchant') pace='shop';
+    else if(sheet==='mage') pace='study';
+    npcs.push({name:nm, x:nx, y:ny, px:nx, py:ny, sheet, dir:0, frame:0, e:n.e||'👤', home, waypoints:wps, wp:i%wps.length, pace, wait:0});
   });
 
   const exits=[];
@@ -710,7 +745,16 @@ export function buildMapForLocation(S, ort){
     exits.push({x:iv.x,y:iv.y,to:iv.to, interior:true, label:iv.label, returnX:iv.returnX, returnY:iv.returnY});
   });
 
-  return {w,h:ht,tiles,overlay,doors:exits,spawn:{x:sx,y:sy},kind,name,npcs,interiors,overhead,animators,preset};
+  // lamps/torches → lights
+  const lights=[...(_pendingLights||[])];
+  for(const a of animators){
+    if(a.kind==='torch') lights.push({x:a.x+0.5,y:a.y+0.5,r:2.8,color:'rgba(255,170,60,0.55)'});
+  }
+  for(let y=0;y<ht;y++) for(let x=0;x<w;x++){
+    if(overlay[y][x]==='lamp') lights.push({x:x+0.5,y:y+0.5,r:3.2,color:'rgba(255,210,120,0.5)'});
+  }
+  // quest marks filled later in showOverworld
+  return {w,h:ht,tiles,overlay,doors:exits,spawn:{x:sx,y:sy},kind,name,npcs,interiors,overhead,animators,preset,chests,lights};
 }
 
 function walkable(x,y){
@@ -810,13 +854,29 @@ function talkTo(name){
   _hooks.act('Ich rede mit '+label);
 }
 
+function facingTile(){
+  const d=_hero.dir|0;
+  const dx=d===1?-1:d===2?1:0, dy=d===3?-1:d===0?1:0;
+  return {x:_hero.x+dx, y:_hero.y+dy};
+}
 function talkNearest(){
+  const f=facingTile();
+  if(openChestAt(f.x,f.y)) return 'chest';
+  const door=(_map.doors||[]).find(d=>d.x===f.x&&d.y===f.y);
+  if(door?.to){
+    const dx=f.x-_hero.x, dy=f.y-_hero.y;
+    tryMove(dx,dy);
+    return 'door';
+  }
   let best=null, bd=99;
   for(const n of _npcs){
     const d=Math.abs(Math.round(n.x)-_hero.x)+Math.abs(Math.round(n.y)-_hero.y);
     if(d<bd){ bd=d; best=n; }
   }
-  if(best && bd<=2){ talkTo(best.name); return best.name; }
+  if(best && bd<=2){
+    if(best.sheet==='merchant' && _hooks.openShop){ try{ _hooks.openShop(best.name); return best.name; }catch(_){ } }
+    talkTo(best.name); return best.name;
+  }
   if(_hooks.act) _hooks.act('Ich schaue mich um');
   return null;
 }
@@ -827,8 +887,14 @@ function tryMove(dx,dy){
   const nx=_hero.x+dx, ny=_hero.y+dy;
   if(dx<0)_hero.dir=1; else if(dx>0)_hero.dir=2; else if(dy<0)_hero.dir=3; else if(dy>0)_hero.dir=0;
   const bump=_npcs.find(n=>Math.round(n.x)===nx && Math.round(n.y)===ny);
-  if(bump){ talkTo(bump.name); return false; }
+  if(bump){
+    // merchant shop shortcut
+    if(bump.sheet==='merchant' && _hooks.openShop){ try{ _hooks.openShop(bump.name); return false; }catch(_){ } }
+    talkTo(bump.name); return false;
+  }
   if(!walkable(nx,ny)) return false;
+  // chests
+  if(openChestAt(nx,ny)){ /* opened */ }
   const door=(_map.doors||[]).find(d=>d.x===nx&&d.y===ny);
   _hero.moving=true; _hero.x=nx; _hero.y=ny;
   recomputeFog();
@@ -850,24 +916,26 @@ function tryMove(dx,dy){
           try{ _audioApi?.playSfx?.('ok'); }catch(_){}
         }catch(_){}
       }, 100);
-    } else if(door.interior || String(door.to).startsWith('in:')){
+    } else if(door.interior || String(door.to).startsWith('in:') || /\(innen\)/i.test(String(door.to))){
       setTimeout(()=>{
         try{
           const S=_hooks.getS?.();
           if(!S) return;
-          const label=door.label||String(door.to).replace(/^in:/,'');
+          const label=door.label||String(door.to).replace(/^in:/,'').replace(/\s*\(innen\)\s*/i,'').trim();
           const prev=S.world.scene.ort;
           S._owReturn=prev;
           S._owReturnDoor={x:door.returnX??door.x, y:door.returnY??door.y};
-          S.world.scene.ort=label+' (Innen)';
+          const inn='in:'+label;
+          S.world.scene.ort=inn;
           S.world.orte=S.world.orte||{};
-          S.world.orte[S.world.scene.ort]='Innenraum Zimmer Saal';
-          S._owSpawn={x:8,y:11}; // near south exit inside
+          S.world.orte[inn]='Innenraum Zimmer Saal (innen)';
+          S._owSpawn={x:Math.floor((_map.w||16)/2), y:(_map.h||14)-3};
           showOverworld(S);
           S._owSpawn=null;
           try{ _audioApi?.playSfx?.('ok'); }catch(_){}
-        }catch(_){}
-      }, 100);
+          pushLog('Betritt '+label);
+        }catch(e){ console.warn('interior-enter',e); }
+      }, 80);
     } else if(_hooks.onLocation){
       setTimeout(()=>{ try{ _hooks.onLocation(door.to); }catch(_){ } }, 120);
     }
@@ -945,7 +1013,7 @@ function syncDayNight(){
 }
 function tintColor(){
   return ({
-    night:'rgba(20,30,90,.38)',
+    night:'rgba(18,28,70,.28)',
     dawn:'rgba(255,160,100,.18)',
     dusk:'rgba(180,110,80,.14)',
     day:'rgba(0,0,0,0)'
@@ -1102,7 +1170,9 @@ function draw(){
     }
     if(!seen) continue;
     const sx=ox+(oh.x-camX)*tw, sy=oy+(oh.y-camY)*tw - tw*0.15;
-    ctx.globalAlpha=vis?1:0.5;
+    // v30: keep buildings legible at night (never too dim)
+    const night=_dayTint==='night'||_dayTint==='dusk';
+    ctx.globalAlpha=vis?(night?0.95:1):(night?0.7:0.5);
     ctx.drawImage(im, sx, sy, (oh.tw||3)*tw, (oh.th||3)*tw);
     ctx.globalAlpha=1;
   }
@@ -1134,6 +1204,38 @@ function draw(){
       if(y<0||x<0||y>=_map.h||x>=_map.w){ ctx.fillStyle='#05040a'; ctx.fillRect(sx,sy,tw,tw); continue; }
       if(!_explored.has(fogKey(x,y))){ ctx.fillStyle='#05040a'; ctx.fillRect(sx,sy,tw,tw); }
     }
+  }
+  // v30 night lights — windows/lamps punch through fog tint
+  if(_dayTint==='night' || _dayTint==='dusk'){
+    for(const L of _lights){
+      const k=fogKey(Math.floor(L.x), Math.floor(L.y));
+      if(!_explored.has(k)) continue;
+      const sx=ox+(L.x-camX)*tw, sy=oy+(L.y-camY)*tw;
+      const r=(L.r||2.5)*tw;
+      const g=ctx.createRadialGradient(sx,sy,0,sx,sy,r);
+      g.addColorStop(0, L.color||'rgba(255,200,100,0.55)');
+      g.addColorStop(0.45, 'rgba(255,160,60,0.18)');
+      g.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.globalCompositeOperation='lighter';
+      ctx.fillStyle=g; ctx.beginPath(); ctx.arc(sx,sy,r,0,Math.PI*2); ctx.fill();
+      ctx.globalCompositeOperation='source-over';
+    }
+  }
+  // quest markers
+  for(const m of _questMarks){
+    if(!_explored.has(fogKey(m.x,m.y))) continue;
+    const sx=ox+(m.x-camX)*tw+tw/2, sy=oy+(m.y-camY)*tw-4;
+    ctx.fillStyle='#ffd35a'; ctx.strokeStyle='#000'; ctx.lineWidth=3;
+    ctx.font='bold 14px monospace';
+    ctx.strokeText(m.kind==='done'?'✓':'!', sx-4, sy);
+    ctx.fillText(m.kind==='done'?'✓':'!', sx-4, sy);
+  }
+  // open chests visual (empty)
+  for(const c of _chests){
+    if(!c.open) continue;
+    if(!_explored.has(fogKey(c.x,c.y))) continue;
+    const sx=ox+(c.x-camX)*tw, sy=oy+(c.y-camY)*tw;
+    ctx.fillStyle='rgba(0,0,0,0.35)'; ctx.fillRect(sx,sy,tw,tw);
   }
 }
 
@@ -1173,6 +1275,111 @@ function pollGamepad(){
   }catch(_){}
 }
 
+
+function phaseNow(){
+  try{
+    const h=_hooks.getS?.()?.cal?.hour|0;
+    if(h>=5&&h<11) return 'morgen';
+    if(h>=11&&h<14) return 'mittag';
+    if(h>=14&&h<18) return 'nachmittag';
+    if(h>=18&&h<22) return 'abend';
+    return 'nacht';
+  }catch(_){ return 'tag'; }
+}
+
+function stepNpcs(dt){
+  const phase=phaseNow();
+  for(const n of _npcs){
+    n.wait=(n.wait||0)-dt;
+    // merchants linger near home during day; guards patrol; night → home
+    let target=null;
+    const wps=n.waypoints||[];
+    if(phase==='nacht'){
+      target=n.home||wps[0];
+    } else if(n.pace==='shop' && (phase==='morgen'||phase==='mittag'||phase==='nachmittag')){
+      target=n.home||wps[0];
+    } else if(n.wait<=0 && wps.length){
+      n.wp=((n.wp|0)+1)%wps.length;
+      target=wps[n.wp];
+      n.wait = n.pace==='patrol' ? 0.6+Math.random()*1.2 : 1.5+Math.random()*3;
+    }
+    if(target && !_hero.moving){
+      const tx=Math.round(target.x), ty=Math.round(target.y);
+      const cx=Math.round(n.x), cy=Math.round(n.y);
+      if(cx!==tx || cy!==ty){
+        let dx=Math.sign(tx-cx), dy=Math.sign(ty-cy);
+        if(Math.random()<0.45) { /* prefer axis with larger delta */ if(Math.abs(tx-cx)>=Math.abs(ty-cy)) dy=0; else dx=0; }
+        else { if(Math.abs(tx-cx)<Math.abs(ty-cy)) dx=0; else dy=0; }
+        const nx=cx+dx, ny=cy+dy;
+        if(walkable(nx,ny) && !_npcs.some(o=>o!==n&&Math.round(o.x)===nx&&Math.round(o.y)===ny) && !(nx===_hero.x&&ny===_hero.y)){
+          if(dx<0)n.dir=1; else if(dx>0)n.dir=2; else if(dy<0)n.dir=3; else n.dir=0;
+          n.x=nx; n.y=ny; n.frame=(n.frame+1)%4;
+        }
+      }
+    } else if(Math.random()<0.002){
+      const d=[[1,0],[-1,0],[0,1],[0,-1]][(Math.random()*4)|0];
+      const nx=Math.round(n.x)+d[0], ny=Math.round(n.y)+d[1];
+      if(walkable(nx,ny) && !_npcs.some(o=>o!==n&&Math.round(o.x)===nx&&Math.round(o.y)===ny) && !(nx===_hero.x&&ny===_hero.y)){
+        if(d[0]<0)n.dir=1; else if(d[0]>0)n.dir=2; else if(d[1]<0)n.dir=3; else n.dir=0;
+        n.x=nx; n.y=ny; n.frame=(n.frame+1)%4;
+      }
+    }
+    n.px+=(n.x-n.px)*Math.min(1,dt*8); n.py+=(n.y-n.py)*Math.min(1,dt*8);
+  }
+}
+
+function openChestAt(x,y){
+  const c=_chests.find(ch=>ch.x===x&&ch.y===y && !ch.open);
+  if(!c) return false;
+  c.open=true;
+  try{
+    const S=_hooks.getS?.();
+    if(S){
+      S.flags=S.flags||{};
+      S.flags.chests=S.flags.chests||{};
+      S.flags.chests[c.id]=1;
+      const loot=c.loot||{gold:5+((Math.random()*12)|0)};
+      if(loot.gold){ S.st=S.st||{}; S.st.gold=(S.st.gold|0)+(loot.gold|0); }
+      if(loot.item){ S.inv=S.inv||[]; S.inv.push({id:loot.item,name:loot.item,qty:1}); }
+      const msg='Truhe: '+(loot.gold?('+'+loot.gold+' Gold'):'')+(loot.item?((loot.gold?', ':'')+loot.item):'');
+      pushLog(msg);
+      try{ _hooks.toast?.(msg); }catch(_){}
+      try{ _audioApi?.playSfx?.('ok'); }catch(_){}
+      try{ _hooks.save?.(); }catch(_){}
+    }
+  }catch(_){}
+  // clear overlay chest art → open look via darken
+  try{ if(_map.overlay?.[y]) _map.overlay[y][x]='crate'; }catch(_){}
+  return true;
+}
+
+function rebuildQuestMarks(S){
+  _questMarks=[];
+  if(!S?.quests) return;
+  const marks=[];
+  const main=S.quests.main;
+  if(main){
+    const left=(main.objectives||[]).filter(o=>!(main.done||[]).includes(o));
+    for(const o of left.slice(0,3)){
+      // heuristic: match objective text to door/npc/chest
+      const blob=String(o).toLowerCase();
+      const npc=_npcs.find(n=>blob.includes(String(n.name).toLowerCase().slice(0,4)));
+      if(npc) marks.push({x:Math.round(npc.x), y:Math.round(npc.y), label:o, kind:'npc'});
+      else {
+        const door=(_map.doors||[]).find(d=>blob.includes(String(d.to||d.label||'').toLowerCase().slice(0,5)));
+        if(door) marks.push({x:door.x,y:door.y,label:o,kind:'door'});
+        else if(_chests[0] && /truhe|schatz|gold|suche|find/.test(blob)) marks.push({x:_chests[0].x,y:_chests[0].y,label:o,kind:'chest'});
+        else marks.push({x:_hero.x+2,y:_hero.y-1,label:o,kind:'hint'});
+      }
+    }
+  }
+  (S.quests.side||[]).filter(q=>q.status==='aktiv'||q.status==='offen').slice(0,3).forEach(q=>{
+    const npc=_npcs[marks.length%Math.max(1,_npcs.length)];
+    if(npc) marks.push({x:Math.round(npc.x), y:Math.round(npc.y)-1, label:q.titel, kind:'side'});
+  });
+  _questMarks=marks;
+}
+
 function loop(ts){
   if(!_active) return;
   const dt=Math.min(0.05, (_last? (ts-_last) : 16)/1000); _last=ts;
@@ -1192,17 +1399,7 @@ function loop(ts){
     else if(Math.abs(tx)>=Math.abs(ty)) dx=Math.sign(tx); else dy=Math.sign(ty);
   }
   if((dx||dy) && !_hero.moving) tryMove(dx, dy);
-  for(const n of _npcs){
-    if(Math.random()<0.003){
-      const d=[[1,0],[-1,0],[0,1],[0,-1]][Math.floor(Math.random()*4)];
-      const nx=Math.round(n.x)+d[0], ny=Math.round(n.y)+d[1];
-      if(walkable(nx,ny) && !_npcs.some(o=>o!==n&&Math.round(o.x)===nx&&Math.round(o.y)===ny) && !(nx===_hero.x&&ny===_hero.y)){
-        if(d[0]<0)n.dir=1; else if(d[0]>0)n.dir=2; else if(d[1]<0)n.dir=3; else n.dir=0;
-        n.x=nx; n.y=ny; n.frame=(n.frame+1)%4;
-      }
-    }
-    n.px+=(n.x-n.px)*Math.min(1,dt*8); n.py+=(n.y-n.py)*Math.min(1,dt*8);
-  }
+  stepNpcs(dt);
   stepHero(dt);
   draw();
   _raf=requestAnimationFrame(loop);
@@ -1325,7 +1522,11 @@ function ensureDOM(){
     const cx=(e.clientX-rect.left)*scaleX, cy=(e.clientY-rect.top)*scaleY;
     const tx=Math.floor(camX + (cx-ox)/tw), ty=Math.floor(camY + (cy-oy)/tw);
     const hit=_npcs.find(n=>Math.round(n.x)===tx && Math.round(n.y)===ty);
-    if(hit){ talkTo(hit.name); return; }
+    if(hit){
+      if(hit.sheet==='merchant' && _hooks.openShop){ try{ _hooks.openShop(hit.name); return; }catch(_){ } }
+      talkTo(hit.name); return;
+    }
+    if(openChestAt(tx,ty)) return;
     _tapTarget={x:tx,y:ty};
   });
   window.addEventListener('keydown', e=>{
@@ -1393,6 +1594,13 @@ export function showOverworld(S){
   _overhead=built.overhead||[];
   _animators=built.animators||[];
   __map=built;
+  _chests=(built.chests||[]).map(c=>({...c}));
+  _lights=built.lights||[];
+  try{
+    const opened=S?.flags?.chests||{};
+    for(const c of _chests){ if(opened[c.id]){ c.open=true; try{ if(_map.overlay?.[c.y]) _map.overlay[c.y][c.x]='crate'; }catch(_){}} }
+  }catch(_){}
+  try{ rebuildQuestMarks(S); }catch(_){}
   _hero.x=built.spawn.x; _hero.y=built.spawn.y;
   _hero.px=_hero.x; _hero.py=_hero.y; _hero.moving=false; _hero.frame=0;
   loadFog(S);

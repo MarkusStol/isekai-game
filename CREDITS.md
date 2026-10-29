@@ -49,3 +49,6 @@ obligations for LPC-derived character sprites.
 
 ## Combat sprites (v29)
 - Universal LPC spritesheets — slash / hurt / spellcast / thrust composited for hero, NPCs, skeleton enemies (CC-BY-SA 3.0)
+
+## v30
+- Denser LPC thatched composites; night window/lamp lights; companion battle crops from LPC slash sheets

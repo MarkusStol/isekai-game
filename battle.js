@@ -1015,11 +1015,11 @@ export function renderBattleUI(){
   if(!_B){ root.classList.add('hidden'); return }
   root.classList.remove('hidden'); root.classList.add('battle-pixel');
   const B=_B;
+  root.classList.remove('battle-25d');
   root.innerHTML=`
   <div class="battle-bg pixel-battle-bg" id="battleBg" style="background-image:url('${B.bg}')"></div>
   <div class="pixel-battle-floor" aria-hidden="true"></div>
   <div class="battle-veil"></div>
-  <div class="battle-stage-25d"><div class="bstage-floor"></div></div>
   <div class="battle-atb-mode">${B.atbMode==='wait'?'WAIT':'ACTIVE'}</div>
   <div class="skill-banner" id="skillBanner"></div>
   <div class="battle-timeline" id="battleTL"></div>
@@ -1076,7 +1076,7 @@ function refreshUI(){
   if(party){
     party.innerHTML=B.party.map(p=>`
       <div class="party-card pixel-party ${p.alive?'':'dead'} ${B.selecting?.actor===p?'active':''} row-${p.row||'front'}" data-iid="${p._iid}">
-        <div class="party-spr-wrap"><img class="pixel-hero-spr battler-spr pixelated" src="${p.kind==='hero'?'./assets/pixel/hero/battle.png':'./assets/pixel/npc/'+sheetRoleForCompanion(p)+'_idle.png'}" alt="" width="40" height="54" data-role="${p.kind==='hero'?'hero':sheetRoleForCompanion(p)}" onerror="this.onerror=null;this.src='./assets/pixel/hero/battle.png'"/></div>
+        <div class="party-spr-wrap"><img class="pixel-hero-spr battler-spr pixelated" src="${partySpriteUrl(p)}" alt="" width="40" height="54" data-role="${p.kind==='hero'?'hero':sheetRoleForCompanion(p)}" onerror="this.onerror=null;this.src=this.dataset.fb1||this.dataset.fb2||'./assets/pixel/npc/villager_idle.png';" data-fb1="${p.kind==='hero'?'':('./assets/pixel/npc/'+sheetRoleForCompanion(p)+'_idle.png')}" data-fb2="./assets/pixel/npc/villager_idle.png"/></div>
         <div class="party-port">${p.portrait?`<img src="${p.portrait}" alt="" loading="lazy"/>`:`<span>${(p.name||'?')[0]}</span>`}</div>
         <div class="party-meta">
           <b>${p.name}${p.job?' · '+((Jobs.JOBS[p.job]||{}).name||p.job):''}<small>${p.row==='back'?' hinten':' vorn'}</small></b>
@@ -1254,6 +1254,12 @@ function battlerSheetFor(unit, action){
   const anim = map[action] || 'slash';
   return `./assets/pixel/chars/enemy_${anim}.png`;
 }
+
+function partySpriteUrl(p){
+  if(p.kind==='hero') return './assets/pixel/hero/battle.png';
+  const role=sheetRoleForCompanion(p);
+  return './assets/pixel/chars/'+role+'_battle.png';
+}
 function sheetRoleForCompanion(unit){
   const art=String(unit?.npcRef||unit?.name||'').toLowerCase();
   if(/wache|ritter|guard|soldat/.test(art)) return 'guard';
@@ -1360,7 +1366,7 @@ function playDeathFade(unit){
 }
 function shakeScreen(){
   const root=el('battleRoot'); if(!root)return;
-  try{V25.decorateBattle25d(root); V25.battleCamPulse(root,'hit')}catch(_){}
+  try{ /* v30: no stacked 25d stage — pure FF6 pixel battle */ V25.battleCamPulse?.(root,'hit') }catch(_){}
   root.classList.add('shake'); setTimeout(()=>root.classList.remove('shake'),400);
 }
 

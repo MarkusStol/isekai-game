@@ -1772,3 +1772,87 @@ body.ow-desktop .ow-side{ z-index:3; }
 .battler-spr.spr-animating{ filter:brightness(1.15); }
 .foe-art-wrap .battler-canvas{ width:72px!important; height:72px!important; }
 .party-spr-wrap .battler-canvas{ width:48px!important; height:48px!important; }
+
+/* ===== v30: FF6 battle cleanup, shop, quest log, lights ===== */
+.battle-root.battle-pixel .battle-stage-25d,
+.battle-root.battle-pixel .bstage-floor,
+.battle-root.battle-pixel .bstage-foes,
+.battle-root.battle-pixel .bstage-party{
+  display:none !important;
+}
+.battle-root.battle-25d .battle-stage-25d{ display:none !important; }
+.battle-root.battle-pixel{
+  background: linear-gradient(180deg,#1a2848 0%, #0c1428 55%, #080e1c 100%);
+}
+.battle-root.battle-pixel .battle-veil{
+  background: radial-gradient(ellipse at 50% 40%, transparent 40%, rgba(0,0,0,.35) 100%);
+  pointer-events:none;
+}
+.battle-root.battle-pixel .pixel-battle-floor{
+  opacity:.7;
+  background: repeating-linear-gradient(90deg,#4a3420 0 10px,#2e2014 10px 20px);
+  box-shadow: inset 0 8px 0 #0004;
+}
+.battle-root.battle-pixel .battle-log{
+  font-family: var(--px-font, monospace);
+  font-size: 9px;
+  background: #152050ee;
+  border: 2px solid #9eb6ff;
+  border-radius: 2px;
+}
+.battle-root.battle-pixel .skill-banner{
+  font-family: var(--px-font, monospace);
+  letter-spacing: 1px;
+}
+.battler-canvas.spr-fx{
+  image-rendering: pixelated;
+  filter: drop-shadow(2px 2px 0 #000a);
+}
+
+.pixel-shop{
+  position:fixed; inset:0; z-index:80;
+  display:flex; align-items:center; justify-content:center;
+  background:rgba(4,6,16,.72);
+}
+.pixel-shop.hidden{ display:none; }
+.pixel-shop-panel{
+  width:min(420px,92vw);
+  max-height:78vh; overflow:auto;
+  background: linear-gradient(180deg,#243878,#152050);
+  border:3px solid #9eb6ff;
+  box-shadow: 6px 6px 0 #0008, inset 0 0 0 2px #5a78c8;
+  color:#e8f0ff;
+  font-family: var(--px-font, monospace);
+  padding:10px;
+}
+.pixel-shop-head{
+  display:flex; align-items:center; gap:8px; margin-bottom:8px;
+  font-size:11px; border-bottom:2px solid #9eb6ff55; padding-bottom:6px;
+}
+.pixel-shop-head span{ margin-left:auto; color:#ffd35a; }
+.pixel-shop-head .px-x{
+  background:#1a2458; border:2px solid #9eb6ff; color:#fff; width:28px; height:28px;
+}
+.pixel-shop-row{
+  display:flex; align-items:center; gap:8px; width:100%;
+  text-align:left; margin:4px 0; padding:8px;
+  background:#101838; border:2px solid #6a88d0; color:#e8f0ff;
+  font-family: inherit; cursor:pointer;
+}
+.pixel-shop-row:hover{ border-color:#ffd35a; background:#1a2860; }
+.pixel-shop-row .psn{ flex:1; display:flex; flex-direction:column; gap:2px; }
+.pixel-shop-row small{ opacity:.75; font-size:8px; }
+.pixel-shop-row .psp{ color:#ffd35a; font-size:10px; white-space:nowrap; }
+.pixel-shop-foot{ margin-top:8px; font-size:8px; opacity:.8; }
+
+.quest-obj{ margin:8px 0; padding-left:8px; list-style:none; }
+.quest-obj li{ margin:4px 0; font-size:12px; }
+.quest-obj .qmark{
+  display:inline-block; width:16px; height:16px; text-align:center;
+  background:#ffd35a; color:#1a1020; font-weight:700; border-radius:2px;
+  margin-right:6px; font-size:12px; line-height:16px;
+}
+.pixel-panel{
+  border:2px solid #9eb6ff55 !important;
+  background: linear-gradient(180deg,#1a2458aa,#0e1430cc) !important;
+}

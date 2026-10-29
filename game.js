@@ -23,9 +23,9 @@ import * as OW from './overworld.js';
 import * as Aud from './audio.js';
 import { hasBg } from './bg-manifest.js';
 try{ Aud.unlockOnGesture?.(); }catch(_){} // v28 first-tap music
- // v29: LPC buildings + sprite battle anims + ort presets
+ // v30: denser houses, night lights, quest markers, chests, NPC schedules, shops, FF6 battle
 const $=s=>document.querySelector(s);const $$=s=>[...document.querySelectorAll(s)];const R=a=>a[Math.floor(Math.random()*a.length)];const rnd=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
-const VER='29',CACHE_V='v29';
+const VER='30',CACHE_V='v30';
 const ROLES={
  held:{e:'⚔️',name:'Held mit Status-System',d:'Ein blaues Fenster erscheint: [Status]. Die Welt braucht dich.',world:'Königreich Aldheim',
   base:{hp:100,mp:40,str:12,cha:8,ruf:10,gold:40},cls:['Abenteurer','Ritter','Held','Legendärer Held'],pack:'worlds/held.json',
@@ -1098,6 +1098,10 @@ function enterPlay(){$('#keyGate')&&$('#keyGate').classList.add('hidden');$('#ti
    audio:Aud,
      act:(t)=>act(t),
      getS:()=>S,
+     toast:(m)=>toast(m),
+     save:()=>save(),
+     openShop:(who)=>openPixelShop(who),
+     openMenu:(tab)=>openMenu(tab||'quests'),
      onLocation:(dest)=>{ try{ const r=travelTo(dest); if(r?.text){ add('n',r.text); apply(r.changes||{}); if(r.changes?.world)applyWorld(r.changes.world); hud(); renderChoices(); OW.refreshOverworld(S); typewrite(isG()?'Nebel':'Erzähler', r.text, ()=>{}); save(); } }catch(e){ console.warn('ow-travel',e);} }
    });
    OW.showOverworld(S);
@@ -1108,7 +1112,57 @@ function enterPlay(){$('#keyGate')&&$('#keyGate').classList.add('hidden');$('#ti
 function show(){enterPlay()}
 
 /* ---------- menu overlays ---------- */
-function openMenu(tab){_menuTab=tab||'hub';$('#menu').classList.remove('hidden');
+
+/* ---------- v30 pixel shop ---------- */
+const SHOP_STOCK=[
+  {id:'brot', name:'Brot', price:4, desc:'Stellt 8 HP wieder her', type:'consumable', use:'heal', heal:8},
+  {id:'trank', name:'Trank', price:18, desc:'Stellt 40 HP wieder her', type:'consumable', use:'heal', heal:40},
+  {id:'äther', name:'Äther', price:22, desc:'Stellt 20 MP wieder her', type:'consumable', use:'mp', heal:20},
+  {id:'antidot', name:'Antidot', price:12, desc:'Heilt Gift', type:'consumable'},
+  {id:'dolch', name:'Reise-Dolch', price:45, desc:'Leichte Waffe', type:'weapon', equip:true, atk:4},
+  {id:'umhang', name:'Wollumhang', price:35, desc:'Wärmt in der Nacht', type:'armor', equip:true, def:2},
+  {id:'fackel', name:'Fackel', price:6, desc:'Licht für dunkle Orte', type:'misc'},
+];
+function openPixelShop(who){
+  if(!S) return;
+  let root=document.getElementById('pixelShop');
+  if(!root){
+    root=document.createElement('div');
+    root.id='pixelShop';
+    root.className='pixel-shop hidden';
+    document.body.appendChild(root);
+  }
+  const gold=S.st?.gold|0;
+  root.classList.remove('hidden');
+  root.innerHTML=`<div class="pixel-shop-panel">
+    <div class="pixel-shop-head"><b>🛒 ${who||'Händler'}</b><span>Gold: ${gold}</span><button type="button" class="px-x" id="shopClose">×</button></div>
+    <div class="pixel-shop-list" id="shopList"></div>
+    <div class="pixel-shop-foot meta">Tippe einen Artikel zum Kaufen. Esc schließt.</div>
+  </div>`;
+  const list=root.querySelector('#shopList');
+  SHOP_STOCK.forEach(it=>{
+    const row=document.createElement('button');
+    row.type='button';
+    row.className='pixel-shop-row';
+    row.innerHTML=`<span class="psi">📦</span><span class="psn"><b>${it.name}</b><small>${it.desc}</small></span><span class="psp">${it.price} G</span>`;
+    row.onclick=()=>{
+      if((S.st.gold|0)<it.price){ toast('Nicht genug Gold'); return; }
+      S.st.gold=(S.st.gold|0)-it.price;
+      S.inv=S.inv||[];
+      S.inv.push({id:it.id, name:it.name, desc:it.desc, type:it.type, use:it.use, heal:it.heal, equip:it.equip, atk:it.atk, def:it.def});
+      toast('Gekauft: '+it.name);
+      try{Aud.playSfx?.('ok')}catch(_){}
+      save(); hud();
+      openPixelShop(who);
+    };
+    list.appendChild(row);
+  });
+  root.querySelector('#shopClose').onclick=()=>root.classList.add('hidden');
+  const onKey=e=>{ if(e.key==='Escape'){ root.classList.add('hidden'); window.removeEventListener('keydown',onKey);} };
+  window.addEventListener('keydown', onKey);
+}
+
+function openMenu(tab){_menuTab=tab||'hub';const m=$('#menu'); if(!m)return; m.classList.remove('hidden');
  $$('#menuTabs button').forEach(b=>b.classList.toggle('on',b.dataset.tab===_menuTab));renderMenu()}
 function closeMenu(){$('#menu').classList.add('hidden')}
 function renderMenu(){const body=$('#menuBody');if(!body||!S)return;body.innerHTML='';
@@ -1161,11 +1215,18 @@ function renderMenu(){const body=$('#menuBody');if(!body||!S)return;body.innerHT
    },delay)
   })}
 
- else if(_menuTab==='quests'){const m=S.quests?.main;if(m){const left=(m.objectives||[]).filter(o=>!(m.done||[]).includes(o));
-  body.innerHTML+=`<div class="card quest-main"><h3>📜 ${m.titel}</h3><p><b>Akt:</b> ${m.actTitel||''}</p><p>${m.ziel||''}</p>
-  <p class="meta">Offen: ${left.join(' · ')||'–'}</p><p class="meta">Erledigt: ${(m.done||[]).join(' · ')||'–'}</p></div>`}
-  (S.quests?.side||[]).forEach(q=>{const card=document.createElement('div');card.className='card quest-side';
-   card.innerHTML=`<h3>🗺 ${q.titel}</h3><p>${q.ziel||''}</p><p class="meta">${q.status||'offen'}${q.npc?' · '+q.npc:''}</p>`;body.appendChild(card)})}
+ else if(_menuTab==='quests'){
+  const m=S.quests?.main;
+  body.innerHTML+=`<div class="card quest-log-head pixel-panel"><h3>📜 Quest-Log</h3><p class="meta">Marker (!) erscheinen auf der Karte bei Zielen.</p></div>`;
+  if(m){const left=(m.objectives||[]).filter(o=>!(m.done||[]).includes(o));
+  body.innerHTML+=`<div class="card quest-main pixel-panel"><h3>⚔ ${m.titel}</h3><p><b>Akt:</b> ${m.actTitel||''}</p><p>${m.ziel||''}</p>
+  <ul class="quest-obj">${left.map(o=>`<li><span class="qmark">!</span> ${o}</li>`).join('')||'<li class="meta">Keine offenen Ziele</li>'}</ul>
+  <p class="meta">Erledigt: ${(m.done||[]).join(' · ')||'–'}</p>
+  <button type="button" class="bcm" id="btnQuestMap">Karte aktualisieren</button></div>`}
+  (S.quests?.side||[]).forEach(q=>{const card=document.createElement('div');card.className='card quest-side pixel-panel';
+   card.innerHTML=`<h3>${q.status==='erledigt'?'✓':'!'} ${q.titel}</h3><p>${q.ziel||''}</p><p class="meta">${q.status||'offen'}${q.npc?' · '+q.npc:''}${q.ort?' · 📍 '+q.ort:''}</p>`;body.appendChild(card)});
+  body.querySelector('#btnQuestMap')?.addEventListener('click',()=>{ try{ OW.refreshOverworld?.(S); toast('Quest-Marker gesetzt'); }catch(_){}});
+}
  else if(_menuTab==='map'){const wrap=document.createElement('div');wrap.className='card map-list';wrap.innerHTML='<h3>📍 Orte</h3>';
   (S.discovered||[]).forEach(d=>{const desc=S.world?.orte?.[d]||'';const el=document.createElement('div');el.className='lex-item';el.innerHTML=`<b>${d}</b><br><span class="meta">${typeof desc==='string'?desc:(desc?.desc||'Entdeckt.')}</span>`;wrap.appendChild(el)});
   body.appendChild(wrap);
@@ -2615,7 +2676,7 @@ $('#btnGateSave').onclick=()=>{const gk=$('#gateKey').value.trim();if(!gk){toast
  toast('Alles bereit.');gmFetch(gk,true).then(()=>gmProbe(gk).catch(()=>{}));enterPlay()};
 $('#btnGateSkip').onclick=()=>{cfg.mode='free';cfg.v2=1;localStorage.setItem(CFG,JSON.stringify(cfg));toast('Erzählerin: Pollinations (ohne Schlüssel)');enterPlay()};
 
-window.__setCfg=o=>{cfg=Object.assign(cfg||{},o||{});try{localStorage.setItem(CFG,JSON.stringify(cfg))}catch(_){}};window.__game={VER,Aud,setBusy,forceUnbusy,ACT_HARD_MS,V25,OW,Depth,Battle,Jobs,Gems,Summons,Equip,Jrpg,localBeatLine,parsePlayerIntent,offlineRespondIntent,freeStream,FREE_MODEL,openPendingEncounter,Imm,discoverThing,showCodexInline,Level,UI14,UI17,Know,Cont,lastPromptDump,advanceTimeMinutes,applyActionDuration,newGrey,greyDetails,loadGrey,loadPack,get S(){return S},act,newLife,gBody,msgs,gmRank,gmProbe,parseStream,thinkingCfg,gmOrder,readSSE,STREAM_DELIM,migrate,worldTick,bumpRel,openMenu,stageName,offline,startIntro,setSceneImage,setPortrait,imgUrl,advanceTime,phaseLabel,typewrite,enterPlay,showTitle,analyzeImage,applySceneTheme,themeFromText,loadValidatedImage,openingNarration,travelTo,parseTravel,killNPC,robNPC,addMemory,memoryHint,startProcedural,offlineGenerateWorld,generateWorldPack,GENRES,travelChoices,ensureGraph,whoHere,parseLifeSim,Sim,Persist,WorldMap,Econ,Codex,UI13,save,loadSave,applyCatchUp,findAnyNpc};
+window.__setCfg=o=>{cfg=Object.assign(cfg||{},o||{});try{localStorage.setItem(CFG,JSON.stringify(cfg))}catch(_){}};window.__game={VER,Aud,setBusy,forceUnbusy,ACT_HARD_MS,V25,OW,Depth,Battle,Jobs,Gems,Summons,Equip,Jrpg,localBeatLine,parsePlayerIntent,offlineRespondIntent,freeStream,FREE_MODEL,openPendingEncounter,Imm,discoverThing,showCodexInline,Level,UI14,UI17,Know,Cont,lastPromptDump,advanceTimeMinutes,applyActionDuration,newGrey,greyDetails,loadGrey,loadPack,get S(){return S},act,newLife,gBody,msgs,gmRank,gmProbe,parseStream,thinkingCfg,gmOrder,readSSE,STREAM_DELIM,migrate,worldTick,bumpRel,openMenu,openPixelShop,stageName,offline,startIntro,setSceneImage,setPortrait,imgUrl,advanceTime,phaseLabel,typewrite,enterPlay,showTitle,analyzeImage,applySceneTheme,themeFromText,loadValidatedImage,openingNarration,travelTo,parseTravel,killNPC,robNPC,addMemory,memoryHint,startProcedural,offlineGenerateWorld,generateWorldPack,GENRES,travelChoices,ensureGraph,whoHere,parseLifeSim,Sim,Persist,WorldMap,Econ,Codex,UI13,save,loadSave,applyCatchUp,findAnyNpc};
 window.__game.askNPC=a=>askNPC(a);window.__game.gemini=gemini;
 if(cfg.gkey)gmFetch(cfg.gkey.trim()).then(()=>gmProbe(cfg.gkey.trim()).catch(()=>{})).catch(()=>{});
 (function(){const root=document.documentElement;const apply=()=>{try{const vv=window.visualViewport;if(!vv)return;const kb=Math.max(0,window.innerHeight-vv.height-vv.offsetTop);root.style.setProperty('--kb',kb+'px')}catch(_){}};
