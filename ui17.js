@@ -216,8 +216,9 @@ export function renderCraft(body, S, helpers){
   const {toast, save}=helpers;
   Equip.ensureEquip(S);
   const mats=S.equip.mats||{};
+  const tier=S.content39?.flags?.gearTier|1;
   body.appendChild(card(`<h3>🔨 Werkstatt</h3>
-    <p class="meta">Gil: ${S.st?.gold|0}</p>
+    <p class="meta">Gil: ${S.st?.gold|0} · Ausrüstungsstufe ${tier}</p>
     <p class="meta">Material: ${Object.entries(mats).filter(([,n])=>n>0).map(([k,v])=>`${k}×${v}`).join(' · ')||'leer'}</p>`));
 
   const craft=card(`<h3>Herstellen</h3><div id="craftList"></div>`);
@@ -225,12 +226,23 @@ export function renderCraft(body, S, helpers){
   Equip.CRAFT_RECIPES.forEach(rec=>{
     const it=Equip.getItem(rec.id);
     const row=document.createElement('div'); row.className='craft-row';
-    row.innerHTML=`<div><b>${it?.icon||'📦'} ${it?.name||rec.id}</b><br><span class="meta">${Object.entries(rec.mats).map(([k,v])=>`${k}×${v}`).join(', ')} · ${rec.gold} Gil</span></div>`;
+    row.innerHTML=`<div><b>${it?.icon||'📦'} ${it?.name||rec.id}</b><br><span class="meta">T${rec.tier|1} · ${Object.entries(rec.mats).map(([k,v])=>`${k}×${v}`).join(', ')} · ${rec.gold} Gil</span></div>`;
     const b=btn('Herstellen');
-    b.onclick=()=>{ const r=Equip.craftItem(S,rec.id); toast?.(r.text); save?.(); refresh(body,S,helpers,renderCraft) };
+    b.onclick=()=>{ const r=Equip.craftItem(S,rec.id); toast?.(r.text); save?.(); body.innerHTML=''; renderCraft(body,S,helpers) };
     row.appendChild(b); list.appendChild(row);
   });
   body.appendChild(craft);
+
+  const cook=card(`<h3>Kochen</h3><div id="cookList"></div>`);
+  const cl=cook.querySelector('#cookList');
+  (Equip.COOK_RECIPES||[]).forEach(rec=>{
+    const row=document.createElement('div'); row.className='craft-row';
+    row.innerHTML=`<div><b>🍲 ${rec.name}</b><br><span class="meta">${Object.entries(rec.mats||{}).map(([k,v])=>`${k}×${v}`).join(', ')||'—'} · +${rec.heal|0}HP${rec.mp?` +${rec.mp}MP`:''}</span></div>`;
+    const b=btn('Kochen');
+    b.onclick=()=>{ const r=Equip.cookItem(S,rec.id); toast?.(r.text); save?.(); body.innerHTML=''; renderCraft(body,S,helpers) };
+    row.appendChild(b); cl.appendChild(row);
+  });
+  body.appendChild(cook);
 
   const up=card(`<h3>Aufwerten</h3><div id="upList"></div>`);
   const ul=up.querySelector('#upList');
@@ -242,7 +254,7 @@ export function renderCraft(body, S, helpers){
     const row=document.createElement('div'); row.className='craft-row';
     row.innerHTML=`<div><b>${it.icon||''} ${it.name}</b> +${lvl}<br><span class="meta">Nächste Stufe: ${cost} Gil</span></div>`;
     const b=btn('Upgrade');
-    b.onclick=()=>{ const r=Equip.upgradeItem(S,id); toast?.(r.text); save?.(); refresh(body,S,helpers,renderCraft) };
+    b.onclick=()=>{ const r=Equip.upgradeItem(S,id); toast?.(r.text); save?.(); body.innerHTML=''; renderCraft(body,S,helpers) };
     row.appendChild(b); ul.appendChild(row);
   });
   body.appendChild(up);

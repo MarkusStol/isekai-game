@@ -512,6 +512,12 @@ function applyRewards(B, result, summary){
   const S=B.S; if(!S)return;
   S.battle=S.battle||{};
   S.battle.limit=B.party[0]?.limit|0;
+  try{
+    if(result==='win' && (B.flags?.dungeonBoss || (S.content39?.dungeon && B.foes?.some(f=>f.boss)))){
+      window.__game?.C39?.afterDungeonBossWin?.(S);
+      summary.text=(summary.text||'')+' Dungeon-Boss bezwungen — Materialien und Freischaltungen möglich.';
+    }
+  }catch(_){}
   // sync hero HP/MP
   const hero=B.party[0];
   if(hero){

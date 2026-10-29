@@ -1,4 +1,4 @@
-# Pixel Art Credits (v26–v38)
+# Pixel Art Credits (v26–v39)
 
 All art under `assets/pixel/` is derived from the following sources. Original
 pack archives are **not** committed; only cropped/composited game assets are.
@@ -93,3 +93,9 @@ Genre packs `arch_fan*`, `arch_zom*`, `arch_cyb*`, `arch_des*`, `arch_dark*` plu
 - Richer offline phrase pools (genre/situation/NPC), session anti-repeat (`_offlineRecent` / `_offlineOut`).
 - Settings: Gemini + Pollinations pollen key fields, on-device only, narrator status indicator; gate skip → offline.
 - No keys committed. Playtest: 40+ inputs/genre repetition/coherence.
+
+## v39 Content depth
+
+- Emergent per-genre threads (factions, escalating rumours), NPC side arcs with endings.
+- Optional dungeons (puzzle/trap/loot/multi-phase boss), cooking + expanded craft tiers, mid-game job unlocks.
+- Nothing railroaded.

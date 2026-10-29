@@ -32,10 +32,26 @@ export const ACCESSORIES={
 export const ALL_EQUIP={...WEAPONS,...ARMORS,...ACCESSORIES};
 
 export const CRAFT_RECIPES=[
-  {id:'runenschwert', mats:{'Eisenbarren':2,'Runensplitter':1}, gold:120},
-  {id:'froststab', mats:{'Eiskristall':2,'Holzstab':1}, gold:100},
-  {id:'plattenharnisch', mats:{'Eisenbarren':3,'Leder':1}, gold:150},
-  {id:'sternenklinge', mats:{'Sternenfragment':3,'Runenschwert':1}, gold:500},
+  {id:'runenschwert', mats:{'Eisenbarren':2,'Runensplitter':1}, gold:120, tier:2},
+  {id:'froststab', mats:{'Eiskristall':2,'Holzstab':1}, gold:100, tier:2},
+  {id:'plattenharnisch', mats:{'Eisenbarren':3,'Leder':1}, gold:150, tier:2},
+  {id:'diebesdolch', mats:{'Eisenbarren':1,'Leder':1}, gold:40, tier:1},
+  {id:'drachenspeer', mats:{'Eisenbarren':2,'Boss-Essenz':1,'Leder':1}, gold:280, tier:3},
+  {id:'schattenmantel', mats:{'Leder':2,'Runensplitter':2}, gold:220, tier:3},
+  {id:'heldenring', mats:{'Runensplitter':2,'Sternenfragment':1}, gold:300, tier:3},
+  {id:'sternenklinge', mats:{'Sternenfragment':3,'Runenschwert':1,'Boss-Essenz':1}, gold:500, tier:4},
+  {id:'aethercuirass', mats:{'Eisenbarren':4,'Sternenfragment':2,'Boss-Essenz':1}, gold:450, tier:4},
+];
+
+/** Cooking / camping recipes — restore HP/MP, buff flags */
+export const COOK_RECIPES=[
+  {id:'kraeutersuppe', name:'Kräutersuppe', mats:{'Kräuter':2}, gold:0, heal:35, mp:0, desc:'Einfacher Eintopf vom Wegrand.'},
+  {id:'reisebrot', name:'Reisebrot', mats:{'Mehl':1,'Kräuter':1}, gold:2, heal:20, mp:5, desc:'Hält den Hunger fern.'},
+  {id:'feuerfleisch', name:'Feuerfleisch', mats:{'Fleisch':1,'Kräuter':1}, gold:5, heal:50, mp:0, desc:'Gebraten, würzig, stärkend.'},
+  {id:'stimtee', name:'Stimtee', mats:{'Kräuter':3,'Eiskristall':1}, gold:8, heal:10, mp:40, desc:'Klarer Kopf, warmes Mana.'},
+  {id:'notnahrung', name:'Notnahrung', mats:{'Dosenreste':1}, gold:0, heal:25, mp:0, genre:['zombie'], desc:'Überlebensration.'},
+  {id:'synth_bowl', name:'Synth-Bowl', mats:{'Synth-Paste':1,'Elektrolyt':1}, gold:6, heal:30, mp:15, genre:['cyberpunk'], desc:'Neon-Kantinenklassiker.'},
+  {id:'siegeltrank', name:'Siegeltrank', mats:{'Kräuter':2,'Runensplitter':1}, gold:20, heal:40, mp:25, desc:'Alchemie light — Lagerfeuer-tauglich.'},
 ];
 
 export function blankEquip(S){
@@ -49,7 +65,7 @@ export function blankEquip(S){
       lederwams:[null],
     },
     upgrades:{}, // itemId -> level
-    mats:{'Eisenbarren':3,'Leder':2,'Runensplitter':1,'Holzstab':1,'Eiskristall':1},
+    mats:{'Eisenbarren':3,'Leder':2,'Runensplitter':1,'Holzstab':1,'Eiskristall':1,'Kräuter':3,'Mehl':2,'Fleisch':1,'Dosenreste':1,'Synth-Paste':1,'Elektrolyt':1,'Sternenfragment':0,'Boss-Essenz':0},
   };
 }
 
@@ -104,16 +120,54 @@ export function upgradeItem(S, id){
 export function craftItem(S, recipeId){
   ensureEquip(S);
   const rec=CRAFT_RECIPES.find(r=>r.id===recipeId); if(!rec) return {ok:false,text:'Rezept unbekannt.'};
+  const tierNeed=rec.tier|1;
+  const tierHave=(S.content39?.flags?.gearTier)|1;
+  if(tierNeed>tierHave && (S.st?.lvl|1)<(tierNeed*4)){
+    return {ok:false,text:`Ausrüstungsstufe ${tierNeed} nötig (aktuell ${tierHave}). Mehr Level, Nebenwege oder Dungeon.`};
+  }
   if((S.st?.gold|0)<rec.gold) return {ok:false,text:'Nicht genug Gil.'};
   for(const [m,n] of Object.entries(rec.mats)){
     if((S.equip.mats[m]|0)<n) return {ok:false,text:`Fehlt: ${m}`};
   }
-  for(const [m,n] of Object.entries(rec.mats)) S.equip.mats[m]-=n;
+  // inventory recipe components (e.g. Runenschwert) — treat as mats if present as item id
+  for(const [m,n] of Object.entries(rec.mats)){
+    if(ALL_EQUIP[m]){
+      // need crafted item as ingredient
+      let left=n;
+      while(left>0){
+        const ix=S.equip.inventory.indexOf(m);
+        if(ix<0) return {ok:false,text:`Fehlt Gegenstand: ${getItem(m)?.name||m}`};
+        S.equip.inventory.splice(ix,1); left--;
+      }
+    } else {
+      S.equip.mats[m]-=n;
+    }
+  }
   S.st.gold-=rec.gold;
   if(!S.equip.inventory.includes(recipeId)) S.equip.inventory.push(recipeId);
   const it=getItem(recipeId);
   if(it?.sockets && !S.equip.sockets[recipeId]) S.equip.sockets[recipeId]=Array(it.sockets).fill(null);
-  return {ok:true,text:`Hergestellt: ${it?.name||recipeId}`};
+  return {ok:true,text:`Hergestellt: ${it?.name||recipeId} (Tier ${tierNeed})`};
+}
+
+export function cookItem(S, recipeId){
+  ensureEquip(S);
+  const rec=COOK_RECIPES.find(r=>r.id===recipeId); if(!rec) return {ok:false,text:'Kochrezept unbekannt.'};
+  if(rec.genre && S.genre && !rec.genre.includes(S.genre) && !rec.genre.some(g=>String(S.genre).includes(g))){
+    // still allow — genre hint only
+  }
+  if((S.st?.gold|0)<(rec.gold|0)) return {ok:false,text:'Nicht genug Gil.'};
+  for(const [m,n] of Object.entries(rec.mats||{})){
+    if((S.equip.mats[m]|0)<n) return {ok:false,text:`Fehlt: ${m}`};
+  }
+  for(const [m,n] of Object.entries(rec.mats||{})) S.equip.mats[m]-=n;
+  if(rec.gold) S.st.gold-=rec.gold;
+  if(S.st){
+    if(rec.heal) S.st.hp=Math.min(S.st.maxhp|S.st.hp,(S.st.hp|0)+(rec.heal|0));
+    if(rec.mp) S.st.mp=Math.min(S.st.maxmp|S.st.mp,(S.st.mp|0)+(rec.mp|0));
+  }
+  try{ if(S.needs) S.needs.hunger=Math.max(0,(S.needs.hunger|0)-25); }catch(_){}
+  return {ok:true,text:`Gekocht: ${rec.name}. ${rec.desc||''} (+${rec.heal|0} HP${rec.mp?`, +${rec.mp} MP`:''})`};
 }
 
 export function socketGem(S, itemId, slotIdx, gemUid){
@@ -125,5 +179,5 @@ export function socketGem(S, itemId, slotIdx, gemUid){
   return {ok:true};
 }
 
-export default {RARITY, RARITY_LABEL, WEAPONS, ARMORS, ACCESSORIES, ALL_EQUIP, CRAFT_RECIPES,
-  blankEquip, ensureEquip, getItem, equippedStats, upgradeItem, craftItem, socketGem};
+export default {RARITY, RARITY_LABEL, WEAPONS, ARMORS, ACCESSORIES, ALL_EQUIP, CRAFT_RECIPES, COOK_RECIPES,
+  blankEquip, ensureEquip, getItem, equippedStats, upgradeItem, craftItem, cookItem, socketGem};
