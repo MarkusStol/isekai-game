@@ -3,3 +3,7 @@ package-lock.json
 .DS_Store
 *.log
 scripts/gen-log.jsonl
+
+/pixel-packs/
+../pixel-packs/
+/workspace/pixel-packs/

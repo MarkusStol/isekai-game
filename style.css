@@ -1479,3 +1479,135 @@ body.pixel-jrpg .big{
   font-size:18px; line-height:1; cursor:pointer;
 }
 body.pixel-ow .ow-dlg{ bottom: 4px; }
+
+/* ===== v26 Desktop 16:9 layout + side panels ===== */
+.ow-shell{
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  gap: 4px;
+}
+.ow-main{ display:flex; flex-direction:column; align-items:center; gap:4px; }
+.ow-side{ display:none; }
+.ow-toolbar{
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 430px;
+  padding: 0 8px;
+}
+.ow-fs{
+  background: #1a2458;
+  color: #e8f0ff;
+  border: 2px solid #9eb6ff;
+  border-radius: 2px;
+  font-size: 14px;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+.ow-hint{
+  display: none;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 7px;
+  color: #9eb6ff;
+  opacity: .85;
+}
+
+@media (min-width: 900px) and (min-aspect-ratio: 4/3), (min-width: 1000px){
+  body.ow-desktop #app{
+    max-width: none !important;
+    width: 100%;
+    height: 100dvh;
+  }
+  body.ow-desktop.pixel-ow #stage{
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    height: 100%;
+  }
+  body.ow-desktop .overworld{
+    flex: 1;
+    min-height: 0;
+    padding: 8px 12px;
+  }
+  body.ow-desktop .ow-shell{
+    flex-direction: row;
+    align-items: stretch;
+    justify-content: center;
+    gap: 12px;
+    height: 100%;
+    max-height: calc(100dvh - 120px);
+  }
+  body.ow-desktop .ow-side{
+    display: flex;
+    flex-direction: column;
+    width: 160px;
+    min-width: 140px;
+    background: linear-gradient(180deg, #1a2458, #0e1838);
+    border: 3px solid #9eb6ff;
+    box-shadow: inset 0 0 0 2px #4a6ad0;
+    border-radius: 4px;
+    padding: 8px;
+    overflow: auto;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
+    color: #e8f0ff;
+    gap: 8px;
+  }
+  body.ow-desktop .ow-side-right{ width: 200px; }
+  body.ow-desktop .ow-main{
+    flex: 0 0 auto;
+    justify-content: center;
+  }
+  body.ow-desktop #owCanvas{
+    border-width: 4px;
+    box-shadow: 0 0 0 2px #0a1030, 0 12px 40px #000a;
+  }
+  body.ow-desktop .ow-pad{ display: none; } /* keyboard/gamepad on desktop */
+  body.ow-desktop .ow-keyboard{ display: none; }
+  body.ow-desktop .ow-hint{ display: inline; }
+  body.ow-desktop .ow-toolbar{ max-width: none; }
+  body.ow-desktop:not(.ow-dialogue) .vn-wrap{
+    max-height: 100px;
+  }
+  body.ow-desktop .topbar{ max-width: 1200px; margin: 0 auto; width: 100%; }
+
+  .ow-party-card{
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    background: #0a1030;
+    border: 2px solid #4a6ad0;
+    padding: 6px;
+  }
+  .ow-party-card img{ image-rendering: pixelated; border: 1px solid #9eb6ff; }
+  .ow-party-name{ color: #ffe08a; margin-bottom: 4px; }
+  .ow-party-stat{ color: #9eb6ff; margin-bottom: 4px; }
+  .ow-bar{
+    height: 6px; background: #2a1030; border: 1px solid #9eb6ff; margin-top: 3px;
+  }
+  .ow-bar i{
+    display:block; height:100%; background: linear-gradient(90deg,#e05070,#ff90a0); width:50%;
+  }
+  .ow-bar.mp i{ background: linear-gradient(90deg,#4060e0,#80a0ff); }
+  .ow-log-line{
+    padding: 4px 0;
+    border-bottom: 1px solid #2a3a70;
+    color: #c8d4ff;
+    line-height: 1.5;
+  }
+}
+
+/* Fullscreen overworld */
+#overworld:fullscreen, #overworld:-webkit-full-screen{
+  background: #05040a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#overworld:fullscreen .ow-shell{
+  width: 100%;
+  height: 100%;
+}

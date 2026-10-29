@@ -644,6 +644,84 @@ async function runOverworldGate(){
 }
 
 
+
+/** Path I: desktop 1920×1080 — integer canvas, keyboard WASD + Enter talk */
+async function runDesktopOverworldGate(){
+  const label='desktop-ow';
+  let fails=0, total=0;
+  console.log('\n=== DESKTOP 1920x1080 KEYBOARD OVERWORLD ===');
+  await page.setViewport({width:1920, height:1080, deviceScaleFactor:1});
+  await boot('held','DeskTest');
+  total++;
+  const r=await page.evaluate(async()=>{
+    const g=window.__game;
+    if(!g.OW) return {ok:false, reason:'no-OW'};
+    try{ g.OW.showOverworld(g.S); }catch(e){ return {ok:false, reason:'show:'+e.message}; }
+    await new Promise(r=>setTimeout(r,300));
+    const d0=g.OW.__debug();
+    // Keyboard WASD / arrows
+    const fire=(type,key)=>{
+      const ev=new KeyboardEvent(type,{key, code: key.startsWith('Arrow')?key:'Key'+key.toUpperCase(), bubbles:true});
+      window.dispatchEvent(ev);
+    };
+    fire('keydown','ArrowRight');
+    await new Promise(r=>setTimeout(r,180));
+    fire('keyup','ArrowRight');
+    fire('keydown','d');
+    await new Promise(r=>setTimeout(r,180));
+    fire('keyup','d');
+    fire('keydown','w');
+    await new Promise(r=>setTimeout(r,180));
+    fire('keyup','w');
+    await new Promise(r=>setTimeout(r,250));
+    const d1=g.OW.__debug();
+    const moved = d1.hero.x!==d0.hero.x || d1.hero.y!==d0.hero.y || g.OW.__tryMove(1,0);
+    // Talk via Enter
+    if(d1.npcs?.length){
+      const n=d1.npcs[0];
+      for(let i=0;i<24;i++){
+        const h=g.OW.__debug().hero;
+        const dx=Math.sign(n.x-h.x), dy=Math.sign(n.y-h.y);
+        if(dx||dy) g.OW.__tryMove(dx||0, dy&&!dx?dy:0);
+        await new Promise(r=>setTimeout(r,40));
+      }
+    }
+    const before=(document.getElementById('vnText')?.textContent||'').trim();
+    // Simulate Enter talk
+    window.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true}));
+    await new Promise(r=>setTimeout(r,100));
+    const who=g.OW.__talkNearest();
+    let last={};
+    for(let i=0;i<40;i++){
+      await new Promise(r=>setTimeout(r,250));
+      const vn=(document.getElementById('vnText')?.textContent||'').trim();
+      last={vn, busy:document.body.classList.contains('busy'), same:vn===before, who};
+      if(!last.busy && !last.same && vn.length>=8) break;
+    }
+    const canvas=document.getElementById('owCanvas');
+    const desktop=document.body.classList.contains('ow-desktop');
+    return {
+      ok:true, moved:!!moved, desktop, hasCanvas:!!canvas,
+      cw:canvas?.width, ch:canvas?.height,
+      map:d1.map?.name, npcs:(d1.npcs||[]).length,
+      who:last.who, vn:(last.vn||'').slice(0,80), busy:last.busy, same:last.same,
+      active:g.OW.isOverworldActive(), dbg:d1
+    };
+  });
+  if(!r.ok){ fails++; failures.push({path:label, reason:r.reason}); console.log('  FAIL', r); }
+  else if(!r.hasCanvas || !r.active){ fails++; failures.push({path:label, reason:'no-canvas'}); console.log('  FAIL canvas', r); }
+  else if(!r.desktop){ fails++; failures.push({path:label, reason:'not-desktop-class'}); console.log('  FAIL desktop class', r); }
+  else if(!(r.cw>=300 && r.ch>=160)){ fails++; failures.push({path:label, reason:'bad-canvas-size', cw:r.cw, ch:r.ch}); console.log('  FAIL size', r); }
+  else if(!r.moved){ fails++; failures.push({path:label, reason:'no-move'}); console.log('  FAIL move', r); }
+  else if(r.busy || r.same || (r.vn||'').length<8){ fails++; failures.push({path:label, reason:r.busy?'busy':'no-talk-reply', text:r.vn}); console.log('  FAIL talk', r); }
+  else console.log('  OK desktop-ow', r.map, `${r.cw}x${r.ch}`, 'desktop='+r.desktop, 'talk='+(r.who||'-'));
+  report.paths[label]={fails,total:1};
+  console.log(`=== ${label}: ${fails}/1 fails ===`);
+  // restore mobile-ish viewport for later paths if any
+  await page.setViewport({width:390, height:844, deviceScaleFactor:2});
+  return fails;
+}
+
 try{
   server=await serve();
   browser=await puppeteer.launch({
@@ -669,6 +747,7 @@ try{
   await runBusyPageerror();
   await runHungFetchReply();
   await runOverworldGate();
+  await runDesktopOverworldGate();
   // Live site last (needs network); skip if GATE_SKIP_LIVE=1
   if(process.env.GATE_SKIP_LIVE==='1'){
     console.log('\n=== LIVE SITE skipped (GATE_SKIP_LIVE=1) ===');

@@ -21,7 +21,7 @@ import * as Depth from './depth.js';
 import * as V25 from './visual25d.js';
 import * as OW from './overworld.js';
 const $=s=>document.querySelector(s);const $$=s=>[...document.querySelectorAll(s)];const R=a=>a[Math.floor(Math.random()*a.length)];const rnd=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
-const VER='25',CACHE_V='v25';
+const VER='26',CACHE_V='v26';
 const ROLES={
  held:{e:'⚔️',name:'Held mit Status-System',d:'Ein blaues Fenster erscheint: [Status]. Die Welt braucht dich.',world:'Königreich Aldheim',
   base:{hp:100,mp:40,str:12,cha:8,ruf:10,gold:40},cls:['Abenteurer','Ritter','Held','Legendärer Held'],pack:'worlds/held.json',
@@ -446,7 +446,7 @@ function revealAndMask(text){
     const flags=Know.applyNarratorFlags(S,text);
     for(const nm of flags.learned){
       try{Codex.recordPerson(S,nm,S.world?.npcs?.[nm])}catch(_){}
-      try{UI14.showBegegnung(nm,S.world?.npcs?.[nm],{imgUrl,setPortrait,slug:portAssetKey(nm,S.world?.npcs?.[nm]),know:S.know?.people?.[nm]})}catch(_){}
+      try{ if(!(window.__game?.OW?.isOverworldActive?.() && window.__game?.OW?.isDialogueOpen?.())) UI14.showBegegnung(nm,S.world?.npcs?.[nm],{imgUrl,setPortrait,slug:portAssetKey(nm,S.world?.npcs?.[nm]),know:S.know?.people?.[nm]}); }catch(_){}
       toast('Namen erfahren: '+nm);
     }
     for(const nm of flags.interacted){try{Know.markInteracted(S,nm)}catch(_){}}
@@ -648,6 +648,7 @@ function migrate(raw){if(!raw)return null;const s=typeof raw==='string'?JSON.par
  if(Number(s.ver)<23){s.ver=23}
  if(Number(s.ver)<24){s.ver=24}
  if(Number(s.ver)<25){s.ver=25;s.owFog=s.owFog||{}}
+ if(Number(s.ver)<26){s.ver=26;s.owFog=s.owFog||{}}
  // v13.1 continuity+time always (kept in v14)
  try{Cont.ensureCont(s);if(s.cal&&s.cal.minute==null)s.cal.minute=0;if(s.cfgCatchupOptIn==null)s.cfgCatchupOptIn=false}catch(e){console.warn('cont migrate',e)}
  // Heal incomplete worlds from old saves (missing orte/graph)
@@ -951,7 +952,7 @@ function typewriteAsync(speaker,text,maxMs=1800){return new Promise(res=>{
 
 /* ---------- relationships / romance ---------- */
 function bumpRel(name,daff,dtrust,toastOn){if(!S.romance)S.romance={};
- try{Know.markInteracted(S,name); if(!Know.isNameKnown(S,name)){const lr=Know.learnName(S,name,'interact'); if(lr.first){try{UI14.showBegegnung(name,S.world?.npcs?.[name],{imgUrl,setPortrait,slug:portAssetKey(name,S.world?.npcs?.[name]),know:lr.person})}catch(_){}}}}catch(_){}
+ try{Know.markInteracted(S,name); if(!Know.isNameKnown(S,name)){const lr=Know.learnName(S,name,'interact'); if(lr.first){try{ if(OW.isOverworldActive?.() && OW.isDialogueOpen?.()){ /* dialogue panel already shows meet */ } else { UI14.showBegegnung(name,S.world?.npcs?.[name],{imgUrl,setPortrait,slug:portAssetKey(name,S.world?.npcs?.[name]),know:lr.person}); } }catch(_){}}}}catch(_){}
  let key=Object.keys(S.romance).find(k=>k.toLowerCase()===String(name).toLowerCase())||Object.keys(S.romance).find(k=>k.toLowerCase().includes(String(name).toLowerCase().split(' ').pop()));
  if(!key){key=String(name);S.romance[key]={affection:0,trust:0,stage:0,events:[]}}
  const r=S.romance[key];const old=r.stage;r.affection=Math.max(-100,Math.min(100,(r.affection|0)+(daff|0)));r.trust=Math.max(0,Math.min(100,(r.trust|0)+(dtrust|0)));
