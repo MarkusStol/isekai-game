@@ -4213,3 +4213,583 @@ body.pixel-jrpg:not(.pixel-ow) #portraitWrap.portrait-bust img{
 .craft-shop-body .craft-header-compact .craft-xp{ display:none !important; }
 .craft-shop-body .craft-train-row{ display:flex; flex-wrap:wrap; gap:6px; margin-top:4px; }
 .craft-shop-body .craft-train-row button{ padding:6px 8px !important; font-size:11px !important; }
+
+/* ========== v51: battle HUD / cmd / foe tags / soft active / craft Gil / brighter BG ========== */
+.battle-root.battle-pixel .party-card.pixel-party{
+  display:flex !important;
+  align-items:flex-start !important;
+  gap:8px !important;
+  min-width:0 !important;
+  flex:1 1 100% !important;
+  max-width:100% !important;
+  padding:8px 10px !important;
+  overflow:hidden !important;
+}
+.battle-root.battle-pixel .party-port{
+  flex:0 0 36px; width:36px; height:36px;
+  border-radius:4px; overflow:hidden;
+  background:#0c1838; border:1px solid #9eb6ff66;
+  display:flex; align-items:center; justify-content:center;
+}
+.battle-root.battle-pixel .party-port img{ width:100%; height:100%; object-fit:cover; }
+.battle-root.battle-pixel .party-meta{
+  flex:1 1 auto; min-width:0 !important;
+  display:flex; flex-direction:column; gap:4px;
+}
+.battle-root.battle-pixel .party-name-row{
+  display:flex; align-items:baseline; gap:6px;
+  min-width:0; flex-wrap:nowrap;
+  line-height:1.15;
+}
+.battle-root.battle-pixel .party-name-row b{
+  font-size:13px !important; font-weight:800; color:#fff;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  max-width:42%;
+}
+.battle-root.battle-pixel .party-name-row .party-job{
+  font-size:11px; color:#c8d8ff; opacity:.9;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  flex:1 1 auto; min-width:0;
+}
+.battle-root.battle-pixel .party-name-row .party-rowtag{
+  font-size:10px; color:#9eb6ff; opacity:.85; flex:0 0 auto;
+}
+.battle-root.battle-pixel .party-bars{ display:flex; flex-direction:column; gap:3px; min-width:0; }
+.battle-root.battle-pixel .party-meta .bar{
+  position:relative !important;
+  height:12px !important;
+  margin:0 !important;
+  background:#0a1428 !important;
+  border:1px solid #6a88c8 !important;
+  border-radius:2px;
+  overflow:hidden !important;
+}
+.battle-root.battle-pixel .party-meta .bar.lim,
+.battle-root.battle-pixel .party-meta .bar.atb{ height:6px !important; }
+.battle-root.battle-pixel .party-meta .bar em{
+  position:absolute; left:4px; right:4px; top:0; bottom:0;
+  display:flex; align-items:center; justify-content:flex-end;
+  font-size:10px !important; line-height:1; color:#fff;
+  text-shadow:0 0 3px #000, 1px 1px 0 #000;
+  font-style:normal; font-weight:700;
+  pointer-events:none; z-index:2;
+  white-space:nowrap;
+}
+.battle-root.battle-pixel .party-card.active{
+  border-color:#c8d8ff !important;
+  box-shadow:0 0 0 1px #061028, 0 0 10px #ffe08a33, inset 0 0 0 1px #ffe08a44 !important;
+}
+
+/* Soft active stage marker — no harsh yellow rect */
+.battle-root.battle-pixel .party-stage-spr.active,
+.battle-root.battle-pixel .party-stage-spr.active img,
+.battle-root.battle-pixel .party-stage-spr.active .pixel-hero-spr{
+  outline:none !important;
+  border:none !important;
+  box-shadow:none !important;
+}
+.battle-root.battle-pixel .party-stage-spr.active{
+  filter:drop-shadow(0 0 8px rgba(255,224,138,.55)) !important;
+}
+.battle-root.battle-pixel .party-stage-spr.active::after{
+  content:'';
+  position:absolute; left:18%; right:18%; bottom:-4px; height:3px;
+  background:linear-gradient(90deg, transparent, #ffe08acc, transparent);
+  border-radius:2px;
+  pointer-events:none;
+}
+.battle-root.battle-pixel .party-stage-spr.active img{
+  filter:drop-shadow(0 2px 0 #000a) !important;
+}
+
+/* Larger HD party stage sprites */
+.battle-root.battle-pixel .party-stage-spr img,
+.battle-root.battle-pixel .party-stage-spr .pixel-hero-spr{
+  width:112px !important;
+  height:148px !important;
+  image-rendering:auto !important;
+  object-fit:contain !important;
+}
+@media (min-width:900px){
+  .battle-root.battle-pixel .party-stage-spr img,
+  .battle-root.battle-pixel .party-stage-spr .pixel-hero-spr{
+    width:140px !important;
+    height:186px !important;
+  }
+}
+
+/* Foe name + tags — no awkward 3-line wrap */
+.battle-root.battle-pixel .foe-plate{
+  min-width:120px; max-width:min(46vw, 200px);
+  padding:8px 10px !important;
+}
+.battle-root.battle-pixel .foe-name{
+  font-size:13px !important;
+  font-weight:800;
+  text-align:left !important;
+  line-height:1.2 !important;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  max-width:100%;
+}
+.battle-root.battle-pixel .foe-tags{
+  display:flex; flex-wrap:wrap; gap:4px; margin:4px 0 6px;
+}
+.battle-root.battle-pixel .foe-tags .ftag{
+  display:inline-block;
+  font-size:9px; font-weight:800; letter-spacing:.04em;
+  padding:2px 6px; border-radius:3px;
+  background:#0c1838; border:1px solid #9eb6ff88; color:#c8d8ff;
+}
+.battle-root.battle-pixel .foe-tags .ftag.boss{
+  background:#4a1020; border-color:#ff8a8a88; color:#ffb0b0;
+}
+.battle-root.battle-pixel .foe-tags .ftag.bruch{
+  background:#4a3810; border-color:#ffe08a88; color:#ffe08a;
+}
+
+/* Timeline / ATB badge — keep inside safe area */
+.battle-root.battle-pixel .battle-timeline{
+  top:8px !important;
+  right:max(8px, env(safe-area-inset-right)) !important;
+  left:auto !important;
+  max-width:calc(100% - 96px);
+  flex-wrap:wrap;
+  justify-content:flex-end;
+  gap:3px !important;
+  z-index:14 !important;
+}
+.battle-root.battle-pixel .tl-item{
+  width:16px !important; height:32px !important;
+  flex:0 0 16px;
+}
+.battle-root.battle-pixel .battle-atb-mode{
+  top:8px !important;
+  left:max(8px, env(safe-area-inset-left)) !important;
+  right:auto !important;
+  z-index:14 !important;
+  font-size:11px !important;
+  padding:4px 8px !important;
+  letter-spacing:.06em;
+  border-radius:3px !important;
+}
+
+/* Primary command menu — large & visible on player turn */
+.battle-root.battle-pixel .battle-cmd{
+  padding:8px !important;
+  max-height:none !important;
+}
+.battle-root.battle-pixel .cmd-primary{
+  display:grid !important;
+  grid-template-columns:1fr 1fr !important;
+  gap:8px !important;
+  margin-bottom:8px;
+}
+.battle-root.battle-pixel .cmd-primary .bcm-lg{
+  min-height:52px !important;
+  font-size:16px !important;
+  font-weight:800 !important;
+  padding:12px 10px !important;
+}
+.battle-root.battle-pixel .cmd-primary .bcm-lg:nth-child(5){
+  grid-column:1 / -1;
+}
+.battle-root.battle-pixel .cmd-secondary{
+  display:grid !important;
+  grid-template-columns:1fr 1fr !important;
+  gap:4px !important;
+  max-height:22vh;
+  overflow:auto;
+  opacity:.92;
+}
+.battle-root.battle-pixel .cmd-secondary .bcm{
+  min-height:40px !important;
+  font-size:12px !important;
+  padding:8px !important;
+}
+.battle-root.battle-pixel .battle-wait{
+  display:flex; align-items:center; justify-content:center; gap:10px;
+  padding:14px 10px !important;
+  font-size:14px; font-weight:700;
+}
+.battle-root.battle-pixel .battle-wait .bw-badge{
+  display:inline-block;
+  padding:4px 10px; border-radius:3px;
+  font-size:12px; letter-spacing:.08em;
+  background:#0c1838; border:1px solid #9eb6ff;
+}
+.battle-root.battle-pixel .battle-wait.is-wait .bw-badge{
+  color:#ffe08a; border-color:#ffe08a88;
+}
+.battle-root.battle-pixel .battle-wait.is-active .bw-badge{
+  color:#8affc8; border-color:#8affc888;
+}
+.battle-root.battle-pixel .battle-wait .bw-hint{ opacity:.85; font-weight:600; }
+
+/* Brighter painted battle BG */
+.battle-root.battle-pixel .battle-bg.pixel-battle-bg,
+.battle-root.battle-pixel #battleBg{
+  filter:saturate(1.2) contrast(1.05) brightness(1.08) !important;
+}
+.battle-root.battle-pixel .battle-layer-far{
+  opacity:1 !important;
+  filter:saturate(1.15) brightness(1.12) !important;
+}
+.battle-root.battle-pixel .battle-layer-mid{
+  opacity:.95 !important;
+  filter:saturate(1.1) brightness(1.08) !important;
+}
+.battle-root.battle-pixel .battle-layer-near{
+  opacity:.55 !important;
+  mix-blend-mode:normal !important;
+}
+.battle-root.battle-pixel .battle-layer-floor{
+  opacity:1 !important;
+  filter:saturate(1.15) brightness(1.15) !important;
+}
+
+/* Craft Gil / label — side column, no overlap @390 */
+.pixel-shop-row.craft-row,
+.craft-shop-body .pixel-shop-row{
+  display:grid !important;
+  grid-template-columns:36px minmax(0,1fr) auto !important;
+  align-items:center !important;
+  gap:8px 10px !important;
+  padding:10px 8px !important;
+  min-height:56px !important;
+}
+.pixel-shop-row .shop-info{
+  min-width:0 !important;
+  overflow:hidden !important;
+}
+.pixel-shop-row .shop-info b{
+  display:block;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.pixel-shop-row .shop-info .meta{
+  display:block;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  font-size:11px !important;
+}
+.pixel-shop-row .shop-side{
+  display:flex; flex-direction:column; align-items:flex-end; gap:6px;
+  flex:0 0 auto; min-width:78px;
+}
+.pixel-shop-row .shop-side .shop-price,
+.pixel-shop-row .shop-price{
+  position:static !important;
+  flex:0 0 auto;
+  font-size:12px !important;
+  color:#ffe08a !important;
+  font-weight:800;
+  white-space:nowrap;
+  text-align:right;
+  min-width:0 !important;
+}
+.pixel-shop-row .shop-side .shop-buy{
+  white-space:nowrap;
+}
+.craft-shop-body .craft-header-compact .meta{
+  display:block !important;
+  line-height:1.35 !important;
+  word-break:break-word;
+}
+@media (max-width:420px){
+  .battle-root.battle-pixel .cmd-primary .bcm-lg{ font-size:15px !important; min-height:48px !important; }
+  .battle-root.battle-pixel .party-name-row b{ max-width:38%; font-size:12px !important; }
+  .battle-root.battle-pixel .foe-plate{ max-width:42vw; }
+}
+
+/* v51b: HD party sprites — crisp scaled art, not nearest-neighbor mush */
+.battle-root.battle-pixel .party-stage-spr img.pixelated,
+.battle-root.battle-pixel .party-stage-spr .pixel-hero-spr.pixelated{
+  image-rendering: auto !important;
+  image-rendering: high-quality !important;
+}
+
+/* ========== v51c: party HUD stack + timeline on stage ========== */
+.battle-root.battle-pixel .battle-stage{
+  position:relative !important;
+}
+.battle-root.battle-pixel .battle-stage > .battle-atb-mode{
+  position:absolute !important;
+  top:max(8px, env(safe-area-inset-top)) !important;
+  left:max(8px, env(safe-area-inset-left)) !important;
+  right:auto !important;
+  z-index:20 !important;
+  background:#122450ee !important;
+  border:1px solid #9eb6ff !important;
+  padding:4px 8px !important;
+  font-size:11px !important;
+  border-radius:3px !important;
+}
+.battle-root.battle-pixel .battle-stage > .battle-timeline{
+  position:absolute !important;
+  top:max(8px, env(safe-area-inset-top)) !important;
+  right:max(8px, env(safe-area-inset-right)) !important;
+  left:auto !important;
+  z-index:20 !important;
+  display:flex !important;
+  gap:4px !important;
+  max-width:40%;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+}
+.battle-root.battle-pixel .battle-hud{
+  position:relative !important;
+  z-index:12 !important;
+}
+.battle-root.battle-pixel .battle-hud .battle-atb-mode,
+.battle-root.battle-pixel .battle-hud .battle-timeline{ display:none !important; }
+
+.battle-root.battle-pixel .party-card.pixel-party{
+  align-items:stretch !important;
+  overflow:visible !important;
+  padding:8px 10px !important;
+  box-sizing:border-box !important;
+}
+.battle-root.battle-pixel .party-meta{
+  display:flex !important;
+  flex-direction:column !important;
+  gap:5px !important;
+  min-width:0 !important;
+  flex:1 1 auto !important;
+}
+.battle-root.battle-pixel .party-name-row{
+  display:block !important;
+  width:100% !important;
+  max-width:100% !important;
+  white-space:nowrap !important;
+  overflow:hidden !important;
+  text-overflow:ellipsis !important;
+  line-height:1.2 !important;
+  font-size:13px !important;
+  color:#fff !important;
+  flex:0 0 auto !important;
+  margin:0 !important;
+  padding:0 !important;
+}
+.battle-root.battle-pixel .party-name-row b,
+.battle-root.battle-pixel .party-name-row .party-job,
+.battle-root.battle-pixel .party-name-row .party-rowtag{
+  display:inline !important;
+  position:static !important;
+  float:none !important;
+  max-width:none !important;
+  white-space:nowrap !important;
+}
+.battle-root.battle-pixel .party-name-row b{ font-weight:800; color:#fff; }
+.battle-root.battle-pixel .party-name-row .party-job{ color:#c8d8ff; font-weight:600; }
+.battle-root.battle-pixel .party-name-row .party-rowtag{
+  margin-left:8px;
+  font-size:10px;
+  color:#9eb6ff;
+  opacity:.9;
+}
+.battle-root.battle-pixel .party-bars{
+  display:flex !important;
+  flex-direction:column !important;
+  gap:4px !important;
+  width:100% !important;
+  flex:0 0 auto !important;
+}
+.battle-root.battle-pixel .party-meta .bar,
+.battle-root.battle-pixel .party-bars .bar{
+  display:block !important;
+  position:relative !important;
+  box-sizing:border-box !important;
+  width:100% !important;
+  height:14px !important;
+  min-height:14px !important;
+  max-height:14px !important;
+  margin:0 !important;
+  padding:0 !important;
+  background:#0a1428 !important;
+  border:1px solid #6a88c8 !important;
+  border-radius:2px !important;
+  overflow:hidden !important;
+}
+.battle-root.battle-pixel .party-meta .bar.lim,
+.battle-root.battle-pixel .party-meta .bar.atb,
+.battle-root.battle-pixel .party-bars .bar.lim,
+.battle-root.battle-pixel .party-bars .bar.atb{
+  height:7px !important;
+  min-height:7px !important;
+  max-height:7px !important;
+}
+.battle-root.battle-pixel .party-meta .bar i,
+.battle-root.battle-pixel .party-bars .bar i{
+  display:block !important;
+  height:100% !important;
+  min-height:100% !important;
+}
+.battle-root.battle-pixel .party-meta .bar em,
+.battle-root.battle-pixel .party-bars .bar em{
+  position:absolute !important;
+  inset:0 4px 0 4px !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:flex-end !important;
+  font-size:11px !important;
+  line-height:1 !important;
+  color:#fff !important;
+  text-shadow:0 0 3px #000, 1px 1px 0 #000 !important;
+  font-style:normal !important;
+  font-weight:800 !important;
+  z-index:2 !important;
+  pointer-events:none !important;
+  white-space:nowrap !important;
+}
+
+/* Foe plate: allow 2-line name without BOSS inline */
+.battle-root.battle-pixel .foe-name{
+  white-space:normal !important;
+  display:-webkit-box !important;
+  -webkit-line-clamp:2;
+  -webkit-box-orient:vertical;
+  overflow:hidden !important;
+  text-overflow:ellipsis !important;
+  font-size:12px !important;
+  line-height:1.2 !important;
+  max-width:100% !important;
+  word-break:break-word;
+  hyphens:auto;
+}
+.battle-root.battle-pixel .foe-plate{
+  max-width:min(48vw, 210px) !important;
+  min-width:132px !important;
+}
+
+/* ========== v51d: submenu grid, wider foe plate, craft grid force ========== */
+.battle-root.battle-pixel .cmd-sub{
+  display:grid !important;
+  grid-template-columns:1fr !important;
+  gap:6px !important;
+  max-height:36vh;
+  overflow:auto;
+  padding:2px;
+}
+.battle-root.battle-pixel .cmd-sub .bcm-back{
+  grid-column:1 / -1;
+  min-height:40px !important;
+  justify-self:start;
+  width:auto !important;
+  padding:8px 14px !important;
+}
+.battle-root.battle-pixel .cmd-sub .bcm{
+  min-height:44px !important;
+  font-size:14px !important;
+  text-align:left !important;
+  padding:10px 12px !important;
+  white-space:normal !important;
+}
+.battle-root.battle-pixel .cmd-sub .bcm small{
+  display:inline !important;
+  opacity:.75;
+  font-size:11px !important;
+}
+@media (min-width:900px){
+  .battle-root.battle-pixel .cmd-sub{
+    grid-template-columns:1fr 1fr !important;
+  }
+  .battle-root.battle-pixel .cmd-sub .bcm-back{ grid-column:1 / -1; }
+}
+
+.battle-root.battle-pixel .foe-plate{
+  min-width:168px !important;
+  max-width:min(56vw, 240px) !important;
+  padding:8px 10px !important;
+}
+.battle-root.battle-pixel .foe-name{
+  white-space:nowrap !important;
+  display:block !important;
+  -webkit-line-clamp:unset !important;
+  overflow:hidden !important;
+  text-overflow:ellipsis !important;
+  font-size:12px !important;
+}
+.battle-root.battle-pixel .battle-stage > .battle-timeline{
+  right:max(12px, env(safe-area-inset-right)) !important;
+}
+.battle-root.battle-pixel .tl-item{
+  width:18px !important; height:34px !important; flex:0 0 18px !important;
+}
+
+/* Force craft grid even against earlier flex rules */
+.craft-shop-body .pixel-shop-row.craft-row,
+#craftList .pixel-shop-row,
+#cookList .pixel-shop-row,
+#upList .pixel-shop-row,
+.pixel-shop-row.craft-row{
+  display:grid !important;
+  grid-template-columns:36px minmax(0,1fr) minmax(88px,auto) !important;
+  align-items:center !important;
+  column-gap:10px !important;
+}
+.pixel-shop-row.craft-row .shop-info{
+  grid-column:2;
+  min-width:0 !important;
+}
+.pixel-shop-row.craft-row .shop-side{
+  grid-column:3;
+  display:flex !important;
+  flex-direction:column !important;
+  align-items:flex-end !important;
+  gap:6px !important;
+  min-width:88px !important;
+}
+.pixel-shop-row.craft-row .shop-price{
+  position:static !important;
+  margin:0 !important;
+}
+.battle-root.battle-pixel .party-name-row{
+  margin-bottom:2px !important;
+  padding-bottom:2px !important;
+}
+
+/* ========== v51e: battle-cmd is column flex, not 3-col grid ========== */
+.battle-root.battle-pixel .battle-cmd{
+  display:flex !important;
+  flex-direction:column !important;
+  gap:8px !important;
+  grid-template-columns:none !important;
+}
+.battle-root.battle-pixel .battle-cmd > .cmd-primary,
+.battle-root.battle-pixel .battle-cmd > .cmd-secondary,
+.battle-root.battle-pixel .battle-cmd > .cmd-sub,
+.battle-root.battle-pixel .battle-cmd > .battle-free,
+.battle-root.battle-pixel .battle-cmd > .battle-wait,
+.battle-root.battle-pixel .battle-cmd > .battle-pick{
+  width:100% !important;
+}
+
+/* ========== v51f: foe plate clear of party; craft info width ========== */
+.battle-root.battle-pixel .foe-plate{
+  position:relative;
+  z-index:6;
+}
+.battle-root.battle-pixel .foe-card{
+  align-items:flex-start !important;
+}
+.battle-root.battle-pixel .battle-foes{
+  padding-right:4px !important;
+}
+.craft-shop-body .pixel-shop-row.craft-row,
+#craftList .pixel-shop-row,
+.pixel-shop-row.craft-row{
+  grid-template-columns:32px minmax(0,1fr) minmax(76px,auto) !important;
+}
+.pixel-shop-row.craft-row .shop-info b,
+.pixel-shop-row.craft-row .shop-info .meta{
+  white-space:nowrap !important;
+  overflow:hidden !important;
+  text-overflow:ellipsis !important;
+}
+.pixel-shop-row.craft-row .shop-side{
+  min-width:76px !important;
+}
+.battle-root.battle-pixel .party-bars .bar.hp em{
+  padding-right:2px !important;
+  font-size:10px !important;
+}

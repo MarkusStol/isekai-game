@@ -424,7 +424,7 @@ export function startBattle(S, opts={}){
   renderBattleUI();
   startBattleMusic(S);
   if(!_B.scripted) advanceUntilPlayer();
-  else { _B.selecting={actor:party.find(p=>p.kind==='hero')||party[0], mode:null}; refreshUI(); }
+  else { _B.selecting={actor:party.find(p=>p.kind==='hero')||party[0], mode:'main'}; refreshUI(); }
   return _B;
 }
 
@@ -440,7 +440,7 @@ export function __testDrive(cmd, payload={}){
   const hero=_B.party.find(p=>p.kind==='hero')||_B.party[0];
   if(!hero||!hero.alive) return {ok:false, reason:'no hero'};
   if(payload.freezeFoes!==false){ for(const f of _B.foes) f.atb=0; }
-  hero.atb=100; _B.selecting={actor:hero, mode:null};
+  hero.atb=100; _B.selecting={actor:hero, mode:'main'};
   if(cmd==='buff'){
     hero.atk=payload.atk||999; hero.spd=payload.spd||40; hero.hp=hero.maxhp;
     return {ok:true, atk:hero.atk};
@@ -1207,14 +1207,14 @@ export function renderBattleUI(){
     <div class="battle-layer battle-layer-floor" style="background-image:url('${L.floor}')" aria-hidden="true"></div>`; })()}
     <div class="pixel-battle-floor ${battleFloorClass(B.bg)} floor-blend" aria-hidden="true"><div class="battle-floor-grid"></div></div>
     <div class="battle-veil"></div>
+    <div class="battle-atb-mode">${B.atbMode==='wait'?'WAIT':'ACTIVE'}</div>
+    <div class="battle-timeline" id="battleTL"></div>
+    <div class="skill-banner" id="skillBanner"></div>
     <div class="battle-foes" id="battleFoes"></div>
     <div class="battle-party-spr" id="battlePartySpr"></div>
     <div class="battle-fx" id="battleFx" aria-hidden="true"></div>
   </div>
   <div class="battle-hud">
-    <div class="battle-atb-mode">${B.atbMode==='wait'?'WAIT':'ACTIVE'}</div>
-    <div class="skill-banner" id="skillBanner"></div>
-    <div class="battle-timeline" id="battleTL"></div>
     <div class="battle-party" id="battleParty"></div>
     <div class="battle-log jrpg-window" id="battleLog"></div>
     <div class="battle-cmd jrpg-window" id="battleCmd"></div>
@@ -1240,7 +1240,8 @@ function refreshUI(){
       <button type="button" class="foe-card ${foeScaleClass(f)} ${f.alive?'':'dead'} ${B.selecting&&needsTarget()?(_B._hover===f._iid?'target':''):''}" data-iid="${f._iid}" ${f.alive?'':'disabled'}>
         <div class="foe-art-wrap pixel-foe"><img class="foe-art battler-spr pixelated" src="${pixelEnemyArt(f)}" alt="${f.name}" loading="lazy" onerror="this.onerror=null;this.style.display='none';this.nextElementSibling&&(this.nextElementSibling.style.display='flex');"/><div class="foe-fallback" style="display:none">${f.icon||'👹'}</div></div>
         <div class="foe-plate jrpg-window">
-          <div class="foe-name">${f.name}${f.analyzed?' · ✦':''}${f.boss?' · BOSS':''}${f.staggered?' · BRUCH':''}${f.rare?' · SELTEN':''}</div>
+          <div class="foe-name" title="${f.name}">${f.name}</div>
+          <div class="foe-tags">${f.boss?'<span class="ftag boss">BOSS</span>':''}${f.analyzed?'<span class="ftag">✦</span>':''}${f.staggered?'<span class="ftag bruch">BRUCH</span>':''}${f.rare?'<span class="ftag">SELTEN</span>':''}</div>
           <div class="bar foe-hp"><i style="width:${Math.max(0,f.hp/f.maxhp*100)}%"></i></div>
           <div class="bar foe-stagger ${f.staggered?'broken':''}" title="Bruch"><i style="width:${Math.max(0,(f.stagger||0)/Math.max(1,f.staggerMax||1)*100)}%"></i></div>
           ${f.analyzed?`<div class="foe-weak">${(f.weak||[]).map(w=>ELEM_LABEL[w]||Jrpg.ELEM_LABEL[w]||w).join(' · ')||'—'}</div>`:''}
@@ -1275,11 +1276,13 @@ function refreshUI(){
       <div class="party-card pixel-party jrpg-window ${p.alive?'':'dead'} ${B.selecting?.actor===p?'active':''} row-${p.row||'front'}" data-iid="${p._iid}">
         <div class="party-port">${p.portrait?`<img src="${p.portrait}" alt="" loading="lazy"/>`:`<span>${(p.name||'?')[0]}</span>`}</div>
         <div class="party-meta">
-          <b>${p.name}${p.job?' · '+((Jobs.JOBS[p.job]||{}).name||p.job):''}<small>${p.row==='back'?' hinten':' vorn'}</small></b>
-          <div class="bar hp" title="HP"><i style="width:${Math.max(0,p.hp/p.maxhp*100)}%"></i><em>${p.hp|0}/${p.maxhp|0}</em></div>
-          <div class="bar mp" title="MP"><i style="width:${Math.max(0,p.mp/Math.max(1,p.maxmp)*100)}%"></i></div>
-          <div class="bar lim" title="Limit"><i style="width:${Math.max(0,(p.limit||0)/100*100)}%"></i></div>
-          <div class="bar atb" title="ATB"><i style="width:${Math.max(0,Math.min(100,p.atb||0))}%"></i></div>
+          <div class="party-name-row"><b>${p.name}</b>${p.job?` · <span class="party-job">${(Jobs.JOBS[p.job]||{}).name||p.job}</span>`:''}<span class="party-rowtag"> · ${p.row==='back'?'hinten':'vorn'}</span></div>
+          <div class="party-bars">
+            <div class="bar hp" title="HP"><i style="width:${Math.max(0,p.hp/p.maxhp*100)}%"></i><em>${p.hp|0}/${p.maxhp|0}</em></div>
+            <div class="bar mp" title="MP"><i style="width:${Math.max(0,p.mp/Math.max(1,p.maxmp)*100)}%"></i></div>
+            <div class="bar lim" title="Limit"><i style="width:${Math.max(0,(p.limit||0)/100*100)}%"></i></div>
+            <div class="bar atb" title="ATB"><i style="width:${Math.max(0,Math.min(100,p.atb||0))}%"></i></div>
+          </div>
         </div>
       </div>`).join('');
   }
@@ -1302,7 +1305,13 @@ function refreshUI(){
   if(cmd){
     if(B.done){ cmd.innerHTML=''; return }
     const sel=B.selecting;
-    if(!sel||sel.actor.kind!=='hero'){ cmd.innerHTML=`<div class="battle-wait">…</div>`; return }
+    if(!sel||sel.actor.kind!=='hero'){
+      const waiting=_B.atbMode==='wait';
+      cmd.innerHTML=`<div class="battle-wait ${waiting?'is-wait':'is-active'}"><span class="bw-badge">${waiting?'WAIT':'ACTIVE'}</span><span class="bw-hint">${waiting?'Warte auf deinen Zug…':'Gegnerzug…'}</span></div>`;
+      return;
+    }
+    // Treat null/undefined mode as main command menu (player turn ready)
+    if(!sel.mode) sel.mode='main';
     if(sel.mode==='bossTalk'){
       const t=pickTarget(sel.targetId,true)||living(_B.foes)[0];
       const choices=(window.__game?.C41?.bossDialogueChoices?.(_B.S,t))||[
@@ -1326,7 +1335,7 @@ function refreshUI(){
       cmd.querySelectorAll('[data-cid]').forEach(btn=>{
         btn.onclick=()=>{
           const cid=btn.dataset.cid;
-          if(cid==='__cancel'){ _B.selecting={actor:sel.actor,mode:null}; refreshUI(); return; }
+          if(cid==='__cancel'){ _B.selecting={actor:sel.actor,mode:'main'}; refreshUI(); return; }
           const choice=choices.find(c=>c.id===cid);
           playerCommand('talk',{targetId:t._iid, choiceId:cid, choice, text:choice?.text});
         };
@@ -1336,11 +1345,15 @@ function refreshUI(){
     if(sel.mode==='main'){
       const limReady=(sel.actor.limit|0)>=100;
       cmd.innerHTML=`
-        <div class="cmd-classic">
-          <button type="button" class="bcm" data-c="attack">Angriff</button>
-          <button type="button" class="bcm" data-c="skills">Fähigkeit</button>
-          <button type="button" class="bcm" data-c="magic">Magie/Kristalle</button>
-          <button type="button" class="bcm" data-c="items">Items</button>
+        <div class="cmd-primary">
+          <button type="button" class="bcm bcm-lg" data-c="attack">Angriff</button>
+          <button type="button" class="bcm bcm-lg" data-c="skills">Fähigkeit</button>
+          <button type="button" class="bcm bcm-lg" data-c="items">Item</button>
+          <button type="button" class="bcm bcm-lg social" data-c="talk">Reden</button>
+          <button type="button" class="bcm bcm-lg ghost" data-c="flee">Flucht</button>
+        </div>
+        <div class="cmd-classic cmd-secondary">
+          <button type="button" class="bcm" data-c="magic">Magie</button>
           <button type="button" class="bcm" data-c="summon">Beschwörung</button>
           <button type="button" class="bcm" data-c="job">Beruf</button>
           <button type="button" class="bcm" data-c="steal">Stehlen</button>
@@ -1349,13 +1362,11 @@ function refreshUI(){
           <button type="button" class="bcm" data-c="row">Reihe</button>
           <button type="button" class="bcm accent" data-c="limit" ${limReady?'':'disabled'}>Limit ${sel.actor.limitTier||1}</button>
           <button type="button" class="bcm" data-c="combo">Duett</button>
-          <button type="button" class="bcm social" data-c="talk">Reden</button>
           <button type="button" class="bcm social" data-c="spare">Verschonen</button>
           <button type="button" class="bcm social" data-c="threaten">Drohen</button>
           <button type="button" class="bcm ghost" data-c="atbMode">ATB ${(_B.atbMode||'active')==='wait'?'Wait':'Active'}</button>
           <button type="button" class="bcm ghost" data-c="auto">Auto</button>
           <button type="button" class="bcm ghost" data-c="surrender">Kapitulieren</button>
-          <button type="button" class="bcm ghost" data-c="flee">Flucht</button>
         </div>
         <form class="battle-free" id="battleFree"><input name="t" placeholder="Freitext…" autocomplete="off"/><button type="submit">➤</button></form>`;
       cmd.querySelectorAll('.bcm').forEach(b=>b.onclick=()=>{
@@ -1394,8 +1405,8 @@ function refreshUI(){
       if(bf) bf.onsubmit=(ev)=>{ev.preventDefault(); const v=bf.t.value.trim(); if(v) playerCommand('freetext',{text:v}); bf.t.value=''};
     } else if(sel.mode==='skills'){
       const skills=sel.actor.skills||[];
-      cmd.innerHTML=`<button type="button" class="bcm ghost" data-c="back">◀</button>`+
-        skills.map((s,i)=>`<button type="button" class="bcm" data-i="${i}" ${(s.mp|0)>(sel.actor.mp|0)?'disabled':''}>${s.name}<small>${s.mp?s.mp+' MP':''}${s.elem?' · '+(ELEM_LABEL[s.elem]||s.elem):''}</small></button>`).join('');
+      cmd.innerHTML=`<div class="cmd-sub"><button type="button" class="bcm ghost bcm-back" data-c="back">◀ Zurück</button>`+
+        skills.map((s,i)=>`<button type="button" class="bcm" data-i="${i}" ${(s.mp|0)>(sel.actor.mp|0)?'disabled':''}>${s.name}<small>${s.mp?s.mp+' MP':''}${s.elem?' · '+(ELEM_LABEL[s.elem]||s.elem):''}</small></button>`).join('')+`</div>`;
       cmd.querySelector('[data-c=back]').onclick=()=>{_B.selecting={actor:sel.actor,mode:'main'};refreshUI()};
       cmd.querySelectorAll('[data-i]').forEach(b=>b.onclick=()=>{
         const sk=skills[+b.dataset.i];
@@ -1405,8 +1416,8 @@ function refreshUI(){
       });
     } else if(sel.mode==='items'){
       const items=(_B.S.inv||[]).slice(0,8);
-      cmd.innerHTML=`<button type="button" class="bcm ghost" data-c="back">◀</button>`+
-        (items.length?items.map((it,i)=>{const n=typeof it==='string'?it:it.name;return `<button type="button" class="bcm" data-i="${i}">${n}</button>`}).join(''):'<span class="meta">Kein Item</span>');
+      cmd.innerHTML=`<div class="cmd-sub"><button type="button" class="bcm ghost bcm-back" data-c="back">◀ Zurück</button>`+
+        (items.length?items.map((it,i)=>{const n=typeof it==='string'?it:it.name;return `<button type="button" class="bcm" data-i="${i}">${n}</button>`}).join(''):'<span class="meta">Kein Item</span>')+`</div>`;
       cmd.querySelector('[data-c=back]').onclick=()=>{_B.selecting={actor:sel.actor,mode:'main'};refreshUI()};
       cmd.querySelectorAll('[data-i]').forEach(b=>b.onclick=()=>{
         const it=items[+b.dataset.i]; const n=typeof it==='string'?it:it.name;
@@ -1414,15 +1425,15 @@ function refreshUI(){
       });
     } else if(sel.mode==='summon'){
       const list=Summons.ownedSummons(_B.S);
-      cmd.innerHTML=`<button type="button" class="bcm ghost" data-c="back">◀</button>`+
-        (list.length?list.map(s=>`<button type="button" class="bcm" data-sid="${s.id}">${s.icon||'🌟'} ${s.name}<small>${s.cost} MP · ${s.elem}</small></button>`).join(''):'<span class="meta">Keine Sternengeister</span>');
+      cmd.innerHTML=`<div class="cmd-sub"><button type="button" class="bcm ghost bcm-back" data-c="back">◀ Zurück</button>`+
+        (list.length?list.map(s=>`<button type="button" class="bcm" data-sid="${s.id}">${s.icon||'🌟'} ${s.name}<small>${s.cost} MP · ${s.elem}</small></button>`).join(''):'<span class="meta">Keine Sternengeister</span>')+`</div>`;
       cmd.querySelector('[data-c=back]').onclick=()=>{_B.selecting={actor:sel.actor,mode:'main'};refreshUI()};
       cmd.querySelectorAll('[data-sid]').forEach(b=>b.onclick=()=>playerCommand('summon',{id:b.dataset.sid}));
     } else if(sel.mode==='job'){
       Jobs.ensureJobs(_B.S);
       const unlocked=_B.S.jobs.unlocked||[];
-      cmd.innerHTML=`<button type="button" class="bcm ghost" data-c="back">◀</button>`+
-        unlocked.map(id=>{const j=Jobs.JOBS[id]; const lv=_B.S.jobs.levels[id]|1; return `<button type="button" class="bcm ${id===_B.S.jobs.active?'accent':''}" data-j="${id}">${j?.icon||''} ${j?.name||id}<small>Lv ${lv}</small></button>`}).join('');
+      cmd.innerHTML=`<div class="cmd-sub"><button type="button" class="bcm ghost bcm-back" data-c="back">◀ Zurück</button>`+
+        unlocked.map(id=>{const j=Jobs.JOBS[id]; const lv=_B.S.jobs.levels[id]|1; return `<button type="button" class="bcm ${id===_B.S.jobs.active?'accent':''}" data-j="${id}">${j?.icon||''} ${j?.name||id}<small>Lv ${lv}</small></button>`}).join('')+`</div>`;
       cmd.querySelector('[data-c=back]').onclick=()=>{_B.selecting={actor:sel.actor,mode:'main'};refreshUI()};
       cmd.querySelectorAll('[data-j]').forEach(b=>b.onclick=()=>playerCommand('job',{job:b.dataset.j}));
     } else if(['attack','skill','analyze','limit','talk','spare','threaten','steal'].includes(sel.mode)){

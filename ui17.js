@@ -255,10 +255,10 @@ export function renderCraft(body, S, helpers){
     const it=Equip.getItem(rec.id);
     const gate=(window.__game?.C41?.canCraftRecipe41||window.__game?.C40?.canCraftRecipe)?.(S,rec.id,'craft')||{ok:true};
     const row=document.createElement('div'); row.className='pixel-shop-row craft-row'+(gate.ok?'':' locked');
-    row.innerHTML=`<div class="shop-ico">${it?.icon||'📦'}</div><div class="shop-info"><b>${it?.name||rec.id}</b><span class="meta">T${(rec.tier||1)} · ${Object.entries(rec.mats).map(([k,v])=>`${k}×${v}`).join(', ')}${gate.ok?'':' · 🔒'}</span></div><div class="shop-price">${rec.gold} Gil</div>`;
+    row.innerHTML=`<div class="shop-ico">${it?.icon||'📦'}</div><div class="shop-info"><b>${it?.name||rec.id}</b><span class="meta">T${(rec.tier||1)} · ${Object.entries(rec.mats).map(([k,v])=>`${k}×${v}`).join(', ')}${gate.ok?'':' · 🔒'}</span></div><div class="shop-side"><div class="shop-price">${rec.gold} Gil</div></div>`;
     const b=btn(gate.ok?'Herstellen':'Gesperrt'); b.className='shop-buy'; b.disabled=!gate.ok;
     b.onclick=()=>{ const r=Equip.craftItem(S,rec.id); toast?.(r.text); save?.(); body.innerHTML=''; renderCraft(body,S,helpers) };
-    row.appendChild(b); list.appendChild(row);
+    (row.querySelector('.shop-side')||row).appendChild(b); list.appendChild(row);
   });
   body.appendChild(craft);
 
@@ -267,10 +267,10 @@ export function renderCraft(body, S, helpers){
   (Equip.COOK_RECIPES||[]).forEach(rec=>{
     const gate=(window.__game?.C41?.canCraftRecipe41||window.__game?.C40?.canCraftRecipe)?.(S,rec.id,'cook')||{ok:true};
     const row=document.createElement('div'); row.className='pixel-shop-row craft-row'+(gate.ok?'':' locked');
-    row.innerHTML=`<div class="shop-ico">🍲</div><div class="shop-info"><b>${rec.name}</b><span class="meta">T${(rec.tier||1)} · +${rec.heal|0}HP${rec.mp?` +${rec.mp}MP`:''}${gate.ok?'':' · 🔒'}</span></div><div class="shop-price">kochen</div>`;
+    row.innerHTML=`<div class="shop-ico">🍲</div><div class="shop-info"><b>${rec.name}</b><span class="meta">T${(rec.tier||1)} · +${rec.heal|0}HP${rec.mp?` +${rec.mp}MP`:''}${gate.ok?'':' · 🔒'}</span></div><div class="shop-side"><div class="shop-price">kochen</div></div>`;
     const b=btn(gate.ok?'Kochen':'Gesperrt'); b.className='shop-buy'; b.disabled=!gate.ok;
     b.onclick=()=>{ const r=Equip.cookItem(S,rec.id); toast?.(r.text); save?.(); body.innerHTML=''; renderCraft(body,S,helpers) };
-    row.appendChild(b); cl.appendChild(row);
+    (row.querySelector('.shop-side')||row).appendChild(b); cl.appendChild(row);
   });
   body.appendChild(cook);
 
@@ -282,10 +282,10 @@ export function renderCraft(body, S, helpers){
     const lvl=S.equip.upgrades[id]|0;
     const cost=30+(lvl+1)*25;
     const row=document.createElement('div'); row.className='pixel-shop-row craft-row';
-    row.innerHTML=`<div class="shop-ico">${it.icon||'⬆'}</div><div class="shop-info"><b>${it.name}</b> +${lvl}<span class="meta">Nächste Stufe</span></div><div class="shop-price">${cost} Gil</div>`;
+    row.innerHTML=`<div class="shop-ico">${it.icon||'⬆'}</div><div class="shop-info"><b>${it.name}</b> +${lvl}<span class="meta">Nächste Stufe</span></div><div class="shop-side"><div class="shop-price">${cost} Gil</div></div>`;
     const b=btn('Upgrade'); b.className='shop-buy';
     b.onclick=()=>{ const r=Equip.upgradeItem(S,id); toast?.(r.text); save?.(); body.innerHTML=''; renderCraft(body,S,helpers) };
-    row.appendChild(b); ul.appendChild(row);
+    (row.querySelector('.shop-side')||row).appendChild(b); ul.appendChild(row);
   });
   body.appendChild(up);
 }
