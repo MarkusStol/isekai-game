@@ -46,7 +46,7 @@ function ensureMusic(){
   if(_musicEl) return _musicEl;
   const a = new Audio();
   a.loop = true;
-  a.preload = 'auto';
+  a.preload = 'metadata';
   a.volume = 0.32;
   _musicEl = a;
   return a;
@@ -91,7 +91,7 @@ export function playSfx(kind, vol=0.45){
   try{
     const src = SFX[kind]; if(!src) return;
     let a = _sfxCache[kind];
-    if(!a){ a = new Audio(src); a.preload='auto'; _sfxCache[kind]=a; }
+    if(!a){ a = new Audio(src); a.preload='metadata'; _sfxCache[kind]=a; }
     const c = a.cloneNode();
     c.volume = vol;
     c.play().catch(()=>{});
@@ -105,6 +105,16 @@ export function stepSfx(){
   playSfx('step', 0.22);
 }
 
+/** Warm one track after gesture — never block first paint */
+export function warmMusic(key){
+  try{
+    if(!_enabled) return;
+    const src=MUSIC[key]; if(!src) return;
+    const link=document.createElement('link');
+    link.rel='prefetch'; link.as='audio'; link.href=src;
+    document.head.appendChild(link);
+  }catch(_){}
+}
 export function musicForMapKind(kind){
   if(kind==='dungeon') return 'dungeon';
   if(kind==='wild' || kind==='ruins') return 'wild';

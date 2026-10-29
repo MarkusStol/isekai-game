@@ -6018,3 +6018,63 @@ body.sheet-open .battle-root:not(.hidden){
   .boss-talk-sheet .bts-choices > .bts:nth-child(3){ grid-column:1 / -1; }
   .boss-talk-sheet .bcm.ghost{ grid-column:1 / -1; }
 }
+
+
+/* ========== v56: hub density, party HD battlers, menu under battle, perf ========== */
+body.battle-open #menu,
+html.battle-open #menu{
+  z-index: 60 !important;
+  pointer-events: none !important;
+  visibility: hidden !important;
+}
+body.battle-open #menu:not(.hidden){
+  /* never paint menu over an active battle (desktop was z-index 130 > battle 80) */
+  display: none !important;
+}
+.hub-grid-primary{
+  grid-template-columns: repeat(3, 1fr) !important;
+  gap: 10px !important;
+}
+.hub-more-wrap{ margin-top: 8px; }
+.hub-more-btn{
+  width: 100%;
+  padding: 10px 12px !important;
+  border-radius: 12px !important;
+  background: #ffffff10 !important;
+  border: 1px dashed #ffffff33 !important;
+  font-weight: 700 !important;
+  font-size: 12px !important;
+  color: #c4b5fd !important;
+}
+.hub-more-btn.on{ border-style: solid !important; background: #7b6bff33 !important; color: #e8c47a !important; }
+.hub-grid-more{
+  margin-top: 8px;
+  grid-template-columns: repeat(3, 1fr) !important;
+  gap: 8px !important;
+}
+.hub-grid-more .hub-tile{
+  min-height: 64px !important;
+  padding: 10px 6px !important;
+  font-size: 11px !important;
+}
+@media (max-width:430px){
+  .hub-grid-primary{ grid-template-columns: repeat(2, 1fr) !important; }
+  .hub-grid-more{ grid-template-columns: repeat(2, 1fr) !important; }
+  .hub-grid-primary .hub-tile{ min-height: 76px !important; }
+}
+/* Party battlers closer to foe scale */
+.battle-root.battle-pixel .party-stage-spr img{
+  width: 88px !important; height: 118px !important;
+}
+.battle-root.battle-pixel .party-stage-spr.row-back img{
+  width: 72px !important; height: 96px !important; opacity: .94;
+}
+.pixel-hero-spr{
+  width: 56px !important; height: 76px !important;
+  object-fit: contain !important;
+  image-rendering: pixelated !important;
+  filter: drop-shadow(2px 4px 0 #000a);
+}
+.battle-root.battle-pixel .party-card .pixel-hero-spr{
+  width: 64px !important; height: 86px !important;
+}

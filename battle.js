@@ -53,9 +53,18 @@ function skillFromProgress(S){
 
 /* ---- Party helpers ---- */
 export function buildParty(S){
+  if(!S) throw new Error('buildParty: no state');
+  try{ if(typeof Level!=='undefined' && Level.ensureProgress) Level.ensureProgress(S); }catch(_){}
+  try{ window.__game?.Level?.ensureProgress?.(S); }catch(_){}
+  if(!S.progress) S.progress={attrs:{str:5,dex:5,int:5,wil:5,cha:5,vit:5},classId:'abenteurer',unlockedSkills:[],attrPoints:0,perks:[],tree:{}};
+  if(!S.st) S.st={lvl:1,hp:100,maxhp:100,mp:40,maxmp:40,str:10,cha:8,gold:20,xp:0};
+  if(!S.pc) S.pc={name:'Held'};
   const p=S.progress||{};
   const attrs=p.attrs||{str:5,dex:5,int:5,wil:5,cha:5,vit:5};
-  Jobs.ensureJobs(S); Gems.ensureGems(S); Summons.ensureSummons(S); Equip.ensureEquip(S);
+  try{ Jobs.ensureJobs(S); }catch(_){}
+  try{ Gems.ensureGems(S); }catch(_){}
+  try{ Summons.ensureSummons(S); }catch(_){}
+  try{ Equip.ensureEquip(S); }catch(_){}
   const jb=Jobs.jobStatBonus(S); const eq=Equip.equippedStats(S);
   const gemLoad=Gems.resolveLoadoutGems(S,{sockets:eq.sockets});
   const jobSkills=Jobs.availableAbilities(S).map(a=>({...a}));
@@ -384,6 +393,13 @@ function playBattleSwirl(){
   });
 }
 export function startBattle(S, opts={}){
+  try{ window.__game?.closeMenu?.(); }catch(_){}
+  try{ document.getElementById('menu')?.classList.add('hidden'); document.body.classList.remove('menu-open'); document.documentElement.classList.remove('menu-open'); }catch(_){}
+  try{
+    document.getElementById('btnCoachOk')?.click();
+    document.getElementById('onboardCoach')?.classList.add('hidden');
+    document.querySelector('#onboardCoach, .coach, .onboard-card')?.classList.add('hidden');
+  }catch(_){}
   try{ playBattleSwirl(); }catch(_){}
   try{ window.__game?.C44?.ensureBattleBgAnim?.(); }catch(_){}
   try{ window.__game?.C43?.screenTransition?.('battle', 380); }catch(_){}
@@ -1560,9 +1576,11 @@ function battlerSheetFor(unit, action){
 }
 
 function partySpriteUrl(p){
-  if(p.kind==='hero') return './assets/pixel/hero/stage.png';
-  const role=sheetRoleForCompanion(p);
-  return './assets/pixel/chars/'+role+'_stage.png';
+  // v56: prefer HD ally battlers (same pack framing as foes)
+  const role = p.kind==='hero' ? 'hero' : sheetRoleForCompanion(p);
+  const ally = './assets/pixel/battler/ally_'+role+'.png';
+  if(p.kind==='hero') return ally;
+  return ally;
 }
 
 const ROLE_LABEL_DE={

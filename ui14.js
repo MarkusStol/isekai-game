@@ -3,34 +3,41 @@ import * as Level from './leveling.js';
 import * as Codex from './codex.js';
 import * as UI13 from './ui13.js';
 
-export const HUB_TILES=[
+export const HUB_PRIMARY=[
   {id:'status',icon:'status',label:'Status'},
-  {id:'level',icon:'level',label:'Aufstieg'},
   {id:'equip',icon:'equip',label:'Ausrüstung'},
+  {id:'inv',icon:'inv',label:'Inventar'},
+  {id:'quests',icon:'quests',label:'Quests'},
+  {id:'atlas',icon:'atlas',label:'Weltkarte'},
+  {id:'craft',icon:'craft',label:'Werkstatt'},
+];
+export const HUB_MORE=[
+  {id:'level',icon:'level',label:'Aufstieg'},
   {id:'jobs',icon:'jobs',label:'Berufe'},
   {id:'gambits',icon:'gambits',label:'Einsatz'},
-  {id:'craft',icon:'craft',label:'Werkstatt'},
   {id:'summons',icon:'summons',label:'Geister'},
-  {id:'inv',icon:'inv',label:'Inventar'},
   {id:'skills',icon:'skills',label:'Fähigkeiten'},
   {id:'rels',icon:'rels',label:'Beziehungen'},
-  {id:'quests',icon:'quests',label:'Quests'},
   {id:'home',icon:'home',label:'Zuhause'},
   {id:'journal',icon:'journal',label:'Chronik'},
   {id:'finance',icon:'finance',label:'Finanzen'},
   {id:'kingdom',icon:'kingdom',label:'Reich'},
   {id:'codex',icon:'codex',label:'Codex'},
-  {id:'atlas',icon:'atlas',label:'Weltkarte'},
 ];
+export const HUB_TILES=[...HUB_PRIMARY, ...HUB_MORE];
 function hubIcon(id){return `<svg class="ico" aria-hidden="true"><use href="#i-${id}"></use></svg>`}
 
 
 export function openHub(root, S, helpers){
   const {closeMenu, openTab, imgUrl}=helpers;
   root.innerHTML='';
+  try{ Level.ensureProgress(S); }catch(_){}
   const wrap=document.createElement('div'); wrap.className='hub';
   const head=document.createElement('div'); head.className='hub-hero';
-  const sum=Level.summary(S);
+  let sum;
+  try{ sum=Level.summary(S); }catch(_){
+    sum={className:'Held:in',branch:'',title:'Neuling',lvl:1,xp:0,next:100,attrs:{str:5,dex:5,int:5,wil:5,cha:5,vit:5}};
+  }
   const portSlug=(S.pc?.portrait)||(S.role==='held'?'heldin':S.role==='grey'?'grey/darren':'heldin');
   const port=`assets/port/${portSlug}.webp`;
   head.innerHTML=`<div class="hub-hero-art" style="background-image:url('${port}');background-size:contain;background-repeat:no-repeat;background-color:#0a0810"></div>
@@ -41,14 +48,27 @@ export function openHub(root, S, helpers){
       <div class="hub-attrs">${Object.entries(sum.attrs).map(([k,v])=>`<span>${Level.ATTR_LABEL[k].slice(0,3)} ${v}</span>`).join('')}</div>
     </div>`;
   wrap.appendChild(head);
-  const grid=document.createElement('div'); grid.className='hub-grid';
-  HUB_TILES.forEach(t=>{
+  const mkTile=(t)=>{
     const b=document.createElement('button'); b.type='button'; b.className='hub-tile';
     b.innerHTML=`<span class="hub-ico">${hubIcon(t.icon)}</span><span class="hub-lab">${t.label}</span>`;
     b.onclick=()=>openTab(t.id);
-    grid.appendChild(b);
-  });
+    return b;
+  };
+  const grid=document.createElement('div'); grid.className='hub-grid hub-grid-primary';
+  HUB_PRIMARY.forEach(t=>grid.appendChild(mkTile(t)));
   wrap.appendChild(grid);
+  const moreWrap=document.createElement('div'); moreWrap.className='hub-more-wrap';
+  const moreBtn=document.createElement('button'); moreBtn.type='button'; moreBtn.className='hub-more-btn';
+  moreBtn.textContent='Weitere Menüs';
+  const moreGrid=document.createElement('div'); moreGrid.className='hub-grid hub-grid-more hidden';
+  HUB_MORE.forEach(t=>moreGrid.appendChild(mkTile(t)));
+  moreBtn.onclick=()=>{
+    const open=moreGrid.classList.toggle('hidden')===false;
+    moreBtn.textContent=open?'Weniger':'Weitere Menüs';
+    moreBtn.classList.toggle('on', open);
+  };
+  moreWrap.appendChild(moreBtn); moreWrap.appendChild(moreGrid);
+  wrap.appendChild(moreWrap);
   root.appendChild(wrap);
 }
 
@@ -164,4 +184,4 @@ export function renderViaHubOrTab(tab, body, S, helpers){
   return false;
 }
 
-export default {HUB_TILES,openHub,renderLevel,showBegegnung,dismissBegegnung,renderViaHubOrTab};
+export default {HUB_TILES,HUB_PRIMARY,HUB_MORE,openHub,renderLevel,showBegegnung,dismissBegegnung,renderViaHubOrTab};

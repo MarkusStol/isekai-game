@@ -348,7 +348,7 @@ async function runLiveSiteBrowser(){
   const label='live-site';
   let fails=0, total=0;
   const LIVE=process.env.GATE_LIVE_URL||'https://markusstol.github.io/isekai-game/';
-  const versions=['13','16','18','20','22','23','24','25','26','27','28','29','30','31','32','33','34','35','36','37','38','39','40','41','42','43','44','45','46','47','48','49','50','51','52','53','54'];
+  const versions=['13','16','18','20','22','23','24','25','26','27','28','29','30','31','32','33','34','35','36','37','38','39','40','41','42','43','44','45','46','47','48','49','50','51','52','53','54','55'];
   const safariUA='Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1';
 
   async function oneProfile(name, {ua, seedVer}={}){
@@ -787,7 +787,7 @@ async function runCrashClass(){
   }
 
   await one('proc-continue', async()=>{
-    await page.goto(`http://127.0.0.1:${PORT}/index.html?v=55&crash=proc`,{waitUntil:'domcontentloaded',timeout:60000});
+    await page.goto(`http://127.0.0.1:${PORT}/index.html?v=56&crash=proc`,{waitUntil:'domcontentloaded',timeout:60000});
     await page.waitForFunction(()=>window.__game?.VER,{timeout:30000});
     await page.evaluate(()=>{
       const pack={icon:'🎲',titel:'CrashWelt',_genreLabel:'zombie',ton:'x',genre:'zombie'};
@@ -817,7 +817,7 @@ async function runCrashClass(){
   });
 
   await one('markt-tags', async()=>{
-    await page.goto(`http://127.0.0.1:${PORT}/index.html?v=55&crash=markt`,{waitUntil:'domcontentloaded',timeout:60000});
+    await page.goto(`http://127.0.0.1:${PORT}/index.html?v=56&crash=markt`,{waitUntil:'domcontentloaded',timeout:60000});
     await page.waitForFunction(()=>window.__game?.startProcedural,{timeout:30000});
     const row=await page.evaluate(async()=>{
       const G=window.__game; window.__FAST=true; window.__PLAYTEST=true; window.__setCfg?.({mode:'offline'});
@@ -876,8 +876,51 @@ async function runCrashClass(){
     await page.setViewport({width:390,height:844,isMobile:true,hasTouch:true});
   });
 
+  await one('hub-density', async()=>{
+    await page.setViewport({width:375,height:667,isMobile:true,hasTouch:true});
+    await boot('held','HubDens');
+    await page.evaluate(()=>window.__game.openMenu?.('hub'));
+    await new Promise(r=>setTimeout(r,300));
+    const row=await page.evaluate(()=>{
+      const prim=[...document.querySelectorAll('.hub-grid-primary .hub-tile')].length;
+      const moreBtn=document.querySelector('.hub-more-btn');
+      const moreHidden=document.querySelector('.hub-grid-more')?.classList.contains('hidden');
+      return {prim, hasMore:!!moreBtn, moreHidden};
+    });
+    if(row.prim<4 || row.prim>8) throw new Error('primary hub count '+row.prim);
+    if(!row.hasMore || row.moreHidden===false) throw new Error('more section missing/open: '+JSON.stringify(row));
+    await page.setViewport({width:390,height:844,isMobile:true,hasTouch:true});
+  });
+
+  await one('menu-under-battle', async()=>{
+    await page.setViewport({width:1280,height:800});
+    await boot('held','MenuBattle');
+    await page.evaluate(()=>window.__game.openMenu?.('hub'));
+    await new Promise(r=>setTimeout(r,200));
+    await page.evaluate(async()=>{
+      const G=window.__game;
+      const {enemyById}=await import('./enemies.js');
+      G.Battle.startBattle(G.S,{enemies:[enemyById('slime')],atbMode:'wait',scripted:true});
+    });
+    await new Promise(r=>setTimeout(r,400));
+    const row=await page.evaluate(()=>{
+      const menu=document.getElementById('menu');
+      const battle=document.querySelector('.battle-root');
+      const ms=getComputedStyle(menu);
+      return {
+        menuHidden: menu.classList.contains('hidden') || ms.display==='none' || ms.visibility==='hidden',
+        battleOpen: document.body.classList.contains('battle-open'),
+        battleVisible: battle && !battle.classList.contains('hidden'),
+        ally: [...document.querySelectorAll('img')].some(i=>/ally_hero|ally_spy|battler\/ally/.test(i.src||'')),
+      };
+    });
+    if(!row.battleOpen || !row.battleVisible) throw new Error('battle not open');
+    if(!row.menuHidden) throw new Error('menu still visible over battle');
+    await page.setViewport({width:390,height:844,isMobile:true,hasTouch:true});
+  });
+
   await one('v20-continue', async()=>{
-    await page.goto(`http://127.0.0.1:${PORT}/index.html?v=55&crash=v20`,{waitUntil:'domcontentloaded',timeout:60000});
+    await page.goto(`http://127.0.0.1:${PORT}/index.html?v=56&crash=v20`,{waitUntil:'domcontentloaded',timeout:60000});
     await page.waitForFunction(()=>window.__game?.VER,{timeout:30000});
     await page.evaluate(async ()=>{
       localStorage.clear();
