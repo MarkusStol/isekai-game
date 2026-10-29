@@ -274,6 +274,40 @@ export function pushMarketEvent(S,{id,label,mult,days,cats}){
   m.events.push({id,label,mult:mult||1.2,untilDay:until,cats:cats||['food']});
   try{ ledgerPush(S,{type:'market',who:'Markt',what:label||id,where:S.world?.scene?.ort,importance:50,emotion:'unruhig'}); }catch(_){}
 }
+
+/** v33: derive market shocks from world ledger news (not only RNG) */
+export function marketFromLedger(S){
+  const m=ensureMarket(S);
+  const led=(S.ledger||[]).slice(-24);
+  const day=S.cal?.day|1;
+  const seen=new Set((m.events||[]).map(e=>e.id));
+  const rules=[
+    {re:/überfall|raid|bandit|plünder|karawane.*(überfall|geraubt)|händler.*(tot|tot)/i, id:'ledger_raid', label:'Ledger: Überfall auf Händler', mult:1.35, days:4, cats:['weapon','food']},
+    {re:/hunger|hungersnot|vorrat.*(knapp|leer)|ernte.*(fehl|miss)/i, id:'ledger_famine', label:'Ledger: Hunger-Gerüchte', mult:1.4, days:6, cats:['food']},
+    {re:/karawane trifft|handelsschiff|lieferung|markt.*voll|ernte.*(gut|reich)/i, id:'ledger_caravan', label:'Ledger: Lieferung trifft ein', mult:0.88, days:3, cats:['misc','food','travel']},
+    {re:/seuche|infekt|plage|krankheit|quarantäne/i, id:'ledger_plague', label:'Ledger: Seuchenangst', mult:1.45, days:5, cats:['potion']},
+    {re:/fest|feier|festival|hochzeit|turnier/i, id:'ledger_fest', label:'Ledger: Fest inflates Preise', mult:1.18, days:2, cats:['food','service']},
+    {re:/unruhen|aufstand|revolte|protest|streik/i, id:'ledger_unrest', label:'Ledger: Unruhen', mult:1.25, days:4, cats:['weapon','armor']},
+    {re:/frost|schneesturm|eiszeit|wintereinbruch/i, id:'ledger_frost', label:'Ledger: Kältewelle', mult:1.3, days:5, cats:['food','travel']},
+    {re:/krieg|belagerung|mobilmachung|armee zieht/i, id:'ledger_war', label:'Ledger: Kriegsnachfrage', mult:1.4, days:7, cats:['weapon','armor']},
+  ];
+  let added=0;
+  for(const e of led){
+    const blob=String(e.what||e.text||'')+' '+String(e.type||'');
+    for(const r of rules){
+      if(seen.has(r.id)) continue;
+      if(r.re.test(blob)){
+        // Don't re-ledger (pushMarketEvent would) — insert quietly
+        m.events=m.events.filter(x=>x.id!==r.id);
+        m.events.push({id:r.id,label:r.label,mult:r.mult,untilDay:day+(r.days|3),cats:r.cats, fromLedger:true});
+        seen.add(r.id); added++;
+        break;
+      }
+    }
+  }
+  return added;
+}
+
 export function marketTick(S, hours){
   const m=ensureMarket(S);
   const days=(hours||0)/24; if(days<=0) return;
@@ -287,8 +321,11 @@ export function marketTick(S, hours){
     if(season==='Herbst') pushMarketEvent(S,{id:'harvest',label:'Ernte drückt Preise',mult:0.85,days:8,cats:['food']});
   }
   m.lastSeason=season;
-  // random regional events
-  if(Math.random()<days*0.12){
+  // Ledger-driven shocks first (actual world news)
+  try{ marketFromLedger(S); }catch(_){}
+  // Soft RNG only if ledger was quiet
+  const hasLedgerEv=(m.events||[]).some(e=>e.fromLedger && (e.untilDay|0)>=day);
+  if(!hasLedgerEv && Math.random()<days*0.06){
     const pool=[
       {id:'caravan',label:'Karawane trifft ein',mult:0.9,days:3,cats:['misc','rare','travel']},
       {id:'raid',label:'Überfall auf Händler',mult:1.35,days:4,cats:['weapon','food']},
@@ -362,4 +399,4 @@ export function econHourly(S,hours){
 }
 
 export {CROPS};
-export default {ensureEcon,blankFinance,blankKingdom,blankFarm,plantCrop,waterCrops,harvestReady,farmTick,personalFinanceTick,kingdomTick,econHourly,regionalPrice,takeLoan,bankDeposit,deposit,withdraw,setTax,syncGold,CROPS,seasonWeather,ensureMarket,blankMarket,marketTick,marketPriceMult,marketBuy,marketSell,marketStatusLine,pushMarketEvent};
+export default {ensureEcon,blankFinance,blankKingdom,blankFarm,plantCrop,waterCrops,harvestReady,farmTick,personalFinanceTick,kingdomTick,econHourly,regionalPrice,takeLoan,bankDeposit,deposit,withdraw,setTax,syncGold,CROPS,seasonWeather,ensureMarket,blankMarket,marketTick,marketPriceMult,marketBuy,marketSell,marketStatusLine,pushMarketEvent,marketFromLedger};

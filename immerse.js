@@ -90,8 +90,14 @@ export function richOfflineProse(S, playerAction, opts={}){
   const isQ=/\?|was |wer |wie |wo |warum |wieso |weshalb |erzähl|frag/.test(act.toLowerCase());
   // Lead with the person and the answer — time/weather as color, not headline (seamless vs live narrators)
   if(who&&npc){
-    lines.push(art?`${label} (${art}) bleibt in ${ort}.`:`${label} bleibt dir in ${ort} zugewandt.`);
-    if(mem && Math.random()<0.28) lines.push(`Etwas an dir erinnert ${label} an: ${mem}.`);
+    const style=String(npc.speechStyle||npc.stimme||'').split(/[.,;]/)[0].slice(0,50);
+    const back=String(npc.backstory||'').split(/[.;]/)[0].slice(0,100);
+    lines.push(art?`${label} (${art}${style?', '+style:''}) bleibt in ${ort}.`:`${label} bleibt dir in ${ort} zugewandt.`);
+    // Met NPCs: recall earlier talk; keep backstory visible when relevant
+    if(mem) lines.push(Math.random()<0.72
+      ? `${label} erinnert sich: ${mem}`
+      : `Ein Blick sagt: ihr habt schon miteinander gesprochen.`);
+    if(back && (!mem || Math.random()<0.55)) lines.push(`Zwischen den Zeilen: ${back}.`);
     if(isQ){
       const topic=act.replace(/^[„"]?/,'').slice(0,80);
       const g=String(S.genre||S.world?.systems?.kind||'').toLowerCase();
@@ -111,8 +117,19 @@ export function richOfflineProse(S, playerAction, opts={}){
             `Ein kurzes Schweigen. „Frag etwas anderes.“`
           ]));
       if(/ort|hier|lage|los|passiert/.test(topic.toLowerCase())){
-        const d=String(S.world?.orte?.[ort]||S.world?.graph?.nodes?.[ort]?.desc||'').slice(0,120);
+        const d=String(S.world?.orte?.[ort]||S.world?.graph?.nodes?.[ort]?.desc||'').slice(0,160);
         if(d) lines.push(`Über ${ort}: ${d}`);
+      }
+      if(/\bdu\b|dein|dich|\bdir\b|wer bist|geschichte|vergangen|backstory|ziel|warum|über dich|von dir/.test(topic.toLowerCase())){
+        const sm=(npc.samples&&npc.samples[0])?`„${String(npc.samples[0]).replace(/^[„"]|[“"]$/g,'').slice(0,80)}“`:'';
+        const ziel=npc.ziel||npc.desire||'';
+        if(back) lines.push(`${label} lässt etwas von sich durchblicken: ${back}.`);
+        if(ziel) lines.push(`„Mein Ziel? ${String(ziel).slice(0,70)}.“`);
+        if(sm) lines.push(`${label} fällt in den eigenen Ton: ${sm}`);
+      }
+      // Quote in their speech style when answering
+      if(style && opts.good!==false && Math.random()<0.5){
+        lines.push(`(${style}) — die Antwort klingt genau danach.`);
       }
       lines.push(weatherLine);
     } else {

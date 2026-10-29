@@ -578,7 +578,15 @@ function applyRewards(B, result, summary){
 
 /* ---- Actions ---- */
 export function playerCommand(cmd, payload={}){
-  if(!_B||_B.done||!_B.selecting)return;
+  if(!_B||_B.done)return;
+  // v33: social mercy cmds can run even before ATB hands the cursor (talk→fight→spare flow)
+  if(!_B.selecting){
+    const hero=living(_B.party).find(p=>p.kind==='hero')||living(_B.party)[0];
+    if(!hero) return;
+    if(/^(talk|spare|threaten|surrender|mercy|flee)$/.test(cmd)){
+      _B.selecting={actor:hero, mode:cmd};
+    } else return;
+  }
   const actor=_B.selecting.actor;
   if(cmd==='menu'){ _B.selecting={actor, mode:payload.mode||'main'}; refreshUI(); return }
   if(cmd==='attack'){ return doAttack(actor, payload.targetId) }
@@ -820,7 +828,7 @@ function doTalk(actor, payload={}){
   if(/bitte|frieden|freund|reden|spar|verschon|kapitul/i.test(text)) chance+=0.2;
   if(/droh|töt|umbring|hass/i.test(text)) chance-=0.25;
   if((S.flags?.spared||[]).includes(t.id)||(S.flags?.sparedNames||[]).includes(t.name)) chance+=0.25;
-  _B.log.push(`${actor.name} spricht ${t.name} an${text?': „'+text.slice(0,60)+'“':''}.`);
+  t._talked=true; _B.log.push(`${actor.name} spricht ${t.name} an${text?': „'+text.slice(0,60)+'“':''}.`);
   if(Math.random()<clamp(chance,0.05,0.9)){
     t.hp=Math.max(1,t.hp); t._surrendered=true; t._ended='surrender'; t.alive=false;
     _B.log.push(`${t.name} lässt die Waffe sinken.`);
@@ -834,7 +842,10 @@ function doTalk(actor, payload={}){
 }
 function doSpare(actor, targetId){
   const t=pickTarget(targetId,true)||living(_B.foes)[0]; if(!t)return;
-  if(t.hp>t.maxhp*0.45 && !t._surrendered){ _B.log.push(`${t.name} ist noch zu kampffähig — erst schwächen oder reden.`); refreshUI(); return }
+  // v33: spare after talk, surrender, or when weakened (humans more merciful)
+  const talked=!!(t._talked||t._surrendered||t._mercyTalk);
+  const weak=t.hp<=t.maxhp*(talked||t.human?0.75:0.45);
+  if(!weak && !talked){ _B.log.push(`${t.name} ist noch zu kampffähig — erst schwächen oder reden.`); refreshUI(); return }
   t.alive=false; t.hp=Math.max(1, Math.floor(t.hp)); t._ended='spared';
   _B.log.push(`${actor.name} verschont ${t.name}.`);
   rememberSocial(_B.S,t,'spare');

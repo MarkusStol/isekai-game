@@ -60,8 +60,8 @@ export function campUpgradeOptions(S){
     {id:'wanne',name:'Waschwanne',need:2,gold:30,desc:'Hygiene'},
     {id:'werkbank',name:'Werkbank',need:2,gold:40,desc:'Reparatur/Craft'},
     {id:'garten',name:'Garten',need:2,gold:35,desc:'Nahrung über Zeit'},
-    {id:'palisade',name:'Palisade',need:3,gold:60,desc:'Raid-Schutz'},
-    {id:'wache',name:'Wachposten',need:3,gold:50,desc:'Warnung vor Raids'},
+    {id:'palisade',name:'Palisade',need:2,gold:55,desc:'Raid-Schutz (+Verteidigung)'},
+    {id:'wache',name:'Wachposten',need:2,gold:45,desc:'Warnung vor Raids (+Verteidigung)'},
     {id:'attrappe',name:'Trainingspuppe',need:3,gold:45,desc:'Kampftraining zu Hause'},
   ];
   return all.filter(u=>!have.has(u.id)&&st>=u.need);
@@ -310,7 +310,11 @@ export function maybeHomeRaid(S){
   const b=homeBenefits(S);
   if(!S.home?.owned || Math.random()>b.raidChance) return null;
   const atHome=S.flags?.atHome || S.world?.scene?.ort===S.home.location;
-  if(atHome && ((S.home.housemates||[]).length || b.defence)) return null;
+  if(atHome && ((S.home.housemates||[]).length || b.defence)){
+    if(S.camp) S.camp.raidThreat=Math.max(0,(S.camp.raidThreat|0)-20);
+    const kind=/zombie|grey/i.test(S.genre||S.role||'')?'Untote':'Banditen';
+    return {text:`${kind} nähern sich — doch ${(b.defence?'Palisade/Wache':'Mitbewohner')} und deine Anwesenheit halten stand. Camp sicher.`, loss:0, kind:'raid_held', line:`Überfall abgewehrt (${b.label}).`, goldLost:0, held:true};
+  }
   const loss=Math.min(S.st?.gold|0, Math.floor((5+Math.floor(Math.random()*20))*(1-b.defense)));
   if(S.st) S.st.gold=Math.max(0,(S.st.gold|0)-loss);
   if(!b.defence && Math.random()<0.25 && (S.home.stage|0)>1) S.home.stage=Math.max(1,(S.home.stage|0)-1);

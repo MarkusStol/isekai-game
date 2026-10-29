@@ -25,9 +25,9 @@ import * as OW from './overworld.js';
 import * as Aud from './audio.js';
 import { hasBg } from './bg-manifest.js';
 try{ Aud.unlockOnGesture?.(); }catch(_){} // v28 first-tap music
- // v32: airship unlock, harbors, market sim, cutscene art, genre playtest fixes
+ // v33: rich place flavor, ledger markets, forage hunger, NPC depth, house crops
 const $=s=>document.querySelector(s);const $$=s=>[...document.querySelectorAll(s)];const R=a=>a[Math.floor(Math.random()*a.length)];const rnd=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
-const VER='32',CACHE_V='v32';
+const VER='33',CACHE_V='v33';
 const ROLES={
  held:{e:'⚔️',name:'Held mit Status-System',d:'Ein blaues Fenster erscheint: [Status]. Die Welt braucht dich.',world:'Königreich Aldheim',
   base:{hp:100,mp:40,str:12,cha:8,ruf:10,gold:40},cls:['Abenteurer','Ritter','Held','Legendärer Held'],pack:'worlds/held.json',
@@ -698,6 +698,7 @@ function migrate(raw){if(!raw)return null;const s=typeof raw==='string'?JSON.par
  if(Number(s.ver)<31){s.ver=31;s.owFog=s.owFog||{};s.flags=s.flags||{};s.flags.shops=s.flags.shops||{};
   try{ if(s.quests?.main && !s.quests.main.objectiveMarks){ const bq=buildQuests(PACKS[s.role]||{}); s.quests.main.objectiveMarks=bq.main.objectiveMarks; s.quests.main.marker=bq.main.marker; (s.quests.side||[]).forEach((q,i)=>{ if(!q.marker && bq.side[i]?.marker) q.marker=bq.side[i].marker; }); } }catch(_){} }
  if(Number(s.ver)<32){s.ver=32;s.flags=s.flags||{};s.flags.travel=s.flags.travel||{airship:false,boatPass:false};s.market=s.market||null;try{Econ.ensureMarket?.(s)}catch(_){}}
+ if(Number(s.ver)<33){s.ver=33;s.flags=s.flags||{};s.flags.travel=s.flags.travel||{airship:false,boatPass:false};try{Econ.ensureMarket?.(s);Econ.marketFromLedger?.(s)}catch(_){}; try{ enrichPlaceDescs?.(s) }catch(_){} }
  // v13.1 continuity+time always (kept in v14)
  try{Cont.ensureCont(s);if(s.cal&&s.cal.minute==null)s.cal.minute=0;if(s.cfgCatchupOptIn==null)s.cfgCatchupOptIn=false}catch(e){console.warn('cont migrate',e)}
  // Heal incomplete worlds from old saves (missing orte/graph)
@@ -1521,7 +1522,8 @@ function askNPC(a){if(!isQ(a)||!S)return null;const t=a.toLowerCase();const pres
   if(/wo|wohin|woher/.test(t)){const o=S.world?.scene?.ort||'hier';return `${w.label}: „Du bist ${/^(in|im|am|auf|an)\b/i.test(o)?o:'in '+o}.“`}
   return `${w.label} ${R(['runzelt die Stirn','sieht dich lange an','senkt die Stimme'])}: „${R(['Das ist eine gute Frage.','Nicht hier. Nicht jetzt.','Wenn du das wirklich wissen willst, bleib in meiner Nähe.'])}“`});
  const aff={};sp.forEach(w=>{aff[w.n]=2});
- return {text:`„${a}“\n\n`+lines.join('\n\n'),changes:{xp:5,affinity:aff,choices:defChoices()}}}
+ try{ for(const w of sp){ Know.markInteracted(S,w.n); if(/wer|bist|name|heiß/i.test(t)) Know.learnName(S,w.n,'told'); } }catch(_){}
+ return {text:lines.join('\n\n'),changes:{xp:5,affinity:aff,choices:defChoices()}}}
 
 
 function ensureSystems(){if(!S.world)return {};if(!S.world.systems)S.world.systems={};const sys=S.world.systems;
@@ -1621,6 +1623,81 @@ function pickGenre(idOrText){const s=String(idOrText||'').toLowerCase().trim();
   npcSeeds:[{e:'👤',art:'Fremde:r mit Geheimnis',ziel:'Überleben'},{e:'🧭',art:'Führer:in',ziel:'Den Weg kennen'},{e:'⚔️',art:'Kämpfer:in',ziel:'Stärke beweisen'},{e:'📚',art:'Gelehrte:r',ziel:'Wissen bergen'},{e:'💰',art:'Händler:in',ziel:'Profit'},{e:'🔮',art:'Seher:in',ziel:'Zukunft lesen'},{e:'🛡️',art:'Wächter:in',ziel:'Schützen'},{e:'🎭',art:'Trickser:in',ziel:'Spiel spielen'}],
   custom:s}}
 
+
+/** v33: longer place flavor by genre / terrain / season / time-of-day */
+function placeFlavorText(name, opts={}){
+  const g=String(opts.genre||opts.g||S?.genre||S?.role||'').toLowerCase();
+  const season=opts.season||S?.cal?.season||'Sommer';
+  const phase=opts.phase||phaseLabel?.()||S?.cal?.phase||S?.time?.phase||'Abend';
+  const harbor=/hafen|küste|werft|kai|pier|dock|seewacht/i.test(name);
+  const terrain=opts.terrain||(harbor?'water':(/wald|hain|forst/i.test(name)?'forest':/ruine|brache|trümmer/i.test(name)?'ruins':/markt|gasse|stadt|mall|neon/i.test(name)?'urban':/keller|safehouse|bunker|höhle/i.test(name)?'shelter':'default'));
+  const R=a=>a[Math.floor(Math.random()*a.length)];
+  const base={
+    water:['Salz hängt in der Luft; Planken knarzen unter jedem Schritt.','Tauwerk, Möwenkot, der ferne Schlag einer Glocke am Kai.','Wellen schlagen gegen den Steg — rhythmisch, geduldig, unerbittlich.','Netzreste trocknen an Pfählen; jemand flucht leise über den Fang.','Der Geruch von Teer und Fischöl klebt an der Jacke.','Ein Ruderboot schaukelt, als hätte es Geheimnisse an Bord.'],
+    forest:['Nadeln und Moos dämpfen jeden Tritt.','Licht fällt in Streifen zwischen den Stämmen.','Etwas knackt im Unterholz — nah oder nur Echo.','Harz duftet süß; ein Pfad verliert sich im Farn.','Krähen mustern dich von einem toten Ast aus.','Feuchtigkeit tropft von Blättern, als zählte jemand die Sekunden.'],
+    ruins:['Mauerreste stehen wie gebrochene Zähne.','Staub wirbelt auf, wo früher Stimmen waren.','Graffiti und Brandspuren erzählen ohne Worte.','Ein Türrahmen führt ins Nichts — und doch fühlst du Zugluft.','Metall quietscht irgendwo, obwohl niemand geht.','Die Steine erinnern sich lauter als die Lebenden.'],
+    urban:['Tritte auf Stein, Stimmen, der Geruch von Essen und Angst.','Gassen verengen sich, Schilder blinken oder hängen schief.','Hier verkauft man alles — und behält Geheimnisse teurer.','Fensterläden knallen; ein Kind lacht und verstummt.','Pfützen spiegeln Neon oder Fackeln, je nachdem was lügt.','Jemand flüstert Preise, die nicht auf dem Schild stehen.'],
+    shelter:['Enge Luft, geborgte Sicherheit.','Vorräte gestapelt, Eingang vermint mit Misstrauen.','Draußen wartet die Welt; hier tickt die Kerze.','Matratzen riechen nach Schweiß und Hoffnung.','Jeder Husten wird gezählt. Jede Ration auch.','Die Tür hat Narben von Versuchen, die scheiterten.'],
+    default:['Der Ort atmet mit dir mit.','Kleine Details bleiben hängen: ein Geräusch, ein Geruch, ein Blick.','Nichts ist neutral — selbst die Stille wählt eine Seite.','Staubtanzen im Licht; irgendwo tropft Wasser.','Du spürst, dass hier Entscheidungen hängen geblieben sind.','Ein unscheinbarer Fleck am Boden erzählt mehr als Schilder.']
+  };
+  const genre={
+    zombie:['Barrikaden aus Einkaufswagen und Hoffnung.','In der Ferne ein Stöhnen, das kein Wind ist.','Patronenhülsen im Rinnstein; Blut ist schon braun.','Die Stadt gehört den Infizierten — du bist nur zu Gast.','Ein Lautsprecher rasselt eine alte Evakuierungsansage.','Masken, Handschuhe, der ständige Blick über die Schulter.'],
+    cyberpunk:['Neon spiegelt sich in Öl-Pfützen.','Drohnen summen über den Dächern wie hungrige Insekten.','Chrome blitzt unter Kapuzen; Creds entscheiden über Atem.','Werbung lügt laut — die Gasse flüstert die Wahrheit.','Ein Implantat piept; jemand flucht über Vertragsklauseln.','Regen wäscht nichts sauber — er macht die Lichter schärfer.'],
+    cyber:['Neon spiegelt sich in Öl-Pfützen.','Drohnen summen über den Dächern wie hungrige Insekten.','Chrome blitzt unter Kapuzen; Creds entscheiden über Atem.','Regen wäscht nichts sauber — er macht die Lichter schärfer.'],
+    highfantasy:['Runen glimmen unter dem Schmutz, als erinnerten sie sich.','Ein Banner flattert, zerrissen und trotzdem stolz.','Magie riecht hier nach Ozon und altem Papier.','Irgendwo übt jemand einen Zauber — falsch, aber mutig.','Ein Golem wartet untätig, als hätte man ihn vergessen.','Pfeifen und Harfen mischen sich mit Stahlklang.'],
+    darkfantasy:['Der Mond hängt zu tief. Schatten haben eigene Pläne.','Weihrauch und Eisen; Gebete, die nicht ankommen.','Namen werden hier leiser gesprochen als Flüche.','Ein Kruzifix hängt schief; darunter frische Kerzenwachs-Spuren.','Hunde bellen nicht — sie winseln.'],
+    dark:['Der Mond hängt zu tief. Schatten haben eigene Pläne.','Weihrauch und Eisen; Gebete, die nicht ankommen.','Namen werden hier leiser gesprochen als Flüche.'],
+    survival:['Kälte sucht Ritzen in deiner Jacke.','Jedes Stück Holz ist eine Entscheidung.','Die Wildnis vergisst dich nicht — sie wartet.','Feuerrauch bedeutet Leben — oder ein Ziel.','Spuren im Schlamm: Tier, Mensch, oder beides.'],
+    postapoc:['Staub legt sich auf die Zunge.','Rostige Schilder versprechen Städte, die nicht mehr da sind.','Wasser ist hier wichtiger als Gold.','Reifenstapeln und Blechdächer: Architektur der Verzweifelten.'],
+    fantasy:['Fackeln, Stoffbahnen, das leise Klirren von Stahl.','Höflichkeit und Gefahr teilen sich denselben Hof.','Jemand hat hier Geschichte geschrieben — mit Blut oder Tinte.','Ein Wappen über der Tür; darunter Kratzer neuerer Konflikte.','Hufe und Stiefel, Marktgeschrei, der Duft von Brot und Leder.']
+  };
+  const seasonL={
+    Winter:['Atem wird weiß. Vorräte zählen lauter als Worte.','Schnee oder Frostglas — die Kälte schreibt mit.','Finger suchen Wärme in Taschen, die schon leer sind.','Eis knirscht; Wege werden zu Verhandlungen.'],
+    Herbst:['Laub und Rauch; Erntezeit und Abschied in einem.','Der Wind trägt den Geruch von Feuer und Erde.','Nebel kriecht früh; Schatten werden länger als Versprechen.','Kisten voller Ernte — und Lücken, wo Diebe waren.'],
+    Frühling:['Nasse Erde, neue Triebe, alte Schulden.','Die Luft ist dünner und hoffnungsvoller.','Regen wäscht Blutspuren nicht ganz weg.','Blüten und Schimmel teilen sich denselben Balken.'],
+    Sommer:['Hitze liegt schwer auf den Steinen.','Schatten sind kostbar; Wasser noch kostbarer.','Schweiß und Staub; Streit fängt schneller Feuer.','Abends summen Insekten lauter als Gerüchte.']
+  };
+  const timeL={
+    Nacht:['Nur wenige Lichter wagen sich heraus.','Die Dunkelheit macht Geräusche größer.','Sterne oder Smog — beides fühlt sich wie Urteil an.','Schritte hallen anders; Vertrauensvorschuss ist aufgebraucht.'],
+    Abend:['Der Tag gibt nach; Entscheidungen werden schärfer.','Orange Licht streicht über Kanten und Gesichter.','Läden schließen; andere Geschäfte öffnen.','Glocken oder Sirenen — je nach Welt — mahnen zur Heimkehr.'],
+    Morgen:['Die Welt wirkt noch unfertig, fast entschuldbar.','Tau oder Smog — beides riecht nach Anfang.','Bäcker, Wachen, Frühschicht — und die, die nicht geschlafen haben.','Licht findet Risse, die die Nacht versteckt hat.'],
+    Mittag:['Die Sonne (oder Neon) lässt wenig Raum für Lügen.','Geschäftigkeit maskiert, was darunter kocht.','Schatten kurz, Tempi hoch, Preise frech.','Mittagsruhe gibt es nur für die, die es sich leisten.'],
+    Nachmittag:['Der Höhepunkt ist vorbei; Ermüdung mischt sich unter den Lärm.','Licht wird goldener, Absichten undurchsichtiger.','Letzte Lieferungen, erste Gerüchte über die Nacht.']
+  };
+  const gkey=Object.keys(genre).find(k=>g.includes(k))||(g==='held'||g==='proc'?'fantasy':null);
+  const parts=[];
+  parts.push(R(base[terrain]||base.default));
+  if(gkey) parts.push(R(genre[gkey]));
+  if(seasonL[season]) parts.push(R(seasonL[season]));
+  const pk=Object.keys(timeL).find(k=>String(phase).includes(k))||'Abend';
+  parts.push(R(timeL[pk]||timeL.Abend));
+  // name-specific hook
+  if(/markt/i.test(name)) parts.push(R(['Preisschilder und Feilschen; Gerüchte kosten extra.','Ein Händler mustert dich länger als die Ware.']));
+  if(/safehouse|keller|bunker/i.test(name)) parts.push('Die Tür hat drei Riegel — und trotzdem schläft niemand tief.');
+  if(/neon|club|bar/i.test(name)) parts.push('Bass vibriert im Boden; Gesichter wechseln mit dem Beat.');
+  // 2–4 sentences
+  const uniq=[...new Set(parts)].slice(0,4);
+  return uniq.join(' ');
+}
+function enrichPlaceDescs(state){
+  const st=state||S; if(!st?.world) return;
+  const nodes=st.world.graph?.nodes||{};
+  const orte=st.world.orte||(st.world.orte={});
+  const genre=st.genre||st.role||'';
+  const season=st.cal?.season; const phase=st.cal?.phase||st.time?.phase;
+  for(const [name,node] of Object.entries(nodes)){
+    const cur=String(node.desc||orte[name]||'');
+    // Refresh thin/broken one-char or very short stubs
+    if(cur.length<24 || /^[a-zA-Z]$/.test(cur.trim())){
+      const rich=placeFlavorText(name,{genre,season,phase,terrain:node.terrain});
+      node.desc=rich; orte[name]=rich;
+    } else if(cur.length<60 && !node._flavored){
+      node.desc=cur+' '+placeFlavorText(name,{genre,season,phase,terrain:node.terrain}).split('. ').slice(0,2).join('. ')+'.';
+      orte[name]=node.desc; node._flavored=1;
+    }
+  }
+}
+
 function offlineGenerateWorld(genreInput,pcName){const g=pickGenre(genreInput);const namesA=['Ava','Ren','Kai','Mira','Jon','Sera','Viktor','Lina','Omar','Nyx','Pia','Theo','Eira','Cruz','Yuna','Baz','Vera','Nils','Suri','Jax'];
  // v22: ~3x places for procedural worlds
  const basePlaces=g.places||[];
@@ -1629,14 +1706,9 @@ function offlineGenerateWorld(genreInput,pcName){const g=pickGenre(genreInput);c
  const nodes={};places.forEach((name,i)=>{const exits=[places[(i+1)%places.length],places[(i+2)%places.length],places[(i+5)%places.length]];if(i>0)exits.push(places[0]);
   const harbor=/hafen|küste|werft|kai|pier|containerhafen|hafenlager|hafencontainer|seewacht|dock/i.test(name);
   const tags=[g.id].concat(harbor?['harbor']:[]) ;
-  nodes[name]=( ()=>{ const pool=['Staub und Echo.','Leben trotz allem.','Spuren von gestern.','Ein Ort mit Zähnen.','Ruhe, die lügt.','Hier entscheidet sich etwas.'];
-  if(harbor) pool.push('Salz in der Luft, Planken unter den Stiefeln.','Tauwerk, Möwen, der Geruch von Teer.');
-  // Genre-flavored place lines so look-around isn't generic
-  if(g.id==='zombie') pool.push('Barrikaden, Blutspuren, Quietschen von Blech.','Die Stille nach dem Schuss hält noch.');
-  if(g.id==='cyberpunk') pool.push('Neon spiegelt sich in Pfützen aus Öl.','Drohnen summen über den Dächern.');
-  if(g.id==='highfantasy'||g.id==='darkfantasy') pool.push('Alte Runen glimmen unter dem Schmutz.','Ein Banner flattert, zerrissen und stolz.');
-  return {desc:R(pool),tags,exits:[...new Set(exits)].slice(0,4),bg:slugify(name).split('-')[0]||'void',harbor:!!harbor,terrain:harbor?'water':undefined};
- })() });
+  const terrain=harbor?'water':(/wald|hain|forst/i.test(name)?'forest':/ruine|brache|trümmer/i.test(name)?'ruins':/markt|gasse|stadt|mall|neon|parkplatz/i.test(name)?'urban':/keller|safehouse|bunker|höhle/i.test(name)?'shelter':'default');
+  nodes[name]={desc:placeFlavorText(name,{genre:g.id,terrain,season:'Herbst',phase:'Abend'}),tags,exits:[...new Set(exits)].slice(0,4),bg:slugify(name).split('-')[0]||'void',harbor:!!harbor,terrain, _flavored:1};
+ });
  const start=places[0];const npcs={};const seeds=(g.npcSeeds||[]).slice(0,12);
  while(seeds.length<12) seeds.push({e:'👤',art:'Einheimische:r',ziel:'Überleben'});
  seeds.forEach((seed,i)=>{
@@ -1705,7 +1777,7 @@ async function startProcedural(genreInput,pcName){const pack=await generateWorld
   quests:buildQuests(pack),discovered:[world.scene.ort].filter(Boolean),ticks:{rumours:[],log:[]},
   cls:0,turn:0,hist:[],log:[],flags:{},setup:{done:true,beat:0,answers:{}},summary:pack.conflict||'',
   time:{day:1,hour:18,phase:'Abend'},imgCache:{scenes:{},portraits:{},ok:{},fail:{},next:{}},heat:0,wanted:[],dead:[],world};
- enrichNpcs(S.world);ensureGraph(S);try{Sim.migrateToV13(S);Econ.ensureEcon(S);try{Econ.ensureMarket?.(S)}catch(_){};Codex.ensureCodex(S);WorldMap.ensureSpawn(S);Level.ensureProgress(S);Know.ensureKnow(S);Know.migrateKnow(S);Jobs.ensureJobs(S);Gems.ensureGems(S);Summons.ensureSummons(S);Equip.ensureEquip(S);S.ver=VER}catch(_){}if(S.world.systems||S.genre==='zombie')ensureSystems();
+ enrichNpcs(S.world);ensureGraph(S);try{Sim.migrateToV13(S);Econ.ensureEcon(S);try{Econ.ensureMarket?.(S)}catch(_){};Codex.ensureCodex(S);WorldMap.ensureSpawn(S);Level.ensureProgress(S);Know.ensureKnow(S);Know.migrateKnow(S);Jobs.ensureJobs(S);Gems.ensureGems(S);Summons.ensureSummons(S);Equip.ensureEquip(S);S.ver=VER}catch(_){}if(S.world.systems||S.genre==='zombie')ensureSystems();try{enrichPlaceDescs(S)}catch(_){};
  const bridge=`${pack.titel}.\n\n${pack.conflict||pack.geschichte}\n\nDu – ${S.pc.name} – stehst in ${world.scene.ort}. Die Welt wartet nicht. Wohin du gehst, ist deine Sache.`;
  S.log=[{k:'n',t:bridge}];S.hist=[{role:'assistant',content:bridge}];S.choices=travelChoices(world.scene.ort);
  save();enterPlay();typewrite('Erzähler',bridge,()=>{});hud();renderChoices();
@@ -1765,10 +1837,20 @@ function parseLifeSim(a){const t=a.toLowerCase();
     try{
       Depth.ensureDeepNeeds(S);
       const opts=Depth.campUpgradeOptions(S);
-      const want=opts.find(u=>t.includes(u.id)||t.includes(u.name.toLowerCase()))||opts[0];
-      if(!want) return {ok:false,text:'Kein Ausbau möglich (Stufe/Upgrades). Heim: '+(Depth.homeStatusLine(S)||'keins')};
+      const allIds=['herd','bett','truhe','wanne','werkbank','garten','palisade','wache','attrappe'];
+      const named=allIds.find(id=>t.includes(id));
+      const want=opts.find(u=>t.includes(u.id)||t.includes(u.name.toLowerCase()))||(named?null:opts[0]);
+      if(!want){
+        const st=S.home?.stage|0;
+        const have=new Set(S.camp?.upgrades||[]);
+        const tip=named?`„${named}“ braucht höhere Hausstufe (jetzt ${st}) oder ist schon gebaut.`:`Keine freien Upgrades.`;
+        const avail=opts.length?('Verfügbar: '+opts.map(u=>`${u.name} (${u.gold}g)`).join(', ')):'Baue das Haus weiter (Material sammeln → Bauen), dann: Herd, Bett, Palisade…';
+        return {ok:false,text:`${tip} ${avail}\n`+(Depth.homeStatusLine(S)||''),changes:{choices:['Material sammeln','Bauen beginnen','Schlafen','Umsehen']}};
+      }
       const r=Depth.applyCampUpgrade(S, want.id); advanceTime(2);
-      return {ok:r.ok,text:r.line+'\n'+Depth.homeStatusLine(S),changes:{xp:r.ok?12:0,choices:['Weiter ausbauen','Schlafen','Umsehen','Material sammeln']}}
+      const def=Depth.homeBenefits?.(S);
+      const defTip=def?.defence?` Verteidigung aktiv (Palisade/Wache).`:(want.id==='palisade'||want.id==='wache'?' Die nächste Raid-Chance sinkt.':' Für Raid-Schutz: Palisade oder Wache bauen.');
+      return {ok:r.ok,text:r.line+defTip+'\n'+Depth.homeStatusLine(S),changes:{xp:r.ok?12:0,choices:['Weiter ausbauen','Schlafen','Umsehen','Material sammeln']}}
     }catch(e){ return {ok:false,text:'Ausbau fehlgeschlagen.'} }
   }
   if(/einzieh|mitbewohner|zieh .* ein/.test(t)){
@@ -1800,7 +1882,7 @@ function parsePlayerIntent(a){
   if(/\bhilf|rett mich|zu hilfe/.test(t)) return {kind:'ask'};
   if(/geh|lauf|wander|reise|fahr|verlasse|auf dem weg|nach hause|fort\b|richtung/.test(t)) return {kind:'move'};
   if(/umseh|um\s*sehen|sehe mich um|sieh(?:st)? dich um|erkund|schau dich|untersuch|wohn/.test(t)||/^(schau|sieh|guck)\b/.test(t)) return {kind:'look'};
-  if(/hungrig|hunger|durstig|durst|ich (hab|habe) hunger|etwas (zu )?essen|brauch(e)? (essen|wasser|vorrat)/.test(t)) return {kind:'need'};
+  if(/hungrig|hunger|durstig|durst|ich (hab|habe) hunger|etwas (zu )?essen|brauch(e)? (essen|wasser|vorrat)|vorräte suchen|gegend durchsuchen|wild|samm(le|eln) (beeren|essen|nahrung)|forag/.test(t)) return {kind:'need'};
   if(/\bwarte\b|ich warte|abwarten|kurze pause|pausiere/.test(t)) return {kind:'wait'};
   if(/ausgang|wo (geht|geht's|geht es)|welche wege|wohin (kann|geht)|fluchtweg|wie komme ich/.test(t)) return {kind:'exits'};
   if(/was kostet|wie teuer|preis (für|von)|kostet das/.test(t)) return {kind:'price'};
@@ -1809,7 +1891,7 @@ function parsePlayerIntent(a){
   if(/benutz|nutze|trink|iss\b|essen|heiltrank|item|equip|anlegen/.test(t)) return {kind:'use'};
   if(/schlaf|übernacht|ruh|rast|ausruhen|hinlegen/.test(t)) return {kind:'rest'};
   if(/train|üb|lern|magie üben|studier/.test(t)) return {kind:'train'};
-  if(/wer bist|was bist|wie heißt|wer seid|was ist (dein|euer)|erzähl von dir/.test(t)) return {kind:'ask_who'};
+  if(/wer bist|was bist|wie heißt|wer seid|was ist (dein|euer)|erzähl (mir )?(von|über) dir|wer bist du/.test(t)) return {kind:'ask_who'};
   if(/\?|was |wer |wie |wo |warum |wieso |weshalb |erzähl|frag|wissen|bedeutet/.test(t)) return {kind:'ask'};
   if(/red|sprech|sag|unterhalt|ansprechen|mit .+ sprechen|hör zu|zuhören/.test(t)) return {kind:'talk'};
   // short social / acknowledgment still talk, never random plot
@@ -1831,23 +1913,34 @@ function pickPresentNpc(a){
 function npcLine(n, kind){
   const npc=S.world?.npcs?.[n]; if(!npc) return null;
   let label=n; try{label=Know.displayName(S,n,npc)}catch(_){}
-  // Prefer true name for spoken address when Know still masks as "jemand: …"
   if(/^jemand\b/i.test(label) && n && !/^jemand\b/i.test(n)) label=String(n).split(/[\/]/)[0];
-  const stimme=String(npc.stimme||'').split(/[„"]/)[0].slice(0,60);
+  const stimme=String(npc.speechStyle||npc.stimme||'').split(/[„"]/)[0].slice(0,70);
   const samples=[];
   if(npc.samples) samples.push(...npc.samples);
   const quoted=[...(String(npc.stimme||'').match(/[„"]([^„"]+)[„"]/g)||[])].map(x=>x.replace(/[„"]/g,''));
   samples.push(...quoted);
+  const styleBit=stimme?` (${stimme.trim()})`:'';
   const greet=R([
     `„${R(['…Hallo.','Ja?','Ich höre.','Sprich.'])}“`,
     `${label} mustert dich kurz. „Was willst du?“`,
     `${label} nickt knapp — eine Antwort auf deinen Gruß.`
   ]);
+  const back=String(npc.backstory||'').split(/[.;]/)[0].slice(0,110);
   const who=R([
-    `„Ich bin ${label}.“ ${stimme?`(${stimme.trim()}) `:''}${String(npc.art||'').split(/[.;]/)[0].slice(0,90)}.`,
-    `${label}: „Namen hast du gehört. Mehr verdienst du dir.“`
+    `„Ich bin ${label}.“${styleBit} ${String(npc.art||'').split(/[.;]/)[0].slice(0,90)}.${back?` ${back}.`:''}${npc.ziel?` „Mein Ziel: ${String(npc.ziel).slice(0,50)}.“`:''}`,
+    `${label}${styleBit}: „Namen hast du gehört.“${back?` ${back}.`:''}${npc.ziel?` Will ${String(npc.ziel).slice(0,40)}.`:''}`
   ]);
-  if(kind==='greet'){ let sm=String(samples[0]||'').trim(); sm=sm.replace(/^[„"«]+/,'').replace(/[“"»]+$/,'').trim(); return `${label} erwidert deinen Gruß. ${sm?`„${sm}“`:greet}`; }
+  if(kind==='greet'){
+    let sm=String(samples[0]||'').trim(); sm=sm.replace(/^[„"«]+/,'').replace(/[“"»]+$/,'').trim();
+    const mems=(npc.memories||[]).concat(npc.erinnerung||[]).map(m=>typeof m==='string'?m:(m?.text||'')).filter(Boolean);
+    const prior=mems.reverse().find(m=>/begrüßt|Gespräch|gefragt|Versprechen|Geschenk|Beleidig|du hast/i.test(m));
+    let recall='';
+    if(prior){
+      const sn=String(prior).replace(/^[„"]|[“"]$/g,'').slice(0,70);
+      recall=R([` ${label} erkennt dich wieder: „Wir sprachen schon — ${sn}.“`,` Ein Nicken: die letzte Begegnung (${sn}) ist nicht vergessen.`]);
+    }
+    return `${label} erwidert deinen Gruß${styleBit}. ${sm?`„${sm}“`:greet}${recall}`;
+  }
   if(kind==='ask_who') return who;
   return null;
 }
@@ -1878,7 +1971,16 @@ function offlineRespondIntent(a, intent){
         }
       }
       ch={affinity:{[who]:good?rnd(4,12):-rnd(1,4)}, trust:{[who]:good?rnd(2,8):0}, xp:kind==='greet'?4:12, choices:travelChoices()};
-      try{addMemory(who, `${kind}: ${a.slice(0,50)}`,'Gespräch')}catch(_){}
+      try{
+        Know.markInteracted(S,who);
+        if(kind==='ask_who' || kind==='greet' || /heiße?|mein name|ich bin /i.test(txt)){
+          const lr=Know.learnName(S,who,'told');
+          if(lr?.first){ try{ label=who; }catch(_){ } }
+        }
+      }catch(_){}
+      try{ const memLine=kind==='greet'?`Du hast ${who} begrüßt („${a.trim().slice(0,40)}“).`:kind==='ask_who'?`Du hast ${who} nach dem Namen gefragt — „${who}“.`:kind==='ask'?`Du hast ${who} gefragt: „${a.trim().slice(0,50)}“.`:`Gespräch mit ${who}: „${a.trim().slice(0,50)}“.`; addMemory(who, memLine,'Gespräch'); }catch(_){}
+      // Prefer real name in text once learned
+      try{ if(Know.isNameKnown(S,who) && /^jemand\b/i.test(txt)) txt=txt.replace(/jemand[^\n,]{0,40}/gi, who); }catch(_){}
       return {text:txt, changes:ch, _intent:kind};
     }
     // no NPC present — still address the input
@@ -1892,22 +1994,35 @@ function offlineRespondIntent(a, intent){
   if(kind==='need'){
     const sys=S.world?.systems||S.systems||{};
     const hung=sys.hunger!=null?sys.hunger:(S.needs?.hunger|0);
-    const food=(S.inv||[]).find(it=>{const blob=(it.name||'')+' '+(it.type||''); if(/heil|trank|potion|medkit|verband|stim/i.test(blob)) return false; return /brot|proviant|essen|ration|wasser|flasche|food|nahrung|snack/i.test(blob)||(it.type==='food');});
+    const food=(S.inv||[]).find(it=>{const blob=(it.name||'')+' '+(it.type||''); if(/heil|trank|potion|medkit|verband|stim/i.test(blob)) return false; if(/^wasser(flasche)?$/i.test(String(it.name||'').trim())||/nur wasser|elektrolyt/i.test(blob)) return false; return /brot|proviant|essen|ration|food|nahrung|snack|fleisch|bohnen|riegel|dosen/i.test(blob)||(it.type==='food');});
     if(food){
-      try{ /* soft eat */ const i=S.inv.indexOf(food); if(i>=0) S.inv.splice(i,1); if(sys.hunger!=null) sys.hunger=Math.max(0,(sys.hunger|0)-25); if(S.needs) S.needs.hunger=Math.max(0,(S.needs.hunger|0)-30); }catch(_){}
+      try{ const i=S.inv.indexOf(food); if(i>=0) S.inv.splice(i,1); if(sys.hunger!=null) sys.hunger=Math.max(0,(sys.hunger|0)-25); if(S.needs) S.needs.hunger=Math.max(0,(S.needs.hunger|0)-30); }catch(_){}
       txt=`Du isst ${food.name} in ${ort}. Der Hunger weicht — fürs Erste.`;
       return {text:txt, changes:{hp:rnd(8,16), xp:4, choices:travelChoices()}, _intent:kind};
     }
+    // No food: graceful forage / buy path (never silently fail)
+    const canForage=/wald|feld|garten|ruine|brache|park|supermarkt|markt|gasse|hafen|keller|safehouse/i.test(ort);
+    const forage=canForage && Math.random()<0.55;
+    if(forage){
+      const found=R([{name:'Gefundene Ration',type:'food'},{name:'Dosenreste',type:'food'},{name:'Wildbeeren',type:'food'},{name:'Trockenfleisch',type:'food'},{name:'Synth-Riegel',type:'food'}]);
+      if(sys.kind==='zombie'||S.genre==='zombie') found.name=R(['Dosenbohnen','Energy-Riegel','Gefiltertes Wasser']);
+      if(sys.kind==='cyber'||S.genre==='cyberpunk') found.name=R(['Synth-Nudeln','Kiosk-Riegel','Elektrolyt-Pack']);
+      if(sys.hunger!=null) sys.hunger=Math.max(0,(sys.hunger|0)-12);
+      if(S.needs) S.needs.hunger=Math.max(0,(S.needs.hunger|0)-15);
+      txt=`Kein Vorrat im Beutel — du durchsuchst ${ort} und findest ${found.name}. Es stillt den Hunger nur kurz. Nächstes Mal: kaufen oder jemanden um Essen bitten.`;
+      return {text:txt, changes:{items:[{...found,rarity:'common',desc:'Notnahrung aus '+ort}], hp:rnd(4,10), xp:5, choices:['Brot kaufen','Weiter suchen','Umsehen','Teilen']}, _intent:kind};
+    }
+    const gold=s.gold|0;
     if(sys.kind==='zombie'||S.genre==='zombie'){
-      txt=`Dein Magen knurrt in ${ort}. Hunger ${Math.round(hung)}/100. Vorräte sind knapp — suchen, handeln oder jemanden um eine Ration bitten.`;
-      return {text:txt, changes:{choices:['Vorräte suchen','Umsehen','Feilschen','Safehouse suchen'], xp:3}, _intent:kind};
+      txt=`Dein Magen knurrt in ${ort}. Hunger ${Math.round(hung)}/100 — keine Ration im Inventar. ${gold>=4?'Du könntest am Markt feilschen oder Vorräte suchen.':'Ohne Gold bleibt nur: suchen, betteln, stehlen — oder leiden.'}`;
+      return {text:txt, changes:{choices:['Vorräte suchen','Brot kaufen','Feilschen','Safehouse suchen'], xp:3}, _intent:kind};
     }
     if(sys.kind==='cyber'||S.genre==='cyberpunk'){
-      txt=`Neon-Hunger. Instant-Nudeln oder Synth-Bar am Automaten — Creds voraus. Du bist in ${ort}, Magen leer.`;
-      return {text:txt, changes:{choices:['Nachtmarkt','Automaten prüfen','Umsehen','Weiter'], xp:3}, _intent:kind};
+      txt=`Neon-Hunger in ${ort}. Inventar leer. ${gold>=4?'Ein Automat oder der Nachtmarkt würde reichen — Creds voraus.':'Ohne Creds: Container durchwühlen oder jemanden anpumpen.'}`;
+      return {text:txt, changes:{choices:['Nachtmarkt','Automaten prüfen','Vorräte suchen','Weiter'], xp:3}, _intent:kind};
     }
-    txt=`Du hast Hunger in ${ort}. ${desc?desc+' ':''}Brot, Herberge oder Jagd — irgendetwas muss her.`;
-    return {text:txt, changes:{choices:['Brot kaufen','Herberge suchen','Umsehen','Warten'], xp:3}, _intent:kind};
+    txt=`Du hast Hunger in ${ort}, aber nichts Essbares dabei. ${gold>=4?'Kauf Brot, frag einen Händler, oder durchsuche die Gegend.':'Suche nach Essbarem, arbeite für Münzen, oder bitte jemanden um eine Mahlzeit.'} ${desc?String(desc).slice(0,80):''}`;
+    return {text:txt, changes:{choices:['Brot kaufen','Gegend durchsuchen','Umsehen','Arbeiten'], xp:3}, _intent:kind};
   }
   if(kind==='wait'){
     try{ advanceTimeMinutes?.(12,{allowLong:true}); }catch(_){ try{advanceTime(0)}catch(__){} }
@@ -1935,10 +2050,17 @@ function offlineRespondIntent(a, intent){
     const ex=exitsFrom(ort);
     const cast=presentCast();
     const sys=S.world?.systems||S.systems||{};
+    let placeDesc=desc;
+    if(!placeDesc || String(placeDesc).length<40){
+      try{ placeDesc=placeFlavorText(ort,{genre:S.genre||sys.kind}); const n=locNode(ort); if(n){n.desc=placeDesc;n._flavored=1} if(S.world.orte) S.world.orte[ort]=placeDesc; }catch(_){ placeDesc=placeDesc||'Die Luft trägt Gerüche und Geräusche dieses Orts.'; }
+    } else {
+      // append seasonal/time color without rewriting stored bible
+      try{ const extra=placeFlavorText(ort,{genre:S.genre||sys.kind}).split('. ').slice(-2).join('. '); if(extra && !placeDesc.includes(extra.slice(0,20))) placeDesc=placeDesc+' '+extra; }catch(_){}
+    }
     let flavor='';
     if(sys.kind==='zombie'||S.genre==='zombie') flavor=` Hunger ${Math.round(sys.hunger|0)}, Munition ${sys.ammo|0}.`;
     if(sys.kind==='cyber'||S.genre==='cyberpunk') flavor=` Cred ${sys.cred|0}, Heat ${sys.heat_net|0}.`;
-    txt=`Du siehst dich in ${ort} um. ${desc||'Die Luft trägt Gerüche und Geräusche dieses Orts.'}${cast.length?' Anwesend: '+cast.map(n=>{try{return Know.displayName(S,n)}catch(_){return n}}).join(', ')+'.':''}${ex.length?' Wege: '+ex.slice(0,4).join(', ')+'.':''}${flavor}`;
+    txt=`Du siehst dich in ${ort} um. ${placeDesc}${cast.length?' Anwesend: '+cast.map(n=>{try{return Know.displayName(S,n)}catch(_){return n}}).join(', ')+'.':''}${ex.length?' Wege: '+ex.slice(0,4).join(', ')+'.':''}${flavor}`;
     return {text:txt, changes:{xp:6, choices:travelChoices()}, _intent:kind};
   }
   if(kind==='rest'){
@@ -2913,7 +3035,7 @@ $('#btnGateSave').onclick=()=>{const gk=$('#gateKey').value.trim();if(!gk){toast
  toast('Alles bereit.');gmFetch(gk,true).then(()=>gmProbe(gk).catch(()=>{}));enterPlay()};
 $('#btnGateSkip').onclick=()=>{cfg.mode='free';cfg.v2=1;localStorage.setItem(CFG,JSON.stringify(cfg));toast('Erzählerin: Pollinations (ohne Schlüssel)');enterPlay()};
 
-window.__setCfg=o=>{cfg=Object.assign(cfg||{},o||{});try{localStorage.setItem(CFG,JSON.stringify(cfg))}catch(_){}};window.__game={VER,Aud,setBusy,forceUnbusy,ACT_HARD_MS,V25,OW,Depth,Battle,Jobs,Gems,Summons,Equip,Jrpg,localBeatLine,parsePlayerIntent,offlineRespondIntent,freeStream,FREE_MODEL,openPendingEncounter,Imm,discoverThing,showCodexInline,Level,UI14,UI17,Know,Cont,lastPromptDump,advanceTimeMinutes,applyActionDuration,newGrey,greyDetails,loadGrey,loadPack,get S(){return S},act,newLife,gBody,msgs,gmRank,gmProbe,parseStream,thinkingCfg,gmOrder,readSSE,STREAM_DELIM,migrate,worldTick,bumpRel,openMenu,openPixelShop,openRegionTravelMap,stageName,offline,startIntro,setSceneImage,setPortrait,imgUrl,advanceTime,phaseLabel,typewrite,enterPlay,showTitle,analyzeImage,applySceneTheme,themeFromText,loadValidatedImage,openingNarration,travelTo,parseTravel,killNPC,robNPC,addMemory,memoryHint,startProcedural,offlineGenerateWorld,generateWorldPack,GENRES,travelChoices,ensureGraph,whoHere,parseLifeSim,Sim,Persist,WorldMap,TravelMap,Cut31,Econ,Codex,UI13,save,loadSave,applyCatchUp,findAnyNpc};
+window.__setCfg=o=>{cfg=Object.assign(cfg||{},o||{});try{localStorage.setItem(CFG,JSON.stringify(cfg))}catch(_){}};window.__game={VER,Aud,setBusy,forceUnbusy,ACT_HARD_MS,V25,OW,Depth,Battle,Jobs,Gems,Summons,Equip,Jrpg,localBeatLine,parsePlayerIntent,offlineRespondIntent,freeStream,FREE_MODEL,openPendingEncounter,Imm,discoverThing,showCodexInline,Level,UI14,UI17,Know,Cont,lastPromptDump,advanceTimeMinutes,applyActionDuration,newGrey,greyDetails,loadGrey,loadPack,get S(){return S},act,newLife,gBody,msgs,gmRank,gmProbe,parseStream,thinkingCfg,gmOrder,readSSE,STREAM_DELIM,migrate,worldTick,bumpRel,openMenu,openPixelShop,openRegionTravelMap,stageName,offline,startIntro,setSceneImage,setPortrait,imgUrl,advanceTime,phaseLabel,typewrite,enterPlay,showTitle,analyzeImage,applySceneTheme,themeFromText,loadValidatedImage,openingNarration,travelTo,parseTravel,killNPC,robNPC,addMemory,memoryHint,startProcedural,offlineGenerateWorld,generateWorldPack,GENRES,travelChoices,ensureGraph,whoHere,parseLifeSim,Sim,Persist,WorldMap,TravelMap,Cut31,Econ,Codex,UI13,save,loadSave,applyCatchUp,findAnyNpc,placeFlavorText,enrichPlaceDescs};
 window.__game.askNPC=a=>askNPC(a);window.__game.gemini=gemini;
 if(cfg.gkey)gmFetch(cfg.gkey.trim()).then(()=>gmProbe(cfg.gkey.trim()).catch(()=>{})).catch(()=>{});
 (function(){const root=document.documentElement;const apply=()=>{try{const vv=window.visualViewport;if(!vv)return;const kb=Math.max(0,window.innerHeight-vv.height-vv.offsetTop);root.style.setProperty('--kb',kb+'px')}catch(_){}};
