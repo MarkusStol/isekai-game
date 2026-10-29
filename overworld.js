@@ -1131,7 +1131,20 @@ function tryMove(dx,dy){
   const door=(_map.doors||[]).find(d=>d.x===nx&&d.y===ny);
   _hero.moving=true; _hero.x=nx; _hero.y=ny;
   recomputeFog();
-  try{ _audioApi?.stepSfx?.(); }catch(_){}
+  try{
+    let surf='stone';
+    try{
+      const tile=(_map?.tiles?.[ny]?.[nx])||(_map?.ground?.[ny]?.[nx])||'';
+      const kind=typeof tile==='string'?tile:(tile?.t||tile?.kind||'');
+      const k=String(kind).toLowerCase();
+      if(/grass|flower|tree|bush|dirt|path/.test(k)) surf='grass';
+      else if(/water|shore|puddle|swamp/.test(k)) surf='water';
+      else if(/floor|wood|carpet|plank|bridge|door/.test(k)) surf='wood';
+      else if(/sand|ash|desert/.test(k)) surf='water';
+      else surf='stone';
+    }catch(_){}
+    _audioApi?.stepSfx?.(surf);
+  }catch(_){}
   if(door?.to){
     if(door.exitInterior){
       setTimeout(()=>{

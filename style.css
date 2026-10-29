@@ -6078,3 +6078,27 @@ body.battle-open #menu:not(.hidden){
 .battle-root.battle-pixel .party-card .pixel-hero-spr{
   width: 64px !important; height: 86px !important;
 }
+
+/* ===== v57 party vs boss scale + front-facing allies ===== */
+.battle-root.battle-pixel.vs-boss .party-stage-spr img,
+.battle-root.battle-pixel:has(.foe-card .ftag.boss) .party-stage-spr img{
+  width: 104px !important; height: 140px !important;
+}
+.battle-root.battle-pixel:has(.foe-card .ftag.boss) .party-card .pixel-hero-spr{
+  width: 76px !important; height: 102px !important;
+}
+.battle-root.battle-pixel .foe-card:has(.ftag.boss) .foe-art,
+.battle-root.battle-pixel .foe-card.boss .foe-art{
+  width: 132px !important; height: 168px !important;
+  max-width: 42vw;
+}
+.battle-root.battle-pixel .battle-party-spr{
+  transform: translateY(2%) scale(1.06);
+}
+.battle-root.battle-pixel:has(.foe-card .ftag.boss) .battle-party-spr{
+  transform: translateY(0%) scale(1.12);
+}
+.hub-hero-art{
+  background-color: #0a0810;
+  image-rendering: auto;
+}

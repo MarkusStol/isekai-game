@@ -920,7 +920,7 @@ function resolveHit(attacker, target, skill){
   if(need && (attacker.limitAcc|0)>=need && (attacker.limitTier||1)<3){ attacker.limitTier=(attacker.limitTier||1)+1; _B.log.push(`${attacker.name}: Grenzwoge Stufe ${attacker.limitTier}!`) }
   let note=`${attacker.name} (${skill.name||'Angriff'}) → ${target.name}: ${dmg}${crit?' KRIT!':''}${weak?' (Schwach!)':''}${target.staggered?' BRUCH×2':''}`;
   _B.log.push(note);
-  popNumber(target, String(dmg), crit?'crit':(weak?'weak':'dmg')); try{ window.__game?.Aud?.playSfx?.('hit', crit?0.55:0.4); }catch(_){}
+  popNumber(target, String(dmg), crit?'crit':(weak?'weak':'dmg')); try{ const Aud=window.__game?.Aud; const k=Aud?.sfxForHit?.({elem:skill?.elem, skill:skill?.name, weapon:attacker?.weapon||attacker?.job, crit, heal:!!skill?.heal})||'hit'; Aud?.playSfx?.(k, crit?0.55:0.4); }catch(_){}
   try{
     const isMagic = skill?.elem && skill.elem!=='phys';
     if(isMagic) playSpriteAnim(attacker,'cast',{ms:65});

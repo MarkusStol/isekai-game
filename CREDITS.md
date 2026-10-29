@@ -117,3 +117,10 @@ Genre packs `arch_fan*`, `arch_zom*`, `arch_cyb*`, `arch_des*`, `arch_dark*` plu
 - Original JRPG-style battler sprites generated for this project (ogre/goblin/slime/wolf/etc.) — not the v49 Wicked Gourd heuristic.
 - CC-BY packs kept as credit lineage: Admurin Enemy Galore I, Wishforge Free Pixel Sprites (OpenGameArt) — referenced for style, primary battlers are project-generated name-matched art.
 - Gate: `scripts/gate-enemy-art.mjs` asserts every enemy has an appropriate key + file on disk.
+
+## v57 — Front-facing ally battlers & SFX variety
+- Ally battlers (`assets/pixel/battler/ally_*.png`): front-facing idle crops from
+  **Ninja Adventure** character sheets (Pixel-Boy / faeluptus, **CC0 1.0**) with
+  integer nearest-neighbor upscale + 1px outline; where denser, Universal LPC
+  walk/idle front rows (CC-BY-SA 3.0) were preferred for the hero composite.
+- Additional SFX (`hit_*`, `step_*`, `ui_*`): from Ninja Adventure sounds pack (**CC0 1.0**).

@@ -1,10 +1,11 @@
 /* Isekai Reinkarnation – offline shell. Network-first for shell; self-heal on version mismatch. */
-const VER = '56';
+const VER = '57';
 const CACHE = 'isekai-v' + VER;
 const ASSETS = [
   './',
   './index.html',
   './style.css?v=' + VER,
+  './critical.css?v=' + VER,
   './game.js?v=' + VER,
   './ui13.js?v=' + VER,
   './codex.js?v=' + VER,
@@ -36,6 +37,7 @@ const ASSETS = [
   './content54.js?v=' + VER,
   './content55.js?v=' + VER,
   './content56.js?v=' + VER,
+  './content57.js?v=' + VER,
   './cutscene40.js?v=' + VER,
   './visual25d.js?v=' + VER,
   './overworld.js?v=' + VER,
@@ -82,6 +84,8 @@ const ASSETS = [
   './worlds/mensch.json?v=' + VER,
   './assets/audio/sfx/whoosh.ogg',
   './assets/pixel/battler/ally_hero.png',
+  './assets/audio/sfx/hit_sword.ogg',
+  './assets/audio/sfx/step_grass.ogg',
   './assets/pixel/battler/ally_spy.png'
 ];
 

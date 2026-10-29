@@ -38,9 +38,21 @@ export function openHub(root, S, helpers){
   try{ sum=Level.summary(S); }catch(_){
     sum={className:'Held:in',branch:'',title:'Neuling',lvl:1,xp:0,next:100,attrs:{str:5,dex:5,int:5,wil:5,cha:5,vit:5}};
   }
-  const portSlug=(S.pc?.portrait)||(S.role==='held'?'heldin':S.role==='grey'?'grey/darren':'heldin');
-  const port=`assets/port/${portSlug}.webp`;
-  head.innerHTML=`<div class="hub-hero-art" style="background-image:url('${port}');background-size:contain;background-repeat:no-repeat;background-color:#0a0810"></div>
+  let port='assets/port/heldin.webp';
+  try{
+    if(S.pc?.portrait) port=`assets/port/${S.pc.portrait}.webp`;
+    else if(S.role==='held') port='assets/port/heldin.webp';
+    else if(S.role==='grey') port='assets/port/grey/darren.webp';
+    else if(window.__game?.C57?.hubPortraitFallback) port=window.__game.C57.hubPortraitFallback(S);
+    else {
+      const g=String(S.genre||'').toLowerCase();
+      if(/zombie|apoc/.test(g)) port='assets/port/zombie/leader.webp';
+      else if(/cyber|neon|punk/.test(g)) port='assets/port/cyberpunk/runner.webp';
+      else if(/dark|horror|gothic/.test(g)) port='assets/port/darkfantasy/jaeger.webp';
+    }
+  }catch(_){ port='assets/port/heldin.webp'; }
+  const portFallback='assets/port/heldin.webp';
+  head.innerHTML=`<div class="hub-hero-art" style="background-image:url('${port}'),url('${portFallback}');background-size:contain;background-repeat:no-repeat;background-color:#0a0810"></div>
     <div class="hub-hero-meta">
       <div class="hub-name">${S.pc?.name||'Held:in'}</div>
       <div class="hub-sub">${sum.className}${sum.branch?' · '+sum.branch:''} · ${sum.title}</div>

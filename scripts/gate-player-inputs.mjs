@@ -108,7 +108,7 @@ const report={paths:{}, samples:{}};
 let server, browser, page;
 
 async function boot(role, name){
-  await page.goto(`http://127.0.0.1:${PORT}/index.html?v=56&gate=1`,{waitUntil:'domcontentloaded',timeout:60000});
+  await page.goto(`http://127.0.0.1:${PORT}/index.html?v=57&gate=1`,{waitUntil:'domcontentloaded',timeout:60000});
   await page.evaluate(async()=>{
     localStorage.clear();
     try{
@@ -355,7 +355,7 @@ async function runLiveSiteBrowser(){
   const label='live-site';
   let fails=0, total=0;
   const LIVE=process.env.GATE_LIVE_URL||'https://markusstol.github.io/isekai-game/';
-  const versions=['13','16','18','20','22','23','24','25','26','27','28','29','30','31','32','33','34','35','36','37','38','39','40','41','42','43','44','45','46','47','48','49','50','51','52','53','54','55'];
+  const versions=['13','16','18','20','22','23','24','25','26','27','28','29','30','31','32','33','34','35','36','37','38','39','40','41','42','43','44','45','46','47','48','49','50','51','52','53','54','55','56'];
   const safariUA='Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1';
 
   async function oneProfile(name, {ua, seedVer}={}){
@@ -794,7 +794,7 @@ async function runCrashClass(){
   }
 
   await one('proc-continue', async()=>{
-    await page.goto(`http://127.0.0.1:${PORT}/index.html?v=56&crash=proc`,{waitUntil:'domcontentloaded',timeout:60000});
+    await page.goto(`http://127.0.0.1:${PORT}/index.html?v=57&crash=proc`,{waitUntil:'domcontentloaded',timeout:60000});
     await page.waitForFunction(()=>window.__game?.VER,{timeout:30000});
     await page.evaluate(()=>{
       const pack={icon:'🎲',titel:'CrashWelt',_genreLabel:'zombie',ton:'x',genre:'zombie'};
@@ -824,7 +824,7 @@ async function runCrashClass(){
   });
 
   await one('markt-tags', async()=>{
-    await page.goto(`http://127.0.0.1:${PORT}/index.html?v=56&crash=markt`,{waitUntil:'domcontentloaded',timeout:60000});
+    await page.goto(`http://127.0.0.1:${PORT}/index.html?v=57&crash=markt`,{waitUntil:'domcontentloaded',timeout:60000});
     await page.waitForFunction(()=>window.__game?.startProcedural,{timeout:30000});
     const row=await page.evaluate(async()=>{
       const G=window.__game; window.__FAST=true; window.__PLAYTEST=true; window.__setCfg?.({mode:'offline'});
@@ -850,11 +850,11 @@ async function runCrashClass(){
     await page.evaluate(async()=>{
       const G=window.__game;
       const {enemyById}=await import('./enemies.js');
-      G.Battle.startBattle(G.S,{enemies:[enemyById('boss_ogre')],atbMode:'wait',scripted:true,dungeonBoss:true});
+      await G.Battle.startBattle(G.S,{enemies:[enemyById('boss_ogre')],atbMode:'wait',scripted:true,dungeonBoss:true});
       const B=G.Battle.getBattle();
       const hero=B.party.find(p=>p.kind==='hero')||B.party[0];
       hero.atb=100; B.selecting={actor:hero,mode:'bossTalk'}; B.atbMode='wait';
-      G.Battle.renderBattleUI();
+      await G.Battle.renderBattleUI();
     });
     await new Promise(r=>setTimeout(r,400));
     const row=await page.evaluate(()=>{
@@ -907,7 +907,7 @@ async function runCrashClass(){
     await page.evaluate(async()=>{
       const G=window.__game;
       const {enemyById}=await import('./enemies.js');
-      G.Battle.startBattle(G.S,{enemies:[enemyById('slime')],atbMode:'wait',scripted:true});
+      await G.Battle.startBattle(G.S,{enemies:[enemyById('slime')],atbMode:'wait',scripted:true});
     });
     await new Promise(r=>setTimeout(r,400));
     const row=await page.evaluate(()=>{
@@ -927,7 +927,7 @@ async function runCrashClass(){
   });
 
   await one('v20-continue', async()=>{
-    await page.goto(`http://127.0.0.1:${PORT}/index.html?v=56&crash=v20`,{waitUntil:'domcontentloaded',timeout:60000});
+    await page.goto(`http://127.0.0.1:${PORT}/index.html?v=57&crash=v20`,{waitUntil:'domcontentloaded',timeout:60000});
     await page.waitForFunction(()=>window.__game?.VER,{timeout:30000});
     await page.evaluate(async ()=>{
       localStorage.clear();
