@@ -397,7 +397,7 @@ export function startBattle(S, opts={}){
   const dungeonBoss=!!(opts.dungeonBoss||opts.flags?.dungeonBoss||S.flags?.dungeonBoss||foes.some(f=>f.boss&&S.content39?.dungeon));
   _B={
     S, party, foes,
-    bg:opts.bg||battleBgFor(S),
+    bg:(()=>{ const u=opts.bg||battleBgFor(S); return u&&!u.startsWith('./')&&!u.startsWith('http')&&!u.startsWith('data:')?('./'+u.replace(/^\.\//,'')):u; })(),
     turn:0, done:false, result:null,
     log:[`Kampf gegen ${foes.map(f=>f.name).join(', ')}!`],
     queue:[],
@@ -1140,6 +1140,17 @@ function aiCompanion(c){
 
 /* ---- UI ---- */
 
+
+function battleFloorClass(bg){
+  const u=String(bg||'').toLowerCase();
+  if(/dungeon|kerker|cave|crypt|gruft/.test(u)) return 'floor-dungeon';
+  if(/forest|wald|elfen/.test(u)) return 'floor-forest';
+  if(/cyber|neon/.test(u)) return 'floor-cyber';
+  if(/zombie|ruin|waste|ash/.test(u)) return 'floor-ruins';
+  if(/snow|ice|frost/.test(u)) return 'floor-snow';
+  if(/desert|sand/.test(u)) return 'floor-sand';
+  return 'floor-dirt';
+}
 function pixelEnemyArt(f){
   const n=String(f?.id||f?.name||'').toLowerCase();
   let key='slime';
@@ -1147,11 +1158,20 @@ function pixelEnemyArt(f){
   else if(/bandit|räuber|rauber|dieb/.test(n)) key='bandit';
   else if(/wolf|hound/.test(n)) key='wolf';
   else if(/skel|knochen|undead/.test(n)) key='skeleton';
-  else if(/boss|drache|dragon|könig|demon/.test(n) || f?.boss) key='boss';
-  else if(/imp|goblin/.test(n)) key='imp';
   else if(/golem|stein/.test(n)) key='golem';
+  else if(/imp|goblin/.test(n)) key='imp';
   else if(/schleim|slime|blob/.test(n)) key='slime';
+  else if(/boss|drache|dragon|könig|demon|oger|tyrant|lich|chrome|fogking|archfiend/.test(n) || f?.boss) key='boss';
+  // v48: bosses use large multi-tile sprite
+  if((f?.boss || key==='boss') && key==='boss') return './assets/pixel/enemy/boss_lg.png';
   return './assets/pixel/enemy/'+key+'.png';
+}
+function foeScaleClass(f){
+  try{
+    const sc=window.__game?.C48?.battleEnemyScale?.(f);
+    if(sc) return 'foe-'+sc;
+  }catch(_){}
+  return f?.boss?'foe-boss':'foe-normal';
 }
 
 function el(id){return document.getElementById(id)}
@@ -1172,17 +1192,23 @@ export function renderBattleUI(){
   const B=_B;
   root.classList.remove('battle-25d');
   root.innerHTML=`
-  <div class="battle-bg pixel-battle-bg" id="battleBg" style="background-image:url('${B.bg}')"></div>
-  <div class="pixel-battle-floor" aria-hidden="true"></div>
-  <div class="battle-veil"></div>
-  <div class="battle-atb-mode">${B.atbMode==='wait'?'WAIT':'ACTIVE'}</div>
-  <div class="skill-banner" id="skillBanner"></div>
-  <div class="battle-timeline" id="battleTL"></div>
-  <div class="battle-foes" id="battleFoes"></div>
-  <div class="battle-fx" id="battleFx" aria-hidden="true"></div>
-  <div class="battle-party" id="battleParty"></div>
-  <div class="battle-log" id="battleLog"></div>
-  <div class="battle-cmd" id="battleCmd"></div>
+  <div class="battle-stage" id="battleStage">
+    <div class="battle-bg pixel-battle-bg battle-bg-live" id="battleBg" style="background-image:url('${B.bg}')"></div>
+    <div class="battle-bg-parallax" aria-hidden="true"></div>
+    <div class="pixel-battle-floor ${battleFloorClass(B.bg)}" aria-hidden="true"><div class="battle-floor-grid"></div></div>
+    <div class="battle-veil"></div>
+    <div class="battle-foes" id="battleFoes"></div>
+    <div class="battle-party-spr" id="battlePartySpr"></div>
+    <div class="battle-fx" id="battleFx" aria-hidden="true"></div>
+  </div>
+  <div class="battle-hud">
+    <div class="battle-atb-mode">${B.atbMode==='wait'?'WAIT':'ACTIVE'}</div>
+    <div class="skill-banner" id="skillBanner"></div>
+    <div class="battle-timeline" id="battleTL"></div>
+    <div class="battle-party" id="battleParty"></div>
+    <div class="battle-log jrpg-window" id="battleLog"></div>
+    <div class="battle-cmd jrpg-window" id="battleCmd"></div>
+  </div>
   <div class="battle-end hidden" id="battleEnd"></div>`;
   refreshUI();
 }
@@ -1201,13 +1227,15 @@ function refreshUI(){
   const foes=el('battleFoes');
   if(foes){
     foes.innerHTML=B.foes.map(f=>`
-      <button type="button" class="foe-card ${f.alive?'':'dead'} ${B.selecting&&needsTarget()?(_B._hover===f._iid?'target':''):''}" data-iid="${f._iid}" ${f.alive?'':'disabled'}>
+      <button type="button" class="foe-card ${foeScaleClass(f)} ${f.alive?'':'dead'} ${B.selecting&&needsTarget()?(_B._hover===f._iid?'target':''):''}" data-iid="${f._iid}" ${f.alive?'':'disabled'}>
         <div class="foe-art-wrap pixel-foe"><img class="foe-art battler-spr pixelated" src="${pixelEnemyArt(f)}" alt="${f.name}" loading="lazy" onerror="this.onerror=null;this.style.display='none';this.nextElementSibling&&(this.nextElementSibling.style.display='flex');"/><div class="foe-fallback" style="display:none">${f.icon||'👹'}</div></div>
-        <div class="foe-name">${f.name}${f.analyzed?' · ✦':''}${f.boss?' · BOSS':''}${f.staggered?' · BRUCH':''}${f.rare?' · SELTEN':''}</div>
-        <div class="bar foe-hp"><i style="width:${Math.max(0,f.hp/f.maxhp*100)}%"></i></div>
-        <div class="bar foe-stagger ${f.staggered?'broken':''}" title="Bruch"><i style="width:${Math.max(0,(f.stagger||0)/Math.max(1,f.staggerMax||1)*100)}%"></i></div>
-        ${f.analyzed?`<div class="foe-weak">${(f.weak||[]).map(w=>ELEM_LABEL[w]||Jrpg.ELEM_LABEL[w]||w).join(' · ')||'—'}</div>`:''}
-        <div class="status-row">${(f.statuses||[]).map(s=>`<em>${Jrpg.STATUS_DEFS[s.id]?.name||s.id}</em>`).join('')}</div>
+        <div class="foe-plate jrpg-window">
+          <div class="foe-name">${f.name}${f.analyzed?' · ✦':''}${f.boss?' · BOSS':''}${f.staggered?' · BRUCH':''}${f.rare?' · SELTEN':''}</div>
+          <div class="bar foe-hp"><i style="width:${Math.max(0,f.hp/f.maxhp*100)}%"></i></div>
+          <div class="bar foe-stagger ${f.staggered?'broken':''}" title="Bruch"><i style="width:${Math.max(0,(f.stagger||0)/Math.max(1,f.staggerMax||1)*100)}%"></i></div>
+          ${f.analyzed?`<div class="foe-weak">${(f.weak||[]).map(w=>ELEM_LABEL[w]||Jrpg.ELEM_LABEL[w]||w).join(' · ')||'—'}</div>`:''}
+          <div class="status-row">${(f.statuses||[]).map(s=>`<em>${Jrpg.STATUS_DEFS[s.id]?.name||s.id}</em>`).join('')}</div>
+        </div>
       </button>`).join('');
     foes.querySelectorAll('.foe-card').forEach(btn=>{
       btn.onclick=()=>{
@@ -1230,20 +1258,27 @@ function refreshUI(){
       };
     });
   }
-  // party
+  // party HUD + stage sprites (FF6: bodies on floor, stats in window)
   const party=el('battleParty');
   if(party){
     party.innerHTML=B.party.map(p=>`
-      <div class="party-card pixel-party ${p.alive?'':'dead'} ${B.selecting?.actor===p?'active':''} row-${p.row||'front'}" data-iid="${p._iid}">
-        <div class="party-spr-wrap"><img class="pixel-hero-spr battler-spr pixelated" src="${partySpriteUrl(p)}" alt="" width="40" height="54" data-role="${p.kind==='hero'?'hero':sheetRoleForCompanion(p)}" onerror="this.onerror=null;this.src=this.dataset.fb1||this.dataset.fb2||'./assets/pixel/npc/villager_idle.png';" data-fb1="${p.kind==='hero'?'':('./assets/pixel/npc/'+sheetRoleForCompanion(p)+'_idle.png')}" data-fb2="./assets/pixel/npc/villager_idle.png"/></div>
+      <div class="party-card pixel-party jrpg-window ${p.alive?'':'dead'} ${B.selecting?.actor===p?'active':''} row-${p.row||'front'}" data-iid="${p._iid}">
         <div class="party-port">${p.portrait?`<img src="${p.portrait}" alt="" loading="lazy"/>`:`<span>${(p.name||'?')[0]}</span>`}</div>
         <div class="party-meta">
           <b>${p.name}${p.job?' · '+((Jobs.JOBS[p.job]||{}).name||p.job):''}<small>${p.row==='back'?' hinten':' vorn'}</small></b>
-          <div class="bar hp"><i style="width:${Math.max(0,p.hp/p.maxhp*100)}%"></i></div>
-          <div class="bar mp"><i style="width:${Math.max(0,p.mp/Math.max(1,p.maxmp)*100)}%"></i></div>
-          <div class="bar lim"><i style="width:${Math.max(0,(p.limit||0)/100*100)}%"></i></div>
-          <div class="bar atb"><i style="width:${Math.max(0,Math.min(100,p.atb||0))}%"></i></div>
+          <div class="bar hp" title="HP"><i style="width:${Math.max(0,p.hp/p.maxhp*100)}%"></i><em>${p.hp|0}/${p.maxhp|0}</em></div>
+          <div class="bar mp" title="MP"><i style="width:${Math.max(0,p.mp/Math.max(1,p.maxmp)*100)}%"></i></div>
+          <div class="bar lim" title="Limit"><i style="width:${Math.max(0,(p.limit||0)/100*100)}%"></i></div>
+          <div class="bar atb" title="ATB"><i style="width:${Math.max(0,Math.min(100,p.atb||0))}%"></i></div>
         </div>
+      </div>`).join('');
+  }
+  const pspr=el('battlePartySpr');
+  if(pspr){
+    pspr.innerHTML=B.party.map((p,i)=>`
+      <div class="party-stage-spr row-${p.row||'front'} ${p.alive?'':'dead'} ${B.selecting?.actor===p?'active':''}" data-iid="${p._iid}" style="--i:${i}">
+        <img class="pixel-hero-spr battler-spr pixelated" src="${partySpriteUrl(p)}" alt="" data-role="${p.kind==='hero'?'hero':sheetRoleForCompanion(p)}" onerror="this.onerror=null;this.src=this.dataset.fb1||this.dataset.fb2||'./assets/pixel/npc/villager_idle.png';" data-fb1="${p.kind==='hero'?'':('./assets/pixel/npc/'+sheetRoleForCompanion(p)+'_idle.png')}" data-fb2="./assets/pixel/npc/villager_idle.png"/>
+        <div class="party-stage-shadow" aria-hidden="true"></div>
       </div>`).join('');
   }
   // log
@@ -1714,7 +1749,7 @@ export default {
   startBattle, isActive, getBattle, getLastSummary, getLastResult, playerCommand, buildParty, renderBattleUI,
   maybeRandomEncounter, offerEncounter, COMBAT_SKILLS,
   isStoryNpcFoe, storyNpcName, mercyNeeded, applyMercyDecision,
-  __playSprite: playSpriteAnim, __testDrive,
+  __playSprite: playSpriteAnim, __testDrive, __forceHide: ()=>{ try{ hideBattleUI(); _B=null; }catch(_){ const r=document.getElementById('battleRoot'); if(r){ r.classList.add('hidden'); r.innerHTML=''; } } },
   Jrpg, Jobs, Gems, Summons, Equip
 };
 

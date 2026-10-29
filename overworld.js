@@ -703,7 +703,7 @@ export function buildMapForLocation(S, ort){
     placeHouse(w-6, ht-7, 'Markt-Kiosk', {variant:6});
     placeHouse(cx-8, cy-2, 'Terminal', {variant:4});
     placeHouse(cx+4, cy-2, 'Wohnblock', {variant:7});
-    for(let i=0;i<4;i++){ fill(3+i*6, cy-7, 2, 2, 'path'); }
+    for(let i=0;i<2;i++){ fill(5+i*10, cy-7, 2, 2, 'path'); } // v48 calmer neon
     anim(cx,cy,'fountain'); prop(cx-3,cy,'lamp'); prop(cx+3,cy,'lamp');
     anim(4,3,'torch'); anim(w-5,3,'torch');
     scatterGrass();
@@ -711,7 +711,7 @@ export function buildMapForLocation(S, ort){
     kind='ruins';
     for(let y=0;y<ht;y++) for(let x=0;x<w;x++){
       const n=((h+x*9+y*17)%100);
-      tiles[y][x]=n<22?'ruin':(n<30?'stone':'grass');
+      tiles[y][x]=n<12?'ruin':(n<20?'stone':'grass'); // v48 calmer wastes
     }
     fill(0,cy,w,2,'path');
     placeHouse(cx-3, cy-5, 'Barrikade', {hall:true, variant:2, w:4, h:3});
@@ -744,7 +744,7 @@ export function buildMapForLocation(S, ort){
       for(let i=0;i<2;i++){ prop(4+i*8, cy+3, 'lamp'); }
       prop(cx-2,cy,'lamp'); prop(cx+2,cy,'lamp');
     } else if(region==='wastes'){
-      for(let y=0;y<ht;y++) for(let x=0;x<w;x++){ const n=((h+x*9+y*17)%100); tiles[y][x]=n<18?'ruin':(n<28?'stone':'grass'); }
+      for(let y=0;y<ht;y++) for(let x=0;x<w;x++){ const n=((h+x*9+y*17)%100); tiles[y][x]=n<10?'ruin':(n<18?'stone':'grass'); } // v48 calmer
       fill(0,cy,w,2,'path');
       placeHouse(cx-3, cy-5, 'Barrikade', {hall:true, variant:2, w:4, h:3});
       placeHouse(2, 2, 'Bunker', {variant:1});
@@ -955,7 +955,7 @@ export function buildMapForLocation(S, ort){
     if(overlay[y][x]==='lamp') lights.push({x:x+0.5,y:y+0.5,r:2.2,color:'rgba(255,210,120,0.32)'});
   }
   // quest marks filled later in showOverworld
-  try{ const G=window.__game; if(G?.C47?.densifyTownMapV47) G.C47.densifyTownMapV47({w,h:ht,tiles,overlay,kind,overhead,genre}); else if(G?.C46?.densifyTownMapV46) G.C46.densifyTownMapV46({w,h:ht,tiles,overlay,kind}); else if(G?.C45?.densifyTownMap) G.C45.densifyTownMap({w,h:ht,tiles,kind}); }catch(_){}
+  try{ const G=window.__game; if(G?.C48?.densifyTownMapV48) G.C48.densifyTownMapV48({w,h:ht,tiles,overlay,kind,overhead,genre}); else if(G?.C47?.densifyTownMapV47) G.C47.densifyTownMapV47({w,h:ht,tiles,overlay,kind,overhead,genre}); else if(G?.C46?.densifyTownMapV46) G.C46.densifyTownMapV46({w,h:ht,tiles,overlay,kind}); else if(G?.C45?.densifyTownMap) G.C45.densifyTownMap({w,h:ht,tiles,kind}); }catch(_){}
   return {w,h:ht,tiles,overlay,doors:exits,spawn:{x:sx,y:sy},kind,name,npcs,interiors,overhead,animators,preset,chests,lights};
 }
 
@@ -1261,6 +1261,8 @@ function ensureWxParts(){
 function drawWeather(ctx, cssW, cssH, dt){
   let kind='klar';
   try{ kind=String(_hooks.getS?.()?.flags?.weather||'klar'); }catch(_){}
+  // v48: never rain/snow/fog inside dungeon or interiors (genre bleed)
+  if(_map && (_map.kind==='dungeon'||_map.kind==='interior')) return;
   if(kind==='klar'||kind==='none') return;
   ensureWxParts();
   for(const p of _wxParts){
@@ -1381,12 +1383,14 @@ function draw(){
         // soft explored-but-not-visible veil
         ctx.fillStyle='rgba(5,4,10,.22)'; ctx.fillRect(sx,sy,tw,tw);
       } else {
-        // soft FoW edge: darken by distance from hero
+        // v48: soft FoW edge — wider ramp, very low peak (reads as falloff not glow blob)
         const dist=Math.hypot(x-_hero.x, y-_hero.y);
-        const R=_desktop?14:Math.max(16, Math.ceil(Math.max(_viewW||13,_viewH||15)*0.55));
-        if(dist > R-1.6){
-          const a=Math.min(0.55, (dist-(R-1.6))*0.35);
-          ctx.fillStyle=`rgba(5,4,10,${a.toFixed(3)})`;
+        const R=_desktop?15:Math.max(17, Math.ceil(Math.max(_viewW||13,_viewH||15)*0.58));
+        const band=4.5;
+        if(dist > R-band){
+          const t=Math.min(1, (dist-(R-band))/band);
+          const a=t*t*0.28; // ease-in, max 0.28 — no bright rim
+          ctx.fillStyle=`rgba(6,8,14,${a.toFixed(3)})`;
           ctx.fillRect(sx,sy,tw,tw);
         }
       }
@@ -1520,17 +1524,32 @@ function draw(){
       const g=ctx.createRadialGradient(sx,sy,0,sx,sy,r);
       // v45d: softer bloom — was washing buildings grey
       // v45e: tiny window glow only — no room washout
-      g.addColorStop(0, 'rgba(255,200,120,0.14)');
-      g.addColorStop(0.55, 'rgba(255,160,60,0.04)');
+      g.addColorStop(0, 'rgba(255,200,120,0.07)');
+      g.addColorStop(0.45, 'rgba(255,160,60,0.02)');
       g.addColorStop(1, 'rgba(0,0,0,0)');
       ctx.globalCompositeOperation='lighter';
-      ctx.fillStyle=g; ctx.beginPath(); ctx.arc(sx,sy,Math.min(r*0.55, tw*1.6),0,Math.PI*2); ctx.fill();
+      ctx.fillStyle=g; ctx.beginPath(); ctx.arc(sx,sy,Math.min(r*0.35, tw*1.1),0,Math.PI*2); ctx.fill();
       ctx.globalCompositeOperation='source-over';
     }
   }
-  // quest markers
+  // quest markers — v48: never float in void / unexplored / unwalkable
   for(const m of _questMarks){
+    if(m.x<0||m.y<0||m.x>=_map.w||m.y>=_map.h) continue;
+    const tt=_map.tiles[m.y]?.[m.x];
+    if(!tt || tt==='void' || tt==='wall' || SOLID.has(tt)) continue;
     if(!_explored.has(fogKey(m.x,m.y))) continue;
+    if(!_visible.has(fogKey(m.x,m.y))) continue;
+    if(m.soft || m.kind==='hint'){
+      if(Math.hypot(m.x-_hero.x, m.y-_hero.y)>5) continue;
+    }
+    // v48b: dungeon/interior — only ! anchored to NPC/chest/door (no floating corridor pins)
+    if(_map.kind==='dungeon'||_map.kind==='interior'){
+      const onNpc=_npcs.some(n=>Math.round(n.x)===m.x&&Math.round(n.y)===m.y);
+      const onChest=_chests.some(c=>c.x===m.x&&c.y===m.y);
+      const onDoor=(_map.doors||[]).some(d=>d.x===m.x&&d.y===m.y);
+      const nearNpc=_npcs.some(n=>Math.hypot(n.x-m.x,n.y-m.y)<1.6);
+      if(!(onNpc||onChest||onDoor||nearNpc||m.kind==='npc'||m.kind==='chest'||m.kind==='door')) continue;
+    }
     const sx=ox+(m.x-camX)*tw+tw/2, sy=oy+(m.y-camY)*tw-4;
     ctx.fillStyle='#ffd35a'; ctx.strokeStyle='#000'; ctx.lineWidth=3;
     ctx.font='bold 14px monospace';
@@ -1548,7 +1567,7 @@ function draw(){
   try{
     const C44=window.__game?.C44;
     if(C44?.drawOwLighting){
-      C44.drawOwLighting(ctx, cssW, cssH, {x:hx+tw*0.5, y:hy+tw*0.6, r:tw*3.2}, _dayTint);
+      C44.drawOwLighting(ctx, cssW, cssH, {x:hx+tw*0.5, y:hy+tw*0.6, r:tw*2.0}, _dayTint); // v48 softer key light
     }
   }catch(_){}
   // v42 region minimap from real OW tilemap (throttled)
@@ -1707,6 +1726,19 @@ function openChestAt(x,y){
   return true;
 }
 
+
+function _walkablePinNear(cx,cy){
+  if(!_map?.tiles) return {x:cx|0,y:cy|0};
+  const h=_map.h, w=_map.w;
+  for(let r=0;r<8;r++){
+    for(let dy=-r;dy<=r;dy++) for(let dx=-r;dx<=r;dx++){
+      const x=Math.max(1,Math.min(w-2,(cx|0)+dx)), y=Math.max(1,Math.min(h-2,(cy|0)+dy));
+      const tt=_map.tiles[y][x];
+      if(tt && tt!=='void' && tt!=='wall' && !SOLID.has(tt)) return {x,y};
+    }
+  }
+  return {x:cx|0,y:cy|0};
+}
 function resolveQuestMarker(S, mark, label, kind){
   if(!mark) return null;
   if(typeof mark.x==='number' && typeof mark.y==='number'){
@@ -1717,7 +1749,8 @@ function resolveQuestMarker(S, mark, label, kind){
     const npc=_npcs.find(n=>n.name===mark.npc || String(n.name).toLowerCase().includes(want.slice(0,5)) || want.includes(String(n.name).toLowerCase().slice(0,5)));
     if(npc) return {x:Math.round(npc.x), y:Math.round(npc.y), label, kind:'npc'};
     // NPC not on this map — drop a hint pin at plaza so the mark still comes from quest data
-    return {x:(_map.w/2)|0, y:((_map.h/2)|0)-1, label, kind:kind||'hint', soft:true, wantNpc:mark.npc};
+    if(_map?.kind==='dungeon'||_map?.kind==='interior') return null;
+    { const p=_walkablePinNear((_map.w/2)|0, ((_map.h/2)|0)-1); return {x:p.x, y:p.y, label, kind:kind||'hint', soft:true, wantNpc:mark.npc}; }
   }
   if(mark.ort){
     const o=String(mark.ort).toLowerCase();
@@ -1728,10 +1761,11 @@ function resolveQuestMarker(S, mark, label, kind){
     if(door) return {x:door.x, y:door.y, label, kind:'door'};
     const mapName=String(_map?.name||'').toLowerCase();
     if(mapName.includes(o.slice(0,5)) || o.includes(mapName.slice(0,5))){
-      return {x:(_map.w/2)|0, y:(_map.h/2)|0, label, kind:'ort'};
+      { const p=_walkablePinNear((_map.w/2)|0, (_map.h/2)|0); return {x:p.x, y:p.y, label, kind:'ort'}; }
     }
     // Different region — still show soft pin derived from quest.ort (not text heuristic)
-    return {x:(_map.w/2)|0, y:((_map.h/2)|0)+1, label, kind:'ort', soft:true, wantOrt:mark.ort};
+    if(_map?.kind==='dungeon'||_map?.kind==='interior') return null;
+    { const p=_walkablePinNear((_map.w/2)|0, ((_map.h/2)|0)+1); return {x:p.x, y:p.y, label, kind:'ort', soft:true, wantOrt:mark.ort}; }
   }
   if(mark.chest && _chests[0]) return {x:_chests[0].x,y:_chests[0].y,label,kind:'chest'};
   return null;
@@ -1757,7 +1791,10 @@ function rebuildQuestMarks(S){
         const npc=_npcs.find(n=>blob.includes(String(n.name).toLowerCase()));
         if(npc) hit={x:Math.round(npc.x),y:Math.round(npc.y),label:String(o),kind:'npc'};
       }
-      if(hit) marks.push(hit);
+      if(hit){
+        const tt=_map?.tiles?.[hit.y]?.[hit.x];
+        if(tt && tt!=='void' && tt!=='wall' && !SOLID.has(tt)) marks.push(hit);
+      }
     });
   }
   (S.quests.side||[]).filter(q=>q.status==='aktiv'||q.status==='offen').slice(0,4).forEach(q=>{
@@ -1767,7 +1804,10 @@ function rebuildQuestMarks(S){
       const npc=_npcs.find(n=>n.name===q.npc || String(n.name).toLowerCase().includes(String(q.npc).toLowerCase().slice(0,5)));
       if(npc) hit={x:Math.round(npc.x), y:Math.round(npc.y)-1, label:q.titel, kind:'side'};
     }
-    if(hit) marks.push(hit);
+    if(hit){
+      const tt=_map?.tiles?.[hit.y]?.[hit.x];
+      if(tt && tt!=='void' && tt!=='wall' && !SOLID.has(tt)) marks.push(hit);
+    }
   });
   _questMarks=marks;
 }
