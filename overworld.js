@@ -157,6 +157,8 @@ function preload(){
   Object.values(DECOR).forEach(loadImg);
   Object.values(ANIM).forEach(loadImg);
   HOUSE_BIG.forEach(loadImg); HALL_BIG.forEach(loadImg);
+  for(let i=0;i<8;i++) loadImg(`./assets/pixel/decor/town_house_${i}.png`);
+  for(let i=0;i<4;i++) loadImg(`./assets/pixel/decor/town_hall_${i}.png`);
   Object.values(ARCH_GENRE).forEach(arr=>arr.forEach(loadImg));
   loadImg('./assets/pixel/hero/walk.png');
   loadImg(WATER_ANIM);
@@ -228,7 +230,7 @@ export function buildMapForLocation(S, ort){
     else if(/garten|palastgarten|\bpark\b(?!platz)|stadtpark|palast.?park/.test(low)) preset='garden';
     else if(/kirche|tempel|solari|kathedrale|schrein|kapelle/.test(low)) preset='church';
     else if(/gilde|söldner|abenteurer/.test(low)) preset='guild';
-    else if(/weidenau|dorf|bauern|weiler/.test(low)) preset='village';
+    else if(/weidenau|dorf|bauern|weiler|kristall|hauptstadt|spitze|stadt(?!park)/.test(low)) preset='village';
     else if(/osttor|tor|gate|portal/.test(low)) preset='gate';
     else if(/königsburg|schloss|burg/.test(low) || (/\bhof\b/.test(low)) || (/palast/.test(low)&&!/garten/.test(low))) preset='courtyard';
     else if(/waldweg|pfad|straße|strasse|landstraße/.test(low)) preset='road';
@@ -249,7 +251,7 @@ export function buildMapForLocation(S, ort){
     else if(/zombie|apokal|seuche/.test(genre)) preset='wasteland';
     else if(/daemon|dämon|hölle|infernal/.test(genre)) preset='ruins';
     else if(/villainess|adel|hof/.test(genre) && kind==='town') preset='courtyard';
-    else if(/held|mensch/.test(genre) && kind==='town') preset='village';
+    else if(/held|mensch|fantasy|highfantasy/.test(genre) && kind==='town') preset='village';
   }
   // Terrain keywords in description beat genre default
   if(/sumpf|moor/.test(blob) && preset==='default') preset='swamp';
@@ -289,24 +291,33 @@ export function buildMapForLocation(S, ort){
     for(let i=0;i<tw;i++){ if(y>=0&&y<ht&&x+i>=0&&x+i<w) tiles[y][x+i]='fence'; if(y+th-1>=0&&y+th-1<ht&&x+i>=0&&x+i<w) tiles[y+th-1][x+i]='fence'; }
     for(let j=0;j<th;j++){ if(y+j>=0&&y+j<ht&&x>=0&&x<w) tiles[y+j][x]='fence'; if(y+j>=0&&y+j<ht&&x+tw-1>=0&&x+tw-1<w) tiles[y+j][x+tw-1]='fence'; }
   };
+  const _houseRects=[];
   const placeHouse=(bx,by,label,opts={})=>{
-    const bw=opts.w||3, bh=opts.h||3;
-    if(bx+bw>=w||by+bh>=ht) return null;
-    fill(bx,by,bw,bh,'house');
-    // tile overlays for close-up; big sprite for density
-    for(let j=0;j<Math.min(3,bh);j++) for(let i=0;i<Math.min(3,bw);i++) ov(bx+i,by+j,'house'+(j*3+i));
-    const variant=(opts.variant!=null)?opts.variant:(hash(label+bx+by)% (opts.hall?8:16));
-    let src;
-    if(opts.hall){ src=HALL_BIG[variant%HALL_BIG.length]; }
-    else {
-      const gPool=ARCH_GENRE[_genre]||ARCH_GENRE[String(_genre||'').toLowerCase()]||null;
-      if(gPool && gPool.length && (hash(label+_genre)%3!==0)){
-        src=gPool[variant%gPool.length];
-      } else {
-        src=HOUSE_BIG[variant%HOUSE_BIG.length];
-      }
+    // v46: one consistent footprint (3×3 or hall 4×3), roofed 96² sprites only
+    const bw=opts.hall?4:(opts.w||3), bh=opts.h||3;
+    if(bx<1||by<1||bx+bw>=w-1||by+bh>=ht-1) return null;
+    // no overlap / clip with existing houses (1-tile gap)
+    for(const r of _houseRects){
+      if(bx < r.x+r.w+1 && bx+bw+1 > r.x && by < r.y+r.h+1 && by+bh+1 > r.y) return null;
     }
-    overhead.push({x:bx, y:by, src, tw:opts.hall?4:3, th:3});
+    _houseRects.push({x:bx,y:by,w:bw,h:bh});
+    // footprint: path under roofed overhead sprite (stone looked like flat beige boxes)
+    fill(bx,by,bw,bh,'path');
+    // clear tiny houseN overlays — those caused mixed-scale red-roof cottages
+    for(let j=0;j<bh;j++) for(let i=0;i<bw;i++) ov(bx+i,by+j,null);
+    const variant=(opts.variant!=null)?opts.variant:(hash(label+bx+by)%8);
+    const C46= (typeof window!=='undefined' && window.__game?.C46) || null;
+    let src;
+    if(opts.hall){
+      const fallback=['./assets/pixel/decor/town_hall_0.png','./assets/pixel/decor/town_hall_1.png','./assets/pixel/decor/town_hall_2.png','./assets/pixel/decor/town_hall_3.png'];
+      const pool=(C46?.TOWN_HALL_SRCS)||fallback;
+      src=pool[variant%pool.length];
+    } else {
+      const fallback=Array.from({length:8},(_,i)=>`./assets/pixel/decor/town_house_${i}.png`);
+      const pool=(C46?.TOWN_HOUSE_SRCS)||fallback;
+      src=pool[variant%pool.length];
+    }
+    overhead.push({x:bx, y:by, src, tw:bw, th:bh});
     // chimney smoke
     anim(bx+bw-1, by, 'smoke');
     // window glow anchors (night lights)
@@ -329,7 +340,7 @@ export function buildMapForLocation(S, ort){
     for(let y=0;y<ht;y++) for(let x=0;x<w;x++){
       if(tiles[y][x]==='grass'){
         const n=((h+x*17+y*31)%100);
-        if(n<6){ ov(x,y,'flower'); anim(x,y,'flower'); }
+        if(n<6){ ov(x,y,'flower'); }
         else if(n<11) ov(x,y,'d'+(n%3));
         else if(n>92) ov(x,y,'bush');
         else if(n>88) prop(x,y,['barrel','crate','bench','sign'][n%4]);
@@ -501,21 +512,22 @@ export function buildMapForLocation(S, ort){
     for(let y=0;y<ht;y++) for(let x=0;x<w;x++) tiles[y][x]='grass';
     fill(0,cy,w,2,'path'); fill(cx,0,2,ht,'path');
     // v45: tiny well plaza — buildings crowd the spawn like Chrono Trigger towns
-    fill(cx-1,cy-1,3,3,'plaza'); tiles[cy][cx]='well'; anim(cx,cy,'fountain');
-    placeHouse(cx-4,cy-4,'Bauernhaus',{variant:0});
-    placeHouse(cx+1,cy-4,'Mühle',{variant:3});
-    placeHouse(cx-4,cy+1,'Scheune',{variant:4});
-    placeHouse(cx+1,cy+1,'Gasthof',{variant:6});
-    placeHouse(cx-7,cy-1,'Schmiede',{variant:5});
-    placeHouse(cx+4,cy-1,'Laden',{variant:2});
-    placeHouse(2,2,'Hütte Nord',{variant:1});
-    placeHouse(w-6,2,'Hütte Ost',{variant:7});
-    placeHouse(2,ht-7,'Stall',{variant:8});
-    placeHouse(w-6,ht-7,'Nachbarhaus',{variant:11});
+    fill(cx-1,cy-1,3,3,'plaza'); prop(cx,cy,'statue');
+    placeHouse(cx-5,cy-5,'Bauernhaus',{variant:0});
+    placeHouse(cx+2,cy-5,'Mühle',{variant:1});
+    placeHouse(cx-5,cy+2,'Scheune',{variant:2});
+    placeHouse(cx+2,cy+2,'Gasthof',{variant:3});
+    placeHouse(cx-8,cy-1,'Schmiede',{variant:4});
+    placeHouse(cx+5,cy-1,'Laden',{variant:5});
+    placeHouse(2,2,'Hütte Nord',{variant:6});
+    placeHouse(w-5,2,'Hütte Ost',{variant:7});
+    // bottom row spaced — AABB gap already skips overlaps
+    placeHouse(2,ht-6,'Stall',{variant:0});
+    placeHouse(w-5,ht-6,'Nachbarhaus',{variant:1});
     placeChest(cx+1, cy-1, {gold:8, item:'Heilkraut'});
     placeChest(w-8, cy+2, {gold:15});
     ringFence(cx+4,cy+4,5,4); fill(cx+5,cy+5,3,2,'grass');
-    for(let j=0;j<2;j++) for(let i=0;i<3;i++) anim(cx+5+i,cy+5+j,'flower');
+    for(let j=0;j<2;j++) for(let i=0;i<3;i++) ov(cx+5+i,cy+5+j,'flower');
     prop(cx-1,cy+1,'bench'); prop(cx+3,cy,'cart'); prop(cx-2,cy,'barrel'); prop(cx+2,cy+1,'crate');
     prop(cx-3,cy-2,'lamp'); prop(cx+3,cy-2,'lamp'); prop(cx,cy-2,'sign');
     for(let i=2;i<w-2;i+=3){ if(tiles[1][i]==='grass') tiles[1][i]='tree'; }
@@ -787,34 +799,34 @@ export function buildMapForLocation(S, ort){
       placeHouse(2, ht-7, 'Wirtshaus', {variant:0});
       placeHouse(w-6, ht-7, 'Lager', {variant:4});
     } else {
-      // fantasy classic — crossroads + temple wing
+      // v46 classic town — same scale houses, no stall-cottages, no water blobs
       fill(0, cy-1, w, 3, 'path');
       fill(cx-1, 0, 3, ht, 'path');
       fill(cx-1, cy-1, 3, 3, 'plaza');
-      tiles[cy][cx]='well'; anim(cx,cy,'fountain');
-      placeHouse(cx-5, cy-5, 'Wohnhaus N', {variant:4});
-      placeHouse(cx+2, cy-5, 'Laden N', {variant:6});
-      placeHouse(cx-5, cy+2, 'Wohnhaus S', {variant:0});
-      placeHouse(cx+2, cy+2, 'Werkstatt', {variant:5});
-      for(let i=0;i<5;i++){
-        const sx=cx-6+i*3; if(sx<2||sx+2>=w) continue;
-        fill(sx, cy-6, 2, 2, 'stall'); ov(sx, cy-6, 'stall');
-        tiles[cy-4][sx]='path';
+      // center landmark: statue on plaza (not blue well)
+      prop(cx, cy, 'statue');
+      placeHouse(cx-5, cy-5, 'Wohnhaus N', {variant:0});
+      placeHouse(cx+2, cy-5, 'Laden N', {variant:1});
+      placeHouse(cx-5, cy+2, 'Wohnhaus S', {variant:2});
+      placeHouse(cx+2, cy+2, 'Werkstatt', {variant:3});
+      // market props instead of 2×2 stall "tiny houses"
+      for(let i=0;i<4;i++){
+        const sx=cx-5+i*3; if(sx<2||sx>=w-2) continue;
+        prop(sx, cy-3, i%2?'cart':'barrel');
+        prop(sx+1, cy-3, 'crate');
+        tiles[cy-3][sx]='path';
       }
       ringFence(2, cy+4, 7, 6);
       fill(3, cy+5, 5, 4, 'grass');
-      for(let j=0;j<3;j++) for(let i=0;i<3;i++){ ov(4+i, cy+6+j, 'flower'); anim(4+i, cy+6+j, 'flower'); }
+      for(let j=0;j<3;j++) for(let i=0;i<3;i++){ ov(4+i, cy+6+j, 'flower'); }
       tiles[cy+4][5]='path';
-      placeHouse(2, 2, 'Gasthaus', {variant:0});
-      placeHouse(w-6, 2, 'Tempel', {variant:1, hall:true, w:4, h:3});
-      placeHouse(2, ht-7, 'Wohnhaus', {variant:4});
-      placeHouse(w-6, ht-7, 'Laden', {variant:6});
-      placeHouse(cx-8, cy-2, 'Bibliothek', {variant:2});
-      placeHouse(cx+5, cy-2, 'Wachstube', {variant:3});
-      placeHouse(cx-10, ht-8, 'Handwerkerhaus', {variant:8});
-      placeHouse(cx+6, ht-8, 'Nachbarhaus', {variant:11});
+      placeHouse(2, 2, 'Gasthaus', {variant:4});
+      placeHouse(w-5, 2, 'Tempel', {variant:1, hall:true});
+      placeHouse(2, ht-6, 'Wohnhaus', {variant:5});
+      placeHouse(w-5, ht-6, 'Laden', {variant:6});
+      placeHouse(cx-8, cy-2, 'Bibliothek', {variant:7});
+      placeHouse(cx+5, cy-2, 'Wachstube', {variant:0});
       for(let i=0;i<w;i++){ if(i%3===0){ tiles[0][i]='tree'; tiles[ht-1][i]='tree'; } }
-      fill(w-8, 3, 4, 3, 'water');
     }
     scatterGrass();
   }
@@ -934,7 +946,7 @@ export function buildMapForLocation(S, ort){
     if(overlay[y][x]==='lamp') lights.push({x:x+0.5,y:y+0.5,r:2.2,color:'rgba(255,210,120,0.32)'});
   }
   // quest marks filled later in showOverworld
-  try{ if(typeof window!=='undefined' && window.__game?.C45?.densifyTownMap) window.__game.C45.densifyTownMap({w,h:ht,tiles,kind}); }catch(_){}
+  try{ const G=window.__game; if(G?.C46?.densifyTownMapV46) G.C46.densifyTownMapV46({w,h:ht,tiles,overlay,kind}); else if(G?.C45?.densifyTownMap) G.C45.densifyTownMap({w,h:ht,tiles,kind}); }catch(_){}
   return {w,h:ht,tiles,overlay,doors:exits,spawn:{x:sx,y:sy},kind,name,npcs,interiors,overhead,animators,preset,chests,lights};
 }
 
@@ -1022,21 +1034,24 @@ export function showDialogue(name, text, sheet){
     const fullName=String(name||'');
     const npc=(S?.world?.npcs&&(S.world.npcs[fullName]||Object.entries(S.world.npcs).find(([k])=>k.startsWith(fullName)||fullName.startsWith(k))?.[1]))||null;
     const C45=window.__game?.C45;
+    const C46=window.__game?.C46;
     const n=npc||{art:sheet||'villager', sheet};
-    const resolved=C45?.resolvePortraitUrl?.(fullName||'NPC', n);
-    if(port && resolved?.kind==='port' && resolved.url){
-      port.src=resolved.url;
-      port.onerror=()=>{ const role=C45?.roleFromNpc?.(fullName,n)||sheet||'villager'; port.src=C45?.ROLE_PORT?.[role]||PORTRAITS[sheet]||PORTRAITS.default; };
-      usedPx=true;
-    } else if(port && resolved?.kind==='role'){
-      const role=resolved.role||'villager';
-      port.src=resolved.url||C45?.ROLE_PORT?.[role]||PORTRAITS.default;
-      C45?.loadFramedRolePortrait?.(role).then(url=>{ if(url && port) port.src=url; });
-      usedPx=true;
-    }
+    const role=C46?.portraitRole?.(fullName||'NPC', n)||C45?.roleFromNpc?.(fullName,n)||'villager';
+    const roleUrl=C45?.ROLE_PORT?.[role]||C45?.ROLE_PORT?.villager;
+    if(port && roleUrl){ port.src=roleUrl; usedPx=true; }
+    C45?.loadFramedRolePortrait?.(role).then(url=>{ if(url && port) port.src=url; });
   }catch(_){}
-  if(port && !usedPx) port.src=(window.__game?.C45?.ROLE_PORT?.[sheet])||PORTRAITS[sheet]||PORTRAITS.default;
-  if(nm) nm.textContent=String(name||'…').slice(0,24);
+  if(port && !usedPx) port.src=(window.__game?.C45?.ROLE_PORT?.villager)||PORTRAITS[sheet]||PORTRAITS.default;
+  if(nm){
+    let shown=String(name||'…').slice(0,28);
+    try{
+      const S=_hooks.getS?.();
+      const Know=window.__game?.Know;
+      const full=Object.keys(S?.world?.npcs||{}).find(k=>k===name||k.startsWith(name)||name.startsWith(k.split(' ')[0]));
+      if(full && Know) shown=Know.displayName(S,full,S.world.npcs[full]).slice(0,32);
+    }catch(_){}
+    nm.textContent=shown;
+  }
   const full=String(text||'').trim()||'…';
   if(_dlgTw) clearInterval(_dlgTw);
   let i=0; if(tx) tx.textContent='';
@@ -1166,7 +1181,7 @@ function stepHero(dt){
 /** Draw LPC 64×64 frame from 256×256 sheet (4 dirs × 4 frames) */
 function drawSprite(ctx, im, frame, dir, dx, dy, tw){
   if(!(im.complete && im.naturalWidth)){
-    ctx.fillStyle='#4a90d9'; ctx.fillRect(dx+tw*0.15, dy+tw*0.05, tw*0.7, tw*1.15);
+    ctx.fillStyle='#3a3428'; ctx.fillRect(dx+tw*0.2, dy+tw*0.15, tw*0.6, tw*1.0);
     return;
   }
   const fw=SPR, fh=SPR;
@@ -1282,21 +1297,34 @@ function draw(){
         ctx.fillStyle='#05040a'; ctx.fillRect(sx,sy,tw,tw); continue;
       }
       const t=_map.tiles[y][x];
-      // ground under solids
-      if(SOLID.has(t) || t==='door' || t==='house'){
+      // ground under solids / transparent decor tiles (flower etc.)
+      const needsGrass = SOLID.has(t) || t==='door' || t==='house' || t==='flower' || t==='bush' || t==='well' || t==='stall';
+      if(needsGrass || t==='flower' || t==='bush' || t==='well' || t==='stall'){
         const gim=loadImg(tileUrl('grass'));
         if(gim.complete && gim.naturalWidth) ctx.drawImage(gim, sx, sy, tw, tw);
+        else { ctx.fillStyle='#2a5a28'; ctx.fillRect(sx,sy,tw,tw); }
       }
       if(t==='water' && waterIm.complete && waterIm.naturalWidth){
         const fw=16;
         ctx.drawImage(waterIm, (_waterFrame%4)*fw, 0, fw, fw, sx, sy, tw, tw);
+      } else if(t==='flower' || t==='bush' || t==='stall' || t==='well'){
+        // never draw well (blue) or stall (tiny cottage) as ground tiles
+        if(t==='stall'){
+          const pim=loadImg(tileUrl('path'));
+          if(pim.complete && pim.naturalWidth) ctx.drawImage(pim, sx, sy, tw, tw);
+        }
       } else {
         const im=loadImg(tileUrl(t));
         if(im.complete && im.naturalWidth) ctx.drawImage(im, sx, sy, tw, tw);
         else {
-          ctx.fillStyle=t==='water'?'#2858a0':t==='wall'?'#444':t==='path'?'#a88c5a':t==='house'?'#8a5a3a':'#2a5a28';
+          ctx.fillStyle=t==='water'?'#3a7a9a':t==='wall'?'#444':t==='path'?'#a88c5a':t==='house'||t==='stone'?'#6a5a4a':'#2a5a28';
           ctx.fillRect(sx,sy,tw,tw);
         }
+      }
+      // flower overlay: ensure green underlay if somehow missing
+      if(_map.overlay?.[y]?.[x]==='flower' && t!=='grass' && t!=='path' && t!=='plaza'){
+        const gim=loadImg(tileUrl('grass'));
+        if(gim.complete && gim.naturalWidth) ctx.drawImage(gim, sx, sy, tw, tw);
       }
       // v44 autotile edge blend
       try{
@@ -1339,12 +1367,20 @@ function draw(){
     // v45e: nameplate only when near hero — stops giant ghost labels on desktop scale
     const near=Math.hypot((n.px||n.x)-_hero.px,(n.py||n.y)-_hero.py)<4.5;
     if(near){
-      ctx.fillStyle='rgba(0,0,0,.55)';
-      const label=(n.name||'').split(' ')[0].slice(0,8);
-      ctx.font='bold 9px monospace';
-      const twm=ctx.measureText(label).width;
-      ctx.fillRect(sx+tw/2-twm/2-3, sy-11, twm+6, 11);
-      ctx.fillStyle='#ffe8a0'; ctx.fillText(label, sx+tw/2-twm/2, sy-3);
+      let label='?';
+      try{
+        const Know=window.__game?.Know;
+        const S=_hooks.getS?.();
+        if(Know?.isNameKnown?.(S,n.name)) label=(n.name||'').split(' ')[0].slice(0,8);
+        else label='…';
+      }catch(_){ label='…'; }
+      if(label && label!=='…'){
+        ctx.fillStyle='rgba(0,0,0,.55)';
+        ctx.font='bold 9px monospace';
+        const twm=ctx.measureText(label).width;
+        ctx.fillRect(sx+tw/2-twm/2-3, sy-11, twm+6, 11);
+        ctx.fillStyle='#ffe8a0'; ctx.fillText(label, sx+tw/2-twm/2, sy-3);
+      }
     }
   }
 
@@ -1367,6 +1403,11 @@ function draw(){
   for(const a of _animators){
     const k=fogKey(a.x,a.y);
     if(!_explored.has(k)) continue;
+    if(a.kind==='flower' || a.kind==='fountain'){
+      // v46: skip flower anim (overlay already shows flower); fountain was blue blob at spawn
+      if(a.kind==='flower') continue;
+      if(a.kind==='fountain') continue;
+    }
     const src=ANIM[a.kind]; if(!src) continue;
     const im=loadImg(src);
     if(!(im.complete && im.naturalWidth)) continue;
@@ -1793,6 +1834,8 @@ function ensureDOM(){
   _root=root;
   _canvas=document.getElementById('owCanvas');
   _ctx=_canvas.getContext('2d');
+  // v46: preload walk sheets so drawSprite never flashes blue placeholders
+  try{ loadImg('./assets/pixel/hero/walk.png'); Object.values(NPC_SHEETS||{}).forEach(loadImg); }catch(_){}
   ensureDlg();
   if(_bound){ fitCanvas(); return; }
   // v45 swipe / tap-to-move on canvas

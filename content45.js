@@ -97,16 +97,15 @@ export function densifyTownMap(map){
       if(d>=2) map.tiles[y][x]=(d%2===0)?'path':'grass';
     }
   }
-  // sprinkle flower tiles + overlay props (barrel/crate/lamp/bush)
+  // sprinkle overlays only — never flower as ground (transparent → black)
   if(!map.overlay) map.overlay=Array.from({length:h},()=>Array(w).fill(null));
-  const overlays=['barrel','crate','lamp','bush','bench','sign'];
+  const overlays=['barrel','crate','lamp','bush','bench','sign','flower'];
   for(let i=0;i<32;i++){
     const a=(i*37+11)%(w-4)+2, b=(i*53+7)%(h-4)+2;
     if(Math.abs(a-cx)<=1 && Math.abs(b-cy)<=1) continue;
     const cur=map.tiles[b][a];
     if(cur!=='grass' && cur!=='path' && cur!=='plaza') continue;
-    if(i%3===0) map.tiles[b][a]='flower';
-    else if(!map.overlay[b][a]) map.overlay[b][a]=overlays[i%overlays.length];
+    if(!map.overlay[b][a]) map.overlay[b][a]=overlays[i%overlays.length];
   }
   // cross paths through town like Chrono Trigger
   for(let x=2;x<w-2;x++){
