@@ -1697,3 +1697,67 @@ body.pixel-jrpg #title .big.glow{
 
 /* Overworld weather sits under UI */
 body.ow-desktop .ow-side{ z-index:3; }
+
+/* ===== v28 battle juice ===== */
+.party-lunge{ animation: partyLunge .38s ease-out; }
+.enemy-lunge{ animation: enemyLunge .38s ease-out; }
+@keyframes partyLunge{
+  0%{ transform:translateX(0); }
+  40%{ transform:translateX(28px) scale(1.05); }
+  100%{ transform:translateX(0); }
+}
+@keyframes enemyLunge{
+  0%{ transform:translateX(0); }
+  40%{ transform:translateX(-28px) scale(1.05); }
+  100%{ transform:translateX(0); }
+}
+.foe-card.lunge{ animation: foeHit .22s ease, enemyLunge .38s ease-out; }
+.foe-card.death-fade{
+  animation: deathFade .55s ease-in forwards;
+  pointer-events:none;
+}
+@keyframes deathFade{
+  0%{ opacity:1; filter:none; transform:scale(1); }
+  60%{ opacity:.5; filter:grayscale(.6) brightness(1.2); transform:scale(1.05); }
+  100%{ opacity:.2; filter:grayscale(1) brightness(.7); transform:scale(.92) translateY(8px); }
+}
+.party-card.heal-glow, .foe-card.heal-glow{
+  box-shadow:0 0 18px #34d399aa, inset 0 0 12px #34d39955;
+}
+.spell-fx{
+  position:absolute; width:48px; height:48px; pointer-events:none; z-index:40;
+  border-radius:50%;
+  animation: spellBurst .7s ease-out forwards;
+}
+.spell-fx.spell-impact{
+  background: radial-gradient(circle, #fff8 0%, #f0d59a66 40%, transparent 70%);
+  box-shadow:0 0 24px #ffe08a;
+}
+.spell-fx.spell-crit{
+  background: radial-gradient(circle, #fff 0%, #fbbf2488 35%, #f59e0b44 60%, transparent 75%);
+  box-shadow:0 0 32px #fbbf24; width:64px; height:64px;
+}
+.spell-fx.spell-heal{
+  background: radial-gradient(circle, #bbf7d088 0%, #34d39955 50%, transparent 75%);
+  box-shadow:0 0 20px #34d399;
+}
+.spell-fx.spell-cast{
+  width:72px; height:72px;
+  background: radial-gradient(circle, #c4b5fd88 0%, #7c3aed44 45%, transparent 70%);
+  box-shadow:0 0 28px #a78bfa;
+  animation: spellCast .8s ease-out forwards;
+}
+.spell-fx.spell-fire{ background:radial-gradient(circle,#fb923c99,#ef444466,transparent 70%); }
+.spell-fx.spell-ice{ background:radial-gradient(circle,#7dd3fc99,#38bdf866,transparent 70%); }
+.spell-fx.spell-arcane{ background:radial-gradient(circle,#c4b5fd99,#8b5cf666,transparent 70%); }
+@keyframes spellBurst{
+  0%{ transform:scale(.4); opacity:1; }
+  100%{ transform:scale(1.8); opacity:0; }
+}
+@keyframes spellCast{
+  0%{ transform:scale(.2) rotate(0deg); opacity:1; }
+  100%{ transform:scale(2.2) rotate(90deg); opacity:0; }
+}
+@media (prefers-reduced-motion:reduce){
+  .party-lunge,.enemy-lunge,.foe-card.death-fade,.spell-fx{ animation:none; }
+}

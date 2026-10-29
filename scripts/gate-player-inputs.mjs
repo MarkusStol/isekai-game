@@ -348,7 +348,7 @@ async function runLiveSiteBrowser(){
   const label='live-site';
   let fails=0, total=0;
   const LIVE=process.env.GATE_LIVE_URL||'https://markusstol.github.io/isekai-game/';
-  const versions=['13','16','18','20','22','23','24','25','26'];
+  const versions=['13','16','18','20','22','23','24','25','26','27'];
   const safariUA='Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1';
 
   async function oneProfile(name, {ua, seedVer}={}){
@@ -429,9 +429,38 @@ async function runLiveSiteBrowser(){
         console.log('  OK', name, '→', (row.vn||'').slice(0,60).replace(/\n/g,' '), `busy=${row.busy}`);
       }
     }catch(e){
+      const msg=String(e.message||e);
+      if(/Execution context was destroyed|Target closed|Session closed/i.test(msg)){
+        // SW heal / version bump reload — retry once
+        try{
+          await pg.goto(LIVE,{waitUntil:'networkidle2',timeout:90000});
+          await pg.waitForFunction(()=>window.__game&&window.__game.act,{timeout:30000});
+          await pg.evaluate(async()=>{
+            window.__FAST=true;
+            const g=window.__game;
+            if(g?.startProcedural) await g.startProcedural('fantasy','Alex');
+            else if(g?.startIntro) g.startIntro();
+            await new Promise(r=>setTimeout(r,1500));
+          });
+          const row=await pg.evaluate(async()=>{
+            const g=window.__game; if(!g?.S) return {ok:false, reason:'no-S'};
+            const before=(document.getElementById('vnText')?.textContent||'').trim();
+            await g.act('hallo');
+            let last={};
+            for(let i=0;i<50;i++){
+              await new Promise(r=>setTimeout(r,300));
+              const vn=(document.getElementById('vnText')?.textContent||'').trim();
+              last={vn, busy:document.body.classList.contains('busy')};
+              if(!last.busy && vn!==before && vn.length>=8) break;
+            }
+            return {ok:!last.busy && (last.vn||'').length>=8, vn:last.vn};
+          });
+          if(row.ok){ console.log('  OK', name, '(retry) →', (row.vn||'').slice(0,60).replace(/\n/g,' ')); return; }
+        }catch(e2){ /* fall through */ }
+      }
       fails++; total=Math.max(total, fails);
-      failures.push({path:label, world:name, reason:'runner:'+String(e.message||e)});
-      console.log('  FAIL', name, e.message||e);
+      failures.push({path:label, world:name, reason:'runner:'+msg});
+      console.log('  FAIL', name, msg);
     }finally{
       try{await ctx.close()}catch(_){}
     }
@@ -735,6 +764,10 @@ try{
   console.log('Gate inputs:', INPUTS.length, 'worlds:', WORLDS.length);
   if(INPUTS.length<40) throw new Error('Need ≥40 inputs, got '+INPUTS.length);
 
+  if(process.env.GATE_ONLY_LIVE==='1'){
+    await runLiveSiteBrowser();
+  } else {
+
   console.log('\n=== OFFLINE DIRECT (offline()) ===');
   await runOfflineDirect();
   console.log('\n=== ACT + OFFLINE MODE ===');
@@ -755,6 +788,7 @@ try{
   } else {
     await runLiveSiteBrowser();
   }
+  } // end GATE_ONLY_LIVE else
 } catch(e){
   console.error('GATE ERROR', e);
   failures.push({path:'runner', reason:String(e.message||e)});

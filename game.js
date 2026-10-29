@@ -21,8 +21,10 @@ import * as Depth from './depth.js';
 import * as V25 from './visual25d.js';
 import * as OW from './overworld.js';
 import * as Aud from './audio.js';
+import { hasBg } from './bg-manifest.js';
+try{ Aud.unlockOnGesture?.(); }catch(_){} // v28 first-tap music
 const $=s=>document.querySelector(s);const $$=s=>[...document.querySelectorAll(s)];const R=a=>a[Math.floor(Math.random()*a.length)];const rnd=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
-const VER='27',CACHE_V='v27';
+const VER='28',CACHE_V='v28';
 const ROLES={
  held:{e:'⚔️',name:'Held mit Status-System',d:'Ein blaues Fenster erscheint: [Status]. Die Welt braucht dich.',world:'Königreich Aldheim',
   base:{hp:100,mp:40,str:12,cha:8,ruf:10,gold:40},cls:['Abenteurer','Ritter','Held','Legendärer Held'],pack:'worlds/held.json',
@@ -206,10 +208,17 @@ function setSceneImage(prompt,key,opts){opts=opts||{};const cache=ensureImgCache
  // 1) local asset library first
  const locals=tryLocalBg(S?.world?.scene?.ort||k, locNode(S?.world?.scene?.ort)?.bg);
  const tryLocal=async()=>{
-  for(const path of locals){try{const r=await fetch(path,{method:'HEAD'});if(r.ok){const img=$('#sceneImg');if(!img)return true;
-   img.crossOrigin='anonymous';img.dataset.key=k;try{await Imm.crossfadeScene(img,path)}catch(_){img.src=path;showSceneImg(img)}cache.ok[k]=1;cache.scenes[k]=path;if(S)save();return true}}catch(_){}}
-  // also try .svg
-  for(const path of locals.map(x=>x.replace(/\.webp$/,'.svg'))){try{const r=await fetch(path,{method:'HEAD'});if(r.ok){const img=$('#sceneImg');img.dataset.key=k;img.src=path;showSceneImg(img);cache.ok[k]=1;return true}}catch(_){}}
+  // locals already filtered via hasBg — take first, optionally confirm with svg fallback from manifest
+  const ordered=[...locals];
+  for(const path of locals){ const svg=path.replace(/\.webp$/,'.svg'); if(hasBg(svg)) ordered.push(svg); }
+  for(const path of ordered){
+    try{
+      const img=$('#sceneImg'); if(!img) return true;
+      img.crossOrigin='anonymous'; img.dataset.key=k;
+      try{ await Imm.crossfadeScene(img,path); }catch(_){ img.src=path; showSceneImg(img); }
+      cache.ok[k]=1; cache.scenes[k]=path; if(S)save(); return true;
+    }catch(_){}
+  }
   return false};
  if(window.__SKIP_REMOTE_IMG){tryLocal();return}
  const seed=hashSeed('scene:'+k+(S?.role||'')+(S?.genre||''));
@@ -417,9 +426,18 @@ function bgAlias(ort,bgHint){
     [/kristall/, 'kristall'],
     [/wüste|desert/, 'wueste'],
     [/bunker/, 'bunker'],
+    [/kirche|tempel/, 'taverne'],
+    [/gilde|söldner/, 'markt'],
+    [/weidenau|dorf/, 'markt'],
+    [/osttor|tor/, 'nordwall'],
+    [/königsburg|hof|burg/, 'thron'],
+    [/waldweg|pfad/, 'elfenwald'],
+    [/hauptstadt|aldheim/, 'markt'],
+    [/innen|zimmer|saal/, 'taverne'],
   ];
   for(const [rx,slug] of rules){ if(rx.test(t)) return slug }
-  return slugify(ort||'default').split('-').slice(0,2).join('-')||'default';
+  // Unknown orts → default (never invent missing webp paths)
+  return 'default';
 }
 function tryLocalBg(ort,bgHint){const role=bgRoleFolder();const phase=phaseLabel();
   const base=bgAlias(ort,bgHint);
@@ -429,9 +447,13 @@ function tryLocalBg(ort,bgHint){const role=bgRoleFolder();const phase=phaseLabel
   else if(/morgen|früh/i.test(phase))variants.push(base+'-morgen',base+'-tag',base+'-abend',base+'-nacht');
   else variants.push(base+'-tag',base+'-abend',base+'-nacht',base+'-morgen');
   variants.push(base);
-  const paths=variants.flatMap(v=>[`assets/bg/${role}/${v}.webp`,`assets/bg/held/${v}.webp`,`assets/bg/proc/${v}.webp`]);
-  paths.push('assets/bg/proc/default-abend.webp','assets/bg/proc/default-tag.webp','assets/bg/held/beschwoerungshalle-abend.webp');
-  return [...new Set(paths)]}
+  const candidates=variants.flatMap(v=>[`assets/bg/${role}/${v}.webp`,`assets/bg/held/${v}.webp`,`assets/bg/proc/${v}.webp`]);
+  candidates.push('assets/bg/proc/default-abend.webp','assets/bg/proc/default-tag.webp','assets/bg/held/beschwoerungshalle-abend.webp');
+  // Only paths that exist in the shipped manifest — no HEAD 404 spam
+  const existing=[...new Set(candidates)].filter(p=>hasBg(p));
+  if(existing.length) return existing;
+  return ['assets/bg/proc/default-abend.webp','assets/bg/proc/default-tag.webp'].filter(p=>hasBg(p));
+}
 function portAssetKey(name,npc){if(npc?.portrait)return npc.portrait;const map={elise:'elise',lyra:'lyra',garrick:'garrick',orren:'orren',seris:'seris',rhett:'rhett',mira:'mira',julian:'julian',velka:'velka',brok:'brok',tom:'tom',otto:'otto'};
   const s=String(name||'').toLowerCase();for(const[k,v]of Object.entries(map)){if(s.includes(k))return v}return slugify(name).split('-')[0]}
 
@@ -651,6 +673,7 @@ function migrate(raw){if(!raw)return null;const s=typeof raw==='string'?JSON.par
  if(Number(s.ver)<25){s.ver=25;s.owFog=s.owFog||{}}
  if(Number(s.ver)<26){s.ver=26;s.owFog=s.owFog||{}}
  if(Number(s.ver)<27){s.ver=27;s.owFog=s.owFog||{}}
+ if(Number(s.ver)<28){s.ver=28;s.owFog=s.owFog||{}}
  // v13.1 continuity+time always (kept in v14)
  try{Cont.ensureCont(s);if(s.cal&&s.cal.minute==null)s.cal.minute=0;if(s.cfgCatchupOptIn==null)s.cfgCatchupOptIn=false}catch(e){console.warn('cont migrate',e)}
  // Heal incomplete worlds from old saves (missing orte/graph)
@@ -1068,7 +1091,7 @@ function enterPlay(){$('#keyGate')&&$('#keyGate').classList.add('hidden');$('#ti
  hud();renderChoices();
  try{const w=Imm.weatherFor(S);S.flags=S.flags||{};S.flags.weather=w;Imm.setWeather(w==='klar'?'none':w);Imm.applyDayNightTint(S);applyGenreTheme(S.genre||S.role)}catch(_){}
  try{
-   try{Aud.restore()}catch(_){}
+   try{Aud.restore(); Aud.unlockOnGesture?.()}catch(_){}
  OW.mountOverworld({
    audio:Aud,
      act:(t)=>act(t),

@@ -10,7 +10,7 @@ import * as V25 from './visual25d.js';
 const R=a=>a[Math.floor(Math.random()*a.length)];
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 function isBerserkActor(u){return Jrpg.isBerserk(u)}
-function showSkillBanner(name){ if(!_B)return; _B.skillBanner=name; const el=document.getElementById('skillBanner'); if(el){el.textContent=name; el.classList.add('on'); clearTimeout(el._t); el._t=setTimeout(()=>el.classList.remove('on'),900)} }
+function showSkillBanner(name, elem){ if(!_B)return; _B.skillBanner=name; const el=document.getElementById('skillBanner'); if(el){el.textContent=name; el.classList.add('on'); clearTimeout(el._t); el._t=setTimeout(()=>el.classList.remove('on'),900)} try{ const fx=document.getElementById('battleFx'); if(fx){ const d=document.createElement('div'); d.className='spell-fx spell-cast spell-'+(elem||'arcane'); d.style.left='40%'; d.style.top='35%'; fx.appendChild(d); setTimeout(()=>d.remove(),800);} }catch(_){} }
 
 /* ---- Skill catalog (maps leveling tree + combat skills) ---- */
 export const COMBAT_SKILLS={
@@ -775,7 +775,9 @@ function resolveHit(attacker, target, skill){
   let note=`${attacker.name} (${skill.name||'Angriff'}) → ${target.name}: ${dmg}${crit?' KRIT!':''}${weak?' (Schwach!)':''}${target.staggered?' BRUCH×2':''}`;
   _B.log.push(note);
   popNumber(target, String(dmg), crit?'crit':(weak?'weak':'dmg')); try{ window.__game?.Aud?.playSfx?.('hit', crit?0.55:0.4); }catch(_){}
+  try{ playAttackLunge(attacker); }catch(_){}
   flashUnit(target,'hit');
+  if((target.hp|0)<=0){ try{ playDeathFade(target); }catch(_){} } else { spawnSpellFx(target, crit?'crit':'impact'); }
   if(Jrpg.addStagger(target, rolled.stagger, Jrpg.difficultyOf(_B.S))){
     _B.log.push(`💥 ${target.name} — BRUCH!`);
     showSkillBanner('BRUCH');
@@ -1227,10 +1229,42 @@ function popNumber(unit, text, kind){
 function flashUnit(unit, kind){
   const root=el('battleRoot'); if(!root)return;
   root.classList.add('flash-'+kind); setTimeout(()=>root.classList.remove('flash-'+kind),180);
+  const isParty=(_B?.party||[]).some(p=>p._iid===unit._iid);
+  const sel=isParty?'.party-card':'.foe-card';
+  const card=[...document.querySelectorAll(sel)].find(c=>{
+    if(isParty) return (c.textContent||'').includes(unit.name||'') || c.dataset.iid===unit._iid;
+    return c.dataset.iid===unit._iid;
+  });
   if(kind==='hit'){
-    const card=[...document.querySelectorAll('.foe-card')].find(c=>c.dataset.iid===unit._iid);
-    if(card){ card.classList.add('hit'); setTimeout(()=>card.classList.remove('hit'),220) }
+    if(card){ card.classList.add('hit','lunge'); setTimeout(()=>card.classList.remove('hit','lunge'),320); }
+    spawnSpellFx(unit, 'impact');
+  } else if(kind==='heal'){
+    if(card){ card.classList.add('heal-glow'); setTimeout(()=>card.classList.remove('heal-glow'),500); }
+    spawnSpellFx(unit, 'heal');
   }
+}
+function spawnSpellFx(unit, kind){
+  const fx=el('battleFx'); if(!fx) return;
+  const d=document.createElement('div');
+  d.className='spell-fx spell-'+kind;
+  d.style.left=(18+Math.random()*64)+'%';
+  d.style.top=(16+Math.random()*50)+'%';
+  fx.appendChild(d);
+  setTimeout(()=>d.remove(),700);
+}
+function playAttackLunge(attacker){
+  const isParty=(_B?.party||[]).some(p=>p._iid===attacker._iid);
+  const cards=[...document.querySelectorAll(isParty?'.party-card':'.foe-card')];
+  const card=cards.find(c=>isParty? (c.classList.contains('active')||(c.textContent||'').includes(attacker.name||'')): c.dataset.iid===attacker._iid);
+  if(!card) return;
+  card.classList.add(isParty?'party-lunge':'enemy-lunge');
+  setTimeout(()=>card.classList.remove('party-lunge','enemy-lunge'),380);
+}
+function playDeathFade(unit){
+  const card=[...document.querySelectorAll('.foe-card')].find(c=>c.dataset.iid===unit._iid);
+  if(!card) return;
+  card.classList.add('death-fade');
+  setTimeout(()=>{ card.classList.add('dead'); }, 520);
 }
 function shakeScreen(){
   const root=el('battleRoot'); if(!root)return;
