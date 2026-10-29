@@ -109,14 +109,26 @@ export function renderLevel(body, S, {act, closeMenu, toast}){
   body.appendChild(tit);
 }
 
-/** First-meet Begegnung reveal */
+/** First-meet Begegnung reveal — auto-dismiss; never stacks over OW dialogue/shots. */
+export function dismissBegegnung(){
+  const overlay=document.getElementById('begegnung');
+  if(overlay){ overlay.classList.add('hidden'); clearTimeout(overlay._autoT); }
+}
 export function showBegegnung(npcName, npc, opts={}){
   const {imgUrl, setPortrait, onClose, know}=opts;
+  // Skip full-screen card while overworld dialogue or shop is open (v31)
+  try{
+    if(opts.force!==true && window.__game?.OW?.isOverworldActive?.()){
+      if(window.__game.OW.isDialogueOpen?.()) return null;
+      if(!document.getElementById('pixelShop')?.classList.contains('hidden')) return null;
+    }
+  }catch(_){}
   let overlay=document.getElementById('begegnung');
   if(!overlay){
     overlay=document.createElement('div'); overlay.id='begegnung'; overlay.className='begegnung hidden';
     document.body.appendChild(overlay);
   }
+  clearTimeout(overlay._autoT);
   const art=(npc&&npc.art)||'';
   const prompt=`anime character portrait bust, ${npcName}, ${String(art).slice(0,100)}, looking at viewer, dramatic lighting, no text`;
   const seed=[...String(npcName)].reduce((a,c)=>a+c.charCodeAt(0),0)||42;
@@ -125,7 +137,6 @@ export function showBegegnung(npcName, npc, opts={}){
   if(npc?.portrait)locals.unshift(`assets/port/${npc.portrait}.webp`);
   const local=locals[0];
   const remote=imgUrl?imgUrl(prompt,512,512,seed,false):'';
-  // Only surface what the player has earned — name + observed look. No goals/secrets/stats yet.
   const look=art?String(art).split(/[.;]/)[0].trim().slice(0,110):'Du hast ihren Namen erfahren.';
   const metaBits=[];
   if(know?.facts?.job&&npc?.job)metaBits.push(npc.job);
@@ -139,9 +150,11 @@ export function showBegegnung(npcName, npc, opts={}){
       <button type="button" class="big" id="begOk">Weiter</button>
     </div>`;
   overlay.classList.remove('hidden');
-  const finish=()=>{overlay.classList.add('hidden'); setPortrait&&setPortrait(npcName,npc); onClose&&onClose()};
+  const finish=()=>{ clearTimeout(overlay._autoT); overlay.classList.add('hidden'); try{setPortrait&&setPortrait(npcName,npc);}catch(_){ } try{onClose&&onClose();}catch(_){ } };
   overlay.querySelector('#begOk').onclick=finish;
   overlay.onclick=e=>{if(e.target===overlay)finish()};
+  // Auto-dismiss so it never blocks playtest / OW shots
+  overlay._autoT=setTimeout(finish, 4200);
   return overlay;
 }
 
@@ -151,4 +164,4 @@ export function renderViaHubOrTab(tab, body, S, helpers){
   return false;
 }
 
-export default {HUB_TILES,openHub,renderLevel,showBegegnung,renderViaHubOrTab};
+export default {HUB_TILES,openHub,renderLevel,showBegegnung,dismissBegegnung,renderViaHubOrTab};

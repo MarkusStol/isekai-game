@@ -52,3 +52,8 @@ obligations for LPC-derived character sprites.
 
 ## v30
 - Denser LPC thatched composites; night window/lamp lights; companion battle crops from LPC slash sheets
+
+## v31
+- Richer LPC thatched house composites (windows, chimney, beams)
+- Pixel intro cutscene; region travel map (horse/boat/airship)
+- Per-merchant shop stocks + reputation pricing; NPC clock calendars; quest markers from quest data

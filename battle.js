@@ -1187,9 +1187,19 @@ function refreshUI(){
 function needsTarget(){const m=_B?.selecting?.mode; return ['attack','skill','analyze','limit','talk','spare','threaten','steal'].includes(m)}
 function toastPick(){ /* visual only via cmd label */ }
 
+function clearBattleFx(){
+  try{ const fx=el('battleFx'); if(fx){ while(fx.firstChild) fx.removeChild(fx.firstChild); fx.classList.add('fx-clear'); } }catch(_){}
+  try{ document.querySelectorAll('.battler-canvas.spr-fx,.spell-fx,#skillBanner.on').forEach(n=>{
+    if(n.id==='skillBanner') n.classList.remove('on'); else try{n.remove();}catch(_){ }
+  }); }catch(_){}
+}
 function showEndScreen(result, summary){
   const end=el('battleEnd'); if(!end)return;
+  clearBattleFx();
+  try{ const fx=el('battleFx'); if(fx) fx.style.pointerEvents='none'; }catch(_){}
   end.classList.remove('hidden');
+  end.style.zIndex='12';
+  if(_B) _B.ended=true;
   if(result==='win') playVictoryFanfare();
   const ap=summary.ap|0, gil=summary.gold|0;
   end.innerHTML=`<div class="battle-end-card ${result}">
@@ -1272,6 +1282,7 @@ function sheetRoleForCompanion(unit){
 }
 /** Play 4-frame LPC sheet as FX overlay (survives refreshUI). */
 function playSpriteAnim(unit, action, opts={}){
+  if(_B?.ended && !opts.force) return Promise.resolve();
   const fx=el('battleFx'); if(!fx) return Promise.resolve();
   const sheet = battlerSheetFor(unit, action);
   const frames = opts.frames|4;
@@ -1320,8 +1331,8 @@ function playSpriteAnim(unit, action, opts={}){
         f++;
         if(f<frames) setTimeout(tick, ms);
         else {
-          // hold last frame so playtests/screenshots can catch the sprite
-          const linger = (opts.linger!=null)?opts.linger:420;
+          if(_B?.ended){ try{ canvas.remove(); }catch(_){ } resolve(); return; }
+          const linger = (opts.linger!=null)?opts.linger:280;
           setTimeout(()=>{ try{ canvas.remove(); }catch(_){ } resolve(); }, linger);
         }
       };

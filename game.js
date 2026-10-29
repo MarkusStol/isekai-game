@@ -6,6 +6,8 @@ import * as Codex from './codex.js';
 import * as UI13 from './ui13.js';
 import * as Level from './leveling.js';
 import * as UI14 from './ui14.js';
+import * as Cut31 from './cutscene31.js';
+import * as TravelMap from './travelmap.js';
 import * as UI17 from './ui17.js';
 import * as Know from './know.js';
 import * as Cont from './continuity.js';
@@ -23,9 +25,9 @@ import * as OW from './overworld.js';
 import * as Aud from './audio.js';
 import { hasBg } from './bg-manifest.js';
 try{ Aud.unlockOnGesture?.(); }catch(_){} // v28 first-tap music
- // v30: denser houses, night lights, quest markers, chests, NPC schedules, shops, FF6 battle
+ // v31: merchant shops, NPC calendars, quest markers, intro cutscene, travel map
 const $=s=>document.querySelector(s);const $$=s=>[...document.querySelectorAll(s)];const R=a=>a[Math.floor(Math.random()*a.length)];const rnd=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
-const VER='30',CACHE_V='v30';
+const VER='31',CACHE_V='v31';
 const ROLES={
  held:{e:'⚔️',name:'Held mit Status-System',d:'Ein blaues Fenster erscheint: [Status]. Die Welt braucht dich.',world:'Königreich Aldheim',
   base:{hp:100,mp:40,str:12,cha:8,ruf:10,gold:40},cls:['Abenteurer','Ritter','Held','Legendärer Held'],pack:'worlds/held.json',
@@ -304,8 +306,24 @@ function locKey(name){const g=ensureGraph();if(!g)return name;if(g.nodes[name])r
  return Object.keys(g.nodes||{}).find(k=>k.toLowerCase()===String(name||'').toLowerCase()||String(name||'').toLowerCase().includes(k.toLowerCase().slice(0,10)))||name}
 function exitsFrom(ort){const n=locNode(ort);return (n&&n.exits)||[]}
 function whoHere(ort){ort=ort||S.world?.scene?.ort;const list=[];
- for(const[name,n]of Object.entries(S.world?.npcs||{})){if(n.alive===false||n.dead)continue;if((n.ort||n.home||'')===ort||(S.world.scene.anwesend||[]).includes(name))list.push(name)}
- return list}
+ const phase=phaseLabel?.()||'';
+ for(const[name,n]of Object.entries(S.world?.npcs||{})){
+  if(n.alive===false||n.dead)continue;
+  // Calendar/schedule: if _schedNow or schedule hit points at ort, count as present
+  let at=n.ort||n.home||'';
+  try{
+    const sch=n.schedule||[];
+    const hit=sch.find(s=>matchSchedule(s, Cont.phaseFromClock?.(S)||S.time?.phase||''));
+    if(hit){ const bit=String(hit).split(':').slice(1).join(':').trim(); if(bit) at=bit; }
+    if(n._schedNow) at=n._schedNow;
+  }catch(_){}
+  const match=String(at).toLowerCase().includes(String(ort||'').toLowerCase().slice(0,6))
+    || String(ort||'').toLowerCase().includes(String(at).toLowerCase().slice(0,6))
+    || (n.ort||n.home||'')===ort
+    || (S.world.scene.anwesend||[]).includes(name);
+  if(match) list.push(name);
+ }
+ return [...new Set(list)]}
 function travelTo(dest,opts){opts=opts||{};if(!S?.world)return {ok:false,text:'Keine Welt.'};
  const g=ensureGraph();const from=S.world.scene.ort;const key=locKey(dest);
  if(g&&!g.nodes[key]&&!opts.force){ // discover dynamic place
@@ -676,6 +694,9 @@ function migrate(raw){if(!raw)return null;const s=typeof raw==='string'?JSON.par
  if(Number(s.ver)<27){s.ver=27;s.owFog=s.owFog||{}}
  if(Number(s.ver)<28){s.ver=28;s.owFog=s.owFog||{}}
  if(Number(s.ver)<29){s.ver=29;s.owFog=s.owFog||{}}
+ if(Number(s.ver)<30){s.ver=30;s.owFog=s.owFog||{};s.flags=s.flags||{};s.flags.shops=s.flags.shops||{}}
+ if(Number(s.ver)<31){s.ver=31;s.owFog=s.owFog||{};s.flags=s.flags||{};s.flags.shops=s.flags.shops||{};
+  try{ if(s.quests?.main && !s.quests.main.objectiveMarks){ const bq=buildQuests(PACKS[s.role]||{}); s.quests.main.objectiveMarks=bq.main.objectiveMarks; s.quests.main.marker=bq.main.marker; (s.quests.side||[]).forEach((q,i)=>{ if(!q.marker && bq.side[i]?.marker) q.marker=bq.side[i].marker; }); } }catch(_){} }
  // v13.1 continuity+time always (kept in v14)
  try{Cont.ensureCont(s);if(s.cal&&s.cal.minute==null)s.cal.minute=0;if(s.cfgCatchupOptIn==null)s.cfgCatchupOptIn=false}catch(e){console.warn('cont migrate',e)}
  // Heal incomplete worlds from old saves (missing orte/graph)
@@ -695,8 +716,25 @@ function migrate(raw){if(!raw)return null;const s=typeof raw==='string'?JSON.par
  return s}
 
 function buildQuests(pack){const arc=pack.arc||{titel:'Hauptgeschichte',acts:[]};const act0=arc.acts[0]||{id:'a1',titel:'Anfang',ziel:'Ankommen',mile:[]};
- return {main:{id:arc.acts[0]?.id||'a1',titel:arc.titel,act:0,actTitel:act0.titel,ziel:act0.ziel,objectives:[...(act0.mile||[])],done:[],twist:act0.twist||''},
-  side:(pack.sideQuests||[]).map(q=>({...q,status:'offen',progress:0}))}}
+ // Derive objectiveMarks from pack mileMarks or by matching side/npc names into mile text
+ const mile=act0.mile||[];
+ const mileMarks=act0.mileMarks||act0.markers||[];
+ const objectiveMarks=mile.map((o,i)=>{
+   if(mileMarks[i]) return mileMarks[i];
+   if(o && typeof o==='object' && o.marker) return o.marker;
+   const blob=String(typeof o==='string'?o:(o.label||'')).toLowerCase();
+   const npcHit=Object.keys(pack.npcs||{}).find(nm=>blob.includes(nm.toLowerCase().slice(0,4))||blob.includes(nm.toLowerCase().split(/\s+/).pop()));
+   if(npcHit) return {npc:npcHit};
+   const ortHit=Object.keys((pack.locations&&pack.locations.nodes)||pack.orte||pack.regionen||{}).find(k=>blob.includes(String(k).toLowerCase().slice(0,5)));
+   if(ortHit) return {ort:ortHit};
+   return act0.marker||null;
+ });
+ const mainMarker=act0.marker||objectiveMarks.find(Boolean)||null;
+ return {main:{id:arc.acts[0]?.id||'a1',titel:arc.titel,act:0,actTitel:act0.titel,ziel:act0.ziel,objectives:[...mile],objectiveMarks,marker:mainMarker,done:[],twist:act0.twist||''},
+  side:(pack.sideQuests||[]).map(q=>{
+    const marker=q.marker||(q.npc?{npc:q.npc}:null)||(q.ort?{ort:q.ort}:null);
+    return {...q,status:'offen',progress:0,marker};
+  })}}
 
 function buildWorldFromPack(pack,role){const npcs={};
  for(const[k,v]of Object.entries(pack.npcs||{})){npcs[k]={art:v.art||v.stimme||'',stimme:v.stimme||'',ziel:v.ziel||'',furcht:v.furcht||'',geheimnis:v.geheim||v.geheimnis||'',beziehung:'Fremd',erinnerung:[],memories:[],e:v.e||'👤',ort:v.ort||v.home||'',home:v.home||v.ort||'',plan:[...(v.plan||[])],meinung:v.meinung||{},relations:v.relations||v.meinung||{},romance:!!v.romance,adult:v.adult!==false,geschlecht:v.geschlecht||'',schedule:v.schedule||[],mood:v.mood||'neutral',goals:v.goals||(v.ziel?[String(v.ziel).slice(0,80)]:[]),portrait:v.portrait||'',alive:true,lastSeen:{ort:v.ort||v.home||'',zeit:'',day:1}}}
@@ -794,7 +832,13 @@ let _intro={beat:0,answers:{},role:null,name:'',bg:'',look:'',trait:''};
 function startIntro(){_mode='intro';_intro={beat:0,answers:{},role:null,name:'',bg:'',look:'',trait:''};
  $('#title').classList.add('hidden');$('#keyGate').classList.add('hidden');$('#stage').classList.remove('hidden');
  document.body.classList.remove('greyw');$('.top-actions').style.visibility='hidden';$('#hud').style.visibility='hidden';
- $('#inputRow').classList.remove('hidden');showIntroBeat()}
+ $('#inputRow').classList.add('hidden');
+ // v31 pixel cutscene, then classic beats
+ Cut31.playIntroCutscene({}).then(()=>{
+   $('#inputRow').classList.remove('hidden');
+   showIntroBeat();
+ }).catch(()=>{ $('#inputRow').classList.remove('hidden'); showIntroBeat(); });
+}
 
 function showIntroBeat(){const i=_intro.beat;if(i>=INTRO_BEATS.length){return finishIntro()}
  const b=INTRO_BEATS[i];
@@ -1033,7 +1077,7 @@ function worldTick(){if(!S.world||!S.setup?.done)return;
 
 function applyQuestUpdate(u){if(!u||!S.quests)return;const m=S.quests.main;
  if(u.mainObjectiveDone){const o=String(u.mainObjectiveDone);if(!(m.done||[]).includes(o)){m.done=m.done||[];m.done.push(o);toast('✓ Quest: '+o);pushSys('📜 '+o)}}
- if(u.advanceAct&&PACKS[S.role]?.arc?.acts){const acts=PACKS[S.role].arc.acts;const next=Math.min(acts.length-1,(m.act|0)+1);if(next>m.act){m.act=next;m.id=acts[next].id;m.actTitel=acts[next].titel;m.ziel=acts[next].ziel;m.objectives=[...(acts[next].mile||[])];m.done=[];m.twist=acts[next].twist||'';toast('📖 Neuer Akt: '+m.actTitel);pushSys('📖 Akt: '+m.actTitel+' – '+m.ziel)}}
+ if(u.advanceAct&&PACKS[S.role]?.arc?.acts){const acts=PACKS[S.role].arc.acts;const next=Math.min(acts.length-1,(m.act|0)+1);if(next>m.act){m.act=next;m.id=acts[next].id;m.actTitel=acts[next].titel;m.ziel=acts[next].ziel;m.objectives=[...(acts[next].mile||[])];m.objectiveMarks=(acts[next].mileMarks||acts[next].markers||[]);m.marker=acts[next].marker||null;m.done=[];m.twist=acts[next].twist||'';toast('📖 Neuer Akt: '+m.actTitel);pushSys('📖 Akt: '+m.actTitel+' – '+m.ziel)}}
  if(u.sideComplete){const id=String(u.sideComplete);const sq=(S.quests.side||[]).find(q=>q.id===id||q.titel===id);if(sq){sq.status='erledigt';toast('✓ Nebenquest: '+sq.titel)}}
  if(u.sideUnlock){const id=String(u.sideUnlock);const sq=(S.quests.side||[]).find(q=>q.id===id);if(sq&&sq.status==='offen')sq.status='aktiv'}}
 
@@ -1101,6 +1145,7 @@ function enterPlay(){$('#keyGate')&&$('#keyGate').classList.add('hidden');$('#ti
      toast:(m)=>toast(m),
      save:()=>save(),
      openShop:(who)=>openPixelShop(who),
+     openTravel:()=>openRegionTravelMap(),
      openMenu:(tab)=>openMenu(tab||'quests'),
      onLocation:(dest)=>{ try{ const r=travelTo(dest); if(r?.text){ add('n',r.text); apply(r.changes||{}); if(r.changes?.world)applyWorld(r.changes.world); hud(); renderChoices(); OW.refreshOverworld(S); typewrite(isG()?'Nebel':'Erzähler', r.text, ()=>{}); save(); } }catch(e){ console.warn('ow-travel',e);} }
    });
@@ -1113,18 +1158,92 @@ function show(){enterPlay()}
 
 /* ---------- menu overlays ---------- */
 
-/* ---------- v30 pixel shop ---------- */
-const SHOP_STOCK=[
-  {id:'brot', name:'Brot', price:4, desc:'Stellt 8 HP wieder her', type:'consumable', use:'heal', heal:8},
-  {id:'trank', name:'Trank', price:18, desc:'Stellt 40 HP wieder her', type:'consumable', use:'heal', heal:40},
-  {id:'äther', name:'Äther', price:22, desc:'Stellt 20 MP wieder her', type:'consumable', use:'mp', heal:20},
-  {id:'antidot', name:'Antidot', price:12, desc:'Heilt Gift', type:'consumable'},
-  {id:'dolch', name:'Reise-Dolch', price:45, desc:'Leichte Waffe', type:'weapon', equip:true, atk:4},
-  {id:'umhang', name:'Wollumhang', price:35, desc:'Wärmt in der Nacht', type:'armor', equip:true, def:2},
-  {id:'fackel', name:'Fackel', price:6, desc:'Licht für dunkle Orte', type:'misc'},
-];
+/* ---------- v31 per-merchant shops (economy + reputation) ---------- */
+const SHOP_CATALOGS={
+  general:[
+    {id:'brot', name:'Brot', price:4, desc:'Stellt 8 HP wieder her', type:'consumable', use:'heal', heal:8},
+    {id:'trank', name:'Trank', price:18, desc:'Stellt 40 HP wieder her', type:'consumable', use:'heal', heal:40},
+    {id:'fackel', name:'Fackel', price:6, desc:'Licht für dunkle Orte', type:'misc'},
+    {id:'seil', name:'Seil', price:10, desc:'Klettern & binden', type:'misc'},
+  ],
+  apothecary:[
+    {id:'trank', name:'Trank', price:16, desc:'Stellt 40 HP wieder her', type:'consumable', use:'heal', heal:40},
+    {id:'äther', name:'Äther', price:22, desc:'Stellt 20 MP wieder her', type:'consumable', use:'mp', heal:20},
+    {id:'antidot', name:'Antidot', price:12, desc:'Heilt Gift', type:'consumable'},
+    {id:'elixier', name:'Elixier', price:55, desc:'Volle Heilung', type:'consumable', use:'heal', heal:999},
+  ],
+  blacksmith:[
+    {id:'dolch', name:'Reise-Dolch', price:45, desc:'Leichte Waffe', type:'weapon', equip:true, atk:4},
+    {id:'schwert', name:'Kurzschwert', price:85, desc:'Solide Klinge', type:'weapon', equip:true, atk:8},
+    {id:'schild', name:'Holzschild', price:40, desc:'+Verteidigung', type:'armor', equip:true, def:3},
+    {id:'umhang', name:'Wollumhang', price:35, desc:'Wärmt in der Nacht', type:'armor', equip:true, def:2},
+  ],
+  tavern:[
+    {id:'brot', name:'Brot', price:3, desc:'Stellt 8 HP wieder her', type:'consumable', use:'heal', heal:8},
+    {id:'bier', name:'Bier', price:5, desc:'+Laune, -Wachheit', type:'consumable'},
+    {id:'eintopf', name:'Eintopf', price:9, desc:'Stellt 20 HP wieder her', type:'consumable', use:'heal', heal:20},
+    {id:'raum', name:'Nachtlager', price:12, desc:'Volle Erholung (Ruhen)', type:'service', use:'rest'},
+  ],
+  exotic:[
+    {id:'äther', name:'Äther', price:28, desc:'Stellt 20 MP wieder her', type:'consumable', use:'mp', heal:20},
+    {id:'karte', name:'Reisekarte', price:30, desc:'Enthüllt Nachbarregionen', type:'misc', use:'map'},
+    {id:'feder', name:'Greifenfeder', price:60, desc:'Seltenes Handwerksgut', type:'misc'},
+    {id:'ring', name:'Glücksring', price:90, desc:'+Charme', type:'armor', equip:true, def:1},
+  ],
+};
+const SHOP_STOCK=SHOP_CATALOGS.general; // legacy alias
+function merchantKind(who){
+  const n=S?.world?.npcs?.[who]||{};
+  const blob=(String(who||'')+' '+String(n.art||'')+' '+String(n.ziel||'')+' '+String(n.ort||'')+' '+String(n.home||'')).toLowerCase();
+  if(/schmied|waffe|rüstung|blacksmith|klinge/.test(blob)) return 'blacksmith';
+  if(/apoth|heil|trank|kräut|magier|hexe/.test(blob)) return 'apothecary';
+  if(/wirt|taverne|gasthaus|inn|bier|eintopf|hanna/.test(blob)) return 'tavern';
+  if(/exotic|reisend|karawan|greife|karte|händler/.test(blob)) return 'exotic';
+  if(/kauf|laden|markt|merchant/.test(blob)) return 'general';
+  // hash name into catalog for variety
+  const keys=Object.keys(SHOP_CATALOGS);
+  let h=0; for(const c of String(who||'x')) h=(h*31+c.charCodeAt(0))|0;
+  return keys[Math.abs(h)%keys.length];
+}
+function shopPriceMult(who){
+  // Reputation + personal affinity drive prices (0.75 … 1.35)
+  const ruf=S?.st?.ruf|0;
+  let aff=0;
+  try{ aff=S?.romance?.[who]?.affection|0; }catch(_){}
+  try{ if(!aff && S?.world?.npcs?.[who]?.meinung) aff=(Object.values(S.world.npcs[who].meinung)[0])|0; }catch(_){}
+  const rufPart = Math.max(-0.15, Math.min(0.15, ruf/400)); // ±15%
+  const affPart = Math.max(-0.2, Math.min(0.1, -aff/500)); // liked → cheaper
+  // Local economy scarcity
+  let econ=0;
+  try{ const w=S?.finance?.prices||S?.econ?.prices; if(w) econ=0.05; }catch(_){}
+  return Math.max(0.7, Math.min(1.4, 1 - rufPart - affPart + econ));
+}
+function merchantStock(who){
+  const kind=merchantKind(who);
+  const base=(SHOP_CATALOGS[kind]||SHOP_CATALOGS.general).map(it=>({...it}));
+  // Persist per-merchant inventory depletion in flags
+  S.flags=S.flags||{};
+  S.flags.shops=S.flags.shops||{};
+  const key=String(who||kind);
+  if(!S.flags.shops[key]){
+    S.flags.shops[key]={kind, stock:Object.fromEntries(base.map(i=>[i.id, 3+((Math.abs(hashSeed(key+i.id))%4))])), day:S.time?.day|1};
+  }
+  const shop=S.flags.shops[key];
+  // Restock daily
+  if((shop.day|0)!==(S.time?.day|1)){
+    shop.day=S.time?.day|1;
+    base.forEach(i=>{ shop.stock[i.id]=Math.min(6,(shop.stock[i.id]|0)+2); });
+  }
+  const mult=shopPriceMult(who);
+  return base.map(it=>{
+    const qty=shop.stock[it.id]|0;
+    const price=Math.max(1, Math.round(it.price*mult));
+    return {...it, price, qty, kind, mult};
+  }).filter(it=>it.qty>0);
+}
 function openPixelShop(who){
   if(!S) return;
+  try{ UI14.dismissBegegnung?.(); }catch(_){}
   let root=document.getElementById('pixelShop');
   if(!root){
     root=document.createElement('div');
@@ -1133,24 +1252,43 @@ function openPixelShop(who){
     document.body.appendChild(root);
   }
   const gold=S.st?.gold|0;
+  const kind=merchantKind(who);
+  const stock=merchantStock(who);
+  const mult=shopPriceMult(who);
+  const tag=mult<0.95?'Freundschaftspreis':mult>1.1?'Misstrauen (+Aufschlag)':'Ortspreis';
   root.classList.remove('hidden');
   root.innerHTML=`<div class="pixel-shop-panel">
     <div class="pixel-shop-head"><b>🛒 ${who||'Händler'}</b><span>Gold: ${gold}</span><button type="button" class="px-x" id="shopClose">×</button></div>
+    <div class="pixel-shop-meta meta">${kind} · ${tag} · ×${mult.toFixed(2)}</div>
     <div class="pixel-shop-list" id="shopList"></div>
-    <div class="pixel-shop-foot meta">Tippe einen Artikel zum Kaufen. Esc schließt.</div>
+    <div class="pixel-shop-foot meta">Bestand pro Händler · Ruf & Beziehung ändern Preise. Esc schließt.</div>
   </div>`;
   const list=root.querySelector('#shopList');
-  SHOP_STOCK.forEach(it=>{
+  if(!stock.length){ list.innerHTML='<p class="meta">Ausverkauft — komm morgen wieder.</p>'; }
+  stock.forEach(it=>{
     const row=document.createElement('button');
     row.type='button';
     row.className='pixel-shop-row';
-    row.innerHTML=`<span class="psi">📦</span><span class="psn"><b>${it.name}</b><small>${it.desc}</small></span><span class="psp">${it.price} G</span>`;
+    row.innerHTML=`<span class="psi">📦</span><span class="psn"><b>${it.name}</b><small>${it.desc} · ×${it.qty}</small></span><span class="psp">${it.price} G</span>`;
     row.onclick=()=>{
       if((S.st.gold|0)<it.price){ toast('Nicht genug Gold'); return; }
+      const key=String(who||kind);
+      if((S.flags.shops[key].stock[it.id]|0)<=0){ toast('Ausverkauft'); openPixelShop(who); return; }
       S.st.gold=(S.st.gold|0)-it.price;
-      S.inv=S.inv||[];
-      S.inv.push({id:it.id, name:it.name, desc:it.desc, type:it.type, use:it.use, heal:it.heal, equip:it.equip, atk:it.atk, def:it.def});
-      toast('Gekauft: '+it.name);
+      S.flags.shops[key].stock[it.id]=(S.flags.shops[key].stock[it.id]|0)-1;
+      // Tiny reputation bump for trade
+      try{ bumpRel(who, 1, 0, false); }catch(_){}
+      if(it.use==='rest'){
+        S.st.hp=S.st.maxhp; S.st.mp=S.st.maxmp;
+        toast('Du ruhst dich aus.');
+      } else if(it.use==='map'){
+        try{ WorldMap.revealMapItem?.(S,{region:'nachbar'}); toast('Karte studiert — Regionen enthüllt.'); }catch(_){ toast('Karte erhalten'); }
+        S.inv=S.inv||[]; S.inv.push({id:it.id, name:it.name, desc:it.desc, type:it.type});
+      } else {
+        S.inv=S.inv||[];
+        S.inv.push({id:it.id, name:it.name, desc:it.desc, type:it.type, use:it.use, heal:it.heal, equip:it.equip, atk:it.atk, def:it.def});
+        toast('Gekauft: '+it.name);
+      }
       try{Aud.playSfx?.('ok')}catch(_){}
       save(); hud();
       openPixelShop(who);
@@ -1160,6 +1298,29 @@ function openPixelShop(who){
   root.querySelector('#shopClose').onclick=()=>root.classList.add('hidden');
   const onKey=e=>{ if(e.key==='Escape'){ root.classList.add('hidden'); window.removeEventListener('keydown',onKey);} };
   window.addEventListener('keydown', onKey);
+}
+
+
+function openRegionTravelMap(){
+  if(!S) return;
+  try{ UI14.dismissBegegnung?.(); }catch(_){}
+  TravelMap.openTravelMap(S,{
+    toast:(m)=>toast(m),
+    onTravel:(dest,opts)=>{
+      try{
+        const r=travelTo(dest,{hours:opts?.hours, force:true});
+        const flair=opts?.flair||('Reise nach '+dest);
+        add('n', flair+(r?.text?('\n'+r.text):''));
+        apply(r?.changes||{});
+        if(r?.changes?.world) applyWorld(r.changes.world);
+        try{ WorldMap.visitPlace(S,dest); }catch(_){}
+        hud(); renderChoices();
+        try{ OW.refreshOverworld(S); }catch(_){}
+        typewrite(isG()?'Nebel':'Erzähler', flair, ()=>{});
+        save();
+      }catch(e){ console.warn('region-travel',e); toast('Reise fehlgeschlagen'); }
+    }
+  });
 }
 
 function openMenu(tab){_menuTab=tab||'hub';const m=$('#menu'); if(!m)return; m.classList.remove('hidden');
@@ -2676,7 +2837,7 @@ $('#btnGateSave').onclick=()=>{const gk=$('#gateKey').value.trim();if(!gk){toast
  toast('Alles bereit.');gmFetch(gk,true).then(()=>gmProbe(gk).catch(()=>{}));enterPlay()};
 $('#btnGateSkip').onclick=()=>{cfg.mode='free';cfg.v2=1;localStorage.setItem(CFG,JSON.stringify(cfg));toast('Erzählerin: Pollinations (ohne Schlüssel)');enterPlay()};
 
-window.__setCfg=o=>{cfg=Object.assign(cfg||{},o||{});try{localStorage.setItem(CFG,JSON.stringify(cfg))}catch(_){}};window.__game={VER,Aud,setBusy,forceUnbusy,ACT_HARD_MS,V25,OW,Depth,Battle,Jobs,Gems,Summons,Equip,Jrpg,localBeatLine,parsePlayerIntent,offlineRespondIntent,freeStream,FREE_MODEL,openPendingEncounter,Imm,discoverThing,showCodexInline,Level,UI14,UI17,Know,Cont,lastPromptDump,advanceTimeMinutes,applyActionDuration,newGrey,greyDetails,loadGrey,loadPack,get S(){return S},act,newLife,gBody,msgs,gmRank,gmProbe,parseStream,thinkingCfg,gmOrder,readSSE,STREAM_DELIM,migrate,worldTick,bumpRel,openMenu,openPixelShop,stageName,offline,startIntro,setSceneImage,setPortrait,imgUrl,advanceTime,phaseLabel,typewrite,enterPlay,showTitle,analyzeImage,applySceneTheme,themeFromText,loadValidatedImage,openingNarration,travelTo,parseTravel,killNPC,robNPC,addMemory,memoryHint,startProcedural,offlineGenerateWorld,generateWorldPack,GENRES,travelChoices,ensureGraph,whoHere,parseLifeSim,Sim,Persist,WorldMap,Econ,Codex,UI13,save,loadSave,applyCatchUp,findAnyNpc};
+window.__setCfg=o=>{cfg=Object.assign(cfg||{},o||{});try{localStorage.setItem(CFG,JSON.stringify(cfg))}catch(_){}};window.__game={VER,Aud,setBusy,forceUnbusy,ACT_HARD_MS,V25,OW,Depth,Battle,Jobs,Gems,Summons,Equip,Jrpg,localBeatLine,parsePlayerIntent,offlineRespondIntent,freeStream,FREE_MODEL,openPendingEncounter,Imm,discoverThing,showCodexInline,Level,UI14,UI17,Know,Cont,lastPromptDump,advanceTimeMinutes,applyActionDuration,newGrey,greyDetails,loadGrey,loadPack,get S(){return S},act,newLife,gBody,msgs,gmRank,gmProbe,parseStream,thinkingCfg,gmOrder,readSSE,STREAM_DELIM,migrate,worldTick,bumpRel,openMenu,openPixelShop,openRegionTravelMap,stageName,offline,startIntro,setSceneImage,setPortrait,imgUrl,advanceTime,phaseLabel,typewrite,enterPlay,showTitle,analyzeImage,applySceneTheme,themeFromText,loadValidatedImage,openingNarration,travelTo,parseTravel,killNPC,robNPC,addMemory,memoryHint,startProcedural,offlineGenerateWorld,generateWorldPack,GENRES,travelChoices,ensureGraph,whoHere,parseLifeSim,Sim,Persist,WorldMap,TravelMap,Cut31,Econ,Codex,UI13,save,loadSave,applyCatchUp,findAnyNpc};
 window.__game.askNPC=a=>askNPC(a);window.__game.gemini=gemini;
 if(cfg.gkey)gmFetch(cfg.gkey.trim()).then(()=>gmProbe(cfg.gkey.trim()).catch(()=>{})).catch(()=>{});
 (function(){const root=document.documentElement;const apply=()=>{try{const vv=window.visualViewport;if(!vv)return;const kb=Math.max(0,window.innerHeight-vv.height-vv.offsetTop);root.style.setProperty('--kb',kb+'px')}catch(_){}};

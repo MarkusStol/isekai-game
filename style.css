@@ -1856,3 +1856,51 @@ body.ow-desktop .ow-side{ z-index:3; }
   border:2px solid #9eb6ff55 !important;
   background: linear-gradient(180deg,#1a2458aa,#0e1430cc) !important;
 }
+
+/* ===== v31 intro cutscene + travel map + shop meta + battle fx ===== */
+.intro-cutscene{
+  position:fixed; inset:0; z-index:80; background:#05030c;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px;
+}
+.intro-cutscene.hidden{ display:none!important; }
+.intro-cutscene canvas{
+  width:min(96vw,640px); height:auto; image-rendering:pixelated;
+  border:3px solid #f0d59a88; border-radius:8px; background:#0a0614;
+  box-shadow:0 0 40px #7c3aed55;
+}
+.intro-cut-ui{ width:min(96vw,640px); color:#f5e6c8; text-align:center; padding:0 12px; }
+.intro-cut-title{ font-family:var(--font-title),serif; letter-spacing:.14em; font-size:1.1rem; color:#fbbf24; margin-bottom:6px; }
+.intro-cut-text{ font-size:14px; line-height:1.5; min-height:2.8em; white-space:pre-line; opacity:.95; }
+.intro-cut-bar{ margin-top:10px; }
+.intro-cut-bar button{
+  background:#1e1438; border:1px solid #f0d59a66; color:#f0d59a; padding:8px 16px; border-radius:999px; cursor:pointer;
+}
+
+.travel-map{
+  position:fixed; inset:0; z-index:55; background:#000b;
+  display:flex; align-items:center; justify-content:center; padding:16px;
+}
+.travel-map.hidden{ display:none!important; }
+.travel-map-panel{
+  width:min(420px,96vw); background:linear-gradient(180deg,#1a1430,#0e0a1c);
+  border:1px solid #f0d59a88; border-radius:16px; padding:12px; box-shadow:0 20px 60px #000a;
+}
+.travel-map-head{ display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+.travel-map-head .meta{ margin-left:auto; opacity:.75; font-size:12px; }
+.travel-modes{ display:flex; gap:6px; flex-wrap:wrap; margin-bottom:8px; }
+.tm-mode{
+  flex:1; min-width:90px; padding:8px 6px; border-radius:10px; border:1px solid #ffffff22;
+  background:#161030; color:#eee; cursor:pointer; font-size:13px;
+}
+.tm-mode.on{ border-color:#fbbf24; background:#2a1848; color:#fbbf24; }
+.travel-canvas-wrap{ border-radius:10px; overflow:hidden; border:1px solid #ffffff18; }
+.travel-canvas-wrap canvas{ width:100%; height:auto; display:block; image-rendering:pixelated; }
+.travel-map-foot{ display:flex; flex-direction:column; gap:8px; margin-top:10px; }
+.travel-map-foot .big{ width:100%; }
+
+.pixel-shop-meta{ padding:4px 12px 0; font-size:11px; opacity:.8; }
+#battleFx.fx-clear{ pointer-events:none; }
+.battle-end{ z-index:12!important; }
+.begegnung{ z-index:45; } /* below travel map / intro, above OW */
+body.pixel-ow .begegnung:not(.hidden){ /* soften so OW shots aren't fully blocked forever */ }
+

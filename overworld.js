@@ -695,18 +695,28 @@ export function buildMapForLocation(S, ort){
       if(!SOLID.has(tiles[yy][xx]) && !used.has(key)){ nx=xx; ny=yy; used.add(key); break; }
     }
     const home={x:nx,y:ny};
-    // simple schedule waypoints around spawn / plaza
-    const wps=[
-      {x:nx,y:ny},
-      {x:Math.max(1,Math.min(w-2,cx+(i%3)-1)), y:Math.max(1,Math.min(ht-2,cy+(i%2)))},
-      {x:Math.max(1,Math.min(w-2,nx+3)), y:ny},
-      {x:nx, y:Math.max(1,Math.min(ht-2,ny+2))},
-    ];
+    // Landmark anchors for daily calendar (home / work / tavern / sleep)
+    const doors=(interiors||[]).filter(d=>d && typeof d.x==='number');
+    const tavernDoor=doors.find(d=>/taverne|gasthaus|wirt|inn|pub/i.test(String(d.label||d.to||'')))||doors[0]||{x:cx,y:cy+3};
+    const workDoor=doors.find(d=>/laden|shop|markt|bibliothek|wache|hall|schmied/i.test(String(d.label||d.to||'')))
+      || (sheet==='merchant'?home:doors[(i+1)%Math.max(1,doors.length)]||{x:cx+2,y:cy});
+    const sleepSpot={x:home.x, y:Math.max(1,home.y-1)};
+    const plaza={x:cx,y:cy};
+    const calendar={
+      home,
+      work:{x:workDoor.x, y:Math.max(1,(workDoor.y|0)-1)},
+      tavern:{x:tavernDoor.x, y:Math.max(1,(tavernDoor.y|0)-1)},
+      sleep:sleepSpot,
+      plaza
+    };
+    const wps=[home, calendar.work, calendar.tavern, plaza, sleepSpot];
     let pace='wander';
     if(sheet==='guard') pace='patrol';
     else if(sheet==='merchant') pace='shop';
     else if(sheet==='mage') pace='study';
-    npcs.push({name:nm, x:nx, y:ny, px:nx, py:ny, sheet, dir:0, frame:0, e:n.e||'👤', home, waypoints:wps, wp:i%wps.length, pace, wait:0});
+    // Seed calendar from pack schedule text if present
+    const sch=n.schedule||[];
+    npcs.push({name:nm, x:nx, y:ny, px:nx, py:ny, sheet, dir:0, frame:0, e:n.e||'👤', home, waypoints:wps, wp:i%wps.length, pace, wait:0, calendar, schedule:sch, roleHint:sheet});
   });
 
   const exits=[];
@@ -1287,34 +1297,64 @@ function phaseNow(){
   }catch(_){ return 'tag'; }
 }
 
+function calendarSlot(n, hour){
+  const cal=n.calendar||{};
+  const h=(hour|0);
+  // Clock-driven daily routine: sleep → work → plaza → tavern → sleep
+  if(h>=22 || h<5) return cal.sleep||cal.home||n.home;
+  if(h>=5 && h<8) return cal.home||n.home;
+  if(n.pace==='shop' || n.roleHint==='merchant'){
+    if(h>=8 && h<18) return cal.work||n.home;
+    if(h>=18 && h<22) return cal.tavern||cal.plaza||n.home;
+  }
+  if(n.pace==='patrol' || n.roleHint==='guard'){
+    if(h>=6 && h<20) return null; // patrol waypoints
+    return cal.sleep||n.home;
+  }
+  if(n.pace==='study' || n.roleHint==='mage'){
+    if(h>=9 && h<17) return cal.work||cal.plaza;
+    if(h>=17 && h<21) return cal.tavern||cal.home;
+    return cal.sleep||n.home;
+  }
+  // villagers
+  if(h>=8 && h<12) return cal.work||cal.plaza||n.home;
+  if(h>=12 && h<14) return cal.tavern||cal.plaza;
+  if(h>=14 && h<18) return cal.plaza||cal.work;
+  if(h>=18 && h<22) return cal.tavern||cal.home;
+  return cal.home||n.home;
+}
 function stepNpcs(dt){
   const phase=phaseNow();
+  let hour=12;
+  try{ const raw=_hooks.getS?.()?.cal?.hour; if(raw!=null && raw!=='') hour=Number(raw)|0; }catch(_){}
   for(const n of _npcs){
     n.wait=(n.wait||0)-dt;
-    // merchants linger near home during day; guards patrol; night → home
     let target=null;
     const wps=n.waypoints||[];
-    if(phase==='nacht'){
-      target=n.home||wps[0];
-    } else if(n.pace==='shop' && (phase==='morgen'||phase==='mittag'||phase==='nachmittag')){
-      target=n.home||wps[0];
+    const slot=calendarSlot(n, hour);
+    if(slot){
+      target=slot;
+      n._calSlot = (hour>=22||hour<5)?'sleep':(hour>=18?'tavern':(hour>=8&&hour<18?'work':'home'));
     } else if(n.wait<=0 && wps.length){
       n.wp=((n.wp|0)+1)%wps.length;
       target=wps[n.wp];
-      n.wait = n.pace==='patrol' ? 0.6+Math.random()*1.2 : 1.5+Math.random()*3;
+      n.wait = n.pace==='patrol' ? 0.55+Math.random()*1.0 : 1.4+Math.random()*2.8;
+      n._calSlot='patrol';
     }
     if(target && !_hero.moving){
       const tx=Math.round(target.x), ty=Math.round(target.y);
       const cx=Math.round(n.x), cy=Math.round(n.y);
       if(cx!==tx || cy!==ty){
         let dx=Math.sign(tx-cx), dy=Math.sign(ty-cy);
-        if(Math.random()<0.45) { /* prefer axis with larger delta */ if(Math.abs(tx-cx)>=Math.abs(ty-cy)) dy=0; else dx=0; }
+        if(Math.random()<0.45) { if(Math.abs(tx-cx)>=Math.abs(ty-cy)) dy=0; else dx=0; }
         else { if(Math.abs(tx-cx)<Math.abs(ty-cy)) dx=0; else dy=0; }
         const nx=cx+dx, ny=cy+dy;
         if(walkable(nx,ny) && !_npcs.some(o=>o!==n&&Math.round(o.x)===nx&&Math.round(o.y)===ny) && !(nx===_hero.x&&ny===_hero.y)){
           if(dx<0)n.dir=1; else if(dx>0)n.dir=2; else if(dy<0)n.dir=3; else n.dir=0;
           n.x=nx; n.y=ny; n.frame=(n.frame+1)%4;
         }
+      } else if(n._calSlot==='sleep' && Math.random()<0.01){
+        /* idle at bed */
       }
     } else if(Math.random()<0.002){
       const d=[[1,0],[-1,0],[0,1],[0,-1]][(Math.random()*4)|0];
@@ -1353,6 +1393,35 @@ function openChestAt(x,y){
   return true;
 }
 
+function resolveQuestMarker(S, mark, label, kind){
+  if(!mark) return null;
+  if(typeof mark.x==='number' && typeof mark.y==='number'){
+    return {x:mark.x|0, y:mark.y|0, label, kind:mark.kind||kind};
+  }
+  if(mark.npc){
+    const want=String(mark.npc).toLowerCase();
+    const npc=_npcs.find(n=>n.name===mark.npc || String(n.name).toLowerCase().includes(want.slice(0,5)) || want.includes(String(n.name).toLowerCase().slice(0,5)));
+    if(npc) return {x:Math.round(npc.x), y:Math.round(npc.y), label, kind:'npc'};
+    // NPC not on this map — drop a hint pin at plaza so the mark still comes from quest data
+    return {x:(_map.w/2)|0, y:((_map.h/2)|0)-1, label, kind:kind||'hint', soft:true, wantNpc:mark.npc};
+  }
+  if(mark.ort){
+    const o=String(mark.ort).toLowerCase();
+    const door=(_map.doors||[]).find(d=>{
+      const blob=(String(d.to||'')+' '+String(d.label||'')).toLowerCase();
+      return blob.includes(o.slice(0,5)) || o.includes(blob.slice(0,5));
+    });
+    if(door) return {x:door.x, y:door.y, label, kind:'door'};
+    const mapName=String(_map?.name||'').toLowerCase();
+    if(mapName.includes(o.slice(0,5)) || o.includes(mapName.slice(0,5))){
+      return {x:(_map.w/2)|0, y:(_map.h/2)|0, label, kind:'ort'};
+    }
+    // Different region — still show soft pin derived from quest.ort (not text heuristic)
+    return {x:(_map.w/2)|0, y:((_map.h/2)|0)+1, label, kind:'ort', soft:true, wantOrt:mark.ort};
+  }
+  if(mark.chest && _chests[0]) return {x:_chests[0].x,y:_chests[0].y,label,kind:'chest'};
+  return null;
+}
 function rebuildQuestMarks(S){
   _questMarks=[];
   if(!S?.quests) return;
@@ -1360,22 +1429,31 @@ function rebuildQuestMarks(S){
   const main=S.quests.main;
   if(main){
     const left=(main.objectives||[]).filter(o=>!(main.done||[]).includes(o));
-    for(const o of left.slice(0,3)){
-      // heuristic: match objective text to door/npc/chest
-      const blob=String(o).toLowerCase();
-      const npc=_npcs.find(n=>blob.includes(String(n.name).toLowerCase().slice(0,4)));
-      if(npc) marks.push({x:Math.round(npc.x), y:Math.round(npc.y), label:o, kind:'npc'});
-      else {
-        const door=(_map.doors||[]).find(d=>blob.includes(String(d.to||d.label||'').toLowerCase().slice(0,5)));
-        if(door) marks.push({x:door.x,y:door.y,label:o,kind:'door'});
-        else if(_chests[0] && /truhe|schatz|gold|suche|find/.test(blob)) marks.push({x:_chests[0].x,y:_chests[0].y,label:o,kind:'chest'});
-        else marks.push({x:_hero.x+2,y:_hero.y-1,label:o,kind:'hint'});
+    const objMarks=main.objectiveMarks||[];
+    left.slice(0,4).forEach((o,i)=>{
+      const explicit=objMarks[i] || (typeof o==='object'?o.marker:null) || main.marker;
+      let hit=resolveQuestMarker(S, explicit, typeof o==='string'?o:(o.label||o.id||'Ziel'), 'main');
+      if(!hit && explicit?.npc){
+        const npc=_npcs.find(n=>String(n.name).toLowerCase().includes(String(explicit.npc).toLowerCase().slice(0,4)));
+        if(npc) hit={x:Math.round(npc.x),y:Math.round(npc.y),label:String(o),kind:'npc'};
       }
-    }
+      if(!hit){
+        // Soft fallback: only if objective text literally contains a present NPC name
+        const blob=String(o).toLowerCase();
+        const npc=_npcs.find(n=>blob.includes(String(n.name).toLowerCase()));
+        if(npc) hit={x:Math.round(npc.x),y:Math.round(npc.y),label:String(o),kind:'npc'};
+      }
+      if(hit) marks.push(hit);
+    });
   }
-  (S.quests.side||[]).filter(q=>q.status==='aktiv'||q.status==='offen').slice(0,3).forEach(q=>{
-    const npc=_npcs[marks.length%Math.max(1,_npcs.length)];
-    if(npc) marks.push({x:Math.round(npc.x), y:Math.round(npc.y)-1, label:q.titel, kind:'side'});
+  (S.quests.side||[]).filter(q=>q.status==='aktiv'||q.status==='offen').slice(0,4).forEach(q=>{
+    const mark=q.marker || (q.npc?{npc:q.npc}:null) || (q.ort?{ort:q.ort}:null);
+    let hit=resolveQuestMarker(S, mark, q.titel, 'side');
+    if(!hit && q.npc){
+      const npc=_npcs.find(n=>n.name===q.npc || String(n.name).toLowerCase().includes(String(q.npc).toLowerCase().slice(0,5)));
+      if(npc) hit={x:Math.round(npc.x), y:Math.round(npc.y)-1, label:q.titel, kind:'side'};
+    }
+    if(hit) marks.push(hit);
   });
   _questMarks=marks;
 }
@@ -1462,7 +1540,8 @@ function ensureDOM(){
           <canvas id="owCanvas" width="390" height="480" aria-label="Weltkarte"></canvas>
           <div class="ow-toolbar">
             <button type="button" class="ow-fs" id="owFullscreen" title="Vollbild" aria-label="Vollbild">⛶</button>
-            <span class="ow-hint" id="owHint">WASD · Enter reden · Esc Menü · T Text</span>
+            <button type="button" class="ow-fs" id="owTravel" title="Reisekarte" aria-label="Reisekarte">🗺</button>
+            <span class="ow-hint" id="owHint">WASD · Enter reden · Esc Menü · T Text · 🗺 Reise</span>
           </div>
           <div class="ow-pad" id="owPad">
             <button type="button" data-dx="0" data-dy="-1" aria-label="Hoch">▲</button>
@@ -1492,6 +1571,7 @@ function ensureDOM(){
   window.addEventListener('resize', ()=>{ fitCanvas(); draw(); });
 
   document.getElementById('owFullscreen')?.addEventListener('click', toggleFullscreen);
+  document.getElementById('owTravel')?.addEventListener('click', ()=>{ try{ _hooks.openTravel?.(); }catch(_){ } });
 
   const pad=document.getElementById('owPad');
   const hold={};
@@ -1573,6 +1653,7 @@ export function mountOverworld(hooks={}){
 }
 
 export function showOverworld(S){
+  try{ window.__game?.UI14?.dismissBegegnung?.(); document.getElementById('begegnung')?.classList.add('hidden'); }catch(_){}
   ensureDOM();
   preload();
   const built=buildMapForLocation(S, S?.world?.scene?.ort);
@@ -1657,7 +1738,7 @@ export function syncDialogueFromVN(){
 }
 
 export function __debug(){
-  return {active:_active, desktop:_desktop, scale:_intScale, view:{w:_viewW,h:_viewH}, hero:{..._hero}, map:{w:_map.w,h:_map.h,name:_map.name,kind:_map.kind,preset:_map.preset,overhead:(_overhead||[]).length}, overhead:_overhead.slice(0,8), npcs:_npcs.map(n=>({name:n.name,x:n.x,y:n.y})), doors:_map.doors, fog:{explored:_explored.size, visible:_visible.size}};
+  return {active:_active, desktop:_desktop, scale:_intScale, view:{w:_viewW,h:_viewH}, hero:{..._hero}, map:{w:_map.w,h:_map.h,name:_map.name,kind:_map.kind,preset:_map.preset,overhead:(_overhead||[]).length}, overhead:_overhead.slice(0,8), npcs:_npcs.map(n=>({name:n.name,x:n.x,y:n.y,slot:n._calSlot,cal:!!n.calendar,pace:n.pace})), questMarks:_questMarks.slice(), chests:_chests.slice(0,8), doors:_map.doors, fog:{explored:_explored.size, visible:_visible.size}};
 }
 export function __tryMove(dx,dy){ return tryMove(dx,dy); }
 export function __talkNearest(){ return talkNearest(); }
