@@ -96,18 +96,30 @@ export function decorateMapIso(root){
   root.classList.add('map-iso-25d');
 }
 
-export function decorateCamp25d(root, home){
+export function decorateCamp25d(root, home, S){
   if(!root) return;
   root.classList.add('camp-25d');
   const stage = home?.stage|0;
+  const dmg = S?.camp?.damage || home?.damage || {};
+  const burnt = (dmg.burnt|0)>0 || !!dmg.palisadeBroken;
+  root.classList.toggle('camp-burnt', burnt);
+  root.classList.toggle('camp-palisade-broken', !!dmg.palisadeBroken);
   if(!root.querySelector('.camp-stage-vis')){
     const vis = document.createElement('div');
-    vis.className = 'camp-stage-vis';
-    vis.innerHTML = `<div class="camp-sky"></div><div class="camp-mid"></div><div class="camp-build s${Math.min(stage,4)}"></div><div class="camp-fg"></div>`;
+    vis.className = 'camp-stage-vis'+(burnt?' is-burnt':'');
+    vis.innerHTML = `<div class="camp-sky"></div><div class="camp-mid"></div><div class="camp-build s${Math.min(stage,4)}"></div><div class="camp-palisade${dmg.palisadeBroken?' broken':''}"></div><div class="camp-ash"${burnt?'':' hidden'}></div><div class="camp-fg"></div>`;
     root.prepend(vis);
   } else {
     const b = root.querySelector('.camp-build');
     if(b) b.className = 'camp-build s'+Math.min(stage,4);
+    const vis = root.querySelector('.camp-stage-vis');
+    if(vis) vis.classList.toggle('is-burnt', burnt);
+    let pal = root.querySelector('.camp-palisade');
+    if(!pal){ pal=document.createElement('div'); pal.className='camp-palisade'; root.querySelector('.camp-stage-vis')?.appendChild(pal); }
+    pal.classList.toggle('broken', !!dmg.palisadeBroken);
+    let ash = root.querySelector('.camp-ash');
+    if(!ash){ ash=document.createElement('div'); ash.className='camp-ash'; root.querySelector('.camp-stage-vis')?.appendChild(ash); }
+    ash.hidden = !burnt;
   }
 }
 

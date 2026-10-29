@@ -157,13 +157,22 @@ export function situationSeed(S, playerAction){
 export function npcDepthBlurb(name, n, S){
   if(!n) return '';
   const layers=[];
-  if(n.backstory) layers.push(`Biografie: ${String(n.backstory).slice(0,160)}`);
-  if(n.wound) layers.push(`Wunde: ${String(n.wound).slice(0,80)}`);
+  const tier=ensureReveal(n);
+  layers.push(`RevealTier ${tier}/3 (nur freigegebene Schichten zeigen)`);
+  const slice=backstorySlice(n, tier);
+  if(slice) layers.push(`Freigegeben: ${String(slice).slice(0,140)}`);
+  if(tier>=1 && n.backstory) layers.push(`Biografie: ${String(n.backstory).slice(0,160)}`);
+  if(tier>=2 && n.wound) layers.push(`Wunde: ${String(n.wound).slice(0,80)}`);
   if(n.desire||n.need) layers.push(`Begehrt: ${n.desire||'—'} / Braucht: ${n.need||'—'}`);
-  if(n.contradiction) layers.push(`Widerspruch: ${String(n.contradiction).slice(0,100)}`);
+  if(tier>=3 && n.contradiction) layers.push(`Widerspruch: ${String(n.contradiction).slice(0,100)}`);
   if(n.speechStyle) layers.push(`Rede: ${String(n.speechStyle).slice(0,100)}`);
   if(Array.isArray(n.samples)&&n.samples.length) layers.push(`Beispiele: ${n.samples.slice(0,2).map(x=>'„'+x+'“').join(' ')}`);
   if(n.quirk) layers.push(`Tick: ${n.quirk}`);
+  // Lived ledger memories — NOT ask-echo
+  try{
+    const lived=livedMemoryFor(S, name, 3);
+    if(lived.length) layers.push(`Gelebtes Gedächtnis: ${lived.map(x=>x.text).join(' · ')}`);
+  }catch(_){}
   const secrets=n.secrets||(n.geheimnis||n.geheim?[n.geheimnis||n.geheim]:[]);
   if(secrets[0] && (S?.romance?.[name]?.trust|0)>=8) layers.push(`Geheimnis (Spieler ahnt): ${String(secrets[0]).slice(0,100)}`);
   else if(secrets[0]) layers.push(`Geheimnis (NICHT verraten außer Trust hoch / Szene erzwingt): Schicht1 vorhanden`);
@@ -180,6 +189,101 @@ export function presentNpcDepth(S){
   return here.slice(0,4).map(n=>npcDepthBlurb(n, S.world?.npcs?.[n], S)).filter(Boolean).join('\n');
 }
 
+
+/** v35: large genre-appropriate first+surname pools (culture-flavoured) */
+export const NAME_POOLS={
+  highfantasy:{first:['Elara','Theron','Lyraelle','Kael','Seraphine','Gideon','Isolde','Rowan','Maelis','Aldric','Fenrir','Sylwen','Briar','Cassian','Orla','Torvin','Eowyn','Draven','Mirabel','Halvard','Ysolde','Cedric','Nimue','Bjorn','Aurelia','Faelan','Ragna','Lucan','Thalia','Emrys','Vespera','Oskar','Celeste','Gareth','Iona','Percival','Maeve','Alaric','Rhiannon','Tobias','Freya','Dorian','Astrid','Edmund','Sigrid','Quentin','Liora','Wulfric','Nora','Leif'],
+    sur:['von Sternenfels','Silberklingen','Eichenherz','Mondthal','Drachenwacht','Lichtbringer','Steintrotz','Nebelwald','Feuerfeder','Kronenwacht','Runenschmied','Adlerflug','Goldblatt','Schattenmoor','Himmelsstein','Wolkenbruch','Nachtweide','Sonnenspeer','Talwächter','Flusskind','Bergsohn','Windrufer','Sternenseher','Eisenhand','Blütenpfad','Frostbart','Glutader','Saphirhüter','Rabenschwung','Elfenbein']},
+  darkfantasy:{first:['Morrigan','Vael','Ashen','Nyxara','Corvin','Lilith','Thorne','Isolde','Malachar','Ravenna','Draven','Selene','Orin','Hexa','Bane','Vespera','Kaelith','Grim','Sable','Umbra','Noctis','Belladonna','Wraith','Ebon','Scarlet','Dusk','Mire','Cain','Ophelia','Voss'],
+    sur:['Blutmoor','Aschenkrone','Knochenbruch','Nebelgrab','Schwarzfeder','Dornenwacht','Flüsterwald','Grabesruh','Nachtfluch','Eisenketten','Totentanz','Mondriss','Giftkelch','Schattenkuss','Ruinenkind','Hexenbrand','Leichenpfad','Galgenson','Düsterfels','Krähenruf']},
+  zombie:{first:['Maya','Jordan','Chris','Sam','Alex','Riley','Casey','Morgan','Taylor','Jamie','Drew','Quinn','Avery','Reese','Cameron','Harper','Parker','Skyler','Finley','Blake','Dana','Kelly','Robin','Shawn','Tracy','Jessie','Pat','Leslie','Sandy','Kim'],
+    sur:['Walker','Brooks','Nguyen','Park','Reyes','Coleman','Hayes','Singh','Okada','Martinez','Foster','Bennett','Cruz','Patel','Kimura','Okafor','Sullivan','Chen','Dubois','Kowalski','Bergström','Rossi','Andersen','Petrov','Moreau','Vargas','Ibrahim','Novak','Costa','Nakamura']},
+  cyberpunk:{first:['Neon','Zero','Kai','Suki','Jinx','Vex','Rin','Nova','Ash','Byte','Lux','Echo','Nyx','Rex','Ivy','Orbit','Glitch','Pixel','Storm','Chrome','Jade','Spike','Rogue','Silk','Drift','Flux','Hex','Prism','Volt','Cipher'],
+    sur:['Nakamura','Kovacs','Wei','Santos','Okoro','Vega','Chen','Hassan','Schwarz','Morales','Park','Ivanov','Almeida','Kim','Torres','Sato','Berg','Diaz','Nguyen','Rossi','Lee','Petrov','Silva','Yamamoto','Khan','Fischer','Costa','Ali','Müller','Tanaka']},
+  desert:{first:['Zahra','Rashid','Amira','Karim','Layla','Omar','Yasmin','Farid','Noor','Samir','Leila','Hassan','Amina','Tariq','Safiya','Idris','Nadia','Malik','Rana','Yusuf'],
+    sur:['Al-Sahra','ibn Karawan','Sandwacht','Oasenruh','Dünenläufer','Brunnentöchter','Sonnenbrand','Wüstenrose','Karawanensohn','Mirage','Kamelritt','Wasserhüter','Staubpfad','Skorpionhand','Nachtstern']},
+  survival:{first:['Ash','Fern','River','Brook','Hunt','Sage','Clay','Reed','Moss','Glen','Sky','Dawn','Stone','Willow','Fox','Hawk','Birch','Dale','Pike','Wren'],
+    sur:['Waldläufer','Moosbart','Flusspfad','Steinkluft','Feuerhüter','Beerenhand','Fährtenleser','Nordwind','Tannensohn','Nebelsteig']},
+  default:{first:['Ava','Ren','Kai','Mira','Jon','Sera','Viktor','Lina','Omar','Nyx','Pia','Theo','Eira','Cruz','Yuna','Baz','Vera','Nils','Suri','Jax','Elena','Marcus','Sofia','Leo','Nora','Diego','Ines','Hugo','Clara','Felix'],
+    sur:['Hartmann','Keller','Weber','Schulz','Braun','Hoffmann','Richter','Klein','Wolf','Schröder','Neumann','Schwarz','Zimmermann','Krüger','Hartmann','Lange','Werner','Jäger','Lehmann','König']}
+};
+
+export function pickGenreName(genre, seedStr=''){
+  const g=String(genre||'').toLowerCase();
+  let pool=NAME_POOLS.default;
+  if(/high|fantasy|held|elf|zwerg|magie/.test(g) && !/dark/.test(g)) pool=NAME_POOLS.highfantasy;
+  else if(/dark|daemon|dämon|horror|blood/.test(g)) pool=NAME_POOLS.darkfantasy;
+  else if(/zombie|apokal|seuche|undead/.test(g)) pool=NAME_POOLS.zombie;
+  else if(/cyber|neon|netz|punk/.test(g)) pool=NAME_POOLS.cyberpunk;
+  else if(/desert|wüste|sand/.test(g)) pool=NAME_POOLS.desert;
+  else if(/survival|wildnis|überleben/.test(g)) pool=NAME_POOLS.survival;
+  const h=Math.abs(hash(String(seedStr||Math.random())+g));
+  const first=pool.first[h%pool.first.length];
+  const sur=pool.sur[(h>>5)%pool.sur.length];
+  return first+' '+sur;
+}
+
+/** Lived events only — skip ask-echo / meta intent tags */
+export function livedMemoryFor(S, npcName, limit=3){
+  const npc=S?.world?.npcs?.[npcName];
+  const out=[];
+  const skip=/^(greet|ask|ask_who|talk|act|look|rest|buy|wait|need|move|romance|flee|train|use|take)\s*:/i;
+  // Any "Du hast …" is a player-action echo, not lived NPC life
+  const playerEcho=/^Du hast\b|gefragt:\s*[„"]|erinnert sich an euer Gespräch|^Begegnung:\s*Gruß/i;
+  const isLivedTxt=t=>/Offscreen|Leben|Raid|Überfall|starb|schenkte|kämpfte|reiste|arbeitete|baute|plünder|Brand|Palisade|Ziel:|Wund|aufgewachsen|traf |ging |hörte |Alltag/i.test(t);
+  const push=(text,type,meta={})=>{
+    const t=String(text||'').replace(/^\[[^\]]+\]\s*/,'').slice(0,100);
+    if(!t||skip.test(t)||playerEcho.test(t)) return false;
+    if(out.some(x=>x.text===t)) return false;
+    out.push({text:t, type:type||'life', day:meta.day, where:meta.where, emotion:meta.emotion});
+    return out.length>=limit;
+  };
+  // 1) NPC memories typed life / matching lived text (prefer these)
+  if(npc){
+    const mems=[...(npc.memories||[])];
+    // Prefer Offscreen/Raid/Ziel seeds before later Begegnung notes
+    const scored=mems.map((m,i)=>({m,i,raw:typeof m==='string'?m:(m?.text||'')})).filter(x=>x.raw);
+    scored.sort((a,b)=>{
+      const score=r=>(/Offscreen|Raid|Überfall|Ziel:|Wund|aufgewachsen/i.test(r.raw)?50:0)+((r.m.type&&/life|raid|home|offscreen|death|work/i.test(r.m.type))?20:0)+(isLivedTxt(r.raw)?10:0)-r.i*0.01;
+      return score(b)-score(a);
+    });
+    for(const {m,raw} of scored.filter(x=>(x.m.type&&/life|raid|home|offscreen|death|work/i.test(x.m.type))||isLivedTxt(x.raw)||/Offscreen|Ziel:/i.test(x.raw))){
+      if(push(raw, m.type||'life', {day:m.t?.day, where:m.where, emotion:m.emotion})) return out;
+    }
+  }
+  // 2) Ledger lived events
+  const led=(S?.ledger||[]).filter(e=>{
+    if(!e||!e.what) return false;
+    if(playerEcho.test(e.what)||skip.test(e.what)) return false;
+    if(e.type==='memory' && playerEcho.test(e.what)) return false;
+    const about=e.meta?.about;
+    const involved=e.who===npcName || about===npcName || (e.witnesses||[]).includes(npcName);
+    const typed=/raid|death|crime|home|work|quest|gift|kampf|handel|reise|offscreen|leben|life/i.test(e.type||'');
+    return (involved && (typed||isLivedTxt(e.what))) || (typed && isLivedTxt(e.what));
+  }).slice(-40);
+  for(const e of led.reverse()){
+    if(push(e.what, e.type, {day:e.t?.day, where:e.where, emotion:e.emotion})) return out;
+  }
+  // 3) Fallback: any non-echo memory with substance
+  if(npc){
+    for(const m of [...(npc.memories||[])].reverse()){
+      const raw=typeof m==='string'?m:(m?.text||'');
+      if(!raw||playerEcho.test(raw)) continue;
+      if(raw.length<20) continue;
+      if(push(raw, m.type||'mem', {day:m.t?.day, where:m.where})) return out;
+    }
+  }
+  return out;
+}
+
+export function livedMemoryLine(S, npcName){
+  const lived=livedMemoryFor(S, npcName, 2);
+  if(!lived.length) return '';
+  const L=lived[0];
+  const when=L.day!=null?` (Tag ${L.day})`:'';
+  return `${npcName} erinnert sich an gelebtes: ${L.text}${when}`;
+}
+
 /** Procedural layered NPC from trait combos */
 export function generateProcNpc(seed, ort, genre){
   const traits=['verschlossen','impulsiv','fromm','zynisch','fürsorglich','ehrgeizig','ängstlich','tapfer','geizig','großzügig'];
@@ -190,9 +294,8 @@ export function generateProcNpc(seed, ort, genre){
   const t1=traits[h%traits.length], t2=traits[(h>>3)%traits.length];
   const wound=wounds[(h>>5)%wounds.length];
   const desire=desires[(h>>7)%desires.length], need=needs[(h>>9)%needs.length];
-  const names=[['Mira','w'],['Jorn','m'],['Sera','w'],['Bram','m'],['Nyx','w'],['Otto','m'],['Lina','w'],['Kai','m']];
-  const [name0,g]=names[h%names.length];
-  const name=name0+'-'+(h%97);
+  const full=pickGenreName(genre, seed+ort); const name0=full.split(' ')[0]; const g=(h%2)?'w':'m';
+  const name=full;
   return {
     e:'👤', art:`${t1}, ${t2}. ${wound}.`, stimme:t1==='zynisch'?'trocken':'ruhig',
     ziel:desire, furcht:need, geheimnis:`Verbirgt: ${wound}`,
@@ -245,6 +348,7 @@ export function homeStatusLine(S){
   if((S.camp?.raidThreat|0)>40) bits.push('⚠️ Raid-Gefahr');
   if(S.flags?.atHome) bits.push('du bist hier');
   if((S.camp?.upgrades||[]).length) bits.push('Upgrades: '+S.camp.upgrades.slice(0,4).join(','));
+  try{ const dl=campDamageLine(S); if(dl) bits.push(dl);}catch(_){}
   return 'CAMP: '+bits.filter(Boolean).join(' · ');
 }
 
@@ -259,7 +363,8 @@ export function ensureDeepNeeds(S){
   if(S.needs.stress==null) S.needs.stress=35;
   if(S.needs.billsDue==null) S.needs.billsDue=0;
   S.life=S.life||{lastMeal:null,lastBath:null,lastTalk:null,lastWork:null,lastFight:null,reputationLocal:0,debts:[],favors:[],routines:[],illness:null,injury:null,comfort:0};
-  S.camp=S.camp||{upgrades:[],morale:40,watch:false,garden:0,stash:[],raidThreat:0};
+  S.camp=S.camp||{upgrades:[],morale:40,watch:false,garden:0,stash:[],raidThreat:0,damage:{burnt:0,palisadeBroken:false,tasks:[]}};
+  if(!S.camp.damage) S.camp.damage={burnt:0,palisadeBroken:false,tasks:[]};
   return S.needs;
 }
 
@@ -368,14 +473,84 @@ export function maybeHomeRaid(S){
     : ` Wache/Palisade oder Anwesenheit hätten geholfen.`;
   const stashBit=stashLost?` Vorräte geplündert (${stashLost}).`:'';
   const text=`Überfall auf dein Camp (${kind}, ${where})! Verteidigung ${(def*100)|0}%. Verlust: ${loss} Gold.${stashBit}${tip}`;
+  // v35: visible camp damage + repair tasks
+  S.camp=S.camp||{upgrades:[],morale:40,watch:false,garden:0,stash:[],raidThreat:0,damage:{burnt:0,palisadeBroken:false,tasks:[]}};
+  if(!S.camp.damage) S.camp.damage={burnt:0,palisadeBroken:false,tasks:[]};
+  S.camp.damage=S.camp.damage||{burnt:0,palisadeBroken:false,tasks:[]};
+  const dmg=S.camp.damage;
+  dmg.burnt=Math.min(3,(dmg.burnt|0)+1);
+  dmg.lastRaidDay=(S.cal?.day||S.time?.day||1);
+  dmg.lastKind=kind;
+  if(!b.defence || Math.random()<0.45){
+    dmg.palisadeBroken=true;
+    // Remove palisade upgrade until repaired
+    if(Array.isArray(S.camp.upgrades)) S.camp.upgrades=S.camp.upgrades.filter(u=>u!=='palisade');
+  }
+  const tasks=new Set(dmg.tasks||[]);
+  tasks.add('palisade_repair');
+  if(dmg.burnt>=1) tasks.add('clear_ash');
+  if(stashLost) tasks.add('restock_stash');
+  if((S.home.stage|0)>1 && Math.random()<0.35) tasks.add('rebuild_wall');
+  dmg.tasks=[...tasks];
+  const dmgTip=dmg.palisadeBroken?' Palisade verkohlt — reparieren!':' Brandspuren am Lager.';
+  const text2=text+dmgTip;
   try{
-    // Ledger news so markets/world feel it
     if(typeof window!=='undefined' && window.__game?.Sim?.ledgerPush){
-      window.__game.Sim.ledgerPush(S,{type:'raid',who:kind,what:text,where:S.home.location,importance:65,emotion:'Angst',meta:{away:!atHome,loss,defence:!!b.defence}});
+      window.__game.Sim.ledgerPush(S,{type:'raid',who:kind,what:text2,where:S.home.location,importance:65,emotion:'Angst',meta:{away:!atHome,loss,defence:!!b.defence,burnt:dmg.burnt,palisadeBroken:dmg.palisadeBroken,tasks:dmg.tasks.slice()}});
     }
   }catch(_){}
-  return {text, loss, kind: atHome?'raid':'raid_away', line:`Dein ${b.label} wurde ${(atHome?'angegriffen':'in deiner Abwesenheit geplündert')}`+(loss?` (−${loss} Gold)`:'')+'.', goldLost:loss, away:!atHome, held:false, stashLost};
+  return {text:text2, loss, kind: atHome?'raid':'raid_away', line:`Dein ${b.label} wurde ${(atHome?'angegriffen':'in deiner Abwesenheit geplündert')}`+(loss?` (−${loss} Gold)`:'')+'.'+dmgTip, goldLost:loss, away:!atHome, held:false, stashLost, damage:Object.assign({},dmg)};
 }
+
+/** Repair a camp damage task */
+export function campRepairOptions(S){
+  const d=S?.camp?.damage||{tasks:[]};
+  const map={
+    palisade_repair:{id:'palisade_repair',name:'Palisade reparieren',need:1,gold:25,wood:4,desc:'Verkohlte Palisade ersetzen'},
+    clear_ash:{id:'clear_ash',name:'Asche räumen',need:0,gold:0,wood:0,desc:'Brandspuren beseitigen'},
+    restock_stash:{id:'restock_stash',name:'Vorrat auffüllen',need:0,gold:15,wood:0,desc:'Geplünderte Truhe neu füllen'},
+    rebuild_wall:{id:'rebuild_wall',name:'Mauer flicken',need:1,gold:20,wood:3,desc:'Eingestürzte Wand richten'}
+  };
+  return (d.tasks||[]).map(id=>map[id]).filter(Boolean);
+}
+export function applyCampRepair(S, id){
+  ensureDeepNeeds(S);
+  const opt=campRepairOptions(S).find(u=>u.id===id);
+  if(!opt) return {ok:false,text:'Nichts zu reparieren.'};
+  if((S.st?.gold|0)<(opt.gold|0)) return {ok:false,text:`Zu wenig Gold (${opt.gold}).`};
+  const wood=S.home?.materials?.wood|0;
+  if((opt.wood|0)>wood) return {ok:false,text:`Zu wenig Holz (${opt.wood}).`};
+  if(S.st) S.st.gold-=opt.gold|0;
+  if(opt.wood && S.home?.materials) S.home.materials.wood=Math.max(0,wood-opt.wood);
+  S.camp.damage=S.camp.damage||{burnt:0,palisadeBroken:false,tasks:[]};
+  S.camp.damage.tasks=(S.camp.damage.tasks||[]).filter(t=>t!==id);
+  if(id==='palisade_repair'){
+    S.camp.damage.palisadeBroken=false;
+    S.camp.upgrades=S.camp.upgrades||[];
+    if(!S.camp.upgrades.includes('palisade')) S.camp.upgrades.push('palisade');
+  }
+  if(id==='clear_ash') S.camp.damage.burnt=Math.max(0,(S.camp.damage.burnt|0)-1);
+  if(id==='rebuild_wall' && (S.home.stage|0)<5){ /* restore soft stage loss already applied */ }
+  if(!(S.camp.damage.tasks||[]).length && !(S.camp.damage.burnt>0) && !S.camp.damage.palisadeBroken){
+    S.camp.damage.burnt=0;
+  }
+  S.camp.morale=Math.min(100,(S.camp.morale|0)+6);
+  try{
+    if(typeof window!=='undefined' && window.__game?.Sim?.ledgerPush){
+      window.__game.Sim.ledgerPush(S,{type:'home',who:S.pc?.name||'Du',what:`Reparatur: ${opt.name}.`,where:S.home?.location,importance:40,emotion:'entschlossen'});
+    }
+  }catch(_){}
+  return {ok:true,text:`Reparatur erledigt: ${opt.name}. Camp sieht wieder bewohnbarer aus.`, id};
+}
+export function campDamageLine(S){
+  const d=S?.camp?.damage; if(!d) return '';
+  const bits=[];
+  if(d.palisadeBroken) bits.push('Palisade verkohlt');
+  if((d.burnt|0)>0) bits.push(`Brandspuren×${d.burnt}`);
+  if((d.tasks||[]).length) bits.push(`${d.tasks.length} Reparatur(en)`);
+  return bits.length?('🏕️ Schaden: '+bits.join(', ')):'';
+}
+
 
 /** Offline high-quality fragments */
 export const OFFLINE_FRAGMENTS={
@@ -410,6 +585,7 @@ export default {
   styleBible, capabilityBlock, situationSeed, npcDepthBlurb, presentNpcDepth,
   generateProcNpc, homeBenefits, homeStatusLine, ensureDeepNeeds, tickNeedsDeep,
   maybeHomeRaid, offlineFlavor, OFFLINE_FRAGMENTS,
-  ensureReveal, bumpReveal, backstorySlice,
+  ensureReveal, bumpReveal, backstorySlice, NAME_POOLS, pickGenreName, livedMemoryFor, livedMemoryLine,
+  campRepairOptions, applyCampRepair, campDamageLine,
   fightDesignBlock, lifeStatusLine, campUpgradeOptions, applyCampUpgrade, restAtHomeDeep
 };

@@ -66,10 +66,19 @@ export function richOfflineProse(S, playerAction, opts={}){
   const label=opts.label||who||'jemand';
   const art=String(npc?.art||npc?.stimme||'').split(/[.;]/)[0].trim().slice(0,90);
   const mood=npc?.mood||'neutral';
-  const memRaw=(npc?.memories||[]).slice(-1)[0];
-  let mem=cleanSnippet(typeof memRaw==='string'?memRaw:(memRaw?.text||''));
-  // Skip meta intent tags like "greet: hallo" / "act: ich warte" — they read as system spam
+  let mem='';
+  try{
+    const Depth=window.__game?.Depth;
+    if(who && Depth?.livedMemoryLine){ mem=Depth.livedMemoryLine(S,who)||''; }
+    if(!mem && who && Depth?.livedMemoryFor){ const L=Depth.livedMemoryFor(S,who,1); if(L[0]) mem=`${label} erinnert sich an gelebtes: ${L[0].text}`; }
+  }catch(_){}
+  if(!mem){
+    const memRaw=(npc?.memories||[]).slice(-1)[0];
+    mem=cleanSnippet(typeof memRaw==='string'?memRaw:(memRaw?.text||''));
+  }
+  // Skip meta intent tags / ask-echo
   if(/^(greet|ask|ask_who|talk|act|look|rest|buy|wait|need|move|romance|flee|train|use|take)\s*:/i.test(mem)) mem='';
+  if(/Du hast .+ gefragt|gefragt:\s*[„"]|erinnert sich an euer Gespräch/i.test(mem)) mem='';
   const act=String(playerAction||'').trim().slice(0,120);
   const tone=String(S.world?.lore?.ton||S.genre||'').slice(0,60);
 
@@ -104,9 +113,9 @@ export function richOfflineProse(S, playerAction, opts={}){
     try{ back=window.__game?.Depth?.backstorySlice?.(npc,tier)||''; }catch(_){}
     if(!back) back=String(npc.backstory||'').split(/[.;]/)[0].slice(0,100);
     lines.push(art?`${label} (${art}${style?', '+style:''}) bleibt in ${ort}.`:`${label} bleibt dir in ${ort} zugewandt.`);
-    if(mem) lines.push(Math.random()<0.72
-      ? `${label} erinnert sich: ${mem}`
-      : `Ein Blick sagt: ihr habt schon miteinander gesprochen.`);
+    if(mem) lines.push(/gelebtes:/i.test(mem)?mem:(Math.random()<0.72
+      ? `${label} erinnert sich an Gelebtes: ${mem}`
+      : `Ein Blick sagt: die gemeinsame Geschichte wiegt mehr als Worte.`));
     if(back) lines.push(tier>=2?`Zwischen den Zeilen: ${back}.`:`Ein Hauch von Wahrheit: ${back}`);
     if(isQ){
       const topic=act.replace(/^[„"]?/,'').slice(0,80);

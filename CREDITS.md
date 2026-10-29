@@ -1,4 +1,4 @@
-# Pixel Art Credits (v26–v34)
+# Pixel Art Credits (v26–v35)
 
 All art under `assets/pixel/` is derived from the following sources. Original
 pack archives are **not** committed; only cropped/composited game assets are.
@@ -72,3 +72,7 @@ Rebuilt denser exterior crops from LPC city_outside / cottage / thatched-roof / 
 
 ## v34 house density
 All `housebig*` / `hall*` rebuilt to ≥~0.85 opaque fill with consistent window/door/chimney overlays from LPC city/cottage sources (CC-BY).
+
+
+## v35 architecture variants
+Genre packs `arch_fan*`, `arch_zom*`, `arch_cyb*`, `arch_des*`, `arch_dark*` plus `housebig8–15` / `hall4–7` cropped from LPC city/cottage/desert (CC-BY) with genre accents.

@@ -177,6 +177,8 @@ export function buildTurnUserMessage(S, playerAction, extras={}){
   if(extras.heat)bits.push(String(extras.heat).slice(0,120));
   if(extras.state)bits.push(String(extras.state).slice(0,180));
   if(extras.quest)bits.push(String(extras.quest).slice(0,160));
+  // v35: leanLore carries NPC depth / lived memory / camp damage — must reach online narrators
+  if(extras.leanLore)bits.push(String(extras.leanLore).slice(0,1600));
   bits.push(storyStandBlock(S));
   bits.push(chapterBlock(S));
   bits.push('LETZTE ZÜGE (wörtlich):\n'+verbatimBlock(S,MAX_VERBATIM));
@@ -189,8 +191,9 @@ export function buildTurnUserMessage(S, playerAction, extras={}){
     const scene=currentSceneBlock(S);
     const verb='LETZTE ZÜGE:\n'+verbatimBlock(S,6);
     const stand=storyStandBlock(S);
+    const depth=String(extras.leanLore||'').slice(0,700);
     const act=(extras.isGrey?'DIE SPIELFIGUR':'DER SPIELER')+' sagt/tut GENAU: „'+String(playerAction||'')+'“\n'+OBEY;
-    out=[stand,verb,String(extras.state||'').slice(0,140),scene,act].join('\n\n').slice(0,TOKEN_BUDGET_CHARS);
+    out=[stand,verb,String(extras.state||'').slice(0,140),depth,scene,act].filter(Boolean).join('\n\n').slice(0,TOKEN_BUDGET_CHARS);
   }
   return out;
 }

@@ -55,8 +55,20 @@ const DECOR = {
   house7: './assets/pixel/decor/house7.png',
   house8: './assets/pixel/decor/house8.png',
 };
-const HOUSE_BIG = Array.from({length:8},(_,i)=>`./assets/pixel/decor/housebig${i}.png`);
-const HALL_BIG = Array.from({length:4},(_,i)=>`./assets/pixel/decor/hall${i}.png`);
+const HOUSE_BIG = Array.from({length:16},(_,i)=>`./assets/pixel/decor/housebig${i}.png`);
+const HALL_BIG = Array.from({length:8},(_,i)=>`./assets/pixel/decor/hall${i}.png`);
+/** v35 genre-unique architecture pools */
+const ARCH_GENRE = {
+  fantasy: Array.from({length:6},(_,i)=>`./assets/pixel/decor/arch_fan${i}.png`),
+  highfantasy: Array.from({length:6},(_,i)=>`./assets/pixel/decor/arch_fan${i}.png`),
+  held: Array.from({length:6},(_,i)=>`./assets/pixel/decor/arch_fan${i}.png`),
+  darkfantasy: Array.from({length:4},(_,i)=>`./assets/pixel/decor/arch_dark${i}.png`),
+  daemon: Array.from({length:4},(_,i)=>`./assets/pixel/decor/arch_dark${i}.png`),
+  zombie: Array.from({length:5},(_,i)=>`./assets/pixel/decor/arch_zom${i}.png`),
+  cyberpunk: Array.from({length:5},(_,i)=>`./assets/pixel/decor/arch_cyb${i}.png`),
+  desert: Array.from({length:4},(_,i)=>`./assets/pixel/decor/arch_des${i}.png`),
+  postapoc: Array.from({length:5},(_,i)=>`./assets/pixel/decor/arch_zom${i}.png`),
+};
 const ANIM = {
   flower: './assets/pixel/anim/flower.png',
   torch: './assets/pixel/anim/torch.png',
@@ -138,6 +150,7 @@ function preload(){
   Object.values(DECOR).forEach(loadImg);
   Object.values(ANIM).forEach(loadImg);
   HOUSE_BIG.forEach(loadImg); HALL_BIG.forEach(loadImg);
+  Object.values(ARCH_GENRE).forEach(arr=>arr.forEach(loadImg));
   loadImg('./assets/pixel/hero/walk.png');
   loadImg(WATER_ANIM);
   for(const pack of Object.values(GENRE_SET)){
@@ -271,8 +284,17 @@ export function buildMapForLocation(S, ort){
     fill(bx,by,bw,bh,'house');
     // tile overlays for close-up; big sprite for density
     for(let j=0;j<Math.min(3,bh);j++) for(let i=0;i<Math.min(3,bw);i++) ov(bx+i,by+j,'house'+(j*3+i));
-    const variant=(opts.variant!=null)?opts.variant:(hash(label+bx+by)% (opts.hall?4:8));
-    const src=opts.hall?HALL_BIG[variant%4]:HOUSE_BIG[variant%8];
+    const variant=(opts.variant!=null)?opts.variant:(hash(label+bx+by)% (opts.hall?8:16));
+    let src;
+    if(opts.hall){ src=HALL_BIG[variant%HALL_BIG.length]; }
+    else {
+      const gPool=ARCH_GENRE[_genre]||ARCH_GENRE[String(_genre||'').toLowerCase()]||null;
+      if(gPool && gPool.length && (hash(label+_genre)%3!==0)){
+        src=gPool[variant%gPool.length];
+      } else {
+        src=HOUSE_BIG[variant%HOUSE_BIG.length];
+      }
+    }
     overhead.push({x:bx, y:by, src, tw:opts.hall?4:3, th:3});
     // chimney smoke
     anim(bx+bw-1, by, 'smoke');
@@ -660,6 +682,8 @@ export function buildMapForLocation(S, ort){
     placeHouse(w-6, ht-7, 'Laden', {variant:6});
     placeHouse(cx-8, cy-2, 'Bibliothek', {variant:2});
     placeHouse(cx+5, cy-2, 'Wachstube', {variant:3});
+    placeHouse(cx-10, ht-8, 'Handwerkerhaus', {variant:8});
+    placeHouse(cx+6, ht-8, 'Nachbarhaus', {variant:11});
     for(let i=0;i<w;i++){ if(i%3===0){ tiles[0][i]='tree'; tiles[ht-1][i]='tree'; } }
     fill(w-8, 3, 4, 3, 'water');
     scatterGrass();

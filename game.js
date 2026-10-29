@@ -25,9 +25,9 @@ import * as OW from './overworld.js';
 import * as Aud from './audio.js';
 import { hasBg } from './bg-manifest.js';
 try{ Aud.unlockOnGesture?.(); }catch(_){} // v28 first-tap music
- // v34: gradual backstory, rich askNPC, away-raids, evocative starts, houses, airship replay
+ // v35: genre name pools, ledger memory, camp damage, arch variants, online NPC depth
 const $=s=>document.querySelector(s);const $$=s=>[...document.querySelectorAll(s)];const R=a=>a[Math.floor(Math.random()*a.length)];const rnd=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
-const VER='34',CACHE_V='v34';
+const VER='35',CACHE_V='v35';
 const ROLES={
  held:{e:'⚔️',name:'Held mit Status-System',d:'Ein blaues Fenster erscheint: [Status]. Die Welt braucht dich.',world:'Königreich Aldheim',
   base:{hp:100,mp:40,str:12,cha:8,ruf:10,gold:40},cls:['Abenteurer','Ritter','Held','Legendärer Held'],pack:'worlds/held.json',
@@ -700,6 +700,7 @@ function migrate(raw){if(!raw)return null;const s=typeof raw==='string'?JSON.par
  if(Number(s.ver)<32){s.ver=32;s.flags=s.flags||{};s.flags.travel=s.flags.travel||{airship:false,boatPass:false};s.market=s.market||null;try{Econ.ensureMarket?.(s)}catch(_){}}
  if(Number(s.ver)<33){s.ver=33;s.flags=s.flags||{};s.flags.travel=s.flags.travel||{airship:false,boatPass:false};try{Econ.ensureMarket?.(s);Econ.marketFromLedger?.(s)}catch(_){}; try{ enrichPlaceDescs?.(s) }catch(_){} }
  if(Number(s.ver)<34){s.ver=34;s.flags=s.flags||{};s.flags.travel=s.flags.travel||{airship:false,boatPass:false};try{Econ.ensureMarket?.(s);Econ.marketFromLedger?.(s)}catch(_){}; try{ enrichPlaceDescs?.(s) }catch(_){}; for(const n of Object.values(s.world?.npcs||{})){ if(n&&n.revealTier==null) n.revealTier=0; } }
+ if(Number(s.ver)<35){s.ver=35;s.camp=s.camp||{upgrades:[],morale:40,watch:false,garden:0,stash:[],raidThreat:0}; if(s.camp.damage==null)s.camp.damage={burnt:0,palisadeBroken:false,tasks:[]}; for(const n of Object.values(s.world?.npcs||{})){ if(n&&n.revealTier==null) n.revealTier=0; } try{Econ.ensureMarket?.(s)}catch(_){} }
  // v13.1 continuity+time always (kept in v14)
  try{Cont.ensureCont(s);if(s.cal&&s.cal.minute==null)s.cal.minute=0;if(s.cfgCatchupOptIn==null)s.cfgCatchupOptIn=false}catch(e){console.warn('cont migrate',e)}
  // Heal incomplete worlds from old saves (missing orte/graph)
@@ -740,7 +741,7 @@ function buildQuests(pack){const arc=pack.arc||{titel:'Hauptgeschichte',acts:[]}
   })}}
 
 function buildWorldFromPack(pack,role){const npcs={};
- for(const[k,v]of Object.entries(pack.npcs||{})){npcs[k]={art:v.art||v.stimme||'',stimme:v.stimme||'',ziel:v.ziel||'',furcht:v.furcht||'',geheimnis:v.geheim||v.geheimnis||'',beziehung:'Fremd',erinnerung:[],memories:[],e:v.e||'👤',ort:v.ort||v.home||'',home:v.home||v.ort||'',plan:[...(v.plan||[])],meinung:v.meinung||{},relations:v.relations||v.meinung||{},romance:!!v.romance,adult:v.adult!==false,geschlecht:v.geschlecht||'',schedule:v.schedule||[],mood:v.mood||'neutral',goals:v.goals||(v.ziel?[String(v.ziel).slice(0,80)]:[]),portrait:v.portrait||'',alive:true,lastSeen:{ort:v.ort||v.home||'',zeit:'',day:1}}}
+ for(const[k,v]of Object.entries(pack.npcs||{})){npcs[k]={art:v.art||v.stimme||'',stimme:v.stimme||'',ziel:v.ziel||'',furcht:v.furcht||'',geheimnis:v.geheim||v.geheimnis||'',beziehung:'Fremd',erinnerung:Array.isArray(v.erinnerung)?v.erinnerung.slice():[],memories:Array.isArray(v.memories)?v.memories.slice():[],e:v.e||'👤',ort:v.ort||v.home||'',home:v.home||v.ort||'',plan:[...(v.plan||[])],meinung:v.meinung||{},relations:v.relations||v.meinung||{},romance:!!v.romance,adult:v.adult!==false,geschlecht:v.geschlecht||'',schedule:v.schedule||[],mood:v.mood||'neutral',goals:v.goals||(v.ziel?[String(v.ziel).slice(0,80)]:[]),portrait:v.portrait||'',alive:true,lastSeen:{ort:v.ort||v.home||'',zeit:'',day:1},backstory:v.backstory,wound:v.wound,desire:v.desire,need:v.need,contradiction:v.contradiction,speechStyle:v.speechStyle||v.stimme,samples:v.samples,quirk:v.quirk,secrets:v.secrets,questLine:v.questLine,roleReactions:v.roleReactions,revealTier:v.revealTier|0,procedural:!!v.procedural}}
  const orte={};for(const[k,v]of Object.entries(pack.regionen||pack.orte||{}))orte[k]=typeof v==='string'?v:v;
  const graph=pack.locations?JSON.parse(JSON.stringify(pack.locations)):null;if(graph){for(const[name,node]of Object.entries(graph.nodes||{})){if(!orte[name])orte[name]=node.desc||''}} enrichNpcs({npcs});
  return {scene:JSON.parse(JSON.stringify(pack.startScene||{ort:(graph&&graph.start)||'',zeit:'',anwesend:[]})),orte,npcs,graph,genre:pack.genre||S?.genre||null,systems:pack.systems||null,ereignisse:[...(pack.startEvents||[])],lore:{geschichte:pack.geschichte||'',magie:pack.magie||'',kultur:pack.kultur||'',alltag:pack.alltag||'',politik:pack.politik||'',ton:pack.ton||'',conflict:pack.conflict||''}}}
@@ -1511,7 +1512,7 @@ function applyWorld(u, playerAction=''){if(!u||!S.world)return;try{u=Sim.validat
   if(n.portraitPrompt&&!S.imgCache.portraits[k]){S.imgCache.portraits[k]=imgUrl(n.portraitPrompt,256,256,hashSeed('port:'+k),isG())}});
  (u.newLocations||[]).forEach(l=>{if(l&&l.name&&Object.keys(w.orte).length<20){w.orte[cut(l.name,50)]=cut(l.desc,140);discover(cut(l.name,50))}});
  if(Array.isArray(u.ereignisse)&&u.ereignisse.length)w.ereignisse=u.ereignisse.slice(0,6).map(x=>cut(x,140))}
-function isQ(a){return /\?\s*$/.test(a.trim())||/^\s*(wer|was|wo|wohin|woher|wie|warum|wieso|weshalb|wann|welche[rsmn]?|seid|bist|sind|kannst|könnt|ist|habt|hast|gibt)\b/i.test(a)}
+function isQ(a){return /\?\s*$/.test(a.trim())||/^\s*(wer|was|wo|wohin|woher|wie|warum|wieso|weshalb|wann|welche[rsmn]?|seid|bist|sind|kannst|könnt|ist|habt|hast|gibt)\b/i.test(a)||/\b(erzähl|frag|bericht|erklär|wiss|vergangen|geschichte|über dich|von dir|dein ziel|wer bist)\b/i.test(a)}
 function askNPC(a){if(!isQ(a)||!S)return null;const t=a.toLowerCase();const pres=(S.world?.scene?.anwesend||[]).map(String);
  const bible=S.world?.npcs||{};
  const STOP=/^(der|die|das|ein|eine|einer|im|am|zug|von|und)$/;const find=n=>{const w=n.toLowerCase();return Object.entries(bible).find(([k])=>k.toLowerCase()===w)||Object.entries(bible).find(([k])=>k.toLowerCase().split(/[ \/–_-]+/).some(p=>p.length>3&&!STOP.test(p)&&w.includes(p)))};
@@ -1529,14 +1530,20 @@ function askNPC(a){if(!isQ(a)||!S)return null;const t=a.toLowerCase();const pres
   try{ Depth.bumpReveal(npc, /wer|bist|name|heiß|erzähl|vergangen|geschichte|warum|ziel|du |dein/.test(t)?1:0); }catch(_){}
   const tier=(()=>{try{return Depth.ensureReveal(npc)}catch(_){return npc.revealTier|0}})();
   const slice=(()=>{try{return Depth.backstorySlice(npc,tier)}catch(_){return String(npc.backstory||'').split(/[.;]/)[0]}})();
-  const memRaw=(npc.memories||[]).concat(npc.erinnerung||[]).slice(-1)[0];
-  let mem=typeof memRaw==='string'?memRaw:(memRaw?.text||'');
-  try{ mem=Imm.cleanSnippet(mem)||mem; }catch(_){ mem=String(mem).replace(/^\[[^\]]+\]\s*/,''); }
-  if(/^(greet|ask|talk)\s*:/i.test(mem)) mem='';
+  let mem='';
+  try{ mem=Depth.livedMemoryLine(S,w.n)||''; }catch(_){}
+  if(!mem){
+    // fallback: ledger retrieve, skip ask-echo
+    try{
+      const lived=Depth.livedMemoryFor(S,w.n,1);
+      if(lived[0]) mem=`${label} erinnert sich an gelebtes: ${lived[0].text}`;
+    }catch(_){}
+  }
+  if(mem && /gefragt|euer Gespräch:/i.test(mem)) mem='';
   const sm=(npc.samples&&npc.samples[0])?String(npc.samples[0]).replace(/^[„"«]+|[“"»]+$/g,'').slice(0,70):'';
   const bits=[];
   bits.push(art?`${label} (${art}${style?', '+style:''}) in ${ort}.`:`${label} in ${ort}.`);
-  if(mem && tier>=1) bits.push(`${label} erinnert sich an euer Gespräch: ${String(mem).slice(0,80)}.`);
+  if(mem && tier>=1) bits.push(mem);
   if(/wer|seid|bist|name|heiß/.test(t)){
     bits.push(`${label} ${R(['mustert dich','hebt den Blick','zögert kurz'])}. „Ich bin ${w.n.split(' / ')[0]}.“`);
     if(slice) bits.push(slice);
@@ -1551,9 +1558,16 @@ function askNPC(a){if(!isQ(a)||!S)return null;const t=a.toLowerCase();const pres
       : `${label} zögert. „Nur das Nötigste.“`);
     if(slice) bits.push(slice);
     else if(npc.ziel) bits.push(`„Mein Ziel: ${String(npc.ziel).slice(0,60)}.“`);
+    if(npc.desire||npc.ziel) bits.push(`${label} will ${String(npc.desire||npc.ziel).slice(0,50)}.`);
+    if(tier>=1 && npc.backstory) bits.push(String(npc.backstory).split(/[.;]/)[0].slice(0,90)+'.');
     if(tier>=2 && npc.wound) bits.push(`Die Stimme knickt kurz: ${String(npc.wound).slice(0,60)}.`);
+    if(tier>=2 && npc.need) bits.push(`Braucht eigentlich ${String(npc.need).slice(0,40)}.`);
     if(tier>=3 && npc.contradiction) bits.push(`Und doch: ${String(npc.contradiction).slice(0,70)}.`);
     if(sm) bits.push(`„${sm}“`);
+    // Guarantee substance for AAA-feel replies
+    if(bits.join(' ').length<120){
+      bits.push(`${label} blickt über ${ort}. „Bleib, wenn du mehr wissen willst — aber frag nicht alles auf einmal.“`);
+    }
   } else if(/ort|hier|lage|los|passiert/.test(t)){
     const d=String(S.world?.orte?.[ort]||S.world?.graph?.nodes?.[ort]?.desc||'').slice(0,160);
     bits.push(`${label} überlegt. „Hier in ${ort}…“`);
@@ -1570,7 +1584,8 @@ function askNPC(a){if(!isQ(a)||!S)return null;const t=a.toLowerCase();const pres
  });
  const aff={};sp.forEach(w=>{aff[w.n]=2});
  try{ for(const w of sp){ Know.markInteracted(S,w.n); if(/wer|bist|name|heiß/i.test(t)) Know.learnName(S,w.n,'told');
-   const n=bible[w.n]; if(n){ addMemory(w.n, `Du hast ${w.n} gefragt: „${String(a).slice(0,50)}“.`,'Gespräch'); }
+   const n=bible[w.n]; if(n){ /* v35: don't pollute lived recall with ask-echo; light note only */
+     try{ n._lastAsk=String(a).slice(0,60); }catch(_){} }
  } }catch(_){}
  return {text:lines.join('\n\n'),changes:{xp:8,affinity:aff,choices:defChoices()}}}
 
@@ -1777,13 +1792,17 @@ function offlineGenerateWorld(genreInput,pcName){const g=pickGenre(genreInput);c
  while(seeds.length<12) seeds.push({e:'👤',art:'Einheimische:r',ziel:'Überleben'});
  seeds.forEach((seed,i)=>{
   let proc=null; try{ proc=Depth.generateProcNpc((seed.art||'')+i+g.id, places[i%places.length], g.id); }catch(_){}
-  const nmBase=(R(namesA)+' '+R(['Voss','Chen','Adler','Krämer','Sol','Beck','Nguyen','Rauch','Holt','Senn']));
-  const name=nmBase+(npcs[nmBase]?('-'+i):'');
+  let nmBase=''; try{ nmBase=Depth.pickGenreName(g.id, seed.art+i+g.id+(pcName||'')); }catch(_){ nmBase=(R(namesA)+' '+R(['Hartmann','Keller','Weber','Schulz','Braun'])); }
+  const name=nmBase+(npcs[nmBase]?(' '+i):'');
   const home=places[i%places.length];
   const sch=['Morgen: '+home,'Mittag: '+places[(i+1)%places.length],'Nachmittag: '+places[(i+2)%places.length],'Abend: '+places[(i+3)%places.length],'Nacht: '+home];
   const base={e:seed.e||'👤',art:(proc?.art||seed.art||'')+', erwachsen',stimme:proc?.speechStyle||'knapp, menschlich',ziel:seed.ziel||proc?.desire,furcht:proc?.need||R(['Verlust','Verrat','Hunger','Vergessen']),geheimnis:(proc?.secrets&&proc.secrets[0])||R(['Hat jemanden im Stich gelassen.','Kennt einen geheimen Weg.','Schuldet einer Fraktion alles.']),
    beziehung:'Fremd',erinnerung:[],memories:[],ort:home,home,plan:[seed.ziel],relations:{},romance:i<6,adult:true,geschlecht:proc?.geschlecht||R(['weiblich','männlich','']),schedule:sch,mood:proc?.mood||'angespannt',goals:[seed.ziel],portrait:'',alive:true,lastSeen:{ort:home,zeit:'',day:1},procedural:true};
   if(proc){ Object.assign(base,{backstory:proc.backstory,wound:proc.wound,desire:proc.desire,need:proc.need,contradiction:proc.contradiction,speechStyle:proc.speechStyle,samples:proc.samples,quirk:proc.quirk,secrets:proc.secrets,questLine:proc.questLine,roleReactions:proc.roleReactions}); }
+  // v35: seed lived (non-ask) memory so recall has substance from day 1
+  const lifeSeed=`Offscreen-Leben: In ${home} — ${String(base.wound||base.furcht||'Alltag').slice(0,50)}. Ziel: ${String(base.ziel||base.desire||'Überleben').slice(0,40)}.`;
+  base.memories=[{text:lifeSeed,type:'life',importance:40,emotion:'neutral',where:home}];
+  base.erinnerung=[lifeSeed];
   npcs[name]=base;
  });
  // link relations
@@ -1896,6 +1915,16 @@ function parseLifeSim(a){const t=a.toLowerCase();
       try{ const deep=Depth.restAtHomeDeep(S); if(deep?.ok){ advanceTime(8); const r=Sim.sleepHome(S); return {ok:true,text:deep.line+'\n'+r.text,changes:{hp:20,mp:15,choices:['Heim ausbauen','Umsehen','Material sammeln','Weiter']}} } }catch(_){}
     }
     const r=Sim.sleepHome(S);advanceTime(r.hours);return {ok:true,text:r.text+(atHome?'':'\n(Zu Hause wäre die Rast erholsamer.)'),changes:{hp:15,mp:10,choices:travelChoices()}}
+  }
+  // v35: camp repair after raid damage
+  if(/reparier|flicke|baue .+ (palisade|mauer)|asche räume|vorrat auffüll|camp repar|lager repar|schaden (beheben|repar)/i.test(t)){
+    try{
+      const opts=Depth.campRepairOptions(S);
+      if(!opts.length) return {ok:true,text:'Am Camp ist kein offener Schaden — oder alles schon geflickt.',changes:{choices:travelChoices()}};
+      const want=opts.find(o=>t.includes(o.name.split(' ')[0].toLowerCase())||t.includes(o.id.replace(/_/g,' ')))||opts[0];
+      const r=Depth.applyCampRepair(S,want.id);
+      return {ok:r.ok,text:r.text+(opts.length>1?` Offen: ${opts.filter(o=>o.id!==want.id).map(o=>o.name).join(', ')}.`:''),changes:{xp:r.ok?12:0,choices:['Camp reparieren','Palisade reparieren','Umsehen','Schlafen']}};
+    }catch(e){ return {ok:false,text:'Reparatur fehlgeschlagen.'}; }
   }
   if(/heim ausbau|lager ausbau|camp (bauen|upgrade)|baue (herd|bett|truhe|wanne|werkbank|garten|palisade|wache|attrappe)|upgrade heim|heim verbessern/.test(t)){
     try{
@@ -2043,7 +2072,9 @@ function offlineRespondIntent(a, intent){
           if(lr?.first){ try{ label=who; }catch(_){ } }
         }
       }catch(_){}
-      try{ const memLine=kind==='greet'?`Du hast ${who} begrüßt („${a.trim().slice(0,40)}“).`:kind==='ask_who'?`Du hast ${who} nach dem Namen gefragt — „${who}“.`:kind==='ask'?`Du hast ${who} gefragt: „${a.trim().slice(0,50)}“.`:`Gespräch mit ${who}: „${a.trim().slice(0,50)}“.`; addMemory(who, memLine,'Gespräch'); }catch(_){}
+      try{ /* v35: avoid player-echo pollution; note interaction without „Du hast…“ */
+        const memLine=kind==='greet'?`Begegnung: Gruß in ${ort}.`:kind==='ask_who'?`Leben: ${who} nannte den eigenen Namen.`:(kind==='ask'?`Leben: Gespräch über „${a.trim().slice(0,40)}“ in ${ort}.`:`Leben: Austausch mit ${who} in ${ort}.`);
+        addMemory(who, memLine,'life'); }catch(_){}
       // Prefer real name in text once learned
       try{ if(Know.isNameKnown(S,who) && /^jemand\b/i.test(txt)) txt=txt.replace(/jemand[^\n,]{0,40}/gi, who); }catch(_){}
       return {text:txt, changes:ch, _intent:kind};
@@ -2271,11 +2302,12 @@ FREIHEIT (HARTE REGELN):
 1. Folge IMMER der Spielerabsicht. Ortwechsel ausführen, wenn der Spieler geht/reist – scene.ort aktualisieren.
 2. VERBOTEN: Spieler zurück zum Startort/Halle/Palast zu zerren; Szene gegen den Willen zurückzusetzen; NPCs die „wir müssen zurück“ erzwingen; Quests als Leine.
 3. Quests = optionale Hooks/Gerüchte. Die Welt reagiert, zwingt aber nicht.
-4. NPCs haben Gedächtnis (siehe NPC-GEDÄCHTNIS): Bezug auf Vergangenes nehmen. Sie leben weiter (Routinen, Ziele, Beziehungen untereinander).
-5. Romanzen: nur einvernehmlich, nur Erwachsene. NPCs dürfen NEIN sagen (Affection/Trust/Persönlichkeit). Kuss/Date/Beziehung/Nacht möglich; sexuelle Szenen IMMER Fade-to-Black, danach Erinnerung. Nie non-konsensual.
-6. Gewalt/Crime: Töten und Raub möglich (dark-fantasy anime, nicht grafisch). Tote NPCs bleiben tot. Zeugen → Heat, Trauer, Rache, Ermittlung, Kopfgeld.
-7. Erster Satz reagiert DIREKT. 4-7 Sätze, ca. 120–160 Wörter, 2. Person. Anime-Mittel sparsam.
-8. Ort und Anwesende der AKTUELLEN SZENE sind gesperrt — kein Ortswechsel, keine Fremden als Sprecher, außer der Spieler geht explizit.
+4. NPCs haben Gedächtnis: Nutze „Gelebtes Gedächtnis“ / Ledger-Ereignisse (Raids, Reisen, Kämpfe, Gaben, Offscreen-Leben) — NICHT bloß wiederholen, dass der Spieler etwas gefragt hat. NPCs leben weiter (Routinen, Ziele, Beziehungen).
+5. NPC-TIEFE (ONLINE = OFFLINE): RevealTier beachten — Biografie/Wunde/Widerspruch nur freigeben wenn Tier es erlaubt. Redeweise + Beispielsätze der anwesenden NPCs übernehmen. Fragen zu Vergangenheit/Ziel schrittweise öffnen.
+6. Romanzen: nur einvernehmlich, nur Erwachsene. NPCs dürfen NEIN sagen (Affection/Trust/Persönlichkeit). Kuss/Date/Beziehung/Nacht möglich; sexuelle Szenen IMMER Fade-to-Black, danach Erinnerung. Nie non-konsensual.
+7. Gewalt/Crime: Töten und Raub möglich (dark-fantasy anime, nicht grafisch). Tote NPCs bleiben tot. Zeugen → Heat, Trauer, Rache, Ermittlung, Kopfgeld. Camp-Schaden (verkohlte Palisade) erwähnen wenn homeStatus/Schaden gesetzt.
+8. Erster Satz reagiert DIREKT. 4-7 Sätze, ca. 120–160 Wörter, 2. Person. Anime-Mittel sparsam.
+9. Ort und Anwesende der AKTUELLEN SZENE sind gesperrt — kein Ortswechsel, keine Fremden als Sprecher, außer der Spieler geht explizit.
 ${stream?`AUSGABE: Erzähltext, dann „${STREAM_DELIM}“, dann JSON: choices[4] (ortsbezogen, keine Start-Halle-Zwänge), changes{hp,mp,str,cha,ruf,xp,gold,affinity,trust,items,newSkills,removeItems,killed?,robbed?}, summary, world{scene,npcUpdates,newLocations,ereignisse,scenePrompt?,speaker?}, speaker, scenePrompt, quests{...optional}, durationMin (Minuten dieser Handlung, Gespräch 5-15). optional ending.`:`JSON: narration, choices, changes, summary, durationMin, world, speaker, scenePrompt, quests.`}`}
 function greyDetails(a){const B=GREY||PACKS.grey;if(!B)return '';const txt=(a+' '+JSON.stringify(S.world.scene)+' '+(S.hist||[]).slice(-4).map(h=>h.content).join(' ')).toLowerCase();
  const pick=(obj,force)=>Object.entries(obj||{}).filter(([k])=>(force||[]).includes(k)||k.toLowerCase().split(/[ \/–-]+/).some(w=>w.length>3&&txt.includes(w)));
@@ -2304,10 +2336,17 @@ function turnMsg(a){
   try{
     const sit=Depth.situationSeed(S,a);
     const present=(S.world?.scene?.anwesend||[]).slice(0,3);
+    // Online parity: bump reveal on deep talk like offline
+    if(/wer|bist|erzähl|vergangen|geschichte|ziel|warum|über dich|von dir|name|heiß/i.test(String(a||''))){
+      for(const n of present){ const npc=S.world?.npcs?.[n]; if(npc) try{Depth.bumpReveal(npc,1)}catch(_){}}
+    }
     const npcBits=present.map(n=>Depth.npcDepthBlurb(n,S.world?.npcs?.[n],S)).filter(Boolean).join('\n');
     let fight='';
     try{ const foes=S.flags?._offerEncounter?.foes; if(foes?.length) fight=Depth.fightDesignBlock(S,foes); }catch(_){}
-    depthExtra=[sit,npcBits,fight,Depth.lifeStatusLine(S)].filter(Boolean).join('\n').slice(0,1100);
+    const livedBits=present.map(n=>{ try{return Depth.livedMemoryLine(S,n)}catch(_){return ''} }).filter(Boolean).join('\n');
+    const dmg=(()=>{try{return Depth.campDamageLine(S)}catch(_){return ''}})();
+    const revealNote='NPC-TIEFE: Online muss dieselbe Tiefe wie Offline liefern (Rede, RevealTier, gelebtes Gedächtnis, keine Frage-Echos).';
+    depthExtra=[sit,npcBits,livedBits,fight,Depth.lifeStatusLine(S),dmg,revealNote].filter(Boolean).join('\n').slice(0,1800);
   }catch(_){}
   return Cont.buildTurnUserMessage(S,a,{
     worldLean:worldText(),

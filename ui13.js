@@ -7,7 +7,7 @@ import * as Codex from './codex.js';
 
 export function renderHome(body, S, {act, closeMenu, phaseLabel}){
   const h=S.home||Sim.blankHome(); const st=Sim.HOME_STAGES[h.stage]||Sim.HOME_STAGES[0]; const next=Sim.HOME_STAGES[h.stage+1];
-  try{ setTimeout(()=>V25.decorateCamp25d(document.querySelector('.home-panel')||document.getElementById('menuBody'), h),0)}catch(_){}
+  try{ setTimeout(()=>V25.decorateCamp25d(document.querySelector('.home-panel')||document.getElementById('menuBody'), h, S),0)}catch(_){}
   const card=document.createElement('div'); card.className='card home-panel';
   let homeHtml='Kein Grundstück – Land beanspruchen.';
   if(h.owned){
@@ -16,20 +16,32 @@ export function renderHome(body, S, {act, closeMenu, phaseLabel}){
       return p.crop+(p.ready?' ✓':(' '+Math.floor(p.progress||0)+'/'+p.growDays));
     }).join(', ')||'leer';
     const build=h.building?('🔨 '+h.building.name+' ('+h.building.daysLeft+' T)'):(next?('Weiter: '+next.name):'Max');
+    const dmg=S.camp?.damage||{};
+    const dmgBits=[];
+    if(dmg.palisadeBroken) dmgBits.push('🔥 Palisade verkohlt');
+    if((dmg.burnt|0)>0) dmgBits.push('Asche×'+(dmg.burnt|0));
+    if((dmg.tasks||[]).length) dmgBits.push('Aufgaben: '+(dmg.tasks||[]).join(', '));
+    const dmgHtml=dmgBits.length?('<br><span class="camp-dmg">'+dmgBits.join(' · ')+'</span>'):'';
     homeHtml='<b>'+st.name+'</b> · '+h.location
       +'<br>Stufe '+h.stage+'/5 · Räume: '+((h.rooms||[]).join(', ')||'–')
       +'<br>Möbel: '+((h.furniture||[]).join(', ')||'–')
       +'<br>Mitbewohner: '+((h.housemates||[]).join(', ')||'–')+' · Pets: '+((h.pets||[]).join(', ')||'–')
       +'<br>Material: Holz '+(h.materials?.wood|0)+' Stein '+(h.materials?.stone|0)+' Stoff '+(h.materials?.cloth|0)+' Nägel '+(h.materials?.nails|0)
-      +'<br>'+build+'<br>Garten/Farmen: '+plots;
+      +'<br>'+build+'<br>Garten/Farmen: '+plots+dmgHtml;
   }
   card.innerHTML='<h3>🏠 Zuhause</h3><p class="meta">'+homeHtml+'</p>';
   body.appendChild(card);
-  try{V25.decorateCamp25d(card, h)}catch(_){}
+  try{V25.decorateCamp25d(card, h, S)}catch(_){}
   const row=document.createElement('div'); row.className='row'; card.appendChild(row);
   const btn=(lab,fn)=>{const b=document.createElement('button');b.type='button';b.className='tiny';b.textContent=lab;b.onclick=()=>{closeMenu();fn()};row.appendChild(b)};
   if(!h.owned) btn('Land beanspruchen',()=>act('Ich beanspruche hier ein Grundstück'));
-  else {btn('Material',()=>act('Ich sammle Holz und Material'));btn('Bauen',()=>act('Ich beginne zu bauen'));btn('Nach Hause',()=>act('Ich gehe nach Hause'));btn('Schlafen',()=>act('Ich schlafe'));btn('Pflanzen',()=>act('Ich pflanze Weizen'));btn('Ernten',()=>act('Ich ernte die Felder'))}
+  else {
+    btn('Material',()=>act('Ich sammle Holz und Material'));btn('Bauen',()=>act('Ich beginne zu bauen'));btn('Nach Hause',()=>act('Ich gehe nach Hause'));btn('Schlafen',()=>act('Ich schlafe'));btn('Pflanzen',()=>act('Ich pflanze Weizen'));btn('Ernten',()=>act('Ich ernte die Felder'));
+    if((S.camp?.damage?.tasks||[]).length || S.camp?.damage?.palisadeBroken){
+      btn('🔥 Reparieren',()=>act('Ich repariere das Camp'));
+      if(S.camp?.damage?.palisadeBroken) btn('Palisade flicken',()=>act('Ich repariere die Palisade'));
+    }
+  }
   const need=document.createElement('div'); need.className='card';
   need.innerHTML=`<h3>Bedürfnisse</h3><p class="meta">Hunger ${Math.round(S.needs?.hunger|0)} · Müdigkeit ${Math.round(S.needs?.fatigue|0)} · ${phaseLabel()}<br>Wetter: ${S.farm?.lastWeather||'–'} · Saison: ${S.cal?.season||'–'}</p>`;
   body.appendChild(need);
