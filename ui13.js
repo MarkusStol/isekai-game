@@ -9,7 +9,7 @@ export function renderHome(body, S, {act, closeMenu, phaseLabel}){
   const h=S.home||Sim.blankHome(); const st=Sim.HOME_STAGES[h.stage]||Sim.HOME_STAGES[0]; const next=Sim.HOME_STAGES[h.stage+1];
   try{ setTimeout(()=>V25.decorateCamp25d(document.querySelector('.home-panel')||document.getElementById('menuBody'), h, S),0)}catch(_){}
   const card=document.createElement('div'); card.className='card home-panel';
-  let homeHtml='<div class="home-empty-cta"><div class="home-empty-ico" aria-hidden="true">🏕</div><div><b>Noch kein Zuhause</b><br><span class="meta">Beanspruche ein Grundstück in der Wildnis — Bau, Garten und Rast folgen.</span></div></div>';
+  let homeHtml='<div class="home-empty-cta"><img class="home-claim-art" src="./assets/pixel/ui/claim_land.png" alt="Unbeanspruchtes Land" width="320" height="160" decoding="async"/><div><b>Noch kein Zuhause</b><br><span class="meta">Beanspruche ein Grundstück in der Wildnis — Bau, Garten und Rast folgen.</span></div></div>';
   if(h.owned){
     const plots=(S.farm?.plots||[]).map(p=>{
       if(!p.crop)return 'leer';
@@ -33,7 +33,7 @@ export function renderHome(body, S, {act, closeMenu, phaseLabel}){
   if(!h.owned) card.classList.add('no-plot');
   else card.classList.add('has-plot');
   body.appendChild(card);
-  try{V25.decorateCamp25d(card, h, S)}catch(_){}
+  if(h.owned){ try{V25.decorateCamp25d(card, h, S)}catch(_){} }
   const row=document.createElement('div'); row.className='row'; card.appendChild(row);
   const btn=(lab,fn)=>{const b=document.createElement('button');b.type='button';b.className='tiny';b.textContent=lab;b.onclick=()=>{closeMenu();fn()};row.appendChild(b)};
   if(!h.owned) btn('Land beanspruchen',()=>act('Ich beanspruche hier ein Grundstück'));
@@ -175,35 +175,43 @@ export function renderMap(body, S, {act, closeMenu, toast}){
       ctx.strokeStyle=d.color||'#f0d59a'; ctx.lineWidth=2; ctx.beginPath();
       d.points.forEach((pt,i)=>{const s=worldToScreen(pt.x,pt.y); i?ctx.lineTo(s.x,s.y):ctx.moveTo(s.x,s.y)}); ctx.stroke();
     }
-    // locations
-    for(const loc of Map.listVisible(S)){
+    // locations — dots first, then non-colliding labels (visited always, ≤3 known)
+    const vis=Map.listVisible(S);
+    const px0=a.playerPos.x, py0=a.playerPos.y;
+    const knownSorted=vis.filter(l=>l.fog==='known').slice().sort((A,B)=>{
+      const da=(A.x-px0)**2+(A.y-py0)**2, db=(B.x-px0)**2+(B.y-py0)**2; return da-db;
+    });
+    const knownLabel=new Set(knownSorted.slice(0,3).map(l=>l.id||l.name));
+    for(const loc of vis){
       const s=worldToScreen(loc.x,loc.y);
       const fog=loc.fog;
       ctx.globalAlpha=fog==='rumored'?0.45:1;
       ctx.fillStyle=fog==='visited'?'#f0d59a':fog==='known'?'#a78bfa':fog==='rumored'?'#94a3b8':'#334155';
       ctx.beginPath(); ctx.arc(s.x,s.y,fog==='visited'?6:4,0,6.28); ctx.fill();
-      // v53: visited always; known only nearest 5 to player / non-colliding; rumored=dot
-      if(fog==='rumored'){ ctx.globalAlpha=1; continue; }
-      const lab=(loc.name||'').slice(0,11);
-      const placed=paint._labs||(paint._labs=[]);
-      const knownCount=placed.filter(p=>p.fog==='known').length;
-      if(fog==='known' && knownCount>=5){ ctx.globalAlpha=1; continue; }
-      let ox=7, oy=-2, ok=true;
-      for(let attempt=0; attempt<5; attempt++){
-        ok=true;
-        const tx=s.x+ox, ty=s.y+oy-(attempt*10);
-        for(const prev of placed){
-          if(Math.abs(prev.x-tx)<52 && Math.abs(prev.y-ty)<12){ ok=false; break; }
-        }
-        if(ok){ oy=oy-(attempt*10); break; }
-      }
-      if(!ok){ ctx.globalAlpha=1; continue; }
-      ctx.font='9px monospace';
-      ctx.fillStyle='#000d'; ctx.fillText(lab, s.x+ox+1, s.y+oy+1);
-      ctx.fillStyle=fog==='visited'?'#fef3c7':'#ddd6fe';
-      ctx.fillText(lab, s.x+ox, s.y+oy);
-      placed.push({x:s.x+ox,y:s.y+oy,fog});
       ctx.globalAlpha=1;
+    }
+    paint._labs=[];
+    const labelCand=vis.filter(l=>l.fog==='visited' || (l.fog==='known' && knownLabel.has(l.id||l.name)));
+    const offsets=[[8,-4],[8,12],[-40,-4],[-40,12],[8,24],[-40,24],[14,-16]];
+    for(const loc of labelCand){
+      const s=worldToScreen(loc.x,loc.y);
+      const lab=(loc.name||'').slice(0,10);
+      let placedOk=null;
+      for(const [ox,oy] of offsets){
+        const tx=s.x+ox, ty=s.y+oy;
+        if(tx<4||ty<10||tx>canvas.width-40||ty>canvas.height-4) continue;
+        let hit=false;
+        for(const prev of paint._labs){
+          if(Math.abs(prev.x-tx)<58 && Math.abs(prev.y-ty)<13){ hit=true; break; }
+        }
+        if(!hit){ placedOk={x:tx,y:ty}; break; }
+      }
+      if(!placedOk) continue;
+      ctx.font='9px monospace';
+      ctx.fillStyle='#000e'; ctx.fillText(lab, placedOk.x+1, placedOk.y+1);
+      ctx.fillStyle=loc.fog==='visited'?'#fef3c7':'#ddd6fe';
+      ctx.fillText(lab, placedOk.x, placedOk.y);
+      paint._labs.push({...placedOk, fog:loc.fog});
     }
     // marks
     for(const m of(a.marks||[])){

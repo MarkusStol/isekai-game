@@ -1220,8 +1220,9 @@ export function renderBattleUI(){
     <div class="battle-layer battle-layer-floor" style="background-image:url('${L.floor}')" aria-hidden="true"></div>`; })()}
     <div class="pixel-battle-floor ${battleFloorClass(B.bg)} floor-blend" aria-hidden="true"><div class="battle-floor-grid"></div></div>
     <div class="battle-veil"></div>
-    <div class="battle-atb-mode">${B.atbMode==='wait'?'WAIT':'ACTIVE'}</div>
+    <div class="battle-atb-mode">${B.atbMode==='wait'?'Warten':'Aktiv'}</div>
     <div class="battle-timeline" id="battleTL"></div>
+    <div class="battle-foe-plates" id="battleFoePlates" aria-live="polite"></div>
     <div class="skill-banner" id="skillBanner"></div>
     <div class="battle-foes" id="battleFoes"></div>
     <div class="battle-party-spr" id="battlePartySpr"></div>
@@ -1255,17 +1256,19 @@ function refreshUI(){
   // foes
   const foes=el('battleFoes');
   if(foes){
-    foes.innerHTML=B.foes.map(f=>`
-      <button type="button" class="foe-card foe-bare ${foeScaleClass(f)} ${f.alive?'':'dead'} ${B.selecting&&needsTarget()?(_B._hover===f._iid?'target':''):''}" data-iid="${f._iid}" ${f.alive?'':'disabled'}>
-        <div class="foe-art-wrap pixel-foe"><img class="foe-art battler-spr" src="${pixelEnemyArt(f)}" alt="${f.name}" loading="lazy" onerror="this.onerror=null;this.style.display='none';this.nextElementSibling&&(this.nextElementSibling.style.display='flex');"/><div class="foe-fallback" style="display:none">${f.icon||'👹'}</div></div>
-        <div class="foe-plate jrpg-window">
+    const plates=el('battleFoePlates');
+    if(plates){
+      plates.innerHTML=B.foes.filter(f=>f.alive!==false).slice(0,2).map(f=>`
+        <div class="foe-plate jrpg-window foe-plate-dock" data-iid="${f._iid}">
           <div class="foe-name" title="${f.name}">${f.name}</div>
           <div class="foe-tags">${f.boss?'<span class="ftag boss">BOSS</span>':''}${f.analyzed?'<span class="ftag">✦</span>':''}${f.staggered?'<span class="ftag bruch">BRUCH</span>':''}${f.rare?'<span class="ftag">SELTEN</span>':''}</div>
           <div class="bar foe-hp"><i style="width:${Math.max(0,f.hp/f.maxhp*100)}%"></i></div>
           <div class="bar foe-stagger ${f.staggered?'broken':''}" title="Bruch"><i style="width:${Math.max(0,(f.stagger||0)/Math.max(1,f.staggerMax||1)*100)}%"></i></div>
-          ${f.analyzed?`<div class="foe-weak">${(f.weak||[]).map(w=>ELEM_LABEL[w]||Jrpg.ELEM_LABEL[w]||w).join(' · ')||'—'}</div>`:''}
-          <div class="status-row">${(f.statuses||[]).map(s=>`<em>${Jrpg.STATUS_DEFS[s.id]?.name||s.id}</em>`).join('')}</div>
-        </div>
+        </div>`).join('');
+    }
+    foes.innerHTML=B.foes.map(f=>`
+      <button type="button" class="foe-card foe-bare ${foeScaleClass(f)} ${f.alive?'':'dead'} ${B.selecting&&needsTarget()?(_B._hover===f._iid?'target':''):''}" data-iid="${f._iid}" ${f.alive?'':'disabled'}>
+        <div class="foe-art-wrap pixel-foe"><img class="foe-art battler-spr" src="${pixelEnemyArt(f)}" alt="${f.name}" loading="lazy" onerror="this.onerror=null;this.style.display='none';this.nextElementSibling&&(this.nextElementSibling.style.display='flex');"/><div class="foe-fallback" style="display:none">${f.icon||'👹'}</div></div>
       </button>`).join('');
     foes.querySelectorAll('.foe-card').forEach(btn=>{
       btn.onclick=()=>{
@@ -1327,7 +1330,7 @@ function refreshUI(){
     const sel=B.selecting;
     if(!sel||sel.actor.kind!=='hero'){
       const waiting=_B.atbMode==='wait';
-      cmd.innerHTML=`<div class="battle-wait ${waiting?'is-wait':'is-active'}"><span class="bw-badge">${waiting?'WAIT':'ACTIVE'}</span><span class="bw-hint">${waiting?'Warte auf deinen Zug…':'Gegnerzug…'}</span></div>`;
+      cmd.innerHTML=`<div class="battle-wait ${waiting?'is-wait':'is-active'}"><span class="bw-badge">${waiting?'Warten':'Aktiv'}</span><span class="bw-hint">${waiting?'Warte auf deinen Zug…':'Gegnerzug…'}</span></div>`;
       return;
     }
     // Treat null/undefined mode as main command menu (player turn ready)

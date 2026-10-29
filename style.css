@@ -5634,3 +5634,331 @@ body.battle-open #btnAudio{ z-index: 0 !important; }
     font-size:11px !important;
   }
 }
+
+/* ========== v54: foe plate safe dock, compact 4-party SE, menu clears battle ========== */
+/* Foe plate: top-center strip under timeline, left of timeline — not over foe body */
+.battle-root.battle-pixel .foe-card .foe-plate,
+.battle-root.battle-pixel .foe-plate{
+  position:absolute !important;
+  top:calc(6px + env(safe-area-inset-top,0px)) !important;
+  left:50% !important;
+  transform:translateX(-50%) !important;
+  right:auto !important;
+  bottom:auto !important;
+  z-index:9 !important;
+  max-width:min(200px, 58vw) !important;
+  width:max-content !important;
+  min-width:120px;
+  pointer-events:none !important;
+  background:#0b1a2ef8 !important;
+  border:1px solid #ffffff40 !important;
+  border-radius:8px !important;
+  padding:5px 10px !important;
+  box-shadow:0 4px 12px #000a !important;
+  text-align:center !important;
+}
+.battle-root.battle-pixel .foe-plate .foe-name{
+  text-align:center !important;
+  white-space:normal !important;
+  overflow:visible !important;
+  text-overflow:clip !important;
+  font-size:12px !important;
+  line-height:1.15 !important;
+}
+.battle-root.battle-pixel .foe-plate .foe-tags{ justify-content:center !important; }
+/* Keep WAIT/Warten top-left; timeline top-right — plate centered between */
+.battle-root.battle-pixel .battle-stage > .battle-atb-mode{
+  left:8px !important; right:auto !important;
+  top:calc(6px + env(safe-area-inset-top,0px)) !important;
+  z-index:10 !important;
+}
+.battle-root.battle-pixel .battle-timeline{
+  top:calc(6px + env(safe-area-inset-top,0px)) !important;
+  right:8px !important;
+  z-index:10 !important;
+}
+/* Compact 4-party on short phones */
+@media (max-height:720px){
+  .battle-root.battle-pixel .battle-party{
+    display:grid !important;
+    grid-template-columns:1fr 1fr !important;
+    gap:3px 6px !important;
+    max-height:16dvh !important;
+    overflow:hidden !important;
+    padding:3px 6px !important;
+  }
+  .battle-root.battle-pixel .party-card.pixel-party{
+    padding:3px 5px !important;
+    gap:4px !important;
+  }
+  .battle-root.battle-pixel .party-port{ width:22px !important; height:22px !important; min-width:22px !important; }
+  .battle-root.battle-pixel .party-name-row{ font-size:10px !important; }
+  .battle-root.battle-pixel .party-card .bar.mp,
+  .battle-root.battle-pixel .party-card .bar.lim{ display:none !important; }
+  .battle-root.battle-pixel .party-bars .bar.hp{ height:6px !important; }
+  .battle-root.battle-pixel .party-bars .bar.atb{ height:3px !important; }
+  .battle-root.battle-pixel .battle-log{ display:none !important; }
+  .battle-root.battle-pixel .battle-stage{
+    min-height:38dvh !important; max-height:46dvh !important;
+  }
+  .battle-root.battle-pixel .cmd-ff-main .bcm-lg{
+    min-height:40px !important; font-size:13px !important; padding:7px 5px !important;
+  }
+}
+/* When menu/sheet open: hide battle root visuals so BG doesn't show through */
+body.menu-open .battle-root:not(.hidden),
+body.sheet-open .battle-root:not(.hidden){
+  visibility:hidden !important;
+  pointer-events:none !important;
+}
+#menu:not(.hidden){ z-index: 130 !important; }
+#sheet:not(.hidden){ z-index: 140 !important; }
+/* Companion mass boost via CSS for skinny roles */
+.battle-root.battle-pixel .party-stage-spr img[data-role="spy"],
+.battle-root.battle-pixel .party-stage-spr img[data-role="daemon"],
+.battle-root.battle-pixel .party-stage-spr img[data-role="villager"]{
+  transform: scaleX(1.12) !important;
+  transform-origin: center bottom !important;
+}
+/* Claim land art */
+.home-claim-art{
+  width:100%; height:auto; max-height:140px;
+  object-fit:cover; border-radius:8px;
+  image-rendering:pixelated;
+  display:block; margin:6px 0 10px;
+  border:1px solid #ffffff22;
+}
+.home-panel.no-plot .camp-stage-vis{ display:none !important; }
+
+/* ========== v54b: foe plates host on stage ========== */
+.battle-root.battle-pixel .battle-foe-plates{
+  position:absolute;
+  top:calc(6px + env(safe-area-inset-top,0px));
+  left:50%;
+  transform:translateX(-50%);
+  z-index:9;
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+  align-items:center;
+  max-width:min(220px, 60vw);
+  pointer-events:none;
+}
+.battle-root.battle-pixel .battle-foe-plates .foe-plate{
+  position:static !important;
+  transform:none !important;
+  left:auto !important;
+  top:auto !important;
+  width:100%;
+  max-width:100% !important;
+}
+.battle-root.battle-pixel .battle-foes{
+  padding-top:52px !important; /* room under plate */
+  padding-right:36% !important;
+  justify-content:flex-start !important;
+  align-items:flex-end !important;
+}
+.battle-root.battle-pixel .foe-card{
+  background:transparent !important;
+  border:none !important;
+  box-shadow:none !important;
+}
+
+/* ========== v54c: foe plate bottom-of-stage (covers neither head nor party) ========== */
+.battle-root.battle-pixel .battle-foe-plates{
+  top:auto !important;
+  bottom:8px !important;
+  left:50% !important;
+  transform:translateX(-50%) !important;
+  max-width:min(280px, 72vw) !important;
+  z-index:12 !important;
+}
+.battle-root.battle-pixel .battle-foes{
+  padding-top:28px !important; /* free top for WAIT + timeline */
+  padding-bottom:56px !important; /* room for plate */
+  padding-right:36% !important;
+}
+.battle-root.battle-pixel .battle-foe-plates .foe-name{
+  white-space:nowrap !important;
+  overflow:hidden !important;
+  text-overflow:ellipsis !important;
+  max-width:100%;
+  font-size:13px !important;
+}
+/* Home claim: stack art full-width then text */
+.home-empty-cta{
+  display:flex !important;
+  flex-direction:column !important;
+  align-items:stretch !important;
+  gap:8px !important;
+}
+.home-empty-cta .home-claim-art{
+  width:100% !important;
+  max-height:120px !important;
+  object-fit:cover !important;
+}
+.home-empty-cta > div{
+  min-width:0 !important;
+}
+.home-empty-cta .meta{
+  white-space:normal !important;
+  overflow-wrap:anywhere !important;
+}
+/* SE: shorter party labels */
+@media (max-height:720px){
+  .battle-root.battle-pixel .party-name-row{
+    font-size:9px !important;
+    max-width:100%;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  .battle-root.battle-pixel .battle-foe-plates{
+    max-width:min(240px, 78vw) !important;
+  }
+}
+@media (max-height:720px){
+  .battle-root.battle-pixel .party-rowtag{ display:none !important; }
+  .battle-root.battle-pixel .party-job{ max-width:4.5em; overflow:hidden; text-overflow:ellipsis; display:inline-block; vertical-align:bottom; }
+}
+
+/* ========== v54d: foe plate under foe body (not head, not party) ========== */
+.battle-root.battle-pixel .battle-foe-plates{ display:none !important; }
+.battle-root.battle-pixel .foe-art-wrap{
+  position:relative !important;
+  display:inline-flex !important;
+  flex-direction:column !important;
+  align-items:center !important;
+}
+.battle-root.battle-pixel .foe-plate.foe-plate-under{
+  position:relative !important;
+  top:auto !important;
+  left:auto !important;
+  right:auto !important;
+  bottom:auto !important;
+  transform:none !important;
+  margin-top:-6px !important;
+  max-width:min(160px, 42vw) !important;
+  width:max-content !important;
+  min-width:96px;
+  z-index:3 !important;
+  pointer-events:none !important;
+  background:#0b1a2ef5 !important;
+  padding:4px 8px !important;
+  border-radius:7px !important;
+  text-align:center !important;
+}
+.battle-root.battle-pixel .foe-plate.foe-plate-under .foe-name{
+  font-size:12px !important;
+  white-space:nowrap !important;
+  overflow:hidden !important;
+  text-overflow:ellipsis !important;
+  max-width:148px;
+}
+.battle-root.battle-pixel .battle-foes{
+  padding-top:36px !important;
+  padding-bottom:8px !important;
+  padding-right:36% !important;
+  align-items:flex-end !important;
+}
+/* Keep foe art from being covered: plate is BELOW the img in column flow */
+.battle-root.battle-pixel .foe-art-wrap .foe-art{
+  position:relative !important;
+  z-index:2 !important;
+}
+/* Compact under-foe plate */
+.battle-root.battle-pixel .foe-plate.foe-plate-under .status-row:empty,
+.battle-root.battle-pixel .foe-plate.foe-plate-under .foe-weak:empty{ display:none !important; }
+.battle-root.battle-pixel .foe-plate.foe-plate-under .bar.foe-hp{ height:6px !important; margin-top:3px; }
+.battle-root.battle-pixel .foe-plate.foe-plate-under .bar.foe-stagger{ height:3px !important; margin-top:2px; }
+.battle-root.battle-pixel .foe-plate.foe-plate-under{ max-height:72px; overflow:hidden; }
+
+/* ========== v54e: foe plate bottom-LEFT stage pocket (avoids heads + party) ========== */
+.battle-root.battle-pixel .battle-foe-plates{
+  display:flex !important;
+  flex-direction:column !important;
+  position:absolute !important;
+  left:8px !important;
+  right:auto !important;
+  top:auto !important;
+  bottom:10px !important;
+  transform:none !important;
+  align-items:flex-start !important;
+  max-width:min(150px, 38vw) !important;
+  z-index:14 !important;
+  gap:4px !important;
+  pointer-events:none !important;
+}
+.battle-root.battle-pixel .battle-foe-plates .foe-plate-dock{
+  position:static !important;
+  transform:none !important;
+  width:100%;
+  max-width:100% !important;
+  min-width:0 !important;
+  padding:4px 8px !important;
+  background:#0b1a2ef6 !important;
+  border:1px solid #ffffff40 !important;
+  border-radius:7px !important;
+  box-shadow:0 3px 10px #000a !important;
+  text-align:left !important;
+  max-height:64px;
+  overflow:hidden;
+}
+.battle-root.battle-pixel .battle-foe-plates .foe-name{
+  font-size:11px !important;
+  text-align:left !important;
+  white-space:nowrap !important;
+  overflow:hidden !important;
+  text-overflow:ellipsis !important;
+}
+.battle-root.battle-pixel .battle-foe-plates .bar.foe-hp{ height:5px !important; margin-top:3px; }
+.battle-root.battle-pixel .battle-foe-plates .bar.foe-stagger{ height:3px !important; margin-top:2px; }
+.battle-root.battle-pixel .battle-foes{
+  padding-top:36px !important;
+  padding-bottom:8px !important;
+  padding-right:38% !important;
+  padding-left:4px !important;
+}
+/* Push party sprites further right so left pocket stays clear */
+.battle-root.battle-pixel .party-stage-spr{
+  --right: calc(4% + var(--i,0) * 12%) !important;
+}
+
+/* ========== v54f: keep 4-party stage in right pocket; plate left clear ========== */
+.battle-root.battle-pixel .battle-party-spr{
+  width:42% !important;
+  right:2% !important;
+  left:auto !important;
+  gap:4px !important;
+  overflow:visible !important;
+  justify-content:flex-start !important;
+}
+.battle-root.battle-pixel .party-stage-spr{
+  flex:0 0 auto !important;
+  max-width:28% !important;
+}
+.battle-root.battle-pixel .party-stage-spr img,
+.battle-root.battle-pixel .party-stage-spr .pixel-hero-spr{
+  width:56px !important;
+  height:76px !important;
+  max-width:100% !important;
+}
+.battle-root.battle-pixel .party-stage-spr.row-back img{
+  width:50px !important;
+  height:68px !important;
+}
+@media (max-height:720px){
+  .battle-root.battle-pixel .party-stage-spr img,
+  .battle-root.battle-pixel .party-stage-spr .pixel-hero-spr{
+    width:48px !important;
+    height:64px !important;
+  }
+  .battle-root.battle-pixel .battle-party-spr{ gap:2px !important; width:40% !important; }
+}
+/* Companion mass via CSS scale without overflowing */
+.battle-root.battle-pixel .party-stage-spr img[data-role="spy"],
+.battle-root.battle-pixel .party-stage-spr img[data-role="daemon"],
+.battle-root.battle-pixel .party-stage-spr img[data-role="villager"]{
+  transform: scaleX(1.08) !important;
+  transform-origin: center bottom !important;
+}
