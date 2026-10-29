@@ -123,9 +123,9 @@ export function craftItem(S, recipeId){
   const tierNeed=(rec.tier||1);
   // v40 hard gate via content40 stations/skills (no soft level bypass)
   try{
-    const C40=window.__game?.C40;
-    if(C40?.canCraftRecipe){
-      const gate=C40.canCraftRecipe(S, recipeId, 'craft');
+    const gateFn=window.__game?.C41?.canCraftRecipe41||window.__game?.C40?.canCraftRecipe;
+    if(gateFn){
+      const gate=gateFn(S, recipeId, 'craft');
       if(!gate.ok) return {ok:false,text:gate.reason};
     } else {
       const tierHave=(S.content39?.flags?.gearTier)||1;
@@ -157,16 +157,24 @@ export function craftItem(S, recipeId){
   if(!S.equip.inventory.includes(recipeId)) S.equip.inventory.push(recipeId);
   const it=getItem(recipeId);
   if(it?.sockets && !S.equip.sockets[recipeId]) S.equip.sockets[recipeId]=Array(it.sockets).fill(null);
-  return {ok:true,text:`Hergestellt: ${it?.name||recipeId} (Tier ${tierNeed})`};
+  let xpNote='';
+  try{
+    const C41=window.__game?.C41;
+    const station=(window.__game?.C40?.RECIPE_STATION||{})[recipeId]||'forge';
+    const skill=station==='kitchen'?'kochen':station==='alchemy'?'alchemie':'schmieden';
+    const xp=C41?.grantCraftXp?.(S, skill, 18+tierNeed*8, 'craft:'+recipeId);
+    if(xp) xpNote=` · ${skill} Lv${xp.lvl}${xp.leveled?'↑':''}`;
+  }catch(_){}
+  return {ok:true,text:`Hergestellt: ${it?.name||recipeId} (Tier ${tierNeed})${xpNote}`};
 }
 
 export function cookItem(S, recipeId){
   ensureEquip(S);
   const rec=COOK_RECIPES.find(r=>r.id===recipeId); if(!rec) return {ok:false,text:'Kochrezept unbekannt.'};
   try{
-    const C40=window.__game?.C40;
-    if(C40?.canCraftRecipe){
-      const gate=C40.canCraftRecipe(S, recipeId, 'cook');
+    const gateFn=window.__game?.C41?.canCraftRecipe41||window.__game?.C40?.canCraftRecipe;
+    if(gateFn){
+      const gate=gateFn(S, recipeId, 'cook');
       if(!gate.ok) return {ok:false,text:gate.reason};
     }
   }catch(_){}
@@ -184,7 +192,12 @@ export function cookItem(S, recipeId){
     if(rec.mp) S.st.mp=Math.min(S.st.maxmp|S.st.mp,(S.st.mp|0)+(rec.mp|0));
   }
   try{ if(S.needs) S.needs.hunger=Math.max(0,(S.needs.hunger|0)-25); }catch(_){}
-  return {ok:true,text:`Gekocht: ${rec.name}. ${rec.desc||''} (+${rec.heal|0} HP${rec.mp?`, +${rec.mp} MP`:''})`};
+  let xpNote='';
+  try{
+    const xp=window.__game?.C41?.grantCraftXp?.(S,'kochen',14+(rec.tier||1)*6,'cook:'+recipeId);
+    if(xp) xpNote=` · kochen Lv${xp.lvl}${xp.leveled?'↑':''}`;
+  }catch(_){}
+  return {ok:true,text:`Gekocht: ${rec.name}. ${rec.desc||''} (+${rec.heal|0} HP${rec.mp?`, +${rec.mp} MP`:''})${xpNote}`};
 }
 
 export function socketGem(S, itemId, slotIdx, gemUid){

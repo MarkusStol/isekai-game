@@ -109,14 +109,19 @@ function companionSkills(npc){
 function spawnFoes(defs, S){
   const diff=Jrpg.difficultyOf(S||{});
   return defs.map((d,i)=>{
+    let def=d;
+    try{
+      const C41=window.__game?.C41;
+      if(C41?.bossScaleForLevel && (d.boss||d.ai==='boss')) def=C41.bossScaleForLevel(S,d)||d;
+    }catch(_){}
     const f={
-      ...d,
-      _iid:d._iid||(d.id+'_'+i),
-      hp:Math.round((d.hp||40)*diff.enemyHp), maxhp:Math.round((d.hp||40)*diff.enemyHp),
-      mp:d.mp|0, maxmp:d.mp|0,
+      ...def,
+      _iid:def._iid||(def.id+'_'+i),
+      hp:Math.round((def.hp||40)*diff.enemyHp), maxhp:Math.round((def.hp||40)*diff.enemyHp),
+      mp:def.mp|0, maxmp:def.mp|0,
       statuses:[], guard:1, alive:true, analyzed:false,
       atb:Math.random()*40, phaseIdx:0, aggroMap:{},
-      def:d.def|4, _baseDef:d.def|4, atk:d.atk|10, mag:d.mag|5, spd:d.spd|8
+      def:def.def|4, _baseDef:def.def|4, atk:def.atk|10, mag:def.mag|5, spd:def.spd|8
     };
     Jrpg.initStagger(f);
     return f;
@@ -344,6 +349,8 @@ let _music=null;
 
 export function isActive(){return !!_B && !_B.done}
 export function getBattle(){return _B}
+export function getLastSummary(){return lastBattleSummary}
+export function getLastResult(){return lastBattleSummary?.result||(_B&&_B.done?_B.result:null)}
 
 
 function playBattleSwirl(){
@@ -394,20 +401,21 @@ export function startBattle(S, opts={}){
     _waiting:false,
     skillBanner:null,
     victoryRewards:null,
-    flags:{ dungeonBoss, scripted:!!opts.scripted, ...(opts.flags||{}) },
+    flags:{ dungeonBoss, ...(opts.flags||{}), scripted:!!opts.scripted },
     phaseLog:[],
-    scripted:!!opts.scripted,
+    scripted:!!opts.scripted, // never set by offerEncounter / openPending for real players
   };
   for(const u of [...party,...foes]) u.atb=Math.random()*30+(u.spd||8);
-  if(opts.scripted || dungeonBoss && opts.atbMode==='wait'){
-    // Give hero the first turn; freeze foe ATB for deterministic E2E / boss scripted runs
+  /* v41: scripted + hero-first are TEST-ONLY. Real player starts never pass opts.scripted.
+     Previously dungeonBoss+wait incorrectly froze foes for players — removed. */
+  if(_B.scripted){
     for(const f of foes) f.atb=0;
     const hero=party.find(p=>p.kind==='hero')||party[0];
     if(hero) hero.atb=100;
   }
   renderBattleUI();
   startBattleMusic(S);
-  if(!(opts.scripted || _B.scripted)) advanceUntilPlayer();
+  if(!_B.scripted) advanceUntilPlayer();
   else { _B.selecting={actor:party.find(p=>p.kind==='hero')||party[0], mode:null}; refreshUI(); }
   return _B;
 }
@@ -451,7 +459,11 @@ export function __testDrive(cmd, payload={}){
   }
   if(cmd==='talk'){
     const t=living(_B.foes)[0]; if(!t) return {ok:false};
-    doTalk(hero, {targetId:t._iid, text:payload.text||'bitte frieden, lass uns reden'});
+    const payload2={targetId:t._iid, text:payload.text||'bitte frieden, lass uns reden', choiceId:payload.choiceId, choice:payload.choice};
+    if(payload.choiceId && !payload.choice){
+      try{ payload2.choice=(window.__game?.C41?.bossDialogueChoices?.(_B.S,t)||[]).find(c=>c.id===payload.choiceId); }catch(_){}
+    }
+    doTalk(hero, payload2);
     return {ok:true, talked:!!t._talked, surrendered:!!t._surrendered, done:_B.done, result:_B.result, log:_B.log.slice(-4)};
   }
   if(cmd==='spare'){
@@ -524,6 +536,8 @@ function advanceUntilPlayer(){
 function afterAction(){
   if(!_B)return;
   if(_B.mercyActive) return;
+  // Consume the turn cursor immediately so rapid clicks cannot multi-act (fair ATB)
+  _B.selecting=null;
   if(drainMercyQueue()) return;
   checkEnd();
   if(_B.done)return;
@@ -549,13 +563,14 @@ function finish(result){
   // apply to S after short delay so UI shows
   const B=_B;
   try{ lastBattleSummary=summary; lastBattleFlags=B.flags||{}; lastBattlePhaseLog=(B.phaseLog||[]).slice(); }catch(_){}
+  const endDelay=(typeof window!=='undefined' && window.__PLAYTEST)?(result==='flee'?200:350):(result==='flee'?600:1600);
   setTimeout(()=>{
     applyRewards(B, result, summary);
     const cb=B.onEnd;
     hideBattleUI();
     _B=null;
     if(cb) cb(summary);
-  }, result==='flee'?600:1600);
+  }, endDelay);
 }
 
 function buildSummary(result){
@@ -912,8 +927,34 @@ function doTalk(actor, payload={}){
   const t=payload.targetId?pickTarget(payload.targetId,true):foes[0];
   const text=String(payload.text||'').trim();
   const S=_B.S;
+  // v41: boss dialogue choice path (story/relationship)
+  if(payload.choiceId || payload.choice){
+    const choice=payload.choice || (window.__game?.C41?.bossDialogueChoices?.(S,t)||[]).find(c=>c.id===payload.choiceId);
+    if(choice){
+      t._talked=true; t._mercyTalk=true;
+      _B.log.push(`${actor.name}: „${(choice.text||text).slice(0,80)}“`);
+      let res;
+      try{ res=window.__game?.C41?.resolveBossDialogue?.(S,t,choice); }catch(_){ res=null; }
+      if(res?.ok){
+        t.hp=Math.max(1,t.hp); t._surrendered=true; t._ended='surrender'; t.alive=false;
+        _B.log.push(res.text||`${t.name} lässt die Waffe sinken.`);
+        rememberSocial(S,t,'talk_down');
+        checkSocialEnd();
+      } else if(res?.enrage){
+        _B.log.push(res.text||`${t.name} wird wütend.`);
+        t.atk=Math.round((t.atk||10)*1.15);
+        if(t.aggroMap) t.aggroMap[actor.id]=(t.aggroMap[actor.id]|0)+12;
+      } else {
+        _B.log.push(res?.text||`${t.name} hört nicht zu.`);
+        if(t.aggroMap) t.aggroMap[actor.id]=(t.aggroMap[actor.id]|0)+5;
+      }
+      afterAction();
+      return;
+    }
+  }
   let chance=0.25+(actor.mag||0)/80+(S.st?.cha||0)/120;
   if(t.human) chance+=0.1;
+  if(t.boss||t.talkable) chance+=0.05;
   if(/bitte|frieden|freund|reden|spar|verschon|kapitul/i.test(text)) chance+=0.2;
   if(/droh|töt|umbring|hass/i.test(text)) chance-=0.25;
   if((S.flags?.spared||[]).includes(t.id)||(S.flags?.sparedNames||[]).includes(t.name)) chance+=0.25;
@@ -1163,7 +1204,11 @@ function refreshUI(){
         else if(mode==='skill') playerCommand('skill',{skill:_B.selecting.skill,targetId:iid});
         else if(mode==='analyze') playerCommand('analyze',{targetId:iid});
         else if(mode==='limit') playerCommand('limit',{targetId:iid});
-        else if(mode==='talk') playerCommand('talk',{targetId:iid});
+        else if(mode==='talk'){
+          const tf=_B.foes.find(f=>f._iid===iid);
+          if(tf && (tf.boss||tf.talkable||tf.human)){ _B.selecting={actor:_B.selecting.actor,mode:'bossTalk',targetId:iid}; refreshUI(); }
+          else playerCommand('talk',{targetId:iid});
+        }
         else if(mode==='spare') playerCommand('spare',{targetId:iid});
         else if(mode==='threaten') playerCommand('threaten',{targetId:iid});
         else if(mode==='steal') playerCommand('steal',{targetId:iid});
@@ -1196,6 +1241,25 @@ function refreshUI(){
     if(B.done){ cmd.innerHTML=''; return }
     const sel=B.selecting;
     if(!sel||sel.actor.kind!=='hero'){ cmd.innerHTML=`<div class="battle-wait">…</div>`; return }
+    if(sel.mode==='bossTalk'){
+      const t=pickTarget(sel.targetId,true)||living(_B.foes)[0];
+      const choices=(window.__game?.C41?.bossDialogueChoices?.(_B.S,t))||[
+        {id:'reason',label:'Zur Vernunft reden',text:'Bitte, lass uns reden.'}
+      ];
+      cmd.innerHTML=`<div class="boss-talk-sheet"><div class="bts-title">Reden mit ${t?.name||'Boss'}</div>
+        <div class="bts-choices">${choices.map(c=>`<button type="button" class="bcm social bts" data-cid="${c.id}">${c.label}</button>`).join('')}
+        <button type="button" class="bcm ghost" data-cid="__cancel">Zurück</button></div>
+        <p class="meta">Wahl an Story/Beziehung gebunden — nicht nur Zufall.</p></div>`;
+      cmd.querySelectorAll('[data-cid]').forEach(btn=>{
+        btn.onclick=()=>{
+          const cid=btn.dataset.cid;
+          if(cid==='__cancel'){ _B.selecting={actor:sel.actor,mode:null}; refreshUI(); return; }
+          const choice=choices.find(c=>c.id===cid);
+          playerCommand('talk',{targetId:t._iid, choiceId:cid, choice, text:choice?.text});
+        };
+      });
+      return;
+    }
     if(sel.mode==='main'){
       const limReady=(sel.actor.limit|0)>=100;
       cmd.innerHTML=`
@@ -1233,7 +1297,18 @@ function refreshUI(){
         else if(c==='row') playerCommand('row')
         else if(c==='atbMode') playerCommand('atbMode')
         else if(c==='analyze'){ _B.selecting={actor:sel.actor,mode:'analyze'}; refreshUI(); toastPick() }
-        else if(c==='talk'){ _B.selecting={actor:sel.actor,mode:'talk'}; if(living(_B.foes).length===1) playerCommand('talk',{targetId:living(_B.foes)[0]._iid}); else { refreshUI(); toastPick() } }
+        else if(c==='talk'){
+          const foesNow=living(_B.foes);
+          const one=foesNow.length===1?foesNow[0]:null;
+          if(one && (one.boss||one.talkable||one.human)){
+            _B.selecting={actor:sel.actor,mode:'bossTalk',targetId:one._iid};
+            refreshUI();
+          } else {
+            _B.selecting={actor:sel.actor,mode:'talk'};
+            if(one) playerCommand('talk',{targetId:one._iid});
+            else { refreshUI(); toastPick() }
+          }
+        }
         else if(c==='spare'){ _B.selecting={actor:sel.actor,mode:'spare'}; if(living(_B.foes).length===1) playerCommand('spare',{targetId:living(_B.foes)[0]._iid}); else { refreshUI(); toastPick() } }
         else if(c==='threaten'){ _B.selecting={actor:sel.actor,mode:'threaten'}; if(living(_B.foes).length===1) playerCommand('threaten',{targetId:living(_B.foes)[0]._iid}); else { refreshUI(); toastPick() } }
         else if(c==='limit'){ playerCommand('limit',{targetId:living(_B.foes)[0]?._iid}) }
@@ -1605,7 +1680,7 @@ function resolveNonCombat(S, foes, choice, text){
 }
 
 export default {
-  startBattle, isActive, getBattle, playerCommand, buildParty, renderBattleUI,
+  startBattle, isActive, getBattle, getLastSummary, getLastResult, playerCommand, buildParty, renderBattleUI,
   maybeRandomEncounter, offerEncounter, COMBAT_SKILLS,
   isStoryNpcFoe, storyNpcName, mercyNeeded, applyMercyDecision,
   __playSprite: playSpriteAnim, __testDrive,

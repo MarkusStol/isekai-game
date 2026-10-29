@@ -2134,3 +2134,12 @@ body.pixel-jrpg .logo,
 .craft-row.locked{opacity:.55}
 .craft-row.locked button{cursor:not-allowed}
 .boss-cutscene{z-index:80}
+
+/* v41 boss dialogue + tilemap minimap + craft XP */
+.boss-talk-sheet{display:flex;flex-direction:column;gap:6px;max-width:100%}
+.boss-talk-sheet .bts-title{font-weight:700;font-size:13px;opacity:.95}
+.boss-talk-sheet .bts-choices{display:flex;flex-wrap:wrap;gap:6px}
+.boss-talk-sheet .bts{flex:1 1 140px;text-align:left}
+.tilemap-mm .mm-canvas{display:block;border:1px solid #3a3048;border-radius:4px;background:#0a0810;margin:4px 0}
+.craft-xp{font-size:11px;opacity:.8}
+.craft-train-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}

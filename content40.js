@@ -84,6 +84,12 @@ export function grantCraftSkill(S, skill, lvl=1){
 
 /** Sync stations from mid-game / dungeon / jobs */
 export function syncCraftProgress(S){
+  // v41+: skill growth via use/training XP (C41); stations still unlock here as floor
+  try{
+    if(typeof window!=='undefined' && window.__game?.C41?.syncCraftProgress41){
+      return window.__game.C41.syncCraftProgress41(S);
+    }
+  }catch(_){}
   ensureCraft40(S);
   const tier=C39.gearTierAvailable(S);
   const lvl=S.st?.lvl||1;
@@ -92,12 +98,11 @@ export function syncCraftProgress(S){
   if(tier>=2 || jobs.includes('monch') || jobs.includes('beschwoerer')) unlockStation(S,'alchemy','fortschritt');
   if((S.content39?.clearedDungeons||[]).length) {
     unlockStation(S,'forge','dungeon');
-    grantCraftSkill(S,'schmieden', Math.max(2, tier));
   }
-  // skill levels track tier
-  if(S.craft40.stations.forge?.unlocked) grantCraftSkill(S,'schmieden', Math.min(4, Math.max(1, tier)));
-  if(S.craft40.stations.alchemy?.unlocked) grantCraftSkill(S,'alchemie', Math.min(4, Math.max(1, tier-1)));
-  grantCraftSkill(S,'kochen', Math.min(2, Math.max(1, Math.floor(lvl/4)+1)));
+  // floor only — do not auto-jump skill to gear tier (XP path in C41)
+  if(S.craft40.stations.forge?.unlocked && !(S.craft40.skills.schmieden|0)) grantCraftSkill(S,'schmieden', 1);
+  if(S.craft40.stations.alchemy?.unlocked && !(S.craft40.skills.alchemie|0)) grantCraftSkill(S,'alchemie', 1);
+  if(!(S.craft40.skills.kochen|0)) grantCraftSkill(S,'kochen', 1);
   return S.craft40;
 }
 
@@ -128,6 +133,12 @@ export function canCraftRecipe(S, recipeId, kind='craft'){
 
 /* ---- Dungeon minimap ---- */
 export function renderDungeonMinimap(host, S){
+  // v41: prefer real tilemap minimap
+  try{
+    if(typeof window!=='undefined' && window.__game?.C41?.renderDungeonMinimap){
+      return window.__game.C41.renderDungeonMinimap(host, S);
+    }
+  }catch(_){}
   const d=S.content39?.dungeon;
   if(!host) return null;
   if(!d){ host.classList.add('hidden'); host.innerHTML=''; return null; }
@@ -165,9 +176,11 @@ export function refreshMinimap(S){
 }
 
 export function onDungeonEnterHook(S){
+  try{ window.__game?.C41?.onDungeonEnterHook?.(S); }catch(_){}
   refreshMinimap(S);
 }
 export function onDungeonLeaveHook(S){
+  try{ window.__game?.C41?.onDungeonLeaveHook?.(S); }catch(_){}
   refreshMinimap(S);
 }
 

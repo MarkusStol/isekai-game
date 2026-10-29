@@ -224,16 +224,36 @@ export function renderCraft(body, S, helpers){
     const sk=c40.skills?.[def.skill]|0;
     return `${def.icon} ${def.name}:${st?.unlocked?('L'+sk):'🔒'}`;
   }).join(' · ')||'Küche';
+  try{ window.__game?.C41?.ensureCraft41?.(S); window.__game?.C41?.syncCraftProgress41?.(S); }catch(_){}
+  const xp=S.craft40?.skillXp||{};
+  const sk=S.craft40?.skills||{};
+  const xpLine=['schmieden','kochen','alchemie'].map(s=>{
+    const lv=sk[s]|0; const need=window.__game?.C41?.CRAFT_XP_TO_NEXT?.[lv]||'—';
+    return `${s} Lv${lv} (${xp[s]|0}/${need})`;
+  }).join(' · ');
   body.appendChild(card(`<h3>🔨 Werkstatt</h3>
     <p class="meta">Gil: ${S.st?.gold|0} · Ausrüstungsstufe ${tier} (hart)</p>
     <p class="meta">Stationen: ${stations}</p>
-    <p class="meta">Material: ${Object.entries(mats).filter(([,n])=>n>0).map(([k,v])=>`${k}×${v}`).join(' · ')||'leer'}</p>`));
+    <p class="meta craft-xp">Skill-XP (Nutzen/Training → Tier 4): ${xpLine}</p>
+    <p class="meta">Material: ${Object.entries(mats).filter(([,n])=>n>0).map(([k,v])=>`${k}×${v}`).join(' · ')||'leer'}</p>
+    <div class="craft-train-row" id="craftTrain"></div>`));
+  const tr=body.querySelector('#craftTrain');
+  if(tr){
+    ['schmieden','kochen','alchemie'].forEach(skill=>{
+      const b=btn('Trainiere '+skill);
+      b.onclick=()=>{
+        const r=window.__game?.C41?.trainCraftSkill?.(S,skill)||{ok:false,text:'C41 fehlt'};
+        toast?.(r.text); save?.(); body.innerHTML=''; renderCraft(body,S,helpers);
+      };
+      tr.appendChild(b);
+    });
+  }
 
   const craft=card(`<h3>Herstellen</h3><div id="craftList"></div>`);
   const list=craft.querySelector('#craftList');
   Equip.CRAFT_RECIPES.forEach(rec=>{
     const it=Equip.getItem(rec.id);
-    const gate=window.__game?.C40?.canCraftRecipe?.(S,rec.id,'craft')||{ok:true};
+    const gate=(window.__game?.C41?.canCraftRecipe41||window.__game?.C40?.canCraftRecipe)?.(S,rec.id,'craft')||{ok:true};
     const row=document.createElement('div'); row.className='craft-row'+(gate.ok?'':' locked');
     row.innerHTML=`<div><b>${it?.icon||'📦'} ${it?.name||rec.id}</b><br><span class="meta">T${(rec.tier||1)} · ${Object.entries(rec.mats).map(([k,v])=>`${k}×${v}`).join(', ')} · ${rec.gold} Gil${gate.ok?'':' · 🔒 '+String(gate.reason||'').slice(0,60)}</span></div>`;
     const b=btn(gate.ok?'Herstellen':'Gesperrt'); b.disabled=!gate.ok;
@@ -245,7 +265,7 @@ export function renderCraft(body, S, helpers){
   const cook=card(`<h3>Kochen</h3><div id="cookList"></div>`);
   const cl=cook.querySelector('#cookList');
   (Equip.COOK_RECIPES||[]).forEach(rec=>{
-    const gate=window.__game?.C40?.canCraftRecipe?.(S,rec.id,'cook')||{ok:true};
+    const gate=(window.__game?.C41?.canCraftRecipe41||window.__game?.C40?.canCraftRecipe)?.(S,rec.id,'cook')||{ok:true};
     const row=document.createElement('div'); row.className='craft-row'+(gate.ok?'':' locked');
     row.innerHTML=`<div><b>🍲 ${rec.name}</b><br><span class="meta">T${(rec.tier||1)} · ${Object.entries(rec.mats||{}).map(([k,v])=>`${k}×${v}`).join(', ')||'—'} · +${rec.heal|0}HP${rec.mp?` +${rec.mp}MP`:''}${gate.ok?'':' · 🔒'}</span></div>`;
     const b=btn(gate.ok?'Kochen':'Gesperrt'); b.disabled=!gate.ok;
