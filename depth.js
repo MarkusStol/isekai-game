@@ -586,28 +586,66 @@ export function campDamageLine(S){
 export const OFFLINE_FRAGMENTS={
   held:[
     'Fackelrauch legt sich in die Kehle; irgendwo übt jemand den gleichen Hieb zum dritten Mal.',
-    'Ein Glockenläuten aus Solari — zu früh für die Abendmesse.',
+    'Ein Glockenläuten — zu früh für die Abendmesse, zu spät für den Markt.',
     'Auf dem Markt feilscht eine Frau um Mehl, als gäbe es morgen keines mehr.',
-    'Lyra würde das hier mit zwei Worten abtun. Elise bräuchte einen ganzen Rat.',
     'Dein Statusfenster flackert kurz, als spürte es den Nordwall.',
     'Jemand flüstert „Held“ und meint es nicht freundlich.',
-    'Der Boden unter den Stiefeln ist ausgetreten von Leuten, die älter wurden als der Krieg.'
+    'Der Boden unter den Stiefeln ist ausgetreten von Leuten, die älter wurden als der Krieg.',
+    'Magier-Lehrlinge murmeln Formeln, die halb falsch klingen — und trotzdem wirken.',
+    'Ein Wappen an der Mauer ist frisch übermalt. Politik, leise.',
+    'Tauben flattern vom Brunnenrand, als spürten sie Unruhe.',
+    'Unter den Stiefeln knirscht Sand von der Landstraße.'
+  ],
+  fantasy:[
+    'Fackeln knistern; Stahl klingt gegen Holz irgendwo hinter der Gasse.',
+    'Ein Bardenlied bricht ab, mittendrin — niemand klatscht.',
+    'Weihrauch und Pferdedung: die Stadt atmet beides.',
+    'Die Wache wechselt; die alten Gesichter bleiben.'
+  ],
+  zombie:[
+    'Irgendwo knarrt Blech; zu rhythmisch für Wind.',
+    'Munition zählt hier lauter als Gold.',
+    'Ein handgemaltes Schild: „Klopfen. Dann warten.“',
+    'Krähen sitzen auf einer umgestürzten Ampel und warten.',
+    'Barrikaden aus Einkaufswagen — pragmatisch, hässlich, wirksam.',
+    'Fußspuren im Staub: frisch, zu viele für eine Person.'
+  ],
+  cyberpunk:[
+    'Neon spiegelt sich in Pfützen aus Kühlmittel.',
+    'Hologramm-Werbung flackert: „Schuld tilgen. Heute.“',
+    'Regen riecht nach Ozon und billigem Synth-Essen.',
+    'Kameras zwinkern rot; jemand schaut, oder tut so.',
+    'Datenkabel hängen wie Lianen von einem Balkon.',
+    'Ein Vendor-Automat klemmt — jemand hat ihn getreten.'
   ],
   talk:[
     'Die Pause zwischen zwei Sätzen sagt mehr als der Satz.',
     'Ein Blick zur Tür — alte Gewohnheit.',
-    'Finger kneten den Stoff eines Ärmels, bis die Naht quietscht.'
+    'Finger kneten den Stoff eines Ärmels, bis die Naht quietscht.',
+    'Ein Atemzug zu lang — dann kommt die Antwort.',
+    'Stimme und Blick passen nicht zusammen; eins von beiden lügt.',
+    'Ein halbes Lächeln, das keine Einladung ist.',
+    'Jemand wartet, bis du fertig bist, bevor das eigene Wort fällt.'
   ],
   tension:[
     'Zeit läuft gegen dich, auch wenn niemand die Sanduhr zeigt.',
     'Ein Versprechen und ein Preis liegen auf demselben Tisch.',
-    'Du könntest lügen. Die Welt würde es merken — später.'
+    'Du könntest lügen. Die Welt würde es merken — später.',
+    'Die Stille ist nicht leer; sie hört zu.',
+    'Ein Schritt zu nah — und die Szene kippt.'
   ]
 };
 
 export function offlineFlavor(S, kind='held'){
+  const g=String(S?.genre||S?.role||S?.world?.systems?.kind||'').toLowerCase();
+  const gKey=/zombie|apokal/.test(g)?'zombie':/cyber|neon|punk/.test(g)?'cyberpunk':/fantasy|held|magie|elf/.test(g)?'fantasy':null;
   const pack=OFFLINE_FRAGMENTS[kind]||OFFLINE_FRAGMENTS.held;
-  const genre=OFFLINE_FRAGMENTS[S?.role]||pack;
+  const genre=(gKey&&OFFLINE_FRAGMENTS[gKey])||OFFLINE_FRAGMENTS[S?.role]||pack;
+  // merge talk/tension with genre color when useful
+  if(kind==='held' && gKey && OFFLINE_FRAGMENTS[gKey]){
+    const merged=OFFLINE_FRAGMENTS[gKey].concat(pack);
+    return R(merged);
+  }
   return R(genre);
 }
 

@@ -25,9 +25,9 @@ import * as OW from './overworld.js';
 import * as Aud from './audio.js';
 import { hasBg } from './bg-manifest.js';
 try{ Aud.unlockOnGesture?.(); }catch(_){} // v28 first-tap music
- // v37: global names, online A/B, UX onboard, candy CSS gone, OW camp damage, regional floorplans, Pollinations A/B, UI polish
+ // v38: rich offline narr + easy keys, online A/B, UX onboard, candy CSS gone, OW camp damage, regional floorplans, Pollinations A/B, UI polish
 const $=s=>document.querySelector(s);const $$=s=>[...document.querySelectorAll(s)];const R=a=>a[Math.floor(Math.random()*a.length)];const rnd=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
-const VER='37',CACHE_V='v37';
+const VER='38',CACHE_V='v38';
 const ROLES={
  held:{e:'⚔️',name:'Held mit Status-System',d:'Ein blaues Fenster erscheint: [Status]. Die Welt braucht dich.',world:'Königreich Aldheim',
   base:{hp:100,mp:40,str:12,cha:8,ruf:10,gold:40},cls:['Abenteurer','Ritter','Held','Legendärer Held'],pack:'worlds/held.json',
@@ -579,7 +579,7 @@ function eventToast(t){const e=$('#eventToast');if(!e)return;e.textContent=t;e.c
 function hasKey(){return !!(cfg.gkey||'').trim()}
 function wantAI(){return cfg.mode!=='offline'}
 function gateOrShow(){if(S&&S.setup&&!S.setup.done){enterPlay();return}
- if(!hasKey()&&(cfg.mode==='gemini'||!cfg.mode)){cfg.mode='free';try{localStorage.setItem(CFG,JSON.stringify(cfg))}catch(_){}}
+ if(!hasKey()&&(cfg.mode==='gemini'||!cfg.mode)){cfg.mode=(cfg.pollenKey||'').trim()?'free':'offline';try{localStorage.setItem(CFG,JSON.stringify(cfg))}catch(_){}}
  if(wantAI()&&!hasKey()&&cfg.mode!=='webllm'&&cfg.mode!=='api'&&cfg.mode!=='free'&&cfg.mode!=='offline'){showKeyGate();return}enterPlay()}
 function showKeyGate(){$('#title').classList.add('hidden');$('#stage').classList.add('hidden');const g=$('#keyGate');if(g){g.classList.remove('hidden');$('#gateKey').value='';setTimeout(()=>$('#gateKey').focus(),50)}}
 function dbgLine(){const el=$('#dbg');if(!el)return;if(!cfg.debug){el.classList.add('hidden');return}el.classList.remove('hidden');el.textContent=_dbgMs?('Zug '+_dbgMs+' ms'+(S?._ttft!=null?(' · TTFT '+S._ttft+' ms'):'')+(S?._promptChars?(' · ~'+Math.round(S._promptChars/3.5)+' tok'):'')):'–'}
@@ -703,6 +703,7 @@ function migrate(raw){if(!raw)return null;const s=typeof raw==='string'?JSON.par
  if(Number(s.ver)<35){s.ver=35;s.camp=s.camp||{upgrades:[],morale:40,watch:false,garden:0,stash:[],raidThreat:0}; if(s.camp.damage==null)s.camp.damage={burnt:0,palisadeBroken:false,tasks:[]}; for(const n of Object.values(s.world?.npcs||{})){ if(n&&n.revealTier==null) n.revealTier=0; } try{Econ.ensureMarket?.(s)}catch(_){} }
  if(Number(s.ver)<36){s.ver=36;s.camp=s.camp||{upgrades:[],morale:40,watch:false,garden:0,stash:[],raidThreat:0}; if(!s.camp.damage)s.camp.damage={burnt:0,palisadeBroken:false,tasks:[]}; try{Econ.ensureMarket?.(s)}catch(_){} }
  if(Number(s.ver)<37){s.ver=37;s.flags=s.flags||{}; if(s.flags.onboarded==null)s.flags.onboarded=false; try{ Depth.resetUsedFirstFromWorld?.(s) }catch(_){} }
+ if(Number(s.ver)<38){s.ver=38;s._offlineRecent=s._offlineRecent||{};s._offlineOut=s._offlineOut||[]; s.flags=s.flags||{}; }
  // v13.1 continuity+time always (kept in v14)
  try{Cont.ensureCont(s);if(s.cal&&s.cal.minute==null)s.cal.minute=0;if(s.cfgCatchupOptIn==null)s.cfgCatchupOptIn=false}catch(e){console.warn('cont migrate',e)}
  // Heal incomplete worlds from old saves (missing orte/graph)
@@ -1560,53 +1561,73 @@ function askNPC(a){if(!isQ(a)||!S)return null;const t=a.toLowerCase();const pres
   }
   if(mem && /gefragt|euer Gespräch:/i.test(mem)) mem='';
   const sm=(npc.samples&&npc.samples[0])?String(npc.samples[0]).replace(/^[„"«]+|[“"»]+$/g,'').slice(0,70):'';
+  const U=(pool,b)=>Imm.pickUnique(S,pool,b||'ask');
   const bits=[];
-  bits.push(art?`${label} (${art}${style?', '+style:''}) in ${ort}.`:`${label} in ${ort}.`);
+  bits.push(U([
+    art?`${label} (${art}${style?', '+style:''}) in ${ort} — ${phase}.`:`${label} in ${ort}, ${phase}.`,
+    art?`${phase} in ${ort}. ${label} (${art}) wendet sich dir zu.`:`${phase}. ${label} ist da.`,
+    `${label} hält in ${ort} inne.`,
+    U(['Ein kurzer Blickwechsel.','Ohne Umwege:','Direkt:'],'lead')+` ${label}${art?' — '+art:''}.`,
+  ],'askopen'));
+  bits.push(U([
+    'Die Szene hält kurz den Atem an.',
+    'Ein Geräusch von draußen mischt sich unter die Worte.',
+    'Nähe und Abstand wechseln mit jedem Satz.',
+    Depth.offlineFlavor?.(S,'talk')||'Die Pause zwischen zwei Sätzen sagt mehr als der Satz.',
+  ],'asksc'));
   if(mem && tier>=1) bits.push(mem);
   if(/wer|seid|bist|name|heiß/.test(t)){
-    bits.push(`${label} ${R(['mustert dich','hebt den Blick','zögert kurz'])}. „Ich bin ${w.n.split(' / ')[0]}.“`);
-    if(slice) bits.push(slice);
+    bits.push(`${label} ${U(['mustert dich','hebt den Blick','zögert kurz','wischt sich Staub vom Ärmel','knickt den Kopf'],'gest')}. „Ich bin ${w.n.split(' / ')[0]}.“`);
+    if(slice) bits.push(`Reveal ${tier||1}: ${slice}`);
+    if(npc.ziel && tier>=1) bits.push(`„Was ich will? ${String(npc.ziel).slice(0,55)}.“`);
     if(sm) bits.push(`Im eigenen Ton: „${sm}“`);
   } else if(/wo|wohin|woher/.test(t)){
     bits.push(`${label}: „Du bist ${/^(in|im|am|auf|an)\b/i.test(ort)?ort:'in '+ort}.“`);
-    const d=String(S.world?.orte?.[ort]||S.world?.graph?.nodes?.[ort]?.desc||'').slice(0,120);
+    const d=String(S.world?.orte?.[ort]||S.world?.graph?.nodes?.[ort]?.desc||'').slice(0,140);
     if(d) bits.push(d);
+    bits.push(U(['„Merk dir die Ausgänge.“','„Hier ändert sich die Lage stündlich.“','„Frag nach Wegen, nicht nach Gerüchten — zuerst.“'],'wo'));
   } else if(/erzähl|vergangen|geschichte|wer bist|über dich|von dir|warum|ziel|wunsch/.test(t)){
     bits.push(!/wütend|feindlich|rachsüchtig/.test(String(npc.mood||''))
-      ? `${label} atmet aus. „Gut — ein Stück Wahrheit.“`
-      : `${label} zögert. „Nur das Nötigste.“`);
-    if(slice) bits.push(slice);
+      ? U([`${label} atmet aus. „Gut — ein Stück Wahrheit.“`,`${label} senkt die Stimme. „Nur für dich — und nur jetzt.“`,`${label} nickt. „Dann also ehrlich.“`],'op')
+      : U([`${label} zögert. „Nur das Nötigste.“`,`${label} spitzt die Worte. „Kurz.“`],'op'));
+    if(slice) bits.push(`Reveal-Stufe ${tier}: ${slice}`);
     else if(npc.ziel) bits.push(`„Mein Ziel: ${String(npc.ziel).slice(0,60)}.“`);
     if(npc.desire||npc.ziel) bits.push(`${label} will ${String(npc.desire||npc.ziel).slice(0,50)}.`);
-    if(tier>=1 && npc.backstory) bits.push(String(npc.backstory).split(/[.;]/)[0].slice(0,90)+'.');
+    if(tier>=1 && npc.backstory && slice!==String(npc.backstory).split(/[.;]/)[0]) bits.push(String(npc.backstory).split(/[.;]/)[0].slice(0,90)+'.');
     if(tier>=2 && npc.wound) bits.push(`Die Stimme knickt kurz: ${String(npc.wound).slice(0,60)}.`);
     if(tier>=2 && npc.need) bits.push(`Braucht eigentlich ${String(npc.need).slice(0,40)}.`);
     if(tier>=3 && npc.contradiction) bits.push(`Und doch: ${String(npc.contradiction).slice(0,70)}.`);
     if(sm) bits.push(`„${sm}“`);
-    // Guarantee substance for AAA-feel replies
-    if(bits.join(' ').length<120){
-      bits.push(`${label} blickt über ${ort}. „Bleib, wenn du mehr wissen willst — aber frag nicht alles auf einmal.“`);
+    if(bits.join(' ').length<140){
+      bits.push(U([
+        `${label} blickt über ${ort}. „Bleib, wenn du mehr wissen willst — aber frag nicht alles auf einmal.“`,
+        `${label}: „Die nächste Wahrheit kostet mehr Vertrauen.“`,
+        `Ein Schweigen. Dann: „Frag weiter — aber behutsam.“`,
+      ],'pad'));
     }
   } else if(/ort|hier|lage|los|passiert/.test(t)){
     const d=String(S.world?.orte?.[ort]||S.world?.graph?.nodes?.[ort]?.desc||'').slice(0,160);
     bits.push(`${label} überlegt. „Hier in ${ort}…“`);
     if(d) bits.push(d);
-    else bits.push(R(['„Halt die Augen offen.“','„Vertrau niemandem zu schnell.“','„Die Lage ändert sich stündlich.“']));
+    else bits.push(U(['„Halt die Augen offen.“','„Vertrau niemandem zu schnell.“','„Die Lage ändert sich stündlich.“','„Hör auf Geräusche unter dem Lärm.“','„Wer hier laut wird, wird gehört — von den Falschen.“'],'lage'));
   } else {
-    bits.push(`${label} ${R(['runzelt die Stirn','sieht dich lange an','senkt die Stimme'])}.`);
-    bits.push(R(['„Das ist eine gute Frage — und keine kurze Antwort.“','„Nicht alles gehört auf den Marktplatz.“','„Wenn du das wissen willst, bleib in meiner Nähe.“']));
-    if(slice && tier>=1) bits.push(slice);
+    bits.push(`${label} ${U(['runzelt die Stirn','sieht dich lange an','senkt die Stimme','tippt unruhig mit dem Finger','lächelt schief'],'gest2')}.`);
+    bits.push(U(['„Das ist eine gute Frage — und keine kurze Antwort.“','„Nicht alles gehört auf den Marktplatz.“','„Wenn du das wissen willst, bleib in meiner Nähe.“','„Frag das noch einmal anders — dann vielleicht.“','„Manche Antworten reifen erst, wenn du bleibst.“'],'ans'));
+    if(slice && tier>=1) bits.push(`Ein Hauch (Stufe ${tier}): ${slice}`);
   }
-  if(style) bits.push(`(${style})`);
-  bits.push({regen:'Feiner Regen trommelt.',schnee:'Schnee flirrt.',nebel:'Nebel schiebt sich dazwischen.',klar:'Die Luft ist klar.',wind:'Ein Windstoß trägt Gerüche.'}[weather]||`Es ist ${phase}.`);
-  return bits.filter(Boolean).join(' ');
+  if(style) bits.push(U([`(${style}) — der Ton bleibt treu.`,`(Spricht ${style.toLowerCase()}.)`], 'sty'));
+  bits.push({regen:U(['Feiner Regen trommelt.','Tropfen zeichnen Bahnen auf Stein.'],'wx'),schnee:U(['Schnee flirrt.','Kälte beißt in die Finger.'],'wx'),nebel:U(['Nebel schiebt sich dazwischen.','Umrisse weichen im Grau.'],'wx'),klar:U(['Die Luft ist klar.','Jedes Geräusch trägt weit.'],'wx'),wind:U(['Ein Windstoß trägt Gerüche.','Zugluft zerrt an Mänteln.'],'wx')}[weather]||`Es ist ${phase}.`);
+  let out=bits.filter(Boolean).join(' ');
+  try{ Imm.rememberOfflineOut?.(S,out); }catch(_){}
+  return out;
  });
  const aff={};sp.forEach(w=>{aff[w.n]=2});
  try{ for(const w of sp){ Know.markInteracted(S,w.n); if(/wer|bist|name|heiß/i.test(t)) Know.learnName(S,w.n,'told');
    const n=bible[w.n]; if(n){ /* v35: don't pollute lived recall with ask-echo; light note only */
      try{ n._lastAsk=String(a).slice(0,60); }catch(_){} }
  } }catch(_){}
- return {text:lines.join('\n\n'),changes:{xp:8,affinity:aff,choices:defChoices()}}}
+ const joined=lines.join('\n\n'); const ded=(()=>{try{return Imm.dedupeOfflineReply(S,joined)}catch(_){return joined}})();
+ return {text:ded,changes:{xp:8,affinity:aff,choices:defChoices()}}}
 
 
 
@@ -2034,29 +2055,49 @@ function npcLine(n, kind){
   const quoted=[...(String(npc.stimme||'').match(/[„"]([^„"]+)[„"]/g)||[])].map(x=>x.replace(/[„"]/g,''));
   samples.push(...quoted);
   const styleBit=stimme?` (${stimme.trim()})`:'';
-  const greet=R([
-    `„${R(['…Hallo.','Ja?','Ich höre.','Sprich.'])}“`,
+  const U=(pool,b)=>Imm.pickUnique(S,pool,b||'npc');
+  const greetCore=U([
+    `„${U(['…Hallo.','Ja?','Ich höre.','Sprich.','Hm.','Rede.','Na?'],'hi')}“`,
     `${label} mustert dich kurz. „Was willst du?“`,
-    `${label} nickt knapp — eine Antwort auf deinen Gruß.`
-  ]);
+    `${label} nickt knapp — eine Antwort auf deinen Gruß.`,
+    `${label} hebt eine Braue. „Du schon wieder — oder zum ersten Mal laut?“`,
+    `${label} atmet aus. „Komm näher. Aber nicht zu nah.“`,
+    `Ein kurzes „Hier.“ von ${label}${styleBit}.`,
+  ],'greet');
   try{ Depth.bumpReveal(npc, kind==='ask_who'?1:0); }catch(_){ npc.revealTier=Math.min(3,(npc.revealTier|0)+(kind==='ask_who'?1:0)); }
-  let back=''; try{ back=Depth.backstorySlice(npc); }catch(_){ back=String(npc.backstory||'').split(/[.;]/)[0].slice(0,110); }
-  const who=R([
-    `„Ich bin ${label}.“${styleBit} ${String(npc.art||'').split(/[.;]/)[0].slice(0,90)}.${back?` ${back}`:''}${npc.ziel&&!(npc.revealTier|0)?` „Mein Ziel: ${String(npc.ziel).slice(0,50)}.“`:''}`,
-    `${label}${styleBit}: „Namen hast du gehört.“${back?` ${back}`:''}`
-  ]);
+  const tier=npc.revealTier|0;
+  let back=''; try{ back=Depth.backstorySlice(npc,tier); }catch(_){ back=String(npc.backstory||'').split(/[.;]/)[0].slice(0,110); }
+  let lived=''; try{ lived=Depth.livedMemoryLine(S,n)||''; }catch(_){}
+  if(lived && /gefragt|euer Gespräch/i.test(lived)) lived='';
+  const who=U([
+    `„Ich bin ${label}.“${styleBit} ${String(npc.art||'').split(/[.;]/)[0].slice(0,90)}.${back?` Reveal ${tier||1}: ${back}`:''}${npc.ziel&&tier>=1?` „Mein Ziel: ${String(npc.ziel).slice(0,50)}.“`:''}${lived?` ${lived}`:''}`,
+    `${label}${styleBit}: „Namen hast du gehört.“${back?` ${back}`:''}${lived?` ${lived}`:''}`,
+    `${label} tippt sich an die Brust. „${label}. Mehr brauchst du erst, wenn du bleibst.“${back?` ${back}`:''}`,
+  ],'who');
   if(kind==='greet'){
-    let sm=String(samples[0]||'').trim(); sm=sm.replace(/^[„"«]+/,'').replace(/[“"»]+$/,'').trim();
-    const mems=(npc.memories||[]).concat(npc.erinnerung||[]).map(m=>typeof m==='string'?m:(m?.text||'')).filter(Boolean);
-    const prior=mems.reverse().find(m=>/begrüßt|Gespräch|gefragt|Versprechen|Geschenk|Beleidig|du hast/i.test(m));
+    let sm=String(samples[Math.floor(Math.random()*Math.max(1,samples.length))]||samples[0]||'').trim(); sm=sm.replace(/^[„"«]+/,'').replace(/[“"»]+$/,'').trim();
     let recall='';
-    if(prior){
-      const sn=String(prior).replace(/^[„"]|[“"]$/g,'').slice(0,70);
-      recall=R([` ${label} erkennt dich wieder: „Wir sprachen schon — ${sn}.“`,` Ein Nicken: die letzte Begegnung (${sn}) ist nicht vergessen.`]);
+    try{
+      const L=Depth.livedMemoryFor(S,n,3)||[];
+      const prior=L.find(m=>m&&m.text&&!/gefragt:|Du hast .+ gefragt/i.test(m.text));
+      if(prior){
+        const sn=String(prior.text).replace(/^[„"]|[“"]$/g,'').slice(0,70);
+        recall=U([` ${label} erkennt dich wieder: „Wir sprachen schon — ${sn}.“`,` Ein Nicken: Gelebtes (${sn}) ist nicht vergessen.`,` ${label}: „Letztes Mal… ${sn}. Ich hab’s behalten.“`],'rec');
+      }
+    }catch(_){}
+    if(!recall){
+      const mems=(npc.memories||[]).concat(npc.erinnerung||[]).map(m=>typeof m==='string'?m:(m?.text||'')).filter(Boolean);
+      const prior=mems.reverse().find(m=>/begrüßt|Gespräch|Versprechen|Geschenk|Beleidig|Begegnung|Leben:/i.test(m)&&!/gefragt:/i.test(m));
+      if(prior){
+        const sn=String(prior).replace(/^[„"]|[“"]$/g,'').slice(0,70);
+        recall=U([` ${label} erkennt dich wieder: „${sn}.“`,` Erinnerung blitzt auf: ${sn}`],'rec');
+      }
     }
-    return `${label} erwidert deinen Gruß${styleBit}. ${sm?`„${sm}“`:greet}${recall}`;
+    const out=`${label} erwidert deinen Gruß${styleBit}. ${sm?`„${sm}“ `:''}${greetCore}${recall}`;
+    try{ Imm.rememberOfflineOut?.(S,out); }catch(_){}
+    return out;
   }
-  if(kind==='ask_who') return who;
+  if(kind==='ask_who'){ try{ Imm.rememberOfflineOut?.(S,who); }catch(_){} return who; }
   return null;
 }
 
@@ -2272,11 +2313,12 @@ function offline(a){
     res.changes=ch;
   }
   if(res.changes && !res.changes.choices) res.changes.choices=travelChoices();
+  try{ if(res.text) res.text=Imm.dedupeOfflineReply(S,res.text); }catch(_){}
   return res;
 }
 
 /* ---------- AI ---------- */
-if(!cfg.v2||(cfg.mode==='gemini'&&!hasKey())){cfg.mode=hasKey()?'gemini':'free';cfg.v2=1;try{localStorage.setItem(CFG,JSON.stringify(cfg))}catch(_){}}
+if(!cfg.v2||(cfg.mode==='gemini'&&!hasKey())){cfg.mode=hasKey()?'gemini':((cfg.pollenKey||'').trim()?'free':'offline');cfg.v2=1;try{localStorage.setItem(CFG,JSON.stringify(cfg))}catch(_){}}
 function parseCreatureEncounter(a){
   // Require an explicit creature intent — never match pronouns ("sehe mich") or casual "sehe".
   const s=String(a||'');
@@ -2564,24 +2606,37 @@ function freeGateTrip(status, retryAfterSec, msg){
   return sec;
 }
 function freeGateOk(){ _freeGate.until=0; _freeGate.lastStatus=0; try{ updateNarratorDot() }catch(_){} }
+function narratorStatusText(){
+  const lim=!freeGateOpen();
+  const mode=(S&&S._narratorMode)||cfg.mode||'offline';
+  const hasG=!!(cfg.gkey||'').trim();
+  const hasP=!!(cfg.pollenKey||'').trim();
+  if(lim && mode==='free') return 'Erzählerin: Pollinations Pause bis '+new Date(_freeGate.until).toLocaleTimeString();
+  if(mode==='gemini') return hasG?'Erzählerin: Gemini (dein Schlüssel)':'Erzählerin: Gemini (kein Schlüssel — Fallback)';
+  if(mode==='free') return hasP?'Erzählerin: Pollinations (Pollen-Key)':'Erzählerin: Pollinations (oft offline → lokal)';
+  if(mode==='webllm') return 'Erzählerin: On-Device (WebLLM)';
+  if(mode==='api') return 'Erzählerin: Eigener API-Endpunkt';
+  return 'Erzählerin: Offline (lokal, ohne Netz)';
+}
 function updateNarratorDot(){
-  // Tiny settings indicator only — never a disruptive banner.
   let d=document.getElementById('narrDot');
+  const statusHost=document.getElementById('narratorStatus');
   if(!d){
-    const host=document.querySelector('#cfgPanel .cfg-row, #settings .cfg-row, #cfg, .cfg-body, #menu');
-    // Prefer a dedicated slot next to mode select
     const modeSel=document.getElementById('mode')||document.querySelector('select[name=mode]');
-    const anchor=modeSel&&modeSel.parentElement;
+    const anchor=statusHost||(modeSel&&modeSel.parentElement)||document.querySelector('#sheet .panel');
     d=document.createElement('span'); d.id='narrDot'; d.className='narr-dot'; d.title='Narrator';
-    if(anchor) anchor.appendChild(d);
-    else if(host) host.appendChild(d);
+    if(statusHost&&!statusHost.contains(d)) statusHost.insertBefore(d, statusHost.firstChild);
+    else if(anchor) anchor.appendChild(d);
     else return;
   }
   const lim=!freeGateOpen();
-  const mode=S&&S._narratorMode||cfg.mode||'free';
+  const mode=(S&&S._narratorMode)||cfg.mode||'offline';
   d.dataset.mode=mode;
   d.dataset.lim=lim?'1':'0';
-  d.title=lim?('Free-Narrator Pause bis '+new Date(_freeGate.until).toLocaleTimeString()):('Narrator: '+mode);
+  const label=narratorStatusText();
+  d.title=label;
+  const lab=document.getElementById('narrLabel');
+  if(lab) lab.textContent=label;
 }
 
 function localBeatLine(a){
@@ -3047,7 +3102,7 @@ async function act(a){
  try{
  // v17.2: defer pack reload; lock scene BEFORE first token; instant beat
  try{ if(!Cont.playerWantsExit(a)) Cont.lockScene(S,'talk'); else Cont.unlockScene(S); }catch(_){}
- if(!hasKey()&&cfg.mode==='gemini'){cfg.mode='free';try{localStorage.setItem(CFG,JSON.stringify(cfg))}catch(_){}}
+ if(!hasKey()&&cfg.mode==='gemini'){cfg.mode=(cfg.pollenKey||'').trim()?'free':'offline';try{localStorage.setItem(CFG,JSON.stringify(cfg))}catch(_){}}
  // instant local beat (<50ms) — zero dead time
  try{ const beat=localBeatLine(a); $('#speaker').textContent=(S.world?.scene?.anwesend||[])[0]||(isG()?'Nebel':'Erzähler'); $('#speaker').classList.remove('hidden'); el.textContent=beat; }catch(_){ try{el.innerHTML='<span class="caret">…</span>'}catch(__){} }
  S.turn++;S.log.push({k:'p',t:a});
@@ -3205,28 +3260,39 @@ $('#inputRow').onsubmit=e=>{e.preventDefault();const v=$('#txt').value;$('#txt')
 };
 
 const sync=()=>{$('#webllmBox').style.display=$('#mode').value==='webllm'?'':'none';$('#apiBox').style.display=$('#mode').value==='api'?'':'none'};
-function openSheet(){$('#mode').value=cfg.mode||'gemini';$('#wmodel').value=cfg.wmodel||$('#wmodel').value;$('#aurl').value=cfg.aurl||'';$('#akey').value=cfg.akey||'';$('#amodel').value=cfg.amodel||'';$('#gkey').value=cfg.gkey||'';
- if($('#dbgToggle'))$('#dbgToggle').checked=!!cfg.debug;if($('#battleDiff'))$('#battleDiff').value=cfg.battleDiff||'normal';if($('#atbMode'))$('#atbMode').value=cfg.atbMode||'active';gmUI();sync();$('#sheet').classList.remove('hidden')}
-$('#mode').onchange=sync;$('#btnClose').onclick=()=>$('#sheet').classList.add('hidden');
-$('#gkey').oninput=()=>{if($('#gkey').value.trim())$('#mode').value='gemini';sync()};
-function saveCfgFromUI(gk){const mode=$('#mode')?$('#mode').value:(gk?'gemini':'offline');
- cfg={v2:1,gkey:gk,mode:gk&&(!cfg.gkey||cfg.gkey!==gk)?'gemini':mode,wmodel:$('#wmodel')?.value,aurl:$('#aurl')?.value,akey:$('#akey')?.value,amodel:$('#amodel')?.value,debug:!!($('#dbgToggle')&&$('#dbgToggle').checked),battleDiff:$('#battleDiff')?.value||'normal',atbMode:$('#atbMode')?.value||'active'};
+function openSheet(){$('#mode').value=cfg.mode||'offline';$('#wmodel').value=cfg.wmodel||$('#wmodel').value;$('#aurl').value=cfg.aurl||'';$('#akey').value=cfg.akey||'';$('#amodel').value=cfg.amodel||'';$('#gkey').value=cfg.gkey||'';
+ if($('#pollenKey'))$('#pollenKey').value=cfg.pollenKey||'';
+ if($('#dbgToggle'))$('#dbgToggle').checked=!!cfg.debug;if($('#battleDiff'))$('#battleDiff').value=cfg.battleDiff||'normal';if($('#atbMode'))$('#atbMode').value=cfg.atbMode||'active';
+ try{ if(S&&!S._narratorMode) S._narratorMode=cfg.mode||'offline'; updateNarratorDot(); }catch(_){}
+ gmUI();sync();$('#sheet').classList.remove('hidden')}
+$('#mode').onchange=()=>{sync(); try{ if(S) S._narratorMode=$('#mode').value; updateNarratorDot(); }catch(_){}};
+$('#btnClose').onclick=()=>{$('#sheet').classList.add('hidden'); try{updateNarratorDot()}catch(_){}};
+$('#gkey').oninput=()=>{if($('#gkey').value.trim()){$('#mode').value='gemini'; try{if(S)S._narratorMode='gemini'}catch(_){}} sync(); try{updateNarratorDot()}catch(_){}};
+if($('#pollenKey'))$('#pollenKey').oninput=()=>{const pk=$('#pollenKey').value.trim(); if(pk&&!($('#gkey').value||'').trim()){$('#mode').value='free'; try{if(S)S._narratorMode='free'}catch(_){}} sync(); try{updateNarratorDot()}catch(_){}};
+function saveCfgFromUI(gk){const pk=($('#pollenKey')?.value||'').trim();
+ let mode=$('#mode')?$('#mode').value:(gk?'gemini':'offline');
+ if(gk&&(!cfg.gkey||cfg.gkey!==gk)) mode='gemini';
+ else if(!gk&&pk&&mode==='offline') mode='free';
+ else if(!gk&&!pk&&mode==='gemini') mode='offline';
+ cfg={v2:1,gkey:gk,pollenKey:pk,mode,wmodel:$('#wmodel')?.value,aurl:$('#aurl')?.value,akey:$('#akey')?.value,amodel:$('#amodel')?.value,debug:!!($('#dbgToggle')&&$('#dbgToggle').checked),battleDiff:$('#battleDiff')?.value||'normal',atbMode:$('#atbMode')?.value||'active'};
  localStorage.setItem(CFG,JSON.stringify(cfg));
  const st=gmStore();if($('#gmodel'))st.manual=$('#gmodel').value||'';gmSave(st);
  if(gk)gmFetch(gk,true).then(()=>gmProbe(gk).catch(()=>{}));
+ try{ if(S) S._narratorMode=mode; updateNarratorDot(); }catch(_){}
  dbgLine();return cfg}
 $('#btnSave').onclick=()=>{const gk=$('#gkey').value.trim();saveCfgFromUI(gk);
- if(S){S.cfgBattleDiff=cfg.battleDiff||'normal';S.cfgAtbMode=cfg.atbMode||'active'} toast(gk?'Gespeichert – die Geschichte kann beginnen.':(cfg.mode==='offline'?'Offline gespeichert':'Gespeichert'));
- $('#sheet').classList.add('hidden')};
+ if(S){S.cfgBattleDiff=cfg.battleDiff||'normal';S.cfgAtbMode=cfg.atbMode||'active'}
+ const msg=gk?'Gespeichert – Gemini aktiv.':(cfg.pollenKey?'Gespeichert – Pollinations-Key lokal.':(cfg.mode==='offline'?'Offline-Erzählerin gespeichert':'Gespeichert'));
+ toast(msg); $('#sheet').classList.add('hidden')};
 $('#btnLoad').onclick=()=>{cfg.wmodel=$('#wmodel').value;engine=null;loadWebLLM().catch(e=>$('#wstatus').textContent='❌ '+e.message)};
 $('#btnReset').onclick=()=>{if(confirm('Wirklich alles löschen?')){localStorage.removeItem(KEY);location.reload()}};
 $('#btnAdv').onclick=()=>{$('#advBox').classList.toggle('hidden');$('#btnAdv').textContent=$('#advBox').classList.contains('hidden')?'Erweitert ▸':'Erweitert ▾'};
 $('#btnGateSave').onclick=()=>{const gk=$('#gateKey').value.trim();if(!gk){toast('Bitte Schlüssel einfügen');return}
  cfg.gkey=gk;cfg.mode='gemini';cfg.v2=1;localStorage.setItem(CFG,JSON.stringify(cfg));
  toast('Alles bereit.');gmFetch(gk,true).then(()=>gmProbe(gk).catch(()=>{}));enterPlay()};
-$('#btnGateSkip').onclick=()=>{cfg.mode='free';cfg.v2=1;localStorage.setItem(CFG,JSON.stringify(cfg));toast('Erzählerin: Pollinations (ohne Schlüssel)');enterPlay()};
+$('#btnGateSkip').onclick=()=>{cfg.mode='offline';cfg.v2=1;localStorage.setItem(CFG,JSON.stringify(cfg));try{if(S)S._narratorMode='offline';updateNarratorDot()}catch(_){} toast('Erzählerin: Offline (lokal, ohne Schlüssel)');enterPlay()};
 
-window.__setCfg=o=>{cfg=Object.assign(cfg||{},o||{});try{localStorage.setItem(CFG,JSON.stringify(cfg))}catch(_){}};window.__game={VER,Aud,setBusy,forceUnbusy,ACT_HARD_MS,V25,OW,Depth,Battle,Jobs,Gems,Summons,Equip,Jrpg,localBeatLine,parsePlayerIntent,offlineRespondIntent,freeStream,FREE_MODEL,msgsLean,FREE_URLS,openPendingEncounter,Imm,discoverThing,showCodexInline,Level,UI14,UI17,Know,Cont,lastPromptDump,advanceTimeMinutes,applyActionDuration,newGrey,greyDetails,loadGrey,loadPack,get S(){return S},act,newLife,gBody,msgs,gmRank,gmProbe,parseStream,thinkingCfg,gmOrder,readSSE,STREAM_DELIM,migrate,worldTick,bumpRel,openMenu,openPixelShop,openRegionTravelMap,stageName,offline,startIntro,setSceneImage,setPortrait,imgUrl,advanceTime,phaseLabel,typewrite,enterPlay,showTitle,analyzeImage,applySceneTheme,themeFromText,loadValidatedImage,openingNarration,travelTo,parseTravel,killNPC,robNPC,addMemory,memoryHint,startProcedural,offlineGenerateWorld,generateWorldPack,GENRES,travelChoices,ensureGraph,whoHere,parseLifeSim,Sim,Persist,WorldMap,TravelMap,Cut31,Econ,Codex,UI13,save,loadSave,applyCatchUp,findAnyNpc,placeFlavorText,enrichPlaceDescs};
+window.__setCfg=o=>{cfg=Object.assign(cfg||{},o||{});try{localStorage.setItem(CFG,JSON.stringify(cfg))}catch(_){}};window.__game={VER,Aud,updateNarratorDot,narratorStatusText,openSheet,setBusy,forceUnbusy,ACT_HARD_MS,V25,OW,Depth,Battle,Jobs,Gems,Summons,Equip,Jrpg,localBeatLine,parsePlayerIntent,offlineRespondIntent,freeStream,FREE_MODEL,msgsLean,FREE_URLS,openPendingEncounter,Imm,discoverThing,showCodexInline,Level,UI14,UI17,Know,Cont,lastPromptDump,advanceTimeMinutes,applyActionDuration,newGrey,greyDetails,loadGrey,loadPack,get S(){return S},act,newLife,gBody,msgs,gmRank,gmProbe,parseStream,thinkingCfg,gmOrder,readSSE,STREAM_DELIM,migrate,worldTick,bumpRel,openMenu,openPixelShop,openRegionTravelMap,stageName,offline,startIntro,setSceneImage,setPortrait,imgUrl,advanceTime,phaseLabel,typewrite,enterPlay,showTitle,analyzeImage,applySceneTheme,themeFromText,loadValidatedImage,openingNarration,travelTo,parseTravel,killNPC,robNPC,addMemory,memoryHint,startProcedural,offlineGenerateWorld,generateWorldPack,GENRES,travelChoices,ensureGraph,whoHere,parseLifeSim,Sim,Persist,WorldMap,TravelMap,Cut31,Econ,Codex,UI13,save,loadSave,applyCatchUp,findAnyNpc,placeFlavorText,enrichPlaceDescs};
 window.__game.askNPC=a=>askNPC(a);window.__game.gemini=gemini;
 if(cfg.gkey)gmFetch(cfg.gkey.trim()).then(()=>gmProbe(cfg.gkey.trim()).catch(()=>{})).catch(()=>{});
 (function(){const root=document.documentElement;const apply=()=>{try{const vv=window.visualViewport;if(!vv)return;const kb=Math.max(0,window.innerHeight-vv.height-vv.offsetTop);root.style.setProperty('--kb',kb+'px')}catch(_){}};

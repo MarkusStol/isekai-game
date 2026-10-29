@@ -1,4 +1,4 @@
-# Pixel Art Credits (v26–v37)
+# Pixel Art Credits (v26–v38)
 
 All art under `assets/pixel/` is derived from the following sources. Original
 pack archives are **not** committed; only cropped/composited game assets are.
@@ -87,3 +87,9 @@ Genre packs `arch_fan*`, `arch_zom*`, `arch_cyb*`, `arch_des*`, `arch_dark*` plu
 
 - Global first-name uniqueness; FF6/CT candy CSS removal; iPhone onboard coach; battle touch targets.
 - Compact Pollinations lean pack + multi-endpoint failover for Classic 503s.
+
+## v38 Offline narrator + keys
+
+- Richer offline phrase pools (genre/situation/NPC), session anti-repeat (`_offlineRecent` / `_offlineOut`).
+- Settings: Gemini + Pollinations pollen key fields, on-device only, narrator status indicator; gate skip → offline.
+- No keys committed. Playtest: 40+ inputs/genre repetition/coherence.
