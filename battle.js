@@ -1163,19 +1163,14 @@ function battleFloorClass(bg){
   return 'floor-dirt';
 }
 function pixelEnemyArt(f){
-  const n=String(f?.id||f?.name||'').toLowerCase();
-  let key='slime';
-  if(/bat|fledermaus/.test(n)) key='bat';
-  else if(/bandit|räuber|rauber|dieb/.test(n)) key='bandit';
-  else if(/wolf|hound/.test(n)) key='wolf';
-  else if(/skel|knochen|undead/.test(n)) key='skeleton';
-  else if(/golem|stein/.test(n)) key='golem';
-  else if(/imp|goblin/.test(n)) key='imp';
-  else if(/schleim|slime|blob/.test(n)) key='slime';
-  else if(/boss|drache|dragon|könig|demon|oger|tyrant|lich|chrome|fogking|archfiend/.test(n) || f?.boss) key='boss';
-  // v48: bosses use large multi-tile sprite
-  if((f?.boss || key==='boss') && key==='boss') return './assets/pixel/enemy/boss_lg.png';
-  return './assets/pixel/enemy/'+key+'.png';
+  // v50: explicit per-enemy art-key table — never heuristic pumpkin/boss_lg mismatch
+  try{
+    const C50=window.__game?.C50;
+    if(C50?.battleEnemyArt) return C50.battleEnemyArt(f);
+  }catch(_){}
+  const id=String(f?.id||'').trim();
+  if(id) return './assets/pixel/battler/'+id+'.png';
+  return './assets/pixel/battler/slime.png';
 }
 function foeScaleClass(f){
   try{

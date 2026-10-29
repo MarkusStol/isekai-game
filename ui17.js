@@ -232,12 +232,11 @@ export function renderCraft(body, S, helpers){
     const lv=sk[s]|0; const need=window.__game?.C41?.CRAFT_XP_TO_NEXT?.[lv]||'—';
     return `${s} Lv${lv} (${xp[s]|0}/${need})`;
   }).join(' · ');
-  body.appendChild(card(`<h3>🔨 Werkstatt</h3>
-    <p class="meta">Gil: ${S.st?.gold|0} · Ausrüstungsstufe ${tier} (hart)</p>
-    <p class="meta">Stationen: ${stations}</p>
-    <p class="meta craft-xp">Skill-XP (Nutzen/Training → Tier 4): ${xpLine}</p>
-    <p class="meta">Material: ${Object.entries(mats).filter(([,n])=>n>0).map(([k,v])=>`${k}×${v}`).join(' · ')||'leer'}</p>
-    <div class="craft-train-row" id="craftTrain"></div>`));
+  body.appendChild(card(`<div class="craft-header-compact"><h3>🔨 Werkstatt</h3>
+    <p class="meta">Gil ${S.st?.gold|0} · Tier ${tier} · ${stations}</p>
+    <p class="meta">Mats: ${Object.entries(mats).filter(([,n])=>n>0).slice(0,8).map(([k,v])=>`${k}×${v}`).join(' · ')||'leer'}</p>
+    <p class="meta craft-xp">${xpLine}</p>
+    <div class="craft-train-row" id="craftTrain"></div></div>`));
   const tr=body.querySelector('#craftTrain');
   if(tr){
     ['schmieden','kochen','alchemie'].forEach(skill=>{

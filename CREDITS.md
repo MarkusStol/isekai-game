@@ -111,3 +111,9 @@ Genre packs `arch_fan*`, `arch_zom*`, `arch_cyb*`, `arch_des*`, `arch_dark*` plu
 - **Kica's Enemy Pack** by Fava Beans (OpenGameArt) — CC0 1.0 — slime/wolf/skeleton/bat/imp/golem/bandit/boss sprites under `assets/pixel/enemy/`
 - **Pixel Bosses. Yes!** by Monster Logix Studio (OpenGameArt) — CC0 1.0 — sheet kept in `assets/pixel/enemy/src/pixel_bosses_sheet.png`
 - **50+ Monsters Pack 2D** by isaiah658 (OpenGameArt) — CC0 1.0 — credited; see `assets/pixel/enemy/src/isaiah658_credits.txt`
+
+## v50 name-matched battlers
+- Per-enemy art-key table (`content50.js` `ENEMY_ART_KEYS`) maps every `ENEMIES` id to `assets/pixel/battler/{id}.png`.
+- Original JRPG-style battler sprites generated for this project (ogre/goblin/slime/wolf/etc.) — not the v49 Wicked Gourd heuristic.
+- CC-BY packs kept as credit lineage: Admurin Enemy Galore I, Wishforge Free Pixel Sprites (OpenGameArt) — referenced for style, primary battlers are project-generated name-matched art.
+- Gate: `scripts/gate-enemy-art.mjs` asserts every enemy has an appropriate key + file on disk.

@@ -1,0 +1,370 @@
+{
+  "version": 50,
+  "keys": {
+    "goblin": {
+      "key": "goblin",
+      "tags": [
+        "goblin",
+        "green",
+        "ears",
+        "dagger"
+      ],
+      "expect": "small green goblin with pointed ears"
+    },
+    "orc": {
+      "key": "orc",
+      "tags": [
+        "orc",
+        "green",
+        "tusk",
+        "axe"
+      ],
+      "expect": "green orc warrior with axe"
+    },
+    "wolf": {
+      "key": "wolf",
+      "tags": [
+        "wolf",
+        "quadruped",
+        "fur"
+      ],
+      "expect": "grey wolf quadruped"
+    },
+    "slime": {
+      "key": "slime",
+      "tags": [
+        "slime",
+        "blob",
+        "gel"
+      ],
+      "expect": "green slime blob"
+    },
+    "skeleton": {
+      "key": "skeleton",
+      "tags": [
+        "skeleton",
+        "bone",
+        "skull"
+      ],
+      "expect": "undead skeleton"
+    },
+    "bandit": {
+      "key": "bandit",
+      "tags": [
+        "bandit",
+        "human",
+        "hood",
+        "dagger"
+      ],
+      "expect": "hooded human bandit"
+    },
+    "mage_rogue": {
+      "key": "mage_rogue",
+      "tags": [
+        "mage",
+        "robe",
+        "staff"
+      ],
+      "expect": "hooded mage with staff"
+    },
+    "dragon_whelp": {
+      "key": "dragon_whelp",
+      "tags": [
+        "dragon",
+        "wing",
+        "scale"
+      ],
+      "expect": "small green dragon"
+    },
+    "demon_imp": {
+      "key": "demon_imp",
+      "tags": [
+        "imp",
+        "demon",
+        "horn",
+        "red"
+      ],
+      "expect": "red imp with horns"
+    },
+    "shadow_wraith": {
+      "key": "shadow_wraith",
+      "tags": [
+        "wraith",
+        "ghost",
+        "shadow"
+      ],
+      "expect": "shadowy wraith"
+    },
+    "ash_hound": {
+      "key": "ash_hound",
+      "tags": [
+        "hound",
+        "ash",
+        "quadruped"
+      ],
+      "expect": "ash-grey hound"
+    },
+    "bone_knight": {
+      "key": "bone_knight",
+      "tags": [
+        "skeleton",
+        "knight",
+        "armor",
+        "bone"
+      ],
+      "expect": "armored bone knight"
+    },
+    "blood_cultist": {
+      "key": "blood_cultist",
+      "tags": [
+        "cultist",
+        "robe",
+        "blood"
+      ],
+      "expect": "crimson cultist"
+    },
+    "walker": {
+      "key": "walker",
+      "tags": [
+        "zombie",
+        "undead"
+      ],
+      "expect": "shambling zombie"
+    },
+    "runner": {
+      "key": "runner",
+      "tags": [
+        "zombie",
+        "undead",
+        "thin"
+      ],
+      "expect": "thin fast zombie"
+    },
+    "bloater": {
+      "key": "bloater",
+      "tags": [
+        "zombie",
+        "bloated",
+        "undead"
+      ],
+      "expect": "bloated zombie"
+    },
+    "looter": {
+      "key": "looter",
+      "tags": [
+        "human",
+        "bandit",
+        "looter"
+      ],
+      "expect": "human looter"
+    },
+    "drone": {
+      "key": "drone",
+      "tags": [
+        "drone",
+        "robot",
+        "machine"
+      ],
+      "expect": "chrome drone robot"
+    },
+    "street_thug": {
+      "key": "street_thug",
+      "tags": [
+        "human",
+        "thug",
+        "cyber"
+      ],
+      "expect": "cyber street thug"
+    },
+    "chrome_hound": {
+      "key": "chrome_hound",
+      "tags": [
+        "hound",
+        "chrome",
+        "cyber"
+      ],
+      "expect": "chrome cyber hound"
+    },
+    "net_ghost": {
+      "key": "net_ghost",
+      "tags": [
+        "ghost",
+        "net",
+        "cyber"
+      ],
+      "expect": "digital net ghost"
+    },
+    "lesser_fiend": {
+      "key": "lesser_fiend",
+      "tags": [
+        "fiend",
+        "demon"
+      ],
+      "expect": "lesser demon fiend"
+    },
+    "hellhound": {
+      "key": "hellhound",
+      "tags": [
+        "hound",
+        "hell",
+        "fire"
+      ],
+      "expect": "flaming hellhound"
+    },
+    "cultist": {
+      "key": "cultist",
+      "tags": [
+        "cultist",
+        "robe"
+      ],
+      "expect": "dark cultist in robes"
+    },
+    "fog_passenger": {
+      "key": "fog_passenger",
+      "tags": [
+        "fog",
+        "ghost",
+        "grey"
+      ],
+      "expect": "foggy passenger ghost"
+    },
+    "mirror_double": {
+      "key": "mirror_double",
+      "tags": [
+        "mirror",
+        "humanoid",
+        "double"
+      ],
+      "expect": "mirror double humanoid"
+    },
+    "quiet_porter": {
+      "key": "quiet_porter",
+      "tags": [
+        "porter",
+        "human",
+        "cap"
+      ],
+      "expect": "human porter with cap"
+    },
+    "boss_ogre": {
+      "key": "boss_ogre",
+      "tags": [
+        "ogre",
+        "club",
+        "large",
+        "tusk",
+        "boss"
+      ],
+      "expect": "large green ogre warlord with club"
+    },
+    "boss_lich": {
+      "key": "boss_lich",
+      "tags": [
+        "lich",
+        "undead",
+        "crown",
+        "staff",
+        "boss"
+      ],
+      "expect": "crowned lich with staff"
+    },
+    "boss_tyrant": {
+      "key": "boss_tyrant",
+      "tags": [
+        "tyrant",
+        "zombie",
+        "mutant",
+        "boss"
+      ],
+      "expect": "bloated zombie tyrant"
+    },
+    "boss_chrome": {
+      "key": "boss_chrome",
+      "tags": [
+        "chrome",
+        "assassin",
+        "cyber",
+        "boss"
+      ],
+      "expect": "chrome cyber assassin"
+    },
+    "boss_archfiend": {
+      "key": "boss_archfiend",
+      "tags": [
+        "fiend",
+        "demon",
+        "wing",
+        "boss"
+      ],
+      "expect": "winged archfiend demon"
+    },
+    "boss_fogking": {
+      "key": "boss_fogking",
+      "tags": [
+        "fog",
+        "king",
+        "crown",
+        "boss"
+      ],
+      "expect": "fog king with crown"
+    },
+    "golden_slime": {
+      "key": "golden_slime",
+      "tags": [
+        "slime",
+        "gold",
+        "blob"
+      ],
+      "expect": "golden slime blob"
+    },
+    "story_wallbreaker": {
+      "key": "story_wallbreaker",
+      "tags": [
+        "ogre",
+        "club",
+        "large",
+        "boss"
+      ],
+      "expect": "ogre siege warlord (Wallbrecher)"
+    },
+    "story_velka_shadow": {
+      "key": "story_velka_shadow",
+      "tags": [
+        "fiend",
+        "demon",
+        "shadow",
+        "boss"
+      ],
+      "expect": "shadow archfiend"
+    },
+    "story_ashcroft": {
+      "key": "story_ashcroft",
+      "tags": [
+        "human",
+        "noble",
+        "rapier",
+        "boss"
+      ],
+      "expect": "noblewoman with rapier"
+    },
+    "story_nebelrichter": {
+      "key": "story_nebelrichter",
+      "tags": [
+        "fog",
+        "judge",
+        "boss"
+      ],
+      "expect": "fog judge king"
+    },
+    "superboss_aether": {
+      "key": "superboss_aether",
+      "tags": [
+        "dragon",
+        "wyrm",
+        "aether",
+        "boss"
+      ],
+      "expect": "blue aether dragon wyrm"
+    }
+  }
+}

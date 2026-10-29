@@ -1383,13 +1383,15 @@ function draw(){
         // soft explored-but-not-visible veil
         ctx.fillStyle='rgba(5,4,10,.22)'; ctx.fillRect(sx,sy,tw,tw);
       } else {
-        // v48: soft FoW edge — wider ramp, very low peak (reads as falloff not glow blob)
+        // v50: softer dungeon FoW edges — wider band, gentler peak, biome-tinted
         const dist=Math.hypot(x-_hero.x, y-_hero.y);
-        const R=_desktop?15:Math.max(17, Math.ceil(Math.max(_viewW||13,_viewH||15)*0.58));
-        const band=4.5;
+        const isDungeon=/dungeon|kerker|höhle|interior|gruft|bunker|katakomb/.test(String(_map?.kind||_map?.preset||_map?.name||''));
+        const R=_desktop?(isDungeon?16:15):Math.max(17, Math.ceil(Math.max(_viewW||13,_viewH||15)*0.58));
+        const band=isDungeon?7.5:5.5;
         if(dist > R-band){
           const t=Math.min(1, (dist-(R-band))/band);
-          const a=t*t*0.28; // ease-in, max 0.28 — no bright rim
+          const ease=t*t*(3-2*t); // smoothstep
+          const a=ease*(isDungeon?0.18:0.24);
           ctx.fillStyle=`rgba(6,8,14,${a.toFixed(3)})`;
           ctx.fillRect(sx,sy,tw,tw);
         }

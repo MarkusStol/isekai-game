@@ -4158,3 +4158,58 @@ body.pixel-jrpg:not(.pixel-ow) .vn-wrap > #storyBox{
   .battle-root.battle-pixel .battle-log{ font-size:15px !important; padding:10px 14px !important; }
   .battle-root.battle-pixel .battle-cmd .bcm{ font-size:14px !important; padding:12px 14px !important; }
 }
+
+/* ========== v50: name-matched battlers, larger party, compact craft, bust crop, soft FoW, seamless parallax ========== */
+.battle-root.battle-pixel .battle-layer-floor{
+  -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 22%, #000 100%);
+  mask-image: linear-gradient(180deg, transparent 0%, #000 22%, #000 100%);
+}
+.battle-root.battle-pixel .battle-layer-near{
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 70%, transparent 100%);
+  mask-image: linear-gradient(180deg, #000 0%, #000 70%, transparent 100%);
+  opacity:.45 !important;
+  mix-blend-mode:normal !important;
+}
+.battle-root.battle-pixel .battle-layer-mid{
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 78%, transparent 100%);
+  mask-image: linear-gradient(180deg, #000 0%, #000 78%, transparent 100%);
+}
+.battle-root.battle-pixel .party-stage-spr img,
+.battle-root.battle-pixel .party-stage-spr .pixel-hero-spr{
+  width:96px !important;
+  height:128px !important;
+}
+.battle-root.battle-pixel .party-spr-wrap .battler-canvas{
+  width:72px!important; height:72px!important;
+}
+@media (min-width:900px){
+  .battle-root.battle-pixel .party-stage-spr img,
+  .battle-root.battle-pixel .party-stage-spr .pixel-hero-spr{
+    width:120px !important;
+    height:160px !important;
+  }
+}
+/* True bust crop — face/upper torso fill the dock */
+body.pixel-jrpg:not(.pixel-ow) #portraitWrap img,
+body.pixel-jrpg:not(.pixel-ow) #portraitImg,
+body.pixel-jrpg:not(.pixel-ow) #portraitWrap.portrait-sprite img,
+body.pixel-jrpg:not(.pixel-ow) #portraitWrap.portrait-bust img{
+  object-fit:cover !important;
+  object-position:center 18% !important;
+  width:140% !important;
+  height:125% !important;
+  left:50% !important;
+  bottom:-8% !important;
+  transform:translateX(-50%) !important;
+}
+/* Compact craft header */
+.craft-shop-body > .jrpg-window:first-child,
+.craft-shop-body > .card:first-child,
+.menu-panel .craft-shop-body > div:first-child{
+  padding:8px 10px !important;
+}
+.craft-shop-body .craft-header-compact h3{ margin:0 0 4px !important; font-size:15px !important; }
+.craft-shop-body .craft-header-compact .meta{ margin:2px 0 !important; font-size:11px !important; line-height:1.25 !important; }
+.craft-shop-body .craft-header-compact .craft-xp{ display:none !important; }
+.craft-shop-body .craft-train-row{ display:flex; flex-wrap:wrap; gap:6px; margin-top:4px; }
+.craft-shop-body .craft-train-row button{ padding:6px 8px !important; font-size:11px !important; }
