@@ -158,17 +158,17 @@ export function neighborDiffMask(map, x, y){
 }
 
 export function drawOwLighting(ctx, cssW, cssH, heroScreen, dayTint){
-  // vignette
-  const g=ctx.createRadialGradient(cssW/2,cssH*0.45,cssW*0.15, cssW/2,cssH*0.5, cssW*0.72);
+  // v45d: light edge vignette only — heavy radial made map look like a floating circle
+  const g=ctx.createRadialGradient(cssW/2,cssH*0.5, Math.min(cssW,cssH)*0.42, cssW/2,cssH*0.5, Math.max(cssW,cssH)*0.78);
   g.addColorStop(0,'rgba(0,0,0,0)');
-  g.addColorStop(0.65,'rgba(0,0,0,0.08)');
-  g.addColorStop(1,'rgba(5,7,14,0.55)');
+  g.addColorStop(0.75,'rgba(0,0,0,0.04)');
+  g.addColorStop(1,'rgba(5,7,14,0.22)');
   ctx.fillStyle=g; ctx.fillRect(0,0,cssW,cssH);
-  // hero key light
+  // soft hero key light
   if(heroScreen){
     const {x,y,r}=heroScreen;
-    const lg=ctx.createRadialGradient(x,y,0,x,y,r||80);
-    const warm = dayTint==='night' ? 'rgba(120,160,255,0.14)' : dayTint==='dusk' ? 'rgba(255,140,80,0.16)' : 'rgba(255,230,180,0.12)';
+    const lg=ctx.createRadialGradient(x,y,0,x,y,(r||80)*0.9);
+    const warm = dayTint==='night' ? 'rgba(120,160,255,0.08)' : dayTint==='dusk' ? 'rgba(255,140,80,0.09)' : 'rgba(255,230,180,0.06)';
     lg.addColorStop(0, warm);
     lg.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.fillStyle=lg; ctx.fillRect(0,0,cssW,cssH);

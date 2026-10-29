@@ -1,7 +1,7 @@
 /** v28 Pixel JRPG overworld — dense art, unique orts, soft FoW, day/night, weather, audio */
 const TILE = 16;
 const SPR = 64; // LPC frame size in walk sheets (256×256 = 4×4)
-const MOBILE_VIEW = { w: 7, h: 9 }; /* v44 readable sprites */
+const MOBILE_VIEW = { w: 13, h: 27 }; /* v45d: fill 390x844 — was 11x13 letterboxing ~45% */
 const DESKTOP_LOGICAL = { w: 320, h: 180 }; // 16:9 pixel canvas before integer scale
 
 const BASE_TILES = {
@@ -500,17 +500,25 @@ export function buildMapForLocation(S, ort){
   } else if(preset==='village'){
     for(let y=0;y<ht;y++) for(let x=0;x<w;x++) tiles[y][x]='grass';
     fill(0,cy,w,2,'path'); fill(cx,0,2,ht,'path');
-    fill(cx-2,cy-2,5,5,'plaza'); tiles[cy][cx]='well';
-    placeHouse(2,2,'Bauernhaus',{variant:0});
-    placeHouse(w-6,2,'Mühle',{variant:3});
-    placeHouse(2,ht-7,'Scheune',{variant:4});
-    placeHouse(w-6,ht-7,'Gasthof',{variant:6});
-    placeHouse(cx-8,cy-2,'Schmiede',{variant:5});
+    // v45: tiny well plaza — buildings crowd the spawn like Chrono Trigger towns
+    fill(cx-1,cy-1,3,3,'plaza'); tiles[cy][cx]='well'; anim(cx,cy,'fountain');
+    placeHouse(cx-4,cy-4,'Bauernhaus',{variant:0});
+    placeHouse(cx+1,cy-4,'Mühle',{variant:3});
+    placeHouse(cx-4,cy+1,'Scheune',{variant:4});
+    placeHouse(cx+1,cy+1,'Gasthof',{variant:6});
+    placeHouse(cx-7,cy-1,'Schmiede',{variant:5});
+    placeHouse(cx+4,cy-1,'Laden',{variant:2});
+    placeHouse(2,2,'Hütte Nord',{variant:1});
+    placeHouse(w-6,2,'Hütte Ost',{variant:7});
+    placeHouse(2,ht-7,'Stall',{variant:8});
+    placeHouse(w-6,ht-7,'Nachbarhaus',{variant:11});
     placeChest(cx+1, cy-1, {gold:8, item:'Heilkraut'});
     placeChest(w-8, cy+2, {gold:15});
-    ringFence(cx+3,cy+3,6,5); fill(cx+4,cy+4,4,3,'grass');
-    for(let j=0;j<2;j++) for(let i=0;i<3;i++) anim(cx+4+i,cy+4+j,'flower');
-    prop(cx-1,cy+1,'bench'); prop(cx+3,cy,'cart');
+    ringFence(cx+4,cy+4,5,4); fill(cx+5,cy+5,3,2,'grass');
+    for(let j=0;j<2;j++) for(let i=0;i<3;i++) anim(cx+5+i,cy+5+j,'flower');
+    prop(cx-1,cy+1,'bench'); prop(cx+3,cy,'cart'); prop(cx-2,cy,'barrel'); prop(cx+2,cy+1,'crate');
+    prop(cx-3,cy-2,'lamp'); prop(cx+3,cy-2,'lamp'); prop(cx,cy-2,'sign');
+    for(let i=2;i<w-2;i+=3){ if(tiles[1][i]==='grass') tiles[1][i]='tree'; }
     scatterGrass();
   } else if(preset==='gate'){
     for(let y=0;y<ht;y++) for(let x=0;x<w;x++) tiles[y][x]='grass';
@@ -782,8 +790,12 @@ export function buildMapForLocation(S, ort){
       // fantasy classic — crossroads + temple wing
       fill(0, cy-1, w, 3, 'path');
       fill(cx-1, 0, 3, ht, 'path');
-      fill(cx-3, cy-3, 7, 7, 'plaza');
+      fill(cx-1, cy-1, 3, 3, 'plaza');
       tiles[cy][cx]='well'; anim(cx,cy,'fountain');
+      placeHouse(cx-5, cy-5, 'Wohnhaus N', {variant:4});
+      placeHouse(cx+2, cy-5, 'Laden N', {variant:6});
+      placeHouse(cx-5, cy+2, 'Wohnhaus S', {variant:0});
+      placeHouse(cx+2, cy+2, 'Werkstatt', {variant:5});
       for(let i=0;i<5;i++){
         const sx=cx-6+i*3; if(sx<2||sx+2>=w) continue;
         fill(sx, cy-6, 2, 2, 'stall'); ov(sx, cy-6, 'stall');
@@ -916,12 +928,13 @@ export function buildMapForLocation(S, ort){
   // lamps/torches → lights
   const lights=[...(_pendingLights||[])];
   for(const a of animators){
-    if(a.kind==='torch') lights.push({x:a.x+0.5,y:a.y+0.5,r:2.8,color:'rgba(255,170,60,0.55)'});
+    if(a.kind==='torch') lights.push({x:a.x+0.5,y:a.y+0.5,r:2.0,color:'rgba(255,170,60,0.28)'});
   }
   for(let y=0;y<ht;y++) for(let x=0;x<w;x++){
-    if(overlay[y][x]==='lamp') lights.push({x:x+0.5,y:y+0.5,r:3.2,color:'rgba(255,210,120,0.5)'});
+    if(overlay[y][x]==='lamp') lights.push({x:x+0.5,y:y+0.5,r:2.2,color:'rgba(255,210,120,0.32)'});
   }
   // quest marks filled later in showOverworld
+  try{ if(typeof window!=='undefined' && window.__game?.C45?.densifyTownMap) window.__game.C45.densifyTownMap({w,h:ht,tiles,kind}); }catch(_){}
   return {w,h:ht,tiles,overlay,doors:exits,spawn:{x:sx,y:sy},kind,name,npcs,interiors,overhead,animators,preset,chests,lights};
 }
 
@@ -933,17 +946,25 @@ function walkable(x,y){
 function fogKey(x,y){ return x+','+y; }
 function recomputeFog(){
   _visible=new Set();
-  const R=_desktop?8:6;
+  // v45d: FoW radius must cover the tile frustum or mobile shows a tiny circle in black void
+  const townish=_map && !['dungeon','wild','cave','crypt'].includes(_map.kind);
+  const R=_desktop
+    ? (townish?14:10)
+    : Math.max(townish?16:12, Math.ceil(Math.max(_viewW||13,_viewH||15)*0.55));
   const hx=_hero.x, hy=_hero.y;
   for(let y=hy-R;y<=hy+R;y++){
     for(let x=hx-R;x<=hx+R;x++){
       if(y<0||x<0||y>=_map.h||x>=_map.w) continue;
-      if(Math.hypot(x-hx,y-hy)<=R+0.2){
+      if(Math.hypot(x-hx,y-hy)<=R+0.35){
         const k=fogKey(x,y);
         _visible.add(k);
         _explored.add(k);
       }
     }
+  }
+  // towns: reveal whole map once so Chrono-Trigger density is visible
+  if(townish && _map){
+    for(let y=0;y<_map.h;y++) for(let x=0;x<_map.w;x++) _explored.add(fogKey(x,y));
   }
   try{
     const S=_hooks.getS?.();
@@ -973,7 +994,7 @@ function ensureDlg(){
     el.className='ow-dlg hidden';
     el.innerHTML=`
       <div class="ow-dlg-inner">
-        <img class="ow-dlg-port pixelated" id="owDlgPort" alt="" width="48" height="48"/>
+        <img class="ow-dlg-port pixelated" id="owDlgPort" alt="" width="72" height="72"/>
         <div class="ow-dlg-body">
           <div class="ow-dlg-name" id="owDlgName">…</div>
           <div class="ow-dlg-text" id="owDlgText"></div>
@@ -994,21 +1015,27 @@ export function showDialogue(name, text, sheet){
   const port=el.querySelector('#owDlgPort');
   const nm=el.querySelector('#owDlgName');
   const tx=el.querySelector('#owDlgText');
-  // v43: unique pixel portrait from NPC appearance + mood expression
+  // v45e: real LPC/port bust — never C43 procedural blob
   let usedPx=false;
   try{
     const S=_hooks.getS?.();
     const fullName=String(name||'');
     const npc=(S?.world?.npcs&&(S.world.npcs[fullName]||Object.entries(S.world.npcs).find(([k])=>k.startsWith(fullName)||fullName.startsWith(k))?.[1]))||null;
-    const C43=window.__game?.C43;
-    if(port && C43?.pixelPortraitUrl){
-      const n=npc||{art:sheet||'villager', sheet};
-      const expr=C43.expressionFromMood(n.mood||S?.flags?.dlgMood);
-      const url=C43.pixelPortraitUrl(fullName||'NPC', n, expr);
-      if(url){ port.src=url; port.dataset.expr=expr; usedPx=true; }
+    const C45=window.__game?.C45;
+    const n=npc||{art:sheet||'villager', sheet};
+    const resolved=C45?.resolvePortraitUrl?.(fullName||'NPC', n);
+    if(port && resolved?.kind==='port' && resolved.url){
+      port.src=resolved.url;
+      port.onerror=()=>{ const role=C45?.roleFromNpc?.(fullName,n)||sheet||'villager'; port.src=C45?.ROLE_PORT?.[role]||PORTRAITS[sheet]||PORTRAITS.default; };
+      usedPx=true;
+    } else if(port && resolved?.kind==='role'){
+      const role=resolved.role||'villager';
+      port.src=resolved.url||C45?.ROLE_PORT?.[role]||PORTRAITS.default;
+      C45?.loadFramedRolePortrait?.(role).then(url=>{ if(url && port) port.src=url; });
+      usedPx=true;
     }
   }catch(_){}
-  if(port && !usedPx) port.src=PORTRAITS[sheet]||PORTRAITS.default;
+  if(port && !usedPx) port.src=(window.__game?.C45?.ROLE_PORT?.[sheet])||PORTRAITS[sheet]||PORTRAITS.default;
   if(nm) nm.textContent=String(name||'…').slice(0,24);
   const full=String(text||'').trim()||'…';
   if(_dlgTw) clearInterval(_dlgTw);
@@ -1289,11 +1316,11 @@ function draw(){
       }
       if(!vis){
         // soft explored-but-not-visible veil
-        ctx.fillStyle='rgba(5,4,10,.42)'; ctx.fillRect(sx,sy,tw,tw);
+        ctx.fillStyle='rgba(5,4,10,.22)'; ctx.fillRect(sx,sy,tw,tw);
       } else {
         // soft FoW edge: darken by distance from hero
         const dist=Math.hypot(x-_hero.x, y-_hero.y);
-        const R=_desktop?8:6;
+        const R=_desktop?14:Math.max(16, Math.ceil(Math.max(_viewW||13,_viewH||15)*0.55));
         if(dist > R-1.6){
           const a=Math.min(0.55, (dist-(R-1.6))*0.35);
           ctx.fillStyle=`rgba(5,4,10,${a.toFixed(3)})`;
@@ -1309,12 +1336,16 @@ function draw(){
     const im=loadImg(NPC_SHEETS[n.sheet]||NPC_SHEETS.default);
     const sx=ox+(n.px-camX)*tw, sy=oy+(n.py-camY)*tw - tw*0.55;
     drawSprite(ctx, im, n.frame|0, n.dir|0, sx+tw*0.0, sy, tw);
-    ctx.fillStyle='rgba(0,0,0,.65)';
-    const label=(n.name||'').split(' ')[0].slice(0,8);
-    ctx.font='bold 11px "Press Start 2P",monospace';
-    const twm=ctx.measureText(label).width;
-    ctx.fillRect(sx+tw/2-twm/2-3, sy-12, twm+6, 12);
-    ctx.fillStyle='#ffe8a0'; ctx.fillText(label, sx+tw/2-twm/2, sy-3);
+    // v45e: nameplate only when near hero — stops giant ghost labels on desktop scale
+    const near=Math.hypot((n.px||n.x)-_hero.px,(n.py||n.y)-_hero.py)<4.5;
+    if(near){
+      ctx.fillStyle='rgba(0,0,0,.55)';
+      const label=(n.name||'').split(' ')[0].slice(0,8);
+      ctx.font='bold 9px monospace';
+      const twm=ctx.measureText(label).width;
+      ctx.fillRect(sx+tw/2-twm/2-3, sy-11, twm+6, 11);
+      ctx.fillStyle='#ffe8a0'; ctx.fillText(label, sx+tw/2-twm/2, sy-3);
+    }
   }
 
   const him=loadImg('./assets/pixel/hero/walk.png');
@@ -1367,12 +1398,7 @@ function draw(){
     ctx.globalAlpha=1;
   }
 
-  // location plaque
-  ctx.fillStyle='rgba(10,20,60,.85)';
-  ctx.fillRect(8,8,Math.min(cssW-16,_desktop?360:300),26);
-  ctx.strokeStyle='#9eb6ff'; ctx.lineWidth=2; ctx.strokeRect(8.5,8.5,Math.min(cssW-17,_desktop?359:299),25);
-  ctx.fillStyle='#e8f0ff'; ctx.font=_desktop?'10px "Press Start 2P", monospace':'11px monospace';
-  ctx.fillText((_map.name||'').slice(0,28), 14, 26);
+  // v45d: no canvas location plaque (HUD chip covers ort — was duplicate/clip banner)
   // day/night tint + weather (tint only lit tiles; keep unexplored pure dark)
   syncDayNight();
   const tc=tintColor();
@@ -1403,11 +1429,13 @@ function draw(){
       const sx=ox+(L.x-camX)*tw, sy=oy+(L.y-camY)*tw;
       const r=(L.r||2.5)*tw;
       const g=ctx.createRadialGradient(sx,sy,0,sx,sy,r);
-      g.addColorStop(0, L.color||'rgba(255,200,100,0.55)');
-      g.addColorStop(0.45, 'rgba(255,160,60,0.18)');
+      // v45d: softer bloom — was washing buildings grey
+      // v45e: tiny window glow only — no room washout
+      g.addColorStop(0, 'rgba(255,200,120,0.14)');
+      g.addColorStop(0.55, 'rgba(255,160,60,0.04)');
       g.addColorStop(1, 'rgba(0,0,0,0)');
       ctx.globalCompositeOperation='lighter';
-      ctx.fillStyle=g; ctx.beginPath(); ctx.arc(sx,sy,r,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle=g; ctx.beginPath(); ctx.arc(sx,sy,Math.min(r*0.55, tw*1.6),0,Math.PI*2); ctx.fill();
       ctx.globalCompositeOperation='source-over';
     }
   }
@@ -1701,15 +1729,19 @@ function fitCanvas(){
     _viewW=Math.floor(lw/16);
     _viewH=Math.floor(lh/16);
   } else {
-    const w=Math.min(window.innerWidth, 430);
-    const h=Math.min(Math.floor(window.innerHeight*0.48), 520);
+    // v45d: canvas = full viewport; tile count fills height (no letterbox)
+    const root=_root||document.getElementById('owRoot');
+    const w=Math.max(320, window.innerWidth|0);
+    const h=Math.max(480, window.innerHeight|0);
     _canvas.style.width=w+'px';
     _canvas.style.height=h+'px';
-    _canvas.width=Math.floor(w);
-    _canvas.height=Math.floor(h);
-    _viewW=MOBILE_VIEW.w;
-    _viewH=MOBILE_VIEW.h;
+    _canvas.width=w;
+    _canvas.height=h;
+    const targetTw=30; // ~30 CSS px per tile on phone
+    _viewW=Math.max(11, Math.ceil(w/targetTw));
+    _viewH=Math.max(15, Math.ceil(h/targetTw));
     _intScale=3;
+    try{ root?.classList.add('ow-fullscreen'); }catch(_){}
   }
 }
 
@@ -1740,7 +1772,7 @@ function ensureDOM(){
             <button type="button" class="ow-fs" id="owTravel" title="Reisekarte" aria-label="Reisekarte">🗺</button>
             <span class="ow-hint" id="owHint">WASD · Enter reden · Esc Menü · T Text · 🗺 Reise</span>
           </div>
-          <div class="ow-pad" id="owPad">
+          <div class="ow-pad ow-pad-float" id="owPad">
             <button type="button" data-dx="0" data-dy="-1" aria-label="Hoch">▲</button>
             <div class="ow-pad-mid">
               <button type="button" data-dx="-1" data-dy="0" aria-label="Links">◀</button>
@@ -1763,6 +1795,37 @@ function ensureDOM(){
   _ctx=_canvas.getContext('2d');
   ensureDlg();
   if(_bound){ fitCanvas(); return; }
+  // v45 swipe / tap-to-move on canvas
+  try{
+    let sx=0,sy=0,st=0;
+    _canvas.addEventListener('touchstart',(e)=>{
+      const t=e.changedTouches?.[0]; if(!t) return;
+      sx=t.clientX; sy=t.clientY; st=performance.now();
+    },{passive:true});
+    _canvas.addEventListener('touchend',(e)=>{
+      const t=e.changedTouches?.[0]; if(!t) return;
+      const dx=t.clientX-sx, dy=t.clientY-sy, dt=performance.now()-st;
+      if(dt>500) return;
+      if(Math.hypot(dx,dy)<24){
+        // tap — try talk if near NPC else step toward tap relative to center
+        const rect=_canvas.getBoundingClientRect();
+        const cx=rect.left+rect.width/2, cy=rect.top+rect.height/2;
+        const tx=t.clientX-cx, ty=t.clientY-cy;
+        if(Math.hypot(tx,ty)<28){ try{ talkNearest(); }catch(_){} return; }
+        const ax=Math.abs(tx)>Math.abs(ty)?Math.sign(tx):0;
+        const ay=Math.abs(ty)>=Math.abs(tx)?Math.sign(ty):0;
+        try{ queueMove?.(ax,ay) || (_padAxes={x:ax,y:ay}); }catch(_){ _padAxes={x:ax,y:ay}; }
+        setTimeout(()=>{ _padAxes={x:0,y:0}; }, 180);
+        return;
+      }
+      if(Math.abs(dx)<30 && Math.abs(dy)<30) return;
+      const ax=Math.abs(dx)>Math.abs(dy)?Math.sign(dx):0;
+      const ay=Math.abs(dy)>=Math.abs(dx)?Math.sign(dy):0;
+      _padAxes={x:ax,y:ay};
+      setTimeout(()=>{ _padAxes={x:0,y:0}; }, 220);
+    },{passive:true});
+  }catch(_){}
+
   _bound=true;
   fitCanvas();
   window.addEventListener('resize', ()=>{ fitCanvas(); draw(); });
@@ -1883,13 +1946,21 @@ export function showOverworld(S){
   _hero.px=_hero.x; _hero.py=_hero.y; _hero.moving=false; _hero.frame=0;
   loadFog(S);
   _root.classList.remove('hidden');
-  document.body.classList.add('pixel-ow');
+  document.body.classList.add('pixel-ow','ow-fs-active');
+  try{ document.getElementById('choices')?.classList.add('hidden'); document.getElementById('inputRow')?.classList.add('hidden'); }catch(_){}
   _active=true;
   try{
     const S=_hooks.getS?.();
-    if(S && !S.flags?.visual44Tip && document.body.classList.contains('pixel-ow')){
-      S.flags=S.flags||{}; S.flags.visual44Tip=1;
-      setTimeout(()=>{ try{ window.__game?.toast?.('Tipp: Bewege dich mit dem Steuerkreuz. ! = reden.'); }catch(_){} }, 600);
+    if(S && !S.flags?.visual45Tip && document.body.classList.contains('pixel-ow')){
+      S.flags=S.flags||{}; S.flags.visual45Tip=1;
+      setTimeout(()=>{
+        try{
+          if(!document.body.classList.contains('pixel-ow')) return;
+          if(document.body.classList.contains('ow-dialogue')) return;
+          try{ const t=document.getElementById('toast'); if(t){ t.classList.add('toast-tip'); } }catch(_){}
+          window.__game?.toast?.('↑ Wischen · Steuerkreuz · Tippen');
+        }catch(_){}
+      }, 3200);
     }
   }catch(_){}
  _last=0;
@@ -1916,7 +1987,8 @@ export function hideOverworld(){
   _active=false;
   if(_raf){ cancelAnimationFrame(_raf); _raf=0; }
   _root?.classList.add('hidden');
-  document.body.classList.remove('pixel-ow','ow-desktop');
+  document.body.classList.remove('pixel-ow','ow-desktop','ow-fs-active');
+  try{ document.getElementById('choices')?.classList.remove('hidden'); document.getElementById('inputRow')?.classList.remove('hidden'); }catch(_){}
   hideDialogue();
   try{ window.__game?.C42?.hideOwRegionMinimap?.(); }catch(_){}
   try{ window.__game?.C43?.stopAmbient?.(); }catch(_){}

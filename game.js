@@ -27,6 +27,7 @@ import * as C41 from './content41.js';
 import * as C42 from './content42.js';
 import * as C43 from './content43.js';
 import * as C44 from './content44.js';
+import * as C45 from './content45.js';
 import * as V25 from './visual25d.js';
 import * as OW from './overworld.js';
 import * as Aud from './audio.js';
@@ -34,7 +35,7 @@ import { hasBg } from './bg-manifest.js';
 try{ Aud.unlockOnGesture?.(); }catch(_){} // v28 first-tap music
  // v41: test-only scripted, fair ATB bosses, boss dialogue talk-down, tilemap minimap, craft XP→T4
 const $=s=>document.querySelector(s);const $$=s=>[...document.querySelectorAll(s)];const R=a=>a[Math.floor(Math.random()*a.length)];const rnd=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
-const VER='44',CACHE_V='v44';
+const VER='45',CACHE_V='v45';
 const ROLES={
  held:{e:'⚔️',name:'Held mit Status-System',d:'Ein blaues Fenster erscheint: [Status]. Die Welt braucht dich.',world:'Königreich Aldheim',
   base:{hp:100,mp:40,str:12,cha:8,ruf:10,gold:40},cls:['Abenteurer','Ritter','Held','Legendärer Held'],pack:'worlds/held.json',
@@ -270,29 +271,42 @@ function setPortrait(name,npc){
 const cache=ensureImgCache();const wrap=$('#portraitWrap'),img=$('#portraitImg');
  try{wrap.classList.remove('mood-anger','mood-sad','mood-warm','mood-cool','mood-neutral');wrap.classList.add(Imm.portraitMoodClass(npc?.mood));wrap.classList.add('portrait-in')}catch(_){}
  if(!name){wrap&&wrap.classList.add('hidden');return}
- wrap.classList.remove('hidden');wrap.classList.add('portrait-sprite','portrait-bust');applyPortraitFallback(name,npc);hidePortraitPhoto();
+ wrap.classList.remove('hidden');wrap.classList.add('portrait-sprite','portrait-bust','portrait-force-show');applyPortraitFallback(name,npc);hidePortraitPhoto();
  if(window.__FORCE_CSS_SCENES)return;
- // v44/v43: richer pixel portrait (studio pass) with mood expression
+ // v45: real LPC/port portraits first; procedural only as last resort
  try{
-   const Port=C44||C43;
-   if(Port?.pixelPortraitUrl && img){
-     const expr=(C44||C43).expressionFromMood(npc?.mood);
-     const px=Port.pixelPortraitUrl(name, npc||{}, expr);
-     if(px){
-       img.crossOrigin='anonymous'; img.dataset.masked='1';
-       img.onload=()=>{ img.classList.add('on','pixelated','px-port'); };
-       img.src=px; img.dataset.name=name; img.dataset.expr=expr;
-       cache.ok['port:'+name]=1; cache.portraits[name]=px;
-       if(S)save();
-       return;
-     }
+   const applyPx=(url,cls)=>{
+     if(!url||!img) return false;
+     img.crossOrigin='anonymous'; img.dataset.masked='1';
+     img.onload=()=>{ img.classList.add('on','pixelated','px-port', ...(cls||[])); };
+     img.onerror=()=>{ /* fall through */ };
+     img.src=url; img.dataset.name=name;
+     cache.ok['port:'+name]=1; cache.portraits[name]=url;
+     if(S)save(); return true;
+   };
+   const resolved=C45?.resolvePortraitUrl?.(name, npc||{}) || null;
+   if(resolved?.kind==='port'){
+     img.dataset.preferPort=resolved.slug||'';
+     // show role LPC immediately so face is never blank while webp loads
+     const role=C45.roleFromNpc?.(name,npc)||'villager';
+     const fallback=C45.ROLE_PORT?.[role]||C45.ROLE_PORT?.villager;
+     if(fallback) applyPx(fallback,['role-port']);
+     C45.loadFramedRolePortrait?.(role).then(url=>{
+       if(url && img.dataset.name===name && !img.dataset.portOk) applyPx(url,['role-port']);
+     });
+   } else if(resolved?.kind==='role' && C45?.loadFramedRolePortrait){
+     C45.loadFramedRolePortrait(resolved.role).then(url=>{
+       if(url && img.dataset.name===name) applyPx(url,['role-port']);
+     });
+     if(resolved.url) applyPx(resolved.url,['role-port']);
+     return;
    }
  }catch(_){}
  const slug=portAssetKey(name,npc);const local=`assets/port/${slug}.webp`;const localSvg=`assets/port/${slug}.svg`;
  const seed=hashSeed('port:'+name+(S?.role||''));
  const url=imgUrl(portraitPromptFor(name,npc),768,1152,seed,isG());
  cache.portraits[name]=url;const key='port:'+name;
- const showLocal=async()=>{for(const path of[local,localSvg]){try{const r=await fetch(path,{method:'HEAD'});if(r.ok){img.crossOrigin='anonymous';img.dataset.masked='';img.onload=()=>{applySpriteMask(img);img.classList.add('on')};img.src=path;img.dataset.name=name;cache.ok[key]=1;return true}}catch(_){}}return false};
+ const showLocal=async()=>{for(const path of[local,localSvg]){try{const r=await fetch(path,{method:'HEAD'});if(r.ok){img.crossOrigin='anonymous';img.dataset.masked='';img.dataset.portOk='1';img.onload=()=>{applySpriteMask(img);img.classList.add('on','pixelated')};img.src=path;img.dataset.name=name;cache.ok[key]=1;return true}}catch(_){}}return false};
  if(!canRetry(cache,key)&&cache.fail[key]){showLocal().then(ok=>{if(!ok)scheduleRetry('port',key,()=>setPortrait(name,npc))});if(S)save();return}
  enqueueImg(()=>showLocal().then(ok=>{if(ok){if(S)save();return}return loadValidatedImage(url).then(res=>{
   if(!res.ok){markFail(cache,key);hidePortraitPhoto();scheduleRetry('port',key,()=>setPortrait(name,npc));if(S)save();return}
@@ -597,7 +611,7 @@ function applyCatchUp(){if(!S)return null;
  if(r.hours>=1){const lines=['⏳ Während du weg warst (offscreen, '+r.hours+' Std.) — Szene unverändert:',...(r.summary||[])];
   pushSys(lines[0]);setTimeout(()=>{try{eventToast(lines[0])}catch(_){toast(lines[0])}},300);save()}
  return r}
-function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('on'),2600)}
+function toast(t){const e=$('#toast');if(!e)return;e.textContent=t;e.classList.add('on','toast-top');clearTimeout(e._t);e._t=setTimeout(()=>{e.classList.remove('on');},2800)}
 function eventToast(t){const e=$('#eventToast');if(!e)return;e.textContent=t;e.classList.remove('hidden');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.add('hidden'),4200)}
 function hasKey(){return !!(cfg.gkey||'').trim()}
 function wantAI(){return cfg.mode!=='offline'}
@@ -733,6 +747,7 @@ function migrate(raw){if(!raw)return null;const s=typeof raw==='string'?JSON.par
  if(Number(s.ver)<42){ try{ C42.migrateV42(s); }catch(e){console.warn('v42 migrate',e)} }
  if(Number(s.ver)<43){ try{ C43.migrateV43(s); }catch(e){console.warn('v43 migrate',e)} }
  if(Number(s.ver)<44){ try{ C44.migrateV44(s); }catch(e){console.warn('v44 migrate',e)} }
+ if(Number(s.ver)<45){ try{ C45.migrateV45(s); }catch(e){console.warn('v45 migrate',e)} }
  // v13.1 continuity+time always (kept in v14)
  try{Cont.ensureCont(s);if(s.cal&&s.cal.minute==null)s.cal.minute=0;if(s.cfgCatchupOptIn==null)s.cfgCatchupOptIn=false}catch(e){console.warn('cont migrate',e)}
  // Heal incomplete worlds from old saves (missing orte/graph)
@@ -797,7 +812,7 @@ async function newLife(role,meta,opts){const r=ROLES[role];meta=meta||{lives:0,s
   time:{day:1,hour:18,phase:'Abend'},imgCache:{scenes:{},portraits:{},ok:{},fail:{},next:{}}};
  S.world=world;S.heat=0;S.wanted=[];S.dead=[];S.ledger=[];S.needs={hunger:20,fatigue:10,ageYears:18};S.home=Sim.blankHome();S.cal=Sim.blankCalendar(S.time);S.saveSeq=0;
  try{Sim.migrateToV13(S);Econ.ensureEcon(S);try{Econ.ensureMarket?.(S)}catch(_){};Codex.ensureCodex(S);WorldMap.ensureSpawn(S);Level.ensureProgress(S);Know.ensureKnow(S);Know.migrateKnow(S);Jobs.ensureJobs(S);Equip.ensureEquip(S)}catch(_){}
- try{ C39.ensureContent39(S); C39.seedThreads(S); C40.seedAllNpcArcs(S); C40.ensureCraft40(S); C41.ensureCraft41(S); C41.syncCraftProgress41(S); C42.migrateV42(S); C43.migrateV43(S); C44.migrateV44(S); C39.midgameUnlocks(S,{toast:false}); }catch(_){}
+ try{ C39.ensureContent39(S); C39.seedThreads(S); C40.seedAllNpcArcs(S); C40.ensureCraft40(S); C41.ensureCraft41(S); C41.syncCraftProgress41(S); C42.migrateV42(S); C43.migrateV43(S); C44.migrateV44(S); C45.migrateV45(S); C39.midgameUnlocks(S,{toast:false}); }catch(_){}
  if(opts.skipSetup){finishSetup(pack);gateOrShow();return}
  // If cinematic already covered death, skip first setup beat when it is 'tod'
  if(opts.fromIntro){S.flags.introDeath=true;S.setup.answers.tod={label:'(Intro)',past:opts.trait||''};S.setup.beat=1}
@@ -1039,6 +1054,7 @@ function discover(place){if(!place)return;if(!S.discovered)S.discovered=[];if(!S
 }catch(_){}}
 
 /* ---------- typewriter VN ---------- */
+function clearTypewrite(){try{clearInterval(_twTimer)}catch(_){} _twDone=true;}
 function typewrite(speaker,text,done){_twDone=false;_twFull=String(text||'').trim()||'…';try{document.body.classList.add('hud-dim')}catch(_){};
  try{ if(OW.isOverworldActive?.() && OW.isDialogueOpen?.()){ OW.showDialogue?.(speaker||'…', _twFull, 'villager'); } }catch(_){}
  try{ OW.syncDialogueFromVN?.(); }catch(_){}
@@ -1133,14 +1149,14 @@ function hudI(){const s=S.st,r=ROLES[S.role];
  $('#hud').innerHTML=`<div class="hud-top"><b>${r.e} ${S.pc?.name&&S.pc.name!=='???'?S.pc.name:r.cls[S.cls]}</b><span>Lv ${s.lvl} · 🪙${s.gold|0}</span></div>
  <div class="bars"><div style="flex:1"><div class="bar-lab">HP ${Math.max(0,s.hp)}/${s.maxhp}</div>${bar(s.hp,s.maxhp,'#ff5f7e')}</div>
  <div style="flex:1"><div class="bar-lab">MP ${s.mp}/${s.maxmp}</div>${bar(s.mp,s.maxmp||1,'#6fb6ff')}</div></div>
- <div class="chips"><span class="chip">📍${(S.world?.scene?.ort||'').slice(0,22)}</span><span class="chip">🕐${phaseLabel()}</span></div>`}
+ <div class="chips">${document.body.classList.contains('pixel-ow')?'':`<span class="chip">📍${(S.world?.scene?.ort||'').slice(0,22)}</span>`}<span class="chip">🕐${phaseLabel()}</span></div>`}
 function hudG(){const s=S.st;
  $('#hud').innerHTML=`<div class="hud-top"><b>🌫️ ${S.pc.name}</b><span>${ROLES.grey.cls[S.cls]}</span></div>
  <div class="bars"><div style="flex:1"><div class="bar-lab">🧠 Verstand ${Math.max(0,s.hp)}/100</div>${bar(s.hp,100,'#9fb3c8')}</div>
  <div style="flex:1"><div class="bar-lab">⚖️ Schuld ${s.ruf}/100</div>${bar(s.ruf,100,'#8a5a5a')}</div></div>
- <div class="chips"><span class="chip">📍${(S.world?.scene?.ort||'').slice(0,22)}</span><span class="chip">🕐${phaseLabel()}</span></div>`}
+ <div class="chips">${document.body.classList.contains('pixel-ow')?'':`<span class="chip">📍${(S.world?.scene?.ort||'').slice(0,22)}</span>`}<span class="chip">🕐${phaseLabel()}</span></div>`}
 
-function renderChoices(){const c=$('#choices');if(S._setupChoices)return;c.innerHTML='';try{document.body.classList.remove('hud-dim')}catch(_){};
+function renderChoices(){const c=$('#choices');if(S._setupChoices)return;c.innerHTML='';try{document.body.classList.remove('hud-dim')}catch(_){}; try{ $('#toast')?.classList.remove('on'); }catch(_){};
  (S.choices||[]).slice(0,4).forEach(t=>{const b=document.createElement('button');b.type='button';b.textContent=t;b.onclick=()=>act(t);c.appendChild(b)})}
 
 function pushSys(t){if(!S.log)S.log=[];S.log.push({k:'s',t});if(S.log.length>80)S.log.shift();eventToast(t)}
@@ -1942,10 +1958,11 @@ async function startProcedural(genreInput,pcName){const pack=await generateWorld
   cls:0,turn:0,hist:[],log:[],flags:{},setup:{done:true,beat:0,answers:{}},summary:pack.conflict||'',
   time:{day:1,hour:18,phase:'Abend'},imgCache:{scenes:{},portraits:{},ok:{},fail:{},next:{}},heat:0,wanted:[],dead:[],world};
  enrichNpcs(S.world);ensureGraph(S);try{Sim.migrateToV13(S);Econ.ensureEcon(S);try{Econ.ensureMarket?.(S)}catch(_){};Codex.ensureCodex(S);WorldMap.ensureSpawn(S);Level.ensureProgress(S);Know.ensureKnow(S);Know.migrateKnow(S);Jobs.ensureJobs(S);Gems.ensureGems(S);Summons.ensureSummons(S);Equip.ensureEquip(S);S.ver=VER}catch(_){}if(S.world.systems||S.genre==='zombie')ensureSystems();try{enrichPlaceDescs(S)}catch(_){};
- try{ C39.ensureContent39(S); C39.seedThreads(S); C40.seedAllNpcArcs(S); C40.ensureCraft40(S); C41.ensureCraft41(S); C41.syncCraftProgress41(S); C42.migrateV42(S); C43.migrateV43(S); C44.migrateV44(S); C39.midgameUnlocks(S,{toast:false});
+ try{ C39.ensureContent39(S); C39.seedThreads(S); C40.seedAllNpcArcs(S); C40.ensureCraft40(S); C41.ensureCraft41(S); C41.syncCraftProgress41(S); C42.migrateV42(S); C43.migrateV43(S); C44.migrateV44(S); C45.migrateV45(S); C39.midgameUnlocks(S,{toast:false});
    const rum=(S.content39?.rumours||[])[0]; if(rum){ S.ticks=S.ticks||{rumours:[],log:[]}; S.ticks.rumours=(S.ticks.rumours||[]).concat(rum).slice(-10); }
  }catch(e){console.warn('c39/c40 seed',e)}
- const bridge=`${pack.titel}.\n\n${pack.conflict||pack.geschichte}\n\nDu – ${S.pc.name} – stehst in ${world.scene.ort}. Die Welt wartet nicht. Wohin du gehst, ist deine Sache.`;
+ const conflict=(pack.conflict||pack.geschichte||'Die Welt atmet Magie und Gefahr.').slice(0,90);
+ const bridge=`Du – ${S.pc.name} – stehst in ${world.scene.ort}. ${conflict} Wohin gehst du?`;
  S.log=[{k:'n',t:bridge}];S.hist=[{role:'assistant',content:bridge}];S.choices=travelChoices(world.scene.ort);
  save();enterPlay();typewrite('Erzähler',bridge,()=>{});hud();renderChoices();
  applySceneTheme(themeFromText(pack.genre+' '+world.scene.ort));setSceneImage(scenePromptFor(world.scene.ort,'Abend'),world.scene.ort);
@@ -3373,7 +3390,7 @@ $('#btnGateSave').onclick=()=>{const gk=$('#gateKey').value.trim();if(!gk){toast
  toast('Alles bereit.');gmFetch(gk,true).then(()=>gmProbe(gk).catch(()=>{}));enterPlay()};
 $('#btnGateSkip').onclick=()=>{cfg.mode='offline';cfg.v2=1;localStorage.setItem(CFG,JSON.stringify(cfg));try{if(S)S._narratorMode='offline';updateNarratorDot()}catch(_){} toast('Erzählerin: Offline (lokal, ohne Schlüssel)');enterPlay()};
 
-window.__setCfg=o=>{cfg=Object.assign(cfg||{},o||{});try{localStorage.setItem(CFG,JSON.stringify(cfg))}catch(_){}};window.__game={VER,Aud,toast,C39,C40,C41,C42,C43,C44,Cut40,updateNarratorDot,narratorStatusText,openSheet,setBusy,forceUnbusy,ACT_HARD_MS,V25,OW,Depth,Battle,Jobs,Gems,Summons,Equip,Jrpg,localBeatLine,parsePlayerIntent,offlineRespondIntent,freeStream,FREE_MODEL,msgsLean,FREE_URLS,openPendingEncounter,Imm,discoverThing,showCodexInline,Level,UI14,UI17,Know,Cont,lastPromptDump,advanceTimeMinutes,applyActionDuration,newGrey,greyDetails,loadGrey,loadPack,get S(){return S},act,newLife,gBody,msgs,gmRank,gmProbe,parseStream,thinkingCfg,gmOrder,readSSE,STREAM_DELIM,migrate,worldTick,bumpRel,openMenu,openPixelShop,openRegionTravelMap,stageName,offline,startIntro,setSceneImage,setPortrait,imgUrl,advanceTime,phaseLabel,typewrite,enterPlay,showTitle,analyzeImage,applySceneTheme,themeFromText,loadValidatedImage,openingNarration,travelTo,parseTravel,killNPC,robNPC,addMemory,memoryHint,startProcedural,offlineGenerateWorld,generateWorldPack,GENRES,travelChoices,ensureGraph,whoHere,parseLifeSim,Sim,Persist,WorldMap,TravelMap,Cut31,Econ,Codex,UI13,save,loadSave,applyCatchUp,findAnyNpc,placeFlavorText,enrichPlaceDescs};
+window.__setCfg=o=>{cfg=Object.assign(cfg||{},o||{});try{localStorage.setItem(CFG,JSON.stringify(cfg))}catch(_){}};window.__game={VER,Aud,toast,clearTypewrite,C39,C40,C41,C42,C43,C44,C45,Cut40,updateNarratorDot,narratorStatusText,openSheet,setBusy,forceUnbusy,ACT_HARD_MS,V25,OW,Depth,Battle,Jobs,Gems,Summons,Equip,Jrpg,localBeatLine,parsePlayerIntent,offlineRespondIntent,freeStream,FREE_MODEL,msgsLean,FREE_URLS,openPendingEncounter,Imm,discoverThing,showCodexInline,Level,UI14,UI17,Know,Cont,lastPromptDump,advanceTimeMinutes,applyActionDuration,newGrey,greyDetails,loadGrey,loadPack,get S(){return S},act,newLife,gBody,msgs,gmRank,gmProbe,parseStream,thinkingCfg,gmOrder,readSSE,STREAM_DELIM,migrate,worldTick,bumpRel,openMenu,openPixelShop,openRegionTravelMap,stageName,offline,startIntro,setSceneImage,setPortrait,imgUrl,advanceTime,phaseLabel,typewrite,enterPlay,showTitle,analyzeImage,applySceneTheme,themeFromText,loadValidatedImage,openingNarration,travelTo,parseTravel,killNPC,robNPC,addMemory,memoryHint,startProcedural,offlineGenerateWorld,generateWorldPack,GENRES,travelChoices,ensureGraph,whoHere,parseLifeSim,Sim,Persist,WorldMap,TravelMap,Cut31,Econ,Codex,UI13,save,loadSave,applyCatchUp,findAnyNpc,placeFlavorText,enrichPlaceDescs};
 window.__game.askNPC=a=>askNPC(a);window.__game.gemini=gemini;
 if(cfg.gkey)gmFetch(cfg.gkey.trim()).then(()=>gmProbe(cfg.gkey.trim()).catch(()=>{})).catch(()=>{});
 (function(){const root=document.documentElement;const apply=()=>{try{const vv=window.visualViewport;if(!vv)return;const kb=Math.max(0,window.innerHeight-vv.height-vv.offsetTop);root.style.setProperty('--kb',kb+'px')}catch(_){}};

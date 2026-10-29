@@ -2356,3 +2356,642 @@ body.pixel-jrpg{
   border-radius: 8px;
   background:#0b1224;
 }
+
+/* ========== v45 MOBILE FULLSCREEN LAYOUT ========== */
+/* Map fills the stage; HUD/pad/dialogue float as overlays */
+
+body.pixel-ow #stage{
+  display:flex !important;
+  flex-direction:column !important;
+  height:100dvh !important;
+  max-height:100dvh !important;
+  overflow:hidden !important;
+  padding:0 !important;
+  position:relative !important;
+}
+body.pixel-ow .overworld{
+  position:absolute !important;
+  inset:0 !important;
+  z-index:2 !important;
+  padding:0 !important;
+  margin:0 !important;
+  gap:0 !important;
+  background:#05070e !important;
+  align-items:stretch !important;
+}
+body.pixel-ow #owRoot,
+body.pixel-ow .ow-root,
+body.pixel-ow .overworld > .ow-frame,
+body.pixel-ow .ow-main{
+  flex:1 !important;
+  min-height:0 !important;
+  height:100% !important;
+  position:relative !important;
+}
+body.pixel-ow #owCanvas{
+  width:100% !important;
+  height:100% !important;
+  max-height:none !important;
+  border:none !important;
+  box-shadow:none !important;
+  border-radius:0 !important;
+}
+/* Compact floating HUD — never overlaps toast/controls */
+body.pixel-ow .topbar{
+  position:absolute !important;
+  top:0; left:0; right:0;
+  z-index:30 !important;
+  padding: calc(6px + env(safe-area-inset-top)) 8px 0 !important;
+  pointer-events:none;
+  opacity:1 !important;
+}
+body.pixel-ow .topbar .hud,
+body.pixel-ow .topbar .top-actions{
+  pointer-events:auto;
+}
+body.pixel-ow .hud{
+  background:rgba(11,18,36,0.82) !important;
+  border:1.5px solid #d4b45a !important;
+  border-radius:10px !important;
+  padding:6px 10px !important;
+  font-size:11px !important;
+  line-height:1.25 !important;
+  max-width:min(70vw, 280px) !important;
+  backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px);
+}
+body.pixel-ow .hud .hud-top{
+  flex-wrap:nowrap !important;
+  gap:8px !important;
+}
+body.pixel-ow .hud .hud-top b{
+  font-size:12px !important;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  max-width:42vw;
+}
+body.pixel-ow .hud .loc-line,
+body.pixel-ow .hud .meta-line{
+  font-size:10px !important;
+  opacity:.9;
+}
+/* Hide duplicate location chips if present */
+body.pixel-ow .hud .dup-loc{ display:none !important; }
+
+/* Floating translucent d-pad */
+body.pixel-ow .ow-pad,
+body.pixel-ow .ow-pad-float{
+  position:absolute !important;
+  left:50% !important;
+  bottom: calc(88px + env(safe-area-inset-bottom)) !important;
+  transform:translateX(-50%) !important;
+  z-index:25 !important;
+  opacity:0.78 !important;
+  background:rgba(8,12,28,0.35) !important;
+  border:1px solid rgba(212,180,90,0.35) !important;
+  border-radius:16px !important;
+  padding:8px 10px !important;
+  backdrop-filter:blur(4px);
+  -webkit-backdrop-filter:blur(4px);
+  pointer-events:auto;
+}
+body.pixel-ow .ow-pad button{
+  width:44px !important; height:44px !important;
+  background:rgba(26,36,88,0.55) !important;
+  border-color:rgba(158,182,255,0.55) !important;
+}
+body.pixel-ow .ow-keyboard{
+  background:rgba(26,36,88,0.5) !important;
+  font-size:10px !important;
+  margin-bottom:0 !important;
+}
+
+/* VN / narrator as bottom JRPG window over the map */
+body.pixel-ow:not(.ow-dialogue) .vn-wrap{
+  position:absolute !important;
+  left:8px; right:8px;
+  bottom: calc(8px + env(safe-area-inset-bottom)) !important;
+  z-index:28 !important;
+  max-height: none !important;
+  margin:0 !important;
+  pointer-events:none;
+}
+body.pixel-ow:not(.ow-dialogue) .vn-wrap .vn-box{
+  pointer-events:auto;
+  max-height: 22vh;
+  overflow:auto;
+  background:rgba(14,20,40,0.9) !important;
+  border:1.5px solid #d4b45a !important;
+  border-radius:12px !important;
+  padding:10px 12px !important;
+}
+body.pixel-ow:not(.ow-dialogue) .vn-text{
+  min-height:0 !important;
+  font-size:14px !important;
+  line-height:1.4 !important;
+  max-height: 14vh;
+  overflow:auto;
+}
+body.pixel-ow:not(.ow-dialogue) .portrait-wrap{ display:none !important; }
+
+/* VN dialogue mode (not OW): portrait below HUD, no clipping */
+body.pixel-jrpg:not(.pixel-ow) #stage,
+body.pixel-ow.ow-dialogue #stage{ /* keep */ }
+body.pixel-jrpg:not(.pixel-ow) .topbar{
+  position:relative !important;
+  z-index:20;
+}
+body.pixel-jrpg:not(.pixel-ow) .vn-wrap{
+  position:relative;
+  z-index:15;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:8px;
+  padding:8px 12px 0;
+  max-height:none !important;
+  margin-top:0 !important;
+}
+body.pixel-jrpg:not(.pixel-ow) #portraitWrap.portrait-bust:not(.hidden){
+  position:relative !important;
+  z-index:16 !important;
+  margin: 4px auto 8px !important;
+  display:flex !important;
+}
+body.pixel-jrpg:not(.pixel-ow) #portraitWrap.portrait-bust img{
+  width: min(42vw, 160px) !important;
+  height: auto !important;
+  min-width: 112px;
+  min-height: 112px;
+  object-fit: contain !important;
+  image-rendering: pixelated !important;
+}
+body.pixel-jrpg:not(.pixel-ow) .vn-box{
+  width:100%;
+  max-width: 560px;
+}
+body.pixel-jrpg:not(.pixel-ow) .vn-text{
+  min-height: 4em !important;
+  max-height: 28vh;
+  overflow:auto;
+  font-size:15px !important;
+}
+body.pixel-jrpg:not(.pixel-ow) .choices{
+  position:relative;
+  z-index:18;
+  padding: 8px 12px;
+  margin-bottom: 4px;
+}
+body.pixel-jrpg:not(.pixel-ow) .choices button{
+  font-size:14px !important;
+  padding:10px 12px !important;
+  margin:4px 0 !important;
+}
+
+/* Toast: top center, never over pad/choices */
+#toast{
+  top: calc(56px + env(safe-area-inset-top)) !important;
+  bottom: auto !important;
+  z-index: 50 !important;
+  max-width: min(92vw, 340px) !important;
+  font-size:12px !important;
+  background:rgba(0,0,0,0.85) !important;
+  border:1px solid #d4b45a88;
+}
+#toast.toast-top{ top: calc(56px + env(safe-area-inset-top)) !important; bottom:auto !important; }
+
+/* Input row: same font as UI */
+.input-row input,
+#txt{
+  font-family: "Noto Sans", system-ui, sans-serif !important;
+  font-size: 15px !important;
+}
+
+/* Side panels hide on mobile OW */
+body.pixel-ow:not(.ow-desktop) .ow-side{ display:none !important; }
+
+/* Desktop keeps side-by-side; map large */
+@media (min-width: 900px){
+  body.pixel-ow.ow-desktop .overworld{ position:relative !important; inset:auto !important; }
+  body.pixel-ow.ow-desktop .ow-pad{ display:none !important; }
+  body.pixel-ow.ow-desktop #owCanvas{
+    border:3px solid #9eb6ff !important;
+  }
+  body.pixel-ow.ow-desktop .topbar{ position:relative !important; }
+  body.pixel-ow.ow-desktop .vn-wrap{ position:relative !important; left:auto; right:auto; bottom:auto; }
+}
+
+/* Hide genre-only stub text if narrator empty-ish — handled in JS too */
+
+/* v45 ow-shell fills stage */
+body.pixel-ow .ow-shell{
+  position:absolute; inset:0;
+  display:flex; flex-direction:row;
+}
+body.pixel-ow .ow-main{
+  position:relative !important;
+  flex:1 !important;
+  min-width:0; min-height:0;
+  height:100% !important;
+}
+body.pixel-ow .ow-toolbar{
+  position:absolute !important;
+  top: calc(52px + env(safe-area-inset-top));
+  right: 8px;
+  z-index:26;
+  display:flex; gap:6px; align-items:center;
+  background:rgba(8,12,28,0.45);
+  border-radius:10px; padding:4px 6px;
+}
+body.pixel-ow .ow-hint{ display:none !important; }
+body.pixel-ow .ow-keyboard{
+  position:absolute !important;
+  left:50%; transform:translateX(-50%);
+  bottom: calc(8px + env(safe-area-inset-bottom));
+  z-index:26;
+  opacity:0.75;
+}
+/* Keep pad above keyboard */
+body.pixel-ow .ow-pad-float{
+  bottom: calc(52px + env(safe-area-inset-bottom)) !important;
+}
+/* VN strip above freitext, below pad */
+body.pixel-ow:not(.ow-dialogue) .vn-wrap{
+  bottom: calc(48px + env(safe-area-inset-bottom)) !important;
+  left:10px; right:10px;
+}
+body.pixel-ow:not(.ow-dialogue) .vn-wrap .vn-box{
+  max-height: 18vh !important;
+}
+/* When freitext keyboard button visible, don't let toast cover pad */
+body.pixel-ow #toast{
+  top: calc(64px + env(safe-area-inset-top)) !important;
+  left:50%; transform:translateX(-50%);
+}
+
+/* Choices never under toast */
+body.pixel-jrpg:not(.pixel-ow) .choices{
+  margin-top: 4px;
+  max-height: 36vh;
+  overflow:auto;
+}
+body.pixel-jrpg:not(.pixel-ow) #toast{
+  top: calc(8px + env(safe-area-inset-top)) !important;
+}
+
+/* v45b: FORCE full-bleed OW — hide VN chrome that was still eating the screen */
+body.pixel-ow:not(.ow-dialogue) #choices,
+body.pixel-ow:not(.ow-dialogue) #inputRow,
+body.pixel-ow:not(.ow-dialogue) #btnAudio{
+  display:none !important;
+}
+body.pixel-ow:not(.ow-dialogue) .vn-wrap{
+  /* single bottom log strip only */
+  max-height: 16vh !important;
+}
+body.pixel-ow #stage{
+  position:relative !important;
+}
+body.pixel-ow #overworld.overworld,
+body.pixel-ow .overworld{
+  position:absolute !important;
+  inset:0 !important;
+  width:100% !important;
+  height:100% !important;
+  z-index:5 !important;
+  display:flex !important;
+}
+body.pixel-ow .ow-shell,
+body.pixel-ow .ow-main{
+  width:100% !important;
+  height:100% !important;
+}
+body.pixel-ow #owCanvas{
+  position:absolute !important;
+  inset:0 !important;
+  width:100% !important;
+  height:100% !important;
+  z-index:1 !important;
+}
+body.pixel-ow .ow-toolbar{ z-index:6 !important; }
+body.pixel-ow .ow-pad-float{ z-index:7 !important; }
+body.pixel-ow .ow-keyboard{ z-index:7 !important; }
+body.pixel-ow .topbar{ z-index:8 !important; }
+body.pixel-ow:not(.ow-dialogue) .vn-wrap{ z-index:6 !important; }
+body.pixel-ow #toast{ z-index:20 !important; }
+
+/* Tip never covers pad: keep toast under topbar only */
+body.pixel-ow #toast.on{
+  top: calc(58px + env(safe-area-inset-top)) !important;
+  bottom:auto !important;
+  max-width: 88vw !important;
+}
+
+/* VN mode: portrait must sit fully below topbar */
+body.pixel-jrpg:not(.pixel-ow) #portraitWrap:not(.hidden){
+  margin-top: 8px !important;
+  clear:both;
+}
+body.pixel-jrpg:not(.pixel-ow) .vn-text{
+  max-height: 32vh !important;
+  overflow-y:auto !important;
+  -webkit-overflow-scrolling:touch;
+}
+body.pixel-jrpg:not(.pixel-ow) #toast.on{
+  /* park toast above choices, below HUD */
+  top: auto !important;
+  bottom: calc(42vh + env(safe-area-inset-bottom)) !important;
+}
+
+/* v45c: OW explore = map + floating chrome only */
+body.pixel-ow:not(.ow-dialogue) .vn-wrap{
+  display:none !important;
+}
+body.pixel-ow .ow-region-minimap .ow-mm-label{
+  display:none !important; /* HUD already shows ort — kill duplicate */
+}
+body.pixel-ow .ow-pad-float{
+  bottom: calc(24px + env(safe-area-inset-bottom)) !important;
+  opacity:0.85 !important;
+}
+body.pixel-ow .ow-keyboard{
+  display:none !important; /* use talk button; freitext via menu to clear clutter */
+}
+/* When OW root hidden, allow portraits even if class briefly remains */
+body.pixel-ow #overworld.hidden ~ .vn-wrap .portrait-wrap,
+body.pixel-ow:has(#overworld.hidden) .portrait-wrap{
+  display:flex !important;
+}
+
+#portraitWrap.portrait-force-show:not(.hidden){ display:flex !important; visibility:visible !important; opacity:1 !important; }
+body.pixel-ow:not(.ow-dialogue) #portraitWrap.portrait-force-show{ display:none !important; }
+body:not(.pixel-ow) #portraitWrap.portrait-force-show:not(.hidden){ display:flex !important; }
+
+/* v45d polish */
+body.pixel-ow #toast.toast-tip,
+body.pixel-ow #toast.on.toast-tip{
+  top: calc(8px + env(safe-area-inset-top)) !important;
+  left: auto !important;
+  right: 8px !important;
+  transform: none !important;
+  max-width: 46vw !important;
+  font-size: 11px !important;
+  z-index: 25 !important;
+}
+body.pixel-jrpg:not(.pixel-ow) .vn-text,
+body.pixel-jrpg:not(.pixel-ow) #vnText{
+  max-height: 36vh !important;
+  min-height: 5.5em !important;
+  overflow-y: auto !important;
+  font-size: 15px !important;
+  line-height: 1.45 !important;
+}
+body.pixel-jrpg:not(.pixel-ow) #portraitWrap:not(.hidden){
+  display:flex !important;
+  justify-content:center;
+  margin: 6px auto 4px !important;
+  min-height: 120px;
+}
+body.pixel-jrpg:not(.pixel-ow) #portraitWrap img.on,
+body.pixel-jrpg:not(.pixel-ow) #portraitImg.on{
+  display:block !important;
+  width: 140px !important;
+  height: 140px !important;
+  object-fit: contain !important;
+  image-rendering: pixelated !important;
+  background: #0b1224;
+  border: 2px solid #d4b45a;
+  border-radius: 8px;
+}
+body.pixel-jrpg:not(.pixel-ow) #btnAudio{
+  bottom: calc(8px + env(safe-area-inset-bottom)) !important;
+  right: 8px !important;
+  z-index: 12 !important;
+  opacity: 0.7;
+}
+/* OW map never letterboxed by stage chrome */
+body.pixel-ow #overworld,
+body.pixel-ow .overworld{
+  z-index: 4 !important;
+}
+body.pixel-ow .topbar{ z-index: 30 !important; }
+body.pixel-ow .ow-pad-float{ z-index: 28 !important; opacity: 0.82 !important; }
+body.pixel-ow .ow-region-minimap{
+  top: calc(8px + env(safe-area-inset-top)) !important;
+  right: 8px !important;
+  z-index: 27 !important;
+  opacity: 0.9;
+}
+
+/* v45d portrait always visible in VN */
+body.pixel-jrpg:not(.pixel-ow) #portraitWrap:not(.hidden),
+body.pixel-jrpg:not(.pixel-ow) #portraitWrap.portrait-force-show:not(.hidden){
+  display:flex !important;
+  visibility:visible !important;
+  opacity:1 !important;
+  position: relative !important;
+  z-index: 22 !important;
+  width: 148px !important;
+  height: 148px !important;
+  margin: 8px auto !important;
+  background: rgba(11,18,36,0.85);
+  border: 2px solid #d4b45a;
+  border-radius: 10px;
+  overflow: hidden;
+}
+body.pixel-jrpg:not(.pixel-ow) #portraitWrap img,
+body.pixel-jrpg:not(.pixel-ow) #portraitImg{
+  display:block !important;
+  width:100% !important;
+  height:100% !important;
+  object-fit:contain !important;
+  image-rendering:pixelated !important;
+  opacity:1 !important;
+  visibility:visible !important;
+}
+body.pixel-jrpg:not(.pixel-ow) .choices{
+  max-height: 28vh !important;
+  overflow-y: auto !important;
+  padding-bottom: calc(12px + env(safe-area-inset-bottom)) !important;
+}
+body.pixel-jrpg:not(.pixel-ow) .choices button:last-child{
+  margin-bottom: 8px !important;
+}
+
+/* ========== v45e: kill legacy absolute sprite bust (was placing portrait ABOVE viewport) ========== */
+body.pixel-jrpg:not(.pixel-ow) .portrait-wrap.portrait-sprite,
+body.pixel-jrpg:not(.pixel-ow) .portrait-wrap.portrait-bust,
+body.pixel-jrpg:not(.pixel-ow) #portraitWrap.portrait-sprite,
+body.pixel-jrpg:not(.pixel-ow) #portraitWrap.portrait-bust,
+body.pixel-jrpg:not(.pixel-ow) #portraitWrap.portrait-force-show{
+  position: relative !important;
+  left: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  top: auto !important;
+  transform: none !important;
+  width: 148px !important;
+  height: 148px !important;
+  max-width: 42vw !important;
+  max-height: 22vh !important;
+  margin: 4px auto 8px !important;
+  display: flex !important;
+  justify-content: center;
+  align-items: center;
+  border: 2px solid #d4b45a !important;
+  border-radius: 10px !important;
+  background: #0b1224 !important;
+  overflow: hidden !important;
+  pointer-events: none;
+  z-index: 22 !important;
+  filter: none !important;
+}
+body.pixel-jrpg:not(.pixel-ow) .portrait-wrap.portrait-sprite .portrait-frame,
+body.pixel-jrpg:not(.pixel-ow) #portraitWrap .portrait-frame{
+  position: relative !important;
+  inset: auto !important;
+  width: 100% !important;
+  height: 100% !important;
+  overflow: hidden !important;
+}
+body.pixel-jrpg:not(.pixel-ow) .portrait-wrap.portrait-sprite img,
+body.pixel-jrpg:not(.pixel-ow) #portraitWrap img,
+body.pixel-jrpg:not(.pixel-ow) #portraitImg{
+  position: relative !important;
+  left: auto !important;
+  bottom: auto !important;
+  top: auto !important;
+  transform: none !important;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain !important;
+  object-position: center center !important;
+  opacity: 1 !important;
+  image-rendering: pixelated !important;
+  -webkit-mask-image: none !important;
+  mask-image: none !important;
+  animation: none !important;
+  filter: none !important;
+}
+body.pixel-jrpg:not(.pixel-ow) .portrait-shadow{ display:none !important; }
+body.pixel-jrpg:not(.pixel-ow) .portrait-ph{ display:none !important; }
+
+/* VN: hide freitext while choices visible to stop overlap */
+body.pixel-jrpg:not(.pixel-ow):has(#choices:not(:empty)) #inputRow{
+  display: none !important;
+}
+body.pixel-jrpg:not(.pixel-ow) .vn-text,
+body.pixel-jrpg:not(.pixel-ow) #vnText{
+  max-height: 28vh !important;
+  overflow-y: auto !important;
+  min-height: 4.2em !important;
+}
+body.pixel-jrpg:not(.pixel-ow) .vn-wrap{
+  max-height: none !important;
+  overflow: visible !important;
+  margin-top: 4px !important;
+}
+/* Compact choices so 4 fit */
+body.pixel-jrpg:not(.pixel-ow) .choices button{
+  padding: 8px 10px !important;
+  font-size: 13px !important;
+  margin: 3px 0 !important;
+}
+body.pixel-jrpg:not(.pixel-ow) .choices{
+  max-height: 32vh !important;
+  overflow-y: auto !important;
+  padding-bottom: calc(10px + env(safe-area-inset-bottom)) !important;
+}
+
+/* OW: no bottom black void — canvas/pad over map */
+body.pixel-ow .ow-pad-float{
+  background: transparent !important;
+  bottom: calc(16px + env(safe-area-inset-bottom)) !important;
+}
+body.pixel-ow .ow-pad-float button{
+  width: 40px !important;
+  height: 40px !important;
+  opacity: 0.8;
+}
+
+/* v45e: no bottom letterbox on OW */
+body.pixel-ow #app,
+body.pixel-ow #stage,
+html.pixel-ow, body.pixel-ow{
+  height: 100dvh !important;
+  max-height: 100dvh !important;
+  padding-bottom: 0 !important;
+  margin-bottom: 0 !important;
+  background: #05070e !important;
+}
+body.pixel-ow #overworld,
+body.pixel-ow .overworld,
+body.pixel-ow .ow-shell,
+body.pixel-ow .ow-main,
+body.pixel-ow #owCanvas{
+  bottom: 0 !important;
+  height: 100% !important;
+  max-height: 100dvh !important;
+}
+body.pixel-ow .ow-pad-float{
+  bottom: calc(12px + env(safe-area-inset-bottom, 0px)) !important;
+}
+/* Hide NPC name labels clutter on canvas when too close — leave for talk */
+
+body.pixel-ow #app{ padding-bottom:0 !important; --kb:0px !important; max-width:none !important; }
+body.pixel-ow:not(.ow-desktop) #app{ max-width:100vw !important; width:100vw !important; }
+
+/* v45e OW dialogue = JRPG bottom window; pad tucked away */
+body.pixel-ow.ow-dialogue .ow-pad-float,
+body.pixel-ow.ow-dialogue .ow-keyboard{
+  display:none !important;
+}
+body.pixel-ow.ow-dialogue .ow-dlg{
+  left: 8px !important;
+  right: 8px !important;
+  width: auto !important;
+  max-width: none !important;
+  bottom: calc(10px + env(safe-area-inset-bottom)) !important;
+  transform: none !important;
+  z-index: 35 !important;
+}
+body.pixel-ow.ow-dialogue .ow-dlg-inner{
+  min-height: 96px;
+  max-height: 28vh;
+  overflow: hidden;
+  background: rgba(14,20,40,0.94) !important;
+  border: 2px solid #d4b45a !important;
+  border-radius: 12px !important;
+  padding: 10px 36px 12px 12px !important;
+}
+body.pixel-ow.ow-dialogue .ow-dlg-port{
+  width: 72px !important;
+  height: 72px !important;
+  border: 2px solid #d4b45a !important;
+  border-radius: 8px !important;
+  background: #0b1224 !important;
+  object-fit: contain !important;
+}
+body.pixel-ow.ow-dialogue .ow-dlg-name{
+  font-family: Cinzel, "Noto Serif", serif !important;
+  font-size: 12px !important;
+  color: #d4b45a !important;
+}
+body.pixel-ow.ow-dialogue .ow-dlg-text{
+  font-family: "Noto Sans", system-ui, sans-serif !important;
+  font-size: 14px !important;
+  line-height: 1.4 !important;
+  max-height: 16vh;
+  overflow-y: auto;
+  color: #f0f4ff !important;
+}
+body.pixel-ow.ow-dialogue #toast{ display:none !important; }
+body.pixel-ow .ow-toolbar{
+  top: calc(8px + env(safe-area-inset-top)) !important;
+  right: 56px !important; /* left of minimap */
+  left: auto !important;
+}
+body.pixel-ow .ow-region-minimap{
+  top: calc(52px + env(safe-area-inset-top)) !important;
+}
