@@ -1761,3 +1761,14 @@ body.ow-desktop .ow-side{ z-index:3; }
 @media (prefers-reduced-motion:reduce){
   .party-lunge,.enemy-lunge,.foe-card.death-fade,.spell-fx{ animation:none; }
 }
+
+/* v29 sprite-frame battle anims */
+.party-spr-wrap,.foe-art-wrap{ position:relative; }
+.battler-canvas{
+  position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+  image-rendering:pixelated; image-rendering:crisp-edges;
+  pointer-events:none; z-index:2; display:none;
+}
+.battler-spr.spr-animating{ filter:brightness(1.15); }
+.foe-art-wrap .battler-canvas{ width:72px!important; height:72px!important; }
+.party-spr-wrap .battler-canvas{ width:48px!important; height:48px!important; }

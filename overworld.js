@@ -110,6 +110,7 @@ let _dayTint='day'; let _wxParts=[]; let _audioApi=null;
 let _desktop=false; let _intScale=3; let _viewW=13, _viewH=15;
 let _padAxes={x:0,y:0}; let _padPrev={};
 let _overhead=[]; // {x,y,src,w,h} world-tile anchored big sprites drawn after entities
+export let __map=null; // last built map (gates/shots)
 let _animators=[]; // {x,y,kind} animated overlays
 let _animFrame=0;
 
@@ -180,32 +181,64 @@ export function buildMapForLocation(S, ort){
   const blob=desc+low;
   if(/wald|wild|feld|straße|strasse|pfad/.test(blob)) kind='wild';
   if(/verlies|höhle|kerker|dungeon|keller|grab/.test(blob)) kind='dungeon';
-  if(/camp|lager|zuhause|hütte|heim|grundstück/.test(blob) || S?.home?.location===name) kind='camp';
+  if(/\bcamp\b|\blager\b|zuhause|hütte|\bheim\b|grundstück/.test(blob) || S?.home?.location===name) kind='camp';
   if(/markt|stadt|dorf|platz|tempel|burg|palast|gasthaus|taverne|akademie|halle|solari|beschwörung|hafen|kirche|gilde|tor|garten/.test(blob)) kind='town';
   if(/ruine|trümmer|zerstört/.test(blob)) kind='ruins';
-  if(/innen|zimmer|saal|kammer|bibliothek|küche|schlaf|\(innen\)/.test(blob)) kind='interior';
+  if(/innen|zimmer|kammer|küche|schlaf|\(innen\)/.test(blob) || (/\bsaal\b/.test(blob)&&!/thron/.test(blob))) kind='interior';
 
-  // Unique preset key for important orte
+  // Unique preset key for important orte — genre/terrain heuristics for unknown places
   let preset='default';
+  // Entered buildings always use interior layout
+  if(/^in:/.test(low) || /\(innen\)/.test(low)) { preset='interior'; kind='interior'; }
+
+  const genre=String(S?.genre||S?.role||S?.world?.genre||'').toLowerCase();
   if(/beschw/.test(low)) preset='summon';
   else if(/thron/.test(low)) preset='throne';
-  else if(/markt|unterstadt/.test(low)) preset='market';
-  else if(/taverne|gasthaus|silberfuchs/.test(low)) preset='tavern';
-  else if(/hafen|myr/.test(low)) preset='harbor';
-  else if(/elfen|sylvar/.test(low)) preset='elfwood';
-  else if(/nordwall|wall|festung/.test(low)) preset='wall';
-  else if(/garten|palastgarten/.test(low)) preset='garden';
-  else if(/kirche|tempel|solari/.test(low)) preset='church';
-  else if(/gilde|söldner/.test(low)) preset='guild';
-  else if(/weidenau|dorf/.test(low)) preset='village';
-  else if(/osttor|tor/.test(low)) preset='gate';
-  else if(/königsburg|hof|burg/.test(low)) preset='courtyard';
-  else if(/waldweg|pfad/.test(low)) preset='road';
-  if(kind==='interior') preset='interior';
-  if(kind==='dungeon') preset='dungeon';
-  if(kind==='camp') preset='camp';
-  if(kind==='ruins') preset='ruins';
-  if(kind==='wild' && preset==='default') preset='wild';
+  else if(/markt|unterstadt|bazaar|souk/.test(low)) preset='market';
+  else if(/taverne|gasthaus|silberfuchs|\binn\b|\bbar\b/.test(low)) preset='tavern';
+  else if(/hafen|myr|dock|kai|werft/.test(low)) preset='harbor';
+  else if(/elfen|sylvar|hain|dryade/.test(low)) preset='elfwood';
+  else if(/nordwall|wall|festung|bastion|bollwerk/.test(low)) preset='wall';
+  else if(/garten|palastgarten|park/.test(low)) preset='garden';
+  else if(/kirche|tempel|solari|kathedrale|schrein|kapelle/.test(low)) preset='church';
+  else if(/gilde|söldner|abenteurer/.test(low)) preset='guild';
+  else if(/weidenau|dorf|bauern|weiler/.test(low)) preset='village';
+  else if(/osttor|tor|gate|portal/.test(low)) preset='gate';
+  else if(/königsburg|schloss|burg/.test(low) || (/\bhof\b/.test(low)) || (/palast/.test(low)&&!/garten/.test(low))) preset='courtyard';
+  else if(/waldweg|pfad|straße|strasse|landstraße/.test(low)) preset='road';
+  else if(/akademie|schule|bibliothek|archiv|universität/.test(low)) preset='academy';
+  else if(/mine|stollen|bergwerk|zwerg/.test(low)) preset='mine';
+  else if(/strand|küste|insel|meer|bucht/.test(low)) preset='beach';
+  else if(/sumpf|moor|marsch|nebelfenn/.test(low)) preset='swamp';
+  else if(/wüste|düne|oase|sand/.test(low)) preset='desert';
+  else if(/schnee|gletscher|eis|frost|tundra|nord/.test(low)) preset='snow';
+  else if(/friedhof|grab|nekropole|krypta/.test(low)) preset='graveyard';
+  else if(/labor|werkstatt|fabrik|neon|station|cyber|netz/.test(low)) preset='neon';
+  else if(/seuche|zombie|quarantäne|barrikade/.test(low)) preset='wasteland';
+  // Genre fallback when still default (unknown ort name)
+  if(preset==='default'){
+    if(/cyber|neon|netz/.test(genre)) preset='neon';
+    else if(/zombie|apokal|seuche/.test(genre)) preset='wasteland';
+    else if(/daemon|dämon|hölle|infernal/.test(genre)) preset='ruins';
+    else if(/villainess|adel|hof/.test(genre) && kind==='town') preset='courtyard';
+    else if(/held|mensch/.test(genre) && kind==='town') preset='village';
+  }
+  // Terrain keywords in description beat genre default
+  if(/sumpf|moor/.test(blob) && preset==='default') preset='swamp';
+  if(/wüste|düne/.test(blob) && preset==='default') preset='desert';
+  if(/schnee|eisberg|gletscher/.test(blob) && preset==='default') preset='snow';
+  if(/strand|küste/.test(blob) && preset==='default') preset='beach';
+  // Kind overrides only when no named preset matched (keep throne/summon/etc.)
+  if(preset==='default'){
+    if(kind==='interior') preset='interior';
+    else if(kind==='dungeon') preset='dungeon';
+    else if(kind==='camp') preset='camp';
+    else if(kind==='ruins') preset='ruins';
+    else if(kind==='wild') preset='wild';
+  } else {
+    // still honor explicit dungeon/camp/ruins kinds for wild-like named? keep preset
+    if(kind==='dungeon' && !/summon|throne|interior|academy/.test(preset)) { /* keep */ }
+  }
 
   const w = kind==='dungeon'?24: kind==='camp'?18: kind==='interior'?16:30;
   const ht = kind==='dungeon'?20: kind==='camp'?14: kind==='interior'?14:24;
@@ -296,8 +329,8 @@ export function buildMapForLocation(S, ort){
     for(const [px,py] of [[cx-6,cy-6],[cx+6,cy-6],[cx-6,cy+6],[cx+6,cy+6],[cx,cy-7],[cx,cy+7]]){
       if(px>1&&py>1&&px<w-2&&py<ht-2){ tiles[py][px]='stone'; anim(px,py-1,'torch'); }
     }
-    placeHouse(3,3,'Nebenraum',{variant:1});
-    placeHouse(w-7,3,'Archiv',{variant:2});
+    placeHouse(cx-8, cy-4, 'Nebenraum',{variant:1});
+    placeHouse(cx+4, cy-4, 'Archiv',{variant:2});
     prop(cx-3,cy,'statue'); prop(cx+3,cy,'statue');
     scatterProps([[4,cy,'lamp'],[w-5,cy,'lamp'],[cx,4,'sign']]);
   } else if(preset==='throne'){
@@ -307,8 +340,8 @@ export function buildMapForLocation(S, ort){
     fill(cx-4, 3, 9, 5, 'plaza');
     prop(cx,4,'statue'); prop(cx-3,5,'lamp'); prop(cx+3,5,'lamp');
     anim(cx-3,5,'torch'); anim(cx+3,5,'torch');
-    placeHouse(2, ht-8, 'Nebenkammer',{variant:3});
-    placeHouse(w-6, ht-8, 'Wache',{variant:0});
+    placeHouse(cx-8, cy-1, 'Nebenkammer',{variant:3});
+    placeHouse(cx+4, cy-1, 'Wache',{variant:0});
   } else if(preset==='market'){
     for(let y=0;y<ht;y++) for(let x=0;x<w;x++) tiles[y][x]='grass';
     fill(0, cy-1, w, 3, 'path');
@@ -347,9 +380,9 @@ export function buildMapForLocation(S, ort){
     for(let y=0;y<ht;y++) for(let x=0;x<w;x++) tiles[y][x]=(y>ht-8)?'water':'grass';
     fill(0, ht-10, w, 3, 'path');
     fill(0, ht-8, w, 1, 'stone');
-    placeHouse(2, 2, 'Zollhaus', {variant:1});
-    placeHouse(cx-2, 2, 'Taverne', {variant:0});
-    placeHouse(w-7, 2, 'Lagerhaus', {hall:true, variant:1, w:4, h:3});
+    placeHouse(2, cy-6, 'Zollhaus', {variant:1});
+    placeHouse(cx-2, cy-6, 'Taverne', {variant:0});
+    placeHouse(w-7, cy-6, 'Lagerhaus', {hall:true, variant:1, w:4, h:3});
     for(let i=0;i<4;i++){ prop(4+i*6, ht-11, 'crate'); prop(5+i*6, ht-11, 'barrel'); }
     prop(cx, ht-12, 'cart'); prop(2, ht-11, 'sign');
     anim(3,3,'smoke'); anim(w-5,3,'smoke');
@@ -478,6 +511,109 @@ export function buildMapForLocation(S, ort){
     ringFence(w-10, ht-9, 7, 6);
     anim(8,6,'torch'); prop(10,8,'chest');
     scatterGrass();
+  } else if(preset==='academy'){
+    for(let y=0;y<ht;y++) for(let x=0;x<w;x++) tiles[y][x]='floor';
+    fill(0,0,w,2,'wall'); fill(0,ht-2,w,2,'wall'); fill(0,0,2,ht,'wall'); fill(w-2,0,2,ht,'wall');
+    fill(cx-1,2,3,ht-4,'carpet'); fill(cx-4,cy-3,9,7,'plaza');
+    placeHouse(cx-4, 2, 'Akademiehalle', {hall:true, variant:0, w:4, h:3});
+    placeHouse(2, cy-2, 'Bibliothek', {variant:2});
+    placeHouse(w-6, cy-2, 'Labor', {variant:5});
+    placeHouse(2, ht-7, 'Wohnheim', {variant:4});
+    placeHouse(w-6, ht-7, 'Hörsaal', {variant:1});
+    prop(cx,cy,'statue'); anim(cx-3,cy,'torch'); anim(cx+3,cy,'torch');
+    prop(cx-2,cy+2,'bench'); prop(cx+2,cy+2,'bench');
+  } else if(preset==='mine'){
+    kind='dungeon';
+    fill(0,0,w,ht,'void'); fill(1,1,w-2,ht-2,'wall');
+    fill(2,2,w-4,ht-4,'floor'); fill(cx-2,0,5,ht,'path');
+    for(let i=0;i<6;i++){ const x=3+(i%3)*8, y=4+Math.floor(i/3)*8; fill(x,y,4,3,'stone'); prop(x+1,y+1,'crate'); }
+    anim(4,3,'torch'); anim(w-5,3,'torch'); anim(4,ht-4,'torch'); anim(w-5,ht-4,'torch');
+    prop(cx,cy,'chest'); prop(cx+2,cy,'barrel');
+    placeHouse(w-8, cy-2, 'Förderhaus', {variant:3});
+  } else if(preset==='beach'){
+    for(let y=0;y<ht;y++) for(let x=0;x<w;x++) tiles[y][x]=(y>ht-7)?'water':(y>ht-10)?'path':'grass';
+    fill(0, ht-10, w, 2, 'path');
+    placeHouse(2, 2, 'Strandhütte', {variant:0});
+    placeHouse(cx-2, 2, 'Leuchtturm', {variant:1});
+    placeHouse(w-6, 2, 'Bootshaus', {variant:3});
+    for(let i=0;i<5;i++){ prop(3+i*5, ht-11, 'barrel'); }
+    prop(cx, ht-12, 'crate'); anim(4,4,'smoke');
+    scatterGrass();
+  } else if(preset==='swamp'){
+    kind='wild';
+    for(let y=0;y<ht;y++) for(let x=0;x<w;x++){
+      const n=((h+x*13+y*29)%100);
+      tiles[y][x]=n<40?'water':(n<55?'tree':'grass');
+    }
+    let px=0,py=cy; while(px<w){ tiles[py][px]='path'; if(py+1<ht)tiles[py+1][px]='path'; py=Math.max(2,Math.min(ht-3,py+((px%5===0)?((h+px)%3)-1:0))); px++; }
+    placeHouse(cx-2, cy-3, 'Sumpfhütte', {variant:h%8});
+    prop(cx+3,cy,'barrel'); anim(cx,cy-1,'smoke');
+    scatterGrass();
+  } else if(preset==='desert'){
+    kind='wild';
+    for(let y=0;y<ht;y++) for(let x=0;x<w;x++){
+      const n=((h+x*11+y*19)%100);
+      tiles[y][x]=n<12?'stone':(n>93?'water':'path'); // sand-ish via path
+    }
+    fill(0,cy,w,2,'path'); fill(cx-1,0,3,ht,'path');
+    placeHouse(cx-3, cy-5, 'Oasenwirt', {hall:true, variant:1, w:4, h:3});
+    placeHouse(2, 2, 'Zeltlager', {variant:6});
+    placeHouse(w-6, ht-7, 'Ruine', {variant:2});
+    fill(cx-2, cy+2, 5, 4, 'water'); anim(cx,cy+3,'fountain');
+    prop(cx-4,cy,'crate'); prop(cx+4,cy,'barrel');
+    scatterGrass();
+  } else if(preset==='snow'){
+    kind='wild';
+    for(let y=0;y<ht;y++) for(let x=0;x<w;x++){
+      const n=((h+x*7+y*23)%100);
+      tiles[y][x]=n<18?'tree':(n<28?'stone':'grass');
+    }
+    fill(0,cy,w,2,'path'); fill(cx-1,0,3,ht,'path');
+    placeHouse(cx-3, cy-5, 'Berghütte', {hall:true, variant:2, w:4, h:3});
+    placeHouse(2, 2, 'Wachturm', {variant:1});
+    placeHouse(w-6, ht-7, 'Lager', {variant:4});
+    anim(cx,cy-3,'smoke'); prop(cx+3,cy,'barrel'); prop(cx-3,cy,'crate');
+    for(let i=0;i<w;i+=3){ tiles[0][i]='tree'; tiles[ht-1][i]='tree'; }
+    scatterGrass();
+  } else if(preset==='graveyard'){
+    kind='ruins';
+    for(let y=0;y<ht;y++) for(let x=0;x<w;x++) tiles[y][x]='grass';
+    fill(0,cy,w,2,'path');
+    ringFence(2,2,w-4,ht-4);
+    placeHouse(cx-3, 2, 'Kapelle', {hall:true, variant:3, w:4, h:3});
+    for(let j=0;j<3;j++) for(let i=0;i<6;i++){ prop(4+i*3, 8+j*3, 'statue'); }
+    anim(cx-3,4,'torch'); anim(cx+3,4,'torch');
+    prop(cx,cy,'statue'); placeHouse(w-7, ht-7, 'Gruft', {variant:2});
+    scatterGrass();
+  } else if(preset==='neon'){
+    // cyberpunk / neon city — denser urban, Kenney-ish feel via plazas + halls
+    for(let y=0;y<ht;y++) for(let x=0;x<w;x++) tiles[y][x]='floor';
+    fill(0, cy-1, w, 3, 'path'); fill(cx-1, 0, 3, ht, 'path');
+    fill(cx-4, cy-4, 9, 9, 'plaza');
+    placeHouse(2, 2, 'Neon-Bar', {hall:true, variant:0, w:4, h:3});
+    placeHouse(w-7, 2, 'Daten-Turm', {hall:true, variant:1, w:4, h:3});
+    placeHouse(2, ht-7, 'Klinik', {variant:5});
+    placeHouse(w-6, ht-7, 'Markt-Kiosk', {variant:6});
+    placeHouse(cx-8, cy-2, 'Terminal', {variant:4});
+    placeHouse(cx+4, cy-2, 'Wohnblock', {variant:7});
+    for(let i=0;i<4;i++){ fill(3+i*6, cy-7, 2, 2, 'stall'); ov(3+i*6, cy-7, 'stall'); }
+    anim(cx,cy,'fountain'); prop(cx-3,cy,'lamp'); prop(cx+3,cy,'lamp');
+    anim(4,3,'torch'); anim(w-5,3,'torch');
+    scatterGrass();
+  } else if(preset==='wasteland'){
+    kind='ruins';
+    for(let y=0;y<ht;y++) for(let x=0;x<w;x++){
+      const n=((h+x*9+y*17)%100);
+      tiles[y][x]=n<22?'ruin':(n<30?'stone':'grass');
+    }
+    fill(0,cy,w,2,'path');
+    placeHouse(cx-3, cy-5, 'Barrikade', {hall:true, variant:2, w:4, h:3});
+    placeHouse(2, 2, 'Bunker', {variant:1});
+    placeHouse(w-6, ht-7, 'Wrack', {variant:3});
+    ringFence(cx+2, cy+2, 7, 5);
+    prop(cx,cy,'barrel'); prop(cx+2,cy,'crate'); prop(cx-2,cy,'chest');
+    anim(cx-1,cy-3,'smoke'); anim(w-5,3,'smoke');
+    scatterGrass();
   } else {
     // default town
     for(let y=0;y<ht;y++) for(let x=0;x<w;x++) tiles[y][x]='grass';
@@ -585,7 +721,7 @@ function walkable(x,y){
 function fogKey(x,y){ return x+','+y; }
 function recomputeFog(){
   _visible=new Set();
-  const R=_desktop?7:5;
+  const R=_desktop?8:6;
   const hx=_hero.x, hy=_hero.y;
   for(let y=hy-R;y<=hy+R;y++){
     for(let x=hx-R;x<=hx+R;x++){
@@ -899,7 +1035,7 @@ function draw(){
       } else {
         // soft FoW edge: darken by distance from hero
         const dist=Math.hypot(x-_hero.x, y-_hero.y);
-        const R=_desktop?7:5;
+        const R=_desktop?8:6;
         if(dist > R-1.6){
           const a=Math.min(0.55, (dist-(R-1.6))*0.35);
           ctx.fillStyle=`rgba(5,4,10,${a.toFixed(3)})`;
@@ -1256,6 +1392,7 @@ export function showOverworld(S){
   _npcs=(built.npcs||[]).map(n=>({...n, dir:0, frame:0}));
   _overhead=built.overhead||[];
   _animators=built.animators||[];
+  __map=built;
   _hero.x=built.spawn.x; _hero.y=built.spawn.y;
   _hero.px=_hero.x; _hero.py=_hero.y; _hero.moving=false; _hero.frame=0;
   loadFog(S);
@@ -1312,9 +1449,9 @@ export function syncDialogueFromVN(){
 }
 
 export function __debug(){
-  return {active:_active, desktop:_desktop, scale:_intScale, view:{w:_viewW,h:_viewH}, hero:{..._hero}, map:{w:_map.w,h:_map.h,name:_map.name,kind:_map.kind}, npcs:_npcs.map(n=>({name:n.name,x:n.x,y:n.y})), doors:_map.doors, fog:{explored:_explored.size, visible:_visible.size}};
+  return {active:_active, desktop:_desktop, scale:_intScale, view:{w:_viewW,h:_viewH}, hero:{..._hero}, map:{w:_map.w,h:_map.h,name:_map.name,kind:_map.kind,preset:_map.preset,overhead:(_overhead||[]).length}, overhead:_overhead.slice(0,8), npcs:_npcs.map(n=>({name:n.name,x:n.x,y:n.y})), doors:_map.doors, fog:{explored:_explored.size, visible:_visible.size}};
 }
 export function __tryMove(dx,dy){ return tryMove(dx,dy); }
 export function __talkNearest(){ return talkNearest(); }
 
-export default { mountOverworld, showOverworld, hideOverworld, refreshOverworld, isOverworldActive, buildMapForLocation, showDialogue, hideDialogue, syncDialogueFromVN, __debug, __tryMove, __talkNearest };
+export default { mountOverworld, showOverworld, hideOverworld, refreshOverworld, isOverworldActive, buildMapForLocation, showDialogue, hideDialogue, syncDialogueFromVN, __debug, __tryMove, __talkNearest, get __map(){ return __map; } };

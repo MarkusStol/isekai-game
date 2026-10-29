@@ -775,7 +775,11 @@ function resolveHit(attacker, target, skill){
   let note=`${attacker.name} (${skill.name||'Angriff'}) → ${target.name}: ${dmg}${crit?' KRIT!':''}${weak?' (Schwach!)':''}${target.staggered?' BRUCH×2':''}`;
   _B.log.push(note);
   popNumber(target, String(dmg), crit?'crit':(weak?'weak':'dmg')); try{ window.__game?.Aud?.playSfx?.('hit', crit?0.55:0.4); }catch(_){}
-  try{ playAttackLunge(attacker); }catch(_){}
+  try{
+    const isMagic = skill?.elem && skill.elem!=='phys';
+    if(isMagic) playSpriteAnim(attacker,'cast',{ms:65});
+    else playAttackLunge(attacker);
+  }catch(_){}
   flashUnit(target,'hit');
   if((target.hp|0)<=0){ try{ playDeathFade(target); }catch(_){} } else { spawnSpellFx(target, crit?'crit':'impact'); }
   if(Jrpg.addStagger(target, rolled.stagger, Jrpg.difficultyOf(_B.S))){
@@ -1043,7 +1047,7 @@ function refreshUI(){
   if(foes){
     foes.innerHTML=B.foes.map(f=>`
       <button type="button" class="foe-card ${f.alive?'':'dead'} ${B.selecting&&needsTarget()?(_B._hover===f._iid?'target':''):''}" data-iid="${f._iid}" ${f.alive?'':'disabled'}>
-        <div class="foe-art-wrap pixel-foe"><img class="foe-art pixelated" src="${pixelEnemyArt(f)}" alt="${f.name}" loading="lazy" onerror="this.onerror=null;this.src='${f.art||''}';"/><div class="foe-fallback" style="display:none">${f.icon||'👹'}</div></div>
+        <div class="foe-art-wrap pixel-foe"><img class="foe-art battler-spr pixelated" src="${pixelEnemyArt(f)}" alt="${f.name}" loading="lazy" onerror="this.onerror=null;this.src='${f.art||''}';"/><div class="foe-fallback" style="display:none">${f.icon||'👹'}</div></div>
         <div class="foe-name">${f.name}${f.analyzed?' · ✦':''}${f.boss?' · BOSS':''}${f.staggered?' · BRUCH':''}${f.rare?' · SELTEN':''}</div>
         <div class="bar foe-hp"><i style="width:${Math.max(0,f.hp/f.maxhp*100)}%"></i></div>
         <div class="bar foe-stagger ${f.staggered?'broken':''}" title="Bruch"><i style="width:${Math.max(0,(f.stagger||0)/Math.max(1,f.staggerMax||1)*100)}%"></i></div>
@@ -1071,8 +1075,8 @@ function refreshUI(){
   const party=el('battleParty');
   if(party){
     party.innerHTML=B.party.map(p=>`
-      <div class="party-card pixel-party ${p.alive?'':'dead'} ${B.selecting?.actor===p?'active':''} row-${p.row||'front'}">
-        <img class="pixel-hero-spr pixelated" src="./assets/pixel/hero/battle.png" alt="" width="40" height="54"/>
+      <div class="party-card pixel-party ${p.alive?'':'dead'} ${B.selecting?.actor===p?'active':''} row-${p.row||'front'}" data-iid="${p._iid}">
+        <div class="party-spr-wrap"><img class="pixel-hero-spr battler-spr pixelated" src="${p.kind==='hero'?'./assets/pixel/hero/battle.png':'./assets/pixel/npc/'+sheetRoleForCompanion(p)+'_idle.png'}" alt="" width="40" height="54" data-role="${p.kind==='hero'?'hero':sheetRoleForCompanion(p)}" onerror="this.onerror=null;this.src='./assets/pixel/hero/battle.png'"/></div>
         <div class="party-port">${p.portrait?`<img src="${p.portrait}" alt="" loading="lazy"/>`:`<span>${(p.name||'?')[0]}</span>`}</div>
         <div class="party-meta">
           <b>${p.name}${p.job?' · '+((Jobs.JOBS[p.job]||{}).name||p.job):''}<small>${p.row==='back'?' hinten':' vorn'}</small></b>
@@ -1226,19 +1230,109 @@ function popNumber(unit, text, kind){
   d.style.left=(20+Math.random()*60)+'%'; d.style.top=(20+Math.random()*40)+'%';
   fx.appendChild(d); setTimeout(()=>d.remove(),900);
 }
-function flashUnit(unit, kind){
-  const root=el('battleRoot'); if(!root)return;
-  root.classList.add('flash-'+kind); setTimeout(()=>root.classList.remove('flash-'+kind),180);
+function unitSpriteEl(unit){
   const isParty=(_B?.party||[]).some(p=>p._iid===unit._iid);
   const sel=isParty?'.party-card':'.foe-card';
   const card=[...document.querySelectorAll(sel)].find(c=>{
-    if(isParty) return (c.textContent||'').includes(unit.name||'') || c.dataset.iid===unit._iid;
+    if(isParty) return c.dataset.iid===unit._iid || (c.textContent||'').includes(unit.name||'');
     return c.dataset.iid===unit._iid;
   });
+  if(!card) return null;
+  return card.querySelector('.battler-spr') || card.querySelector('.pixel-hero-spr') || card.querySelector('.foe-art') || card;
+}
+function battlerSheetFor(unit, action){
+  const isParty=(_B?.party||[]).some(p=>p._iid===unit._iid);
+  if(isParty){
+    const role = unit.kind==='hero' ? 'hero' : sheetRoleForCompanion(unit);
+    const map = {attack:'slash', cast:'spellcast', hurt:'hurt', thrust:'thrust'};
+    const anim = map[action] || 'slash';
+    // mage / magic skills prefer spellcast
+    return `./assets/pixel/chars/${role}_${anim}.png`;
+  }
+  // enemies: skeleton sheets as shared combat anim; static art remains base
+  const map = {attack:'slash', cast:'spellcast', hurt:'hurt', thrust:'thrust'};
+  const anim = map[action] || 'slash';
+  return `./assets/pixel/chars/enemy_${anim}.png`;
+}
+function sheetRoleForCompanion(unit){
+  const art=String(unit?.npcRef||unit?.name||'').toLowerCase();
+  if(/wache|ritter|guard|soldat/.test(art)) return 'guard';
+  if(/magier|hexe|zauber|mage|orren/.test(art)) return 'mage';
+  if(/händler|kauf|merchant|wirt/.test(art)) return 'merchant';
+  if(/späher|dieb|assassin|spy|lyra/.test(art)) return 'spy';
+  if(/prinzess|königin|elise|princess/.test(art)) return 'princess';
+  if(/dämon|daemon|sukkub|teufel|velka/.test(art)) return 'daemon';
+  return 'neutral';
+}
+/** Play 4-frame LPC sheet as FX overlay (survives refreshUI). */
+function playSpriteAnim(unit, action, opts={}){
+  const fx=el('battleFx'); if(!fx) return Promise.resolve();
+  const sheet = battlerSheetFor(unit, action);
+  const frames = opts.frames|4;
+  const ms = opts.ms|70;
+  const dir = opts.dir|0;
+  const fw=64, fh=64;
+  const isParty=(_B?.party||[]).some(p=>p._iid===unit._iid);
+  // Approximate position from card if present, else side defaults
+  let left='22%', top='55%';
+  try{
+    const card=[...document.querySelectorAll(isParty?'.party-card':'.foe-card')].find(c=>
+      c.dataset.iid===unit._iid || (c.textContent||'').includes(unit.name||'')
+    );
+    if(card){
+      const br=card.getBoundingClientRect();
+      const fr=fx.getBoundingClientRect();
+      if(fr.width>0){
+        left=((br.left+br.width/2-fr.left)/fr.width*100).toFixed(1)+'%';
+        top=((br.top+br.height*0.35-fr.top)/fr.height*100).toFixed(1)+'%';
+      }
+    } else {
+      left=isParty?'28%':'68%'; top=isParty?'62%':'28%';
+    }
+  }catch(_){}
+  const canvas=document.createElement('canvas');
+  canvas.className='battler-canvas spr-fx pixelated';
+  canvas.width=64; canvas.height=64;
+  canvas.style.cssText=`position:absolute;left:${left};top:${top};transform:translate(-50%,-50%) scale(2);image-rendering:pixelated;pointer-events:none;z-index:8;width:64px;height:64px;`;
+  fx.appendChild(canvas);
+  // Also pulse card if still around
+  try{
+    const card=[...document.querySelectorAll(isParty?'.party-card':'.foe-card')].find(c=>c.dataset.iid===unit._iid || (c.textContent||'').includes(unit.name||''));
+    if(card){ card.classList.add(isParty?'party-lunge':'enemy-lunge','hit'); setTimeout(()=>card.classList.remove('party-lunge','enemy-lunge','hit'),380); }
+  }catch(_){}
+  return new Promise(resolve=>{
+    const img=new Image();
+    img.onload=()=>{
+      let f=0;
+      const tick=()=>{
+        try{
+          const ctx=canvas.getContext('2d');
+          ctx.clearRect(0,0,64,64);
+          ctx.imageSmoothingEnabled=false;
+          ctx.drawImage(img, f*fw, dir*fh, fw, fh, 0, 0, 64, 64);
+        }catch(_){}
+        f++;
+        if(f<frames) setTimeout(tick, ms);
+        else {
+          // hold last frame so playtests/screenshots can catch the sprite
+          const linger = (opts.linger!=null)?opts.linger:420;
+          setTimeout(()=>{ try{ canvas.remove(); }catch(_){ } resolve(); }, linger);
+        }
+      };
+      tick();
+    };
+    img.onerror=()=>{ try{ canvas.remove(); }catch(_){ } resolve(); };
+    img.src=sheet;
+  });
+}
+function flashUnit(unit, kind){
+  const root=el('battleRoot'); if(!root)return;
+  root.classList.add('flash-'+kind); setTimeout(()=>root.classList.remove('flash-'+kind),180);
   if(kind==='hit'){
-    if(card){ card.classList.add('hit','lunge'); setTimeout(()=>card.classList.remove('hit','lunge'),320); }
+    try{ playSpriteAnim(unit, 'hurt', {ms:60}); }catch(_){}
     spawnSpellFx(unit, 'impact');
   } else if(kind==='heal'){
+    const card=unitSpriteEl(unit)?.closest('.party-card, .foe-card');
     if(card){ card.classList.add('heal-glow'); setTimeout(()=>card.classList.remove('heal-glow'),500); }
     spawnSpellFx(unit, 'heal');
   }
@@ -1253,12 +1347,10 @@ function spawnSpellFx(unit, kind){
   setTimeout(()=>d.remove(),700);
 }
 function playAttackLunge(attacker){
-  const isParty=(_B?.party||[]).some(p=>p._iid===attacker._iid);
-  const cards=[...document.querySelectorAll(isParty?'.party-card':'.foe-card')];
-  const card=cards.find(c=>isParty? (c.classList.contains('active')||(c.textContent||'').includes(attacker.name||'')): c.dataset.iid===attacker._iid);
-  if(!card) return;
-  card.classList.add(isParty?'party-lunge':'enemy-lunge');
-  setTimeout(()=>card.classList.remove('party-lunge','enemy-lunge'),380);
+  // Sprite-frame attack (slash); magic-ish names use spellcast
+  const last = (_B?.log||[]).slice(-1)[0]||'';
+  const isCast=/magie|zauber|feuer|eis|blitz|heil|kristall|spell|cast/i.test(last);
+  try{ playSpriteAnim(attacker, isCast?'cast':'attack', {ms:65}); }catch(_){}
 }
 function playDeathFade(unit){
   const card=[...document.querySelectorAll('.foe-card')].find(c=>c.dataset.iid===unit._iid);
@@ -1399,8 +1491,9 @@ export default {
   startBattle, isActive, getBattle, playerCommand, buildParty, renderBattleUI,
   maybeRandomEncounter, offerEncounter, COMBAT_SKILLS,
   isStoryNpcFoe, storyNpcName, mercyNeeded, applyMercyDecision,
+  __playSprite: playSpriteAnim,
   Jrpg, Jobs, Gems, Summons, Equip
 };
 
 
-export { Jrpg, Jobs, Gems, Summons, Equip };
+export { Jrpg, Jobs, Gems, Summons, Equip, playSpriteAnim as __playSprite };

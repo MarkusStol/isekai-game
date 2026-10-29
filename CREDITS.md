@@ -38,3 +38,14 @@ obligations for LPC-derived character sprites.
 ## Audio (v27)
 - Ninja Adventure musics & sounds (Pixel-Boy / faeluptus) — **CC0 1.0**
   - Used as: `assets/audio/music/*.ogg`, `assets/audio/sfx/*.ogg`
+
+
+## Buildings (v29)
+- **[LPC] Thatched-Roof Cottage** (OpenGameArt) — modular cottage walls/roofs composited into `housebig*` / `hall*`
+- **[LPC] City Outside** by Tuomo Untinen (+ LPC contributors Sharm, Hyptosis, et al.) — CC-BY-SA 3.0 / GPL — city preview buildings & tiles
+- **Stone Home Exterior / Desert House** (OpenGameArt LPC-compatible) — hall/desert variants
+- **Zelda-like tilesets** (ArMM1998, CC0) — additional complete house crops
+- **Kenney RPG Urban Pack** (CC0) — urban brick composites for neon/cyber presets
+
+## Combat sprites (v29)
+- Universal LPC spritesheets — slash / hurt / spellcast / thrust composited for hero, NPCs, skeleton enemies (CC-BY-SA 3.0)

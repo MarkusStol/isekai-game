@@ -23,8 +23,9 @@ import * as OW from './overworld.js';
 import * as Aud from './audio.js';
 import { hasBg } from './bg-manifest.js';
 try{ Aud.unlockOnGesture?.(); }catch(_){} // v28 first-tap music
+ // v29: LPC buildings + sprite battle anims + ort presets
 const $=s=>document.querySelector(s);const $$=s=>[...document.querySelectorAll(s)];const R=a=>a[Math.floor(Math.random()*a.length)];const rnd=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
-const VER='28',CACHE_V='v28';
+const VER='29',CACHE_V='v29';
 const ROLES={
  held:{e:'⚔️',name:'Held mit Status-System',d:'Ein blaues Fenster erscheint: [Status]. Die Welt braucht dich.',world:'Königreich Aldheim',
   base:{hp:100,mp:40,str:12,cha:8,ruf:10,gold:40},cls:['Abenteurer','Ritter','Held','Legendärer Held'],pack:'worlds/held.json',
@@ -674,6 +675,7 @@ function migrate(raw){if(!raw)return null;const s=typeof raw==='string'?JSON.par
  if(Number(s.ver)<26){s.ver=26;s.owFog=s.owFog||{}}
  if(Number(s.ver)<27){s.ver=27;s.owFog=s.owFog||{}}
  if(Number(s.ver)<28){s.ver=28;s.owFog=s.owFog||{}}
+ if(Number(s.ver)<29){s.ver=29;s.owFog=s.owFog||{}}
  // v13.1 continuity+time always (kept in v14)
  try{Cont.ensureCont(s);if(s.cal&&s.cal.minute==null)s.cal.minute=0;if(s.cfgCatchupOptIn==null)s.cfgCatchupOptIn=false}catch(e){console.warn('cont migrate',e)}
  // Heal incomplete worlds from old saves (missing orte/graph)
