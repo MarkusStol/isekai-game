@@ -994,7 +994,21 @@ export function showDialogue(name, text, sheet){
   const port=el.querySelector('#owDlgPort');
   const nm=el.querySelector('#owDlgName');
   const tx=el.querySelector('#owDlgText');
-  if(port) port.src=PORTRAITS[sheet]||PORTRAITS.default;
+  // v43: unique pixel portrait from NPC appearance + mood expression
+  let usedPx=false;
+  try{
+    const S=_hooks.getS?.();
+    const fullName=String(name||'');
+    const npc=(S?.world?.npcs&&(S.world.npcs[fullName]||Object.entries(S.world.npcs).find(([k])=>k.startsWith(fullName)||fullName.startsWith(k))?.[1]))||null;
+    const C43=window.__game?.C43;
+    if(port && C43?.pixelPortraitUrl){
+      const n=npc||{art:sheet||'villager', sheet};
+      const expr=C43.expressionFromMood(n.mood||S?.flags?.dlgMood);
+      const url=C43.pixelPortraitUrl(fullName||'NPC', n, expr);
+      if(url){ port.src=url; port.dataset.expr=expr; usedPx=true; }
+    }
+  }catch(_){}
+  if(port && !usedPx) port.src=PORTRAITS[sheet]||PORTRAITS.default;
   if(nm) nm.textContent=String(name||'…').slice(0,24);
   const full=String(text||'').trim()||'…';
   if(_dlgTw) clearInterval(_dlgTw);
@@ -1869,6 +1883,10 @@ export function showOverworld(S){
     {x:_hero.x,y:_hero.y},
     {name:_map.name, fog:(x,y)=>!_explored.has(fogKey(x,y))}
   ); }catch(_){}
+  try{
+    const S=_hooks.getS?.();
+    window.__game?.C43?.syncAmbient?.(S, _map, _audioApi||window.__game?.Aud);
+  }catch(_){}
 }
 
 export function hideOverworld(){
@@ -1878,6 +1896,7 @@ export function hideOverworld(){
   document.body.classList.remove('pixel-ow','ow-desktop');
   hideDialogue();
   try{ window.__game?.C42?.hideOwRegionMinimap?.(); }catch(_){}
+  try{ window.__game?.C43?.stopAmbient?.(); }catch(_){}
 }
 
 export function refreshOverworld(S){

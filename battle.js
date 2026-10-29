@@ -371,7 +371,9 @@ function playBattleSwirl(){
 }
 export function startBattle(S, opts={}){
   try{ playBattleSwirl(); }catch(_){}
-  try{ window.__game?.Aud?.fadeTo?.('battle'); }catch(_){}
+  try{ window.__game?.C43?.screenTransition?.('battle', 380); }catch(_){}
+  try{ window.__game?.Aud?.fadeTo?.('battle'); window.__game?.Aud?.playSfx?.('whoosh',0.25); }catch(_){}
+  try{ window.__game?.C43?.stopAmbient?.(); }catch(_){}
 
   const foes=opts.enemies?.length?spawnFoes(opts.enemies,S):spawnFoes(pickEncounter(S,{count:opts.count,boss:opts.boss,noBoss:opts.noBoss}),S);
   if(!foes.length) return null;
@@ -1427,7 +1429,13 @@ function playVictoryFanfare(){
 }
 
 function hideBattleUI(){
+  try{ window.__game?.C43?.screenTransition?.('fade', 300); }catch(_){}
   const root=el('battleRoot'); if(root) root.classList.add('hidden');
+  try{
+    const S=_B?.S||window.__game?.S;
+    const map=window.__game?.OW?.__map;
+    if(S) window.__game?.C43?.syncAmbient?.(S, map, window.__game?.Aud);
+  }catch(_){}
 }
 
 function popNumber(unit, text, kind){

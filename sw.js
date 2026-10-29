@@ -1,5 +1,5 @@
 /* Isekai Reinkarnation – offline shell. Network-first for shell; self-heal on version mismatch. */
-const VER = '42';
+const VER = '43';
 const CACHE = 'isekai-v' + VER;
 const ASSETS = [
   './',
@@ -22,6 +22,7 @@ const ASSETS = [
   './content40.js?v=' + VER,
   './content41.js?v=' + VER,
   './content42.js?v=' + VER,
+  './content43.js?v=' + VER,
   './cutscene40.js?v=' + VER,
   './visual25d.js?v=' + VER,
   './overworld.js?v=' + VER,
@@ -64,7 +65,12 @@ const ASSETS = [
   './worlds/held.json?v=' + VER,
   './worlds/villainess.json?v=' + VER,
   './worlds/daemon.json?v=' + VER,
-  './worlds/mensch.json?v=' + VER
+  './worlds/mensch.json?v=' + VER,
+  './assets/audio/sfx/whoosh.ogg',
+  './assets/audio/ambient/wind.ogg',
+  './assets/audio/ambient/crowd.ogg',
+  './assets/audio/ambient/rain.ogg',
+  './assets/audio/ambient/neon.ogg'
 ];
 
 self.addEventListener('install', e => {

@@ -16,6 +16,7 @@ export const SFX = {
   cancel: './assets/audio/sfx/cancel.ogg',
   alert: './assets/audio/sfx/alert.ogg',
   heal: './assets/audio/sfx/heal.ogg',
+  whoosh: './assets/audio/sfx/whoosh.ogg',
 };
 
 let _enabled = false;
@@ -29,7 +30,7 @@ let _wantKey=null;
 export function isEnabled(){ return _enabled; }
 export function setEnabled(on){
   _enabled = !!on;
-  if(!_enabled) stopMusic();
+  if(!_enabled){ stopMusic(); stopAmbient(); }
   else if(_curKey) playMusic(_curKey, true);
   try{ localStorage.setItem('isekai_audio_on', _enabled?'1':'0'); }catch(_){}
 }
@@ -139,4 +140,15 @@ export function unlockOnGesture(){
   window.addEventListener('touchstart', unlock, true);
 }
 
-export default { playMusic, stopMusic, fadeTo, playSfx, stepSfx, setEnabled, isEnabled, restore, unlockOnGesture, musicForMapKind, MUSIC, SFX };
+/** Ambient bed under music (delegates to C43 when present) */
+export function playAmbient(kind, opts){
+  try{ return window.__game?.C43?.playAmbient?.(kind, {enabled:_enabled, ...(opts||{})}); }catch(_){}
+}
+export function stopAmbient(){
+  try{ return window.__game?.C43?.stopAmbient?.(); }catch(_){}
+}
+export function syncAmbient(S, map){
+  try{ return window.__game?.C43?.syncAmbient?.(S, map, {isEnabled:()=>_enabled}); }catch(_){}
+}
+
+export default { playMusic, stopMusic, fadeTo, playSfx, stepSfx, setEnabled, isEnabled, restore, unlockOnGesture, musicForMapKind, playAmbient, stopAmbient, syncAmbient, MUSIC, SFX };

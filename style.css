@@ -2161,3 +2161,35 @@ body.pixel-jrpg .logo,
 .boss-talk-sheet .bts-hint{font-size:10px;opacity:.75;line-height:1.2}
 .boss-talk-sheet .bts-title small{opacity:.7;font-weight:400}
 body.pixel-ow .dungeon-minimap-root{display:none!important}
+
+/* v43 pixel portraits, ambient-ready, transitions */
+.fx-transition{
+  position:fixed; inset:0; z-index:9990; pointer-events:none;
+  background:#05040a; opacity:0; transition:opacity .2s ease;
+}
+.fx-transition.hidden{display:none!important}
+.fx-transition.on{opacity:1; pointer-events:auto}
+.fx-transition.out{opacity:0}
+.fx-transition[data-kind="battle"]{background:radial-gradient(circle at 50% 40%, #3a1020ee, #05040af5)}
+.fx-transition[data-kind="menu"]{background:#0a0810f2}
+img.px-port, #portraitImg.pixelated, #owDlgPort.pixelated{
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+#portraitWrap.portrait-sprite #portraitImg.pixelated.on{
+  object-fit: contain;
+  background:#120c18;
+  border-radius: 8px;
+}
+.ow-dlg-port.pixelated{
+  width:56px; height:56px; border-radius:6px;
+  border:1px solid #3a3048; background:#0a0810;
+  box-shadow:0 0 0 1px #0008;
+}
+.ow-dlg-port[data-expr="angry"]{ box-shadow:0 0 10px #ff3b3b55; }
+.ow-dlg-port[data-expr="happy"]{ box-shadow:0 0 10px #ff6fb555; }
+.ow-dlg-port[data-expr="sad"]{ box-shadow:0 0 10px #6fb6ff55; }
+body.ow-dialogue #owDlg{ animation: dlgIn .22s ease; }
+@keyframes dlgIn{ from{ opacity:0; transform:translateY(8px);} to{ opacity:1; transform:none;} }
+#battleRoot:not(.hidden){ animation: battleIn .28s ease; }
+@keyframes battleIn{ from{ opacity:0; filter:brightness(.6);} to{ opacity:1; filter:none;} }
