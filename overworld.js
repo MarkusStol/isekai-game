@@ -1,4 +1,4 @@
-/** v26 Pixel JRPG overworld — LPC 64px sprites, layered maps, desktop 16:9 + gamepad */
+/** v27 Pixel JRPG overworld — authored maps, soft FoW, day/night, weather, audio */
 const TILE = 16;
 const SPR = 64; // LPC frame size in walk sheets (256×256 = 4×4)
 const MOBILE_VIEW = { w: 13, h: 15 };
@@ -13,16 +13,26 @@ const BASE_TILES = {
   tree: './assets/pixel/tiles/tree.png',
   sand: './assets/pixel/tiles/sand.png',
   stone: './assets/pixel/tiles/stone.png',
-  carpet: './assets/pixel/tiles/carpet.png',
+  carpet: './assets/pixel/tiles/plaza.png',
+  plaza: './assets/pixel/tiles/plaza.png',
   void: './assets/pixel/tiles/void.png',
   door: './assets/pixel/tiles/door.png',
   camp: './assets/pixel/tiles/camp.png',
   house: './assets/pixel/tiles/house.png',
   ruin: './assets/pixel/tiles/ruin.png',
+  fence: './assets/pixel/tiles/fence.png',
+  well: './assets/pixel/tiles/well.png',
+  flower: './assets/pixel/tiles/flower.png',
+  stall: './assets/pixel/tiles/stall.png',
+  wood: './assets/pixel/tiles/wood.png',
 };
 const WATER_ANIM = './assets/pixel/tiles/water-anim.png';
 const DECOR = {
   bush: './assets/pixel/decor/bush32.png',
+  fence: './assets/pixel/decor/fence.png',
+  well: './assets/pixel/decor/well.png',
+  flower: './assets/pixel/decor/flower.png',
+  stall: './assets/pixel/decor/stall.png',
   d0: './assets/pixel/decor/d0.png',
   d1: './assets/pixel/decor/d1.png',
   d2: './assets/pixel/decor/d2.png',
@@ -66,7 +76,7 @@ const PORTRAITS = {
   hero: './assets/pixel/portrait/hero.png',
 };
 
-const SOLID = new Set(['wall','water','tree','void','house','ruin']);
+const SOLID = new Set(['wall','water','tree','void','house','ruin','fence','well','stall']);
 
 let _root=null, _canvas=null, _ctx=null, _imgs={}, _raf=0, _active=false;
 let _map={w:24,h:24,tiles:[], overlay:[], doors:[], name:'', npcs:[], kind:'town'};
@@ -79,6 +89,7 @@ let _waterFrame=0; let _tickAcc=0;
 let _explored=new Set(); let _visible=new Set();
 let _genre='held'; let _tileSet=BASE_TILES;
 let _dlg=null;
+let _dayTint='day'; let _wxParts=[]; let _audioApi=null;
 let _desktop=false; let _intScale=3; let _viewW=13, _viewH=15;
 let _padAxes={x:0,y:0}; let _padPrev={};
 
@@ -145,91 +156,145 @@ export function buildMapForLocation(S, ort){
   let kind='town';
   const blob=desc+name.toLowerCase();
   if(/wald|wild|feld|straße|strasse|pfad|ruine/.test(blob)) kind='wild';
-  if(/verlies|höhle|kerker|dungeon|keller|grab/.test(blob)) kind='dungeon';
+  if(/verlies|höhle|kerker|dungeon|keller|grab|unterstadt/.test(blob)) kind='dungeon';
   if(/camp|lager|zuhause|hütte|heim|grundstück/.test(blob) || S?.home?.location===name) kind='camp';
-  if(/markt|stadt|dorf|platz|tempel|burg|palast|gasthaus|taverne|akademie|halle|solari/.test(blob)) kind='town';
+  if(/markt|stadt|dorf|platz|tempel|burg|palast|gasthaus|taverne|akademie|halle|solari|beschwörung/.test(blob)) kind='town';
   if(/ruine|trümmer|zerstört/.test(blob)) kind='ruins';
+  if(/innen|zimmer|saal|kammer|bibliothek|küche|schlaf/.test(blob)) kind='interior';
 
-  const w = kind==='dungeon'?22: kind==='camp'?18:28;
-  const ht = kind==='dungeon'?18: kind==='camp'?14:22;
+  const w = kind==='dungeon'?24: kind==='camp'?18: kind==='interior'?16:30;
+  const ht = kind==='dungeon'?20: kind==='camp'?14: kind==='interior'?14:24;
   const tiles=Array.from({length:ht},()=>Array(w).fill('grass'));
   const overlay=Array.from({length:ht},()=>Array(w).fill(null));
+  const interiors=[]; // enterable buildings → door triggers interior swap
   const fill=(x,y,tw,th,t)=>{ for(let j=0;j<th;j++) for(let i=0;i<tw;i++){ const xx=x+i,yy=y+j; if(yy>=0&&yy<ht&&xx>=0&&xx<w) tiles[yy][xx]=t; } };
+  const ov=(x,y,id)=>{ if(y>=0&&y<ht&&x>=0&&x<w) overlay[y][x]=id; };
+  const ringFence=(x,y,tw,th)=>{
+    for(let i=0;i<tw;i++){ tiles[y][x+i]='fence'; tiles[y+th-1][x+i]='fence'; }
+    for(let j=0;j<th;j++){ tiles[y+j][x]='fence'; tiles[y+j][x+tw-1]='fence'; }
+  };
+  const placeHouse=(bx,by,label)=>{
+    if(bx+3>=w||by+3>=ht) return null;
+    fill(bx,by,3,3,'house');
+    for(let j=0;j<3;j++) for(let i=0;i<3;i++) ov(bx+i,by+j,'house'+(j*3+i));
+    const dx=bx+1, dy=by+3;
+    if(dy<ht){ tiles[dy][dx]='door'; overlay[dy][dx]=null; }
+    if(by>0) fill(bx,by-1,3,1,'path');
+    if(dy+1<ht) tiles[Math.min(ht-1,dy+1)][dx]='path';
+    const id='in:'+(label||('Haus'+(interiors.length+1)));
+    interiors.push({x:dx,y:dy,to:id, label:label||'Haus'});
+    return {dx,dy,id};
+  };
   const scatterGrass=()=>{
     for(let y=0;y<ht;y++) for(let x=0;x<w;x++){
       if(tiles[y][x]==='grass'){
         const n=((h+x*17+y*31)%100);
-        if(n<6) overlay[y][x]='d'+(n%3);
-        else if(n>94) overlay[y][x]='bush';
+        if(n<5) ov(x,y,'flower');
+        else if(n<10) ov(x,y,'d'+(n%3));
+        else if(n>93) ov(x,y,'bush');
       }
     }
   };
 
   if(kind==='town'){
-    // Mostly grass with slight variation — avoid striped path noise
-    for(let y=0;y<ht;y++) for(let x=0;x<w;x++){
-      tiles[y][x]=((h+x*3+y*7)%11===0)?'path':'grass';
-    }
+    // base grass
+    for(let y=0;y<ht;y++) for(let x=0;x<w;x++) tiles[y][x]='grass';
+    // Main crossroads (plaza stone, not red)
     fill(0, Math.floor(ht/2)-1, w, 3, 'path');
     fill(Math.floor(w/2)-1, 0, 3, ht, 'path');
-    const houses=[[2,2],[19,2],[2,14],[18,14],[11,7],[22,9]];
-    houses.forEach(([bx,by])=>{
-      if(bx+3>=w||by+3>=ht) return;
-      fill(bx,by,3,3,'house'); // solid collision
-      for(let j=0;j<3;j++) for(let i=0;i<3;i++) overlay[by+j][bx+i]='house'+(j*3+i);
-      const dx=bx+1, dy=by+3;
-      if(dy<ht){ tiles[dy][dx]='door'; overlay[dy][dx]=null; tiles[Math.min(ht-1,dy+1)][dx]='path'; }
-      if(by>0) fill(bx, by-1, 3, 1, 'path');
-    });
-    for(let i=0;i<w;i++){
-      if(i%4===0){ tiles[0][i]='tree'; tiles[ht-1][i]='tree'; }
-    }
-    // plaza
     const cx=Math.floor(w/2), cy=Math.floor(ht/2);
-    fill(cx-2, cy-2, 5, 5, 'path');
-    fill(cx-1, cy-1, 3, 3, 'carpet');
+    fill(cx-3, cy-3, 7, 7, 'plaza');
+    fill(cx-1, cy-1, 3, 3, 'plaza');
+    // Well in plaza center
+    tiles[cy][cx]='well';
+    // Market row (north of plaza)
+    for(let i=0;i<5;i++){
+      const sx=cx-6+i*3; if(sx<2||sx+2>=w) continue;
+      fill(sx, cy-6, 2, 2, 'stall');
+      ov(sx, cy-6, 'stall'); ov(sx+1, cy-6, 'stall');
+      tiles[cy-4][sx]='path'; tiles[cy-4][sx+1]='path';
+    }
+    // Garden (SW) with fence
+    ringFence(2, cy+4, 7, 6);
+    fill(3, cy+5, 5, 4, 'grass');
+    for(let j=0;j<3;j++) for(let i=0;i<3;i++){ ov(4+i, cy+6+j, 'flower'); tiles[cy+6+j][4+i]='grass'; }
+    tiles[cy+4][5]='path'; // garden gate
+    // Houses around plaza
+    placeHouse(2, 2, 'Gasthaus');
+    placeHouse(w-6, 2, 'Tempel');
+    placeHouse(2, ht-7, 'Wohnhaus');
+    placeHouse(w-6, ht-7, 'Laden');
+    placeHouse(cx-8, cy-2, 'Bibliothek');
+    placeHouse(cx+5, cy-2, 'Wachstube');
+    // Tree border
+    for(let i=0;i<w;i++){
+      if(i%3===0){ tiles[0][i]='tree'; tiles[ht-1][i]='tree'; }
+    }
+    // Small pond NE
+    fill(w-8, 3, 4, 3, 'water');
     scatterGrass();
   } else if(kind==='wild'){
     for(let y=0;y<ht;y++) for(let x=0;x<w;x++){
       const n=((h+x*17+y*31)%100);
-      if(n<22) tiles[y][x]='tree';
-      else if(n<28) tiles[y][x]='stone';
-      else if(n>90) tiles[y][x]='water';
+      if(n<20) tiles[y][x]='tree';
+      else if(n<26) tiles[y][x]='stone';
+      else if(n>91) tiles[y][x]='water';
       else tiles[y][x]='grass';
     }
-    // meandering path
     let px=0, py=Math.floor(ht/2);
     while(px<w){
-      tiles[py][px]='path';
-      if(py+1<ht) tiles[py+1][px]='path';
-      const step=((h+px*9)%5)-2;
-      py=Math.max(2, Math.min(ht-3, py+((px%3===0)?step:0)));
+      tiles[py][px]='path'; if(py+1<ht) tiles[py+1][px]='path';
+      py=Math.max(2, Math.min(ht-3, py+((px%4===0)?(((h+px)%3)-1):0)));
       px++;
     }
-    for(let y=0;y<ht;y++){ tiles[y][Math.floor(w/2)]='path'; }
-    // small pond
-    fill(4,3,4,3,'water'); fill(5,4,2,1,'water');
+    fill(3,3,5,4,'water');
+    // Clearing with flowers
+    fill(w-10, ht-8, 6, 5, 'grass');
+    for(let j=0;j<3;j++) for(let i=0;i<4;i++) ov(w-9+i, ht-7+j, 'flower');
+    // Ruined hut
+    placeHouse(Math.floor(w/3), Math.floor(ht/3), 'verlassene Hütte');
     scatterGrass();
   } else if(kind==='dungeon'){
-    fill(0,0,w,ht,'void'); fill(1,1,w-2,ht-2,'wall'); fill(2,2,w-4,ht-4,'floor');
-    fill(2, Math.floor(ht/2), w-4, 2, 'floor'); fill(Math.floor(w/2), 2, 2, ht-4, 'floor');
-    for(let i=4;i<w-4;i+=4) for(let j=4;j<ht-4;j+=4){
-      tiles[j][i]='stone';
-      if(j+1<ht-2) tiles[j+1][i]='stone';
+    fill(0,0,w,ht,'void');
+    fill(1,1,w-2,ht-2,'wall');
+    // Room network
+    const rooms=[[2,2,8,6],[12,2,10,6],[2,11,8,7],[12,11,10,7],[8,7,8,5]];
+    rooms.forEach(([rx,ry,rw,rh])=>fill(rx,ry,rw,rh,'floor'));
+    // Corridors
+    fill(9,4,4,2,'floor'); fill(6,8,3,4,'floor'); fill(16,8,2,4,'floor');
+    // Pillars
+    for(const [px,py] of [[4,4],[7,4],[14,4],[18,4],[4,14],[7,14],[14,14],[18,14]]){
+      if(py<ht&&px<w) tiles[py][px]='stone';
     }
-    // rooms
-    fill(3,3,5,4,'floor'); fill(w-8,3,5,4,'floor'); fill(3,ht-7,5,4,'floor');
+    // Treasure carpet (plaza stone)
+    fill(10,9,4,3,'plaza');
+    tiles[Math.floor(ht/2)][Math.floor(w/2)]='door';
+  } else if(kind==='interior'){
+    fill(0,0,w,ht,'wall');
+    fill(1,1,w-2,ht-2,'wood');
+    fill(2,2,w-4,ht-4,'wood');
+    // Rug
+    fill(Math.floor(w/2)-2, Math.floor(ht/2)-1, 5, 3, 'plaza');
+    // Furniture as stalls/stones
+    tiles[2][2]='stall'; tiles[2][w-3]='stall';
+    tiles[ht-3][3]='stone'; tiles[ht-3][w-4]='stone';
+    // Exit south
+    tiles[ht-2][Math.floor(w/2)]='door';
   } else if(kind==='ruins'){
-    for(let y=0;y<ht;y++) for(let x=0;x<w;x++){
-      tiles[y][x]=((h+x*7+y*11)%100)<14?'ruin':'grass';
-    }
+    for(let y=0;y<ht;y++) for(let x=0;x<w;x++) tiles[y][x]=((h+x*7+y*11)%100)<16?'ruin':'grass';
     fill(0, Math.floor(ht/2), w, 2, 'path');
-    fill(6,5,6,5,'ruin');
+    fill(6,5,8,6,'ruin');
+    ringFence(w-10, ht-9, 7, 6);
     scatterGrass();
-  } else {
+  } else { // camp
     for(let y=0;y<ht;y++) for(let x=0;x<w;x++) tiles[y][x]='grass';
     for(let i=0;i<w;i++){ tiles[0][i]='tree'; tiles[ht-1][i]='tree'; }
-    fill(5,5,8,5,'camp'); fill(4,4,10,1,'path'); fill(4,10,10,1,'path'); fill(8,6,3,2,'carpet');
+    fill(5,4,8,6,'camp');
+    fill(4,3,10,1,'path'); fill(4,10,10,1,'path');
+    fill(7,6,3,2,'plaza');
+    tiles[7][8]='well';
+    ringFence(3,3,12,9);
+    tiles[3][8]='path'; // gate
     scatterGrass();
   }
 
@@ -286,8 +351,12 @@ export function buildMapForLocation(S, ort){
     overlay[ey][ex]=null;
     exits.push({x:ex,y:ey,to:dest});
   });
+  // Interior doors also act as exits (handled specially in tryMove)
+  interiors.forEach(iv=>{
+    exits.push({x:iv.x,y:iv.y,to:iv.to, interior:true, label:iv.label});
+  });
 
-  return {w,h:ht,tiles,overlay,doors:exits,spawn:{x:sx,y:sy},kind,name,npcs};
+  return {w,h:ht,tiles,overlay,doors:exits,spawn:{x:sx,y:sy},kind,name,npcs,interiors};
 }
 
 function walkable(x,y){
@@ -383,6 +452,7 @@ function talkTo(name){
   if(!label) return;
   const npc=_npcs.find(n=>n.name===label);
   showDialogue(label.split(' ')[0], '…', npc?.sheet||'villager');
+  try{ _audioApi?.playSfx?.('talk'); }catch(_){}
   _hooks.act('Ich rede mit '+label);
 }
 
@@ -408,8 +478,28 @@ function tryMove(dx,dy){
   const door=(_map.doors||[]).find(d=>d.x===nx&&d.y===ny);
   _hero.moving=true; _hero.x=nx; _hero.y=ny;
   recomputeFog();
-  if(door?.to && _hooks.onLocation){
-    setTimeout(()=>{ try{ _hooks.onLocation(door.to); }catch(_){ } }, 120);
+  try{ _audioApi?.stepSfx?.(); }catch(_){}
+  if(door?.to){
+    if(door.interior || String(door.to).startsWith('in:')){
+      // Enter building interior (procedural room)
+      setTimeout(()=>{
+        try{
+          const S=_hooks.getS?.();
+          if(!S) return;
+          const label=door.label||String(door.to).replace(/^in:/,'');
+          const prev=S.world.scene.ort;
+          S._owReturn=prev;
+          S.world.scene.ort=label+' (Innen)';
+          // force interior kind via fake desc
+          S.world.orte=S.world.orte||{};
+          S.world.orte[S.world.scene.ort]='Innenraum Zimmer Saal';
+          showOverworld(S);
+          try{ _audioApi?.playSfx?.('ok'); }catch(_){}
+        }catch(_){}
+      }, 100);
+    } else if(_hooks.onLocation){
+      setTimeout(()=>{ try{ _hooks.onLocation(door.to); }catch(_){ } }, 120);
+    }
   }
   return true;
 }
@@ -471,6 +561,49 @@ function pushLog(line){
   while(el.children.length>40) el.lastChild.remove();
 }
 
+
+function syncDayNight(){
+  try{
+    const S=_hooks.getS?.();
+    const h=S?.cal?.hour??S?.time?.hour??12;
+    if(h>=21||h<5) _dayTint='night';
+    else if(h<7) _dayTint='dawn';
+    else if(h>=18) _dayTint='dusk';
+    else _dayTint='day';
+  }catch(_){ _dayTint='day'; }
+}
+function tintColor(){
+  return ({
+    night:'rgba(20,30,90,.38)',
+    dawn:'rgba(255,160,100,.18)',
+    dusk:'rgba(180,110,80,.14)',
+    day:'rgba(0,0,0,0)'
+  })[_dayTint]||'rgba(0,0,0,0)';
+}
+function ensureWxParts(){
+  if(_wxParts.length) return;
+  for(let i=0;i<40;i++){
+    _wxParts.push({x:Math.random(), y:Math.random(), s:0.5+Math.random()*1.5, v:0.2+Math.random()*0.6, a:0.3+Math.random()*0.5});
+  }
+}
+function drawWeather(ctx, cssW, cssH, dt){
+  let kind='klar';
+  try{ kind=String(_hooks.getS?.()?.flags?.weather||'klar'); }catch(_){}
+  if(kind==='klar'||kind==='none') return;
+  ensureWxParts();
+  for(const p of _wxParts){
+    p.y += p.v*dt*(kind==='schnee'?0.4:1.2);
+    p.x += (kind==='nebel'?0.05:0.02)*dt*(p.s);
+    if(p.y>1){ p.y=0; p.x=Math.random(); }
+    if(p.x>1) p.x=0;
+    const x=p.x*cssW, y=p.y*cssH;
+    if(kind==='regen'){ ctx.strokeStyle=`rgba(180,200,255,${p.a})`; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x-1,y+8*p.s); ctx.stroke(); }
+    else if(kind==='schnee'){ ctx.fillStyle=`rgba(255,255,255,${p.a})`; ctx.beginPath(); ctx.arc(x,y,p.s,0,6.28); ctx.fill(); }
+    else if(kind==='nebel'){ ctx.fillStyle=`rgba(200,210,220,${p.a*.06})`; ctx.fillRect(x-50,y-20,100,40); }
+    else if(kind==='embers'){ ctx.fillStyle=`rgba(255,${120+p.s*40|0},60,${p.a})`; ctx.beginPath(); ctx.arc(x,y,p.s,0,6.28); ctx.fill(); }
+  }
+}
+
 function draw(){
   if(!_ctx||!_canvas) return;
   const ctx=_ctx;
@@ -526,7 +659,17 @@ function draw(){
         }
       }
       if(!vis){
-        ctx.fillStyle='rgba(5,4,10,.55)'; ctx.fillRect(sx,sy,tw,tw);
+        // soft explored-but-not-visible veil
+        ctx.fillStyle='rgba(5,4,10,.42)'; ctx.fillRect(sx,sy,tw,tw);
+      } else {
+        // soft FoW edge: darken by distance from hero
+        const dist=Math.hypot(x-_hero.x, y-_hero.y);
+        const R=_desktop?7:5;
+        if(dist > R-1.6){
+          const a=Math.min(0.55, (dist-(R-1.6))*0.35);
+          ctx.fillStyle=`rgba(5,4,10,${a.toFixed(3)})`;
+          ctx.fillRect(sx,sy,tw,tw);
+        }
       }
     }
   }
@@ -555,6 +698,28 @@ function draw(){
   ctx.strokeStyle='#9eb6ff'; ctx.lineWidth=2; ctx.strokeRect(8.5,8.5,Math.min(cssW-17,_desktop?359:299),25);
   ctx.fillStyle='#e8f0ff'; ctx.font=_desktop?'10px "Press Start 2P", monospace':'11px monospace';
   ctx.fillText((_map.name||'').slice(0,28), 14, 26);
+  // day/night tint + weather (tint only lit tiles; keep unexplored pure dark)
+  syncDayNight();
+  const tc=tintColor();
+  if(tc && !tc.endsWith(',0)')){
+    for(let y=y0;y<=y1;y++){
+      for(let x=x0;x<=x1;x++){
+        if(y<0||x<0||y>=_map.h||x>=_map.w) continue;
+        if(!_explored.has(fogKey(x,y))) continue;
+        const sx=ox+(x-camX)*tw, sy=oy+(y-camY)*tw;
+        ctx.fillStyle=tc; ctx.fillRect(sx,sy,tw,tw);
+      }
+    }
+  }
+  drawWeather(ctx, cssW, cssH, 0.016);
+  // re-seal unexplored after tint so FoW edge stays soft charcoal, not dusk-red
+  for(let y=y0;y<=y1;y++){
+    for(let x=x0;x<=x1;x++){
+      const sx=ox+(x-camX)*tw, sy=oy+(y-camY)*tw;
+      if(y<0||x<0||y>=_map.h||x>=_map.w){ ctx.fillStyle='#05040a'; ctx.fillRect(sx,sy,tw,tw); continue; }
+      if(!_explored.has(fogKey(x,y))){ ctx.fillStyle='#05040a'; ctx.fillRect(sx,sy,tw,tw); }
+    }
+  }
 }
 
 function pollGamepad(){
@@ -786,6 +951,7 @@ function ensureDOM(){
 
 export function mountOverworld(hooks={}){
   _hooks={..._hooks, ...hooks};
+  if(hooks.audio) _audioApi=hooks.audio;
   preload();
   ensureDOM();
 }
@@ -817,6 +983,10 @@ export function showOverworld(S){
   _active=true; _last=0;
   fitCanvas();
   updatePartyPanel();
+  try{
+    const key=_audioApi?.musicForMapKind?.(built.kind)||'town';
+    _audioApi?.fadeTo?.(key);
+  }catch(_){}
   if(!_raf) _raf=requestAnimationFrame(loop);
   draw();
 }

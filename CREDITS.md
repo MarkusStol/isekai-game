@@ -34,3 +34,7 @@ pack archives are **not** committed; only cropped/composited game assets are.
 
 If you redistribute this game, retain this CREDITS.md and the CC-BY-SA share-alike
 obligations for LPC-derived character sprites.
+
+## Audio (v27)
+- Ninja Adventure musics & sounds (Pixel-Boy / faeluptus) — **CC0 1.0**
+  - Used as: `assets/audio/music/*.ogg`, `assets/audio/sfx/*.ogg`

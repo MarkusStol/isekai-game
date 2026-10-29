@@ -345,7 +345,23 @@ let _music=null;
 export function isActive(){return !!_B && !_B.done}
 export function getBattle(){return _B}
 
+
+function playBattleSwirl(){
+  return new Promise(res=>{
+    let el=document.getElementById('battleSwirl');
+    if(!el){
+      el=document.createElement('div'); el.id='battleSwirl'; el.className='battle-swirl';
+      document.body.appendChild(el);
+    }
+    el.classList.remove('hidden'); el.classList.add('on');
+    try{ window.__game?.Aud?.playSfx?.('alert', 0.5); }catch(_){}
+    setTimeout(()=>{ el.classList.remove('on'); el.classList.add('hidden'); res(); }, 720);
+  });
+}
 export function startBattle(S, opts={}){
+  try{ playBattleSwirl(); }catch(_){}
+  try{ window.__game?.Aud?.fadeTo?.('battle'); }catch(_){}
+
   const foes=opts.enemies?.length?spawnFoes(opts.enemies,S):spawnFoes(pickEncounter(S,{count:opts.count,boss:opts.boss,noBoss:opts.noBoss}),S);
   if(!foes.length) return null;
   const party=buildParty(S);
@@ -758,7 +774,7 @@ function resolveHit(attacker, target, skill){
   if(need && (attacker.limitAcc|0)>=need && (attacker.limitTier||1)<3){ attacker.limitTier=(attacker.limitTier||1)+1; _B.log.push(`${attacker.name}: Grenzwoge Stufe ${attacker.limitTier}!`) }
   let note=`${attacker.name} (${skill.name||'Angriff'}) → ${target.name}: ${dmg}${crit?' KRIT!':''}${weak?' (Schwach!)':''}${target.staggered?' BRUCH×2':''}`;
   _B.log.push(note);
-  popNumber(target, String(dmg), crit?'crit':(weak?'weak':'dmg'));
+  popNumber(target, String(dmg), crit?'crit':(weak?'weak':'dmg')); try{ window.__game?.Aud?.playSfx?.('hit', crit?0.55:0.4); }catch(_){}
   flashUnit(target,'hit');
   if(Jrpg.addStagger(target, rolled.stagger, Jrpg.difficultyOf(_B.S))){
     _B.log.push(`💥 ${target.name} — BRUCH!`);

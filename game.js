@@ -20,8 +20,9 @@ import * as Jrpg from './jrpg.js';
 import * as Depth from './depth.js';
 import * as V25 from './visual25d.js';
 import * as OW from './overworld.js';
+import * as Aud from './audio.js';
 const $=s=>document.querySelector(s);const $$=s=>[...document.querySelectorAll(s)];const R=a=>a[Math.floor(Math.random()*a.length)];const rnd=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
-const VER='26',CACHE_V='v26';
+const VER='27',CACHE_V='v27';
 const ROLES={
  held:{e:'⚔️',name:'Held mit Status-System',d:'Ein blaues Fenster erscheint: [Status]. Die Welt braucht dich.',world:'Königreich Aldheim',
   base:{hp:100,mp:40,str:12,cha:8,ruf:10,gold:40},cls:['Abenteurer','Ritter','Held','Legendärer Held'],pack:'worlds/held.json',
@@ -649,6 +650,7 @@ function migrate(raw){if(!raw)return null;const s=typeof raw==='string'?JSON.par
  if(Number(s.ver)<24){s.ver=24}
  if(Number(s.ver)<25){s.ver=25;s.owFog=s.owFog||{}}
  if(Number(s.ver)<26){s.ver=26;s.owFog=s.owFog||{}}
+ if(Number(s.ver)<27){s.ver=27;s.owFog=s.owFog||{}}
  // v13.1 continuity+time always (kept in v14)
  try{Cont.ensureCont(s);if(s.cal&&s.cal.minute==null)s.cal.minute=0;if(s.cfgCatchupOptIn==null)s.cfgCatchupOptIn=false}catch(e){console.warn('cont migrate',e)}
  // Heal incomplete worlds from old saves (missing orte/graph)
@@ -1066,7 +1068,9 @@ function enterPlay(){$('#keyGate')&&$('#keyGate').classList.add('hidden');$('#ti
  hud();renderChoices();
  try{const w=Imm.weatherFor(S);S.flags=S.flags||{};S.flags.weather=w;Imm.setWeather(w==='klar'?'none':w);Imm.applyDayNightTint(S);applyGenreTheme(S.genre||S.role)}catch(_){}
  try{
-   OW.mountOverworld({
+   try{Aud.restore()}catch(_){}
+ OW.mountOverworld({
+   audio:Aud,
      act:(t)=>act(t),
      getS:()=>S,
      onLocation:(dest)=>{ try{ const r=travelTo(dest); if(r?.text){ add('n',r.text); apply(r.changes||{}); if(r.changes?.world)applyWorld(r.changes.world); hud(); renderChoices(); OW.refreshOverworld(S); typewrite(isG()?'Nebel':'Erzähler', r.text, ()=>{}); save(); } }catch(e){ console.warn('ow-travel',e);} }
@@ -2505,8 +2509,15 @@ function runParticles(){const c=$('#particles');if(!c)return;const ctx=c.getCont
   for(const p of parts){p.x+=p.vx;p.y+=p.vy;if(p.y<-5){p.y=c.clientHeight+5;p.x=Math.random()*c.clientWidth}ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,6.28);ctx.fillStyle='rgba(255,180,230,'+p.a+')';ctx.fill()}}
   requestAnimationFrame(frame)}
  resize();spawn();window.addEventListener('resize',()=>{resize();spawn()});frame()}
-function toggleMusic(){_musicOn=!_musicOn;$('#btnMusic').textContent=_musicOn?'🔊 Musik an':'🔇 Musik aus';
- if(!_musicOn){stopMusic();return}startMusic()}
+function toggleMusic(){
+  _musicOn=!_musicOn;
+  try{Aud.setEnabled(_musicOn)}catch(_){}
+  $('#btnMusic').textContent=_musicOn?'🔊 Musik an':'🔇 Musik aus';
+  const ba=$('#btnAudio'); if(ba) ba.classList.toggle('is-on',_musicOn);
+  if(!_musicOn){try{stopMusic()}catch(_){}; try{Aud.stopMusic()}catch(_){}; return;}
+  try{Aud.playMusic(document.body.classList.contains('pixel-ow')?'town':'title')}catch(_){}
+  try{startMusic()}catch(_){}
+}
 function startMusic(){try{if(!_audioCtx)_audioCtx=new(window.AudioContext||window.webkitAudioContext)();
  const ctx=_audioCtx;if(ctx.state==='suspended')ctx.resume();
  stopMusic();const master=ctx.createGain();master.gain.value=0.03;master.connect(ctx.destination);
@@ -2523,7 +2534,7 @@ function showTitle(){_mode='title';$('#stage').classList.add('hidden');$('#keyGa
  document.body.classList.remove('greyw','pixel-jrpg','pixel-ow','ow-dialogue');
  try{OW.hideOverworld()}catch(_){};
  const sv=localStorage.getItem(KEY);if(sv)$('#btnContinue').classList.remove('hidden');else $('#btnContinue').classList.add('hidden');
- runParticles()}
+ runParticles(); try{ if(Aud.isEnabled()) Aud.playMusic('title'); }catch(_){} }
 
 $('#btnNew').onclick=()=>startIntro();
  if($('#btnGenre'))$('#btnGenre').onclick=()=>openGenrePicker();
@@ -2579,7 +2590,7 @@ $('#btnGateSave').onclick=()=>{const gk=$('#gateKey').value.trim();if(!gk){toast
  toast('Alles bereit.');gmFetch(gk,true).then(()=>gmProbe(gk).catch(()=>{}));enterPlay()};
 $('#btnGateSkip').onclick=()=>{cfg.mode='free';cfg.v2=1;localStorage.setItem(CFG,JSON.stringify(cfg));toast('Erzählerin: Pollinations (ohne Schlüssel)');enterPlay()};
 
-window.__setCfg=o=>{cfg=Object.assign(cfg||{},o||{});try{localStorage.setItem(CFG,JSON.stringify(cfg))}catch(_){}};window.__game={VER,setBusy,forceUnbusy,ACT_HARD_MS,V25,OW,Depth,Battle,Jobs,Gems,Summons,Equip,Jrpg,localBeatLine,parsePlayerIntent,offlineRespondIntent,freeStream,FREE_MODEL,openPendingEncounter,Imm,discoverThing,showCodexInline,Level,UI14,UI17,Know,Cont,lastPromptDump,advanceTimeMinutes,applyActionDuration,newGrey,greyDetails,loadGrey,loadPack,get S(){return S},act,newLife,gBody,msgs,gmRank,gmProbe,parseStream,thinkingCfg,gmOrder,readSSE,STREAM_DELIM,migrate,worldTick,bumpRel,openMenu,stageName,offline,startIntro,setSceneImage,setPortrait,imgUrl,advanceTime,phaseLabel,typewrite,enterPlay,showTitle,analyzeImage,applySceneTheme,themeFromText,loadValidatedImage,openingNarration,travelTo,parseTravel,killNPC,robNPC,addMemory,memoryHint,startProcedural,offlineGenerateWorld,generateWorldPack,GENRES,travelChoices,ensureGraph,whoHere,parseLifeSim,Sim,Persist,WorldMap,Econ,Codex,UI13,save,loadSave,applyCatchUp,findAnyNpc};
+window.__setCfg=o=>{cfg=Object.assign(cfg||{},o||{});try{localStorage.setItem(CFG,JSON.stringify(cfg))}catch(_){}};window.__game={VER,Aud,setBusy,forceUnbusy,ACT_HARD_MS,V25,OW,Depth,Battle,Jobs,Gems,Summons,Equip,Jrpg,localBeatLine,parsePlayerIntent,offlineRespondIntent,freeStream,FREE_MODEL,openPendingEncounter,Imm,discoverThing,showCodexInline,Level,UI14,UI17,Know,Cont,lastPromptDump,advanceTimeMinutes,applyActionDuration,newGrey,greyDetails,loadGrey,loadPack,get S(){return S},act,newLife,gBody,msgs,gmRank,gmProbe,parseStream,thinkingCfg,gmOrder,readSSE,STREAM_DELIM,migrate,worldTick,bumpRel,openMenu,stageName,offline,startIntro,setSceneImage,setPortrait,imgUrl,advanceTime,phaseLabel,typewrite,enterPlay,showTitle,analyzeImage,applySceneTheme,themeFromText,loadValidatedImage,openingNarration,travelTo,parseTravel,killNPC,robNPC,addMemory,memoryHint,startProcedural,offlineGenerateWorld,generateWorldPack,GENRES,travelChoices,ensureGraph,whoHere,parseLifeSim,Sim,Persist,WorldMap,Econ,Codex,UI13,save,loadSave,applyCatchUp,findAnyNpc};
 window.__game.askNPC=a=>askNPC(a);window.__game.gemini=gemini;
 if(cfg.gkey)gmFetch(cfg.gkey.trim()).then(()=>gmProbe(cfg.gkey.trim()).catch(()=>{})).catch(()=>{});
 (function(){const root=document.documentElement;const apply=()=>{try{const vv=window.visualViewport;if(!vv)return;const kb=Math.max(0,window.innerHeight-vv.height-vv.offsetTop);root.style.setProperty('--kb',kb+'px')}catch(_){}};
