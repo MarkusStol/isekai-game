@@ -14,16 +14,20 @@ function showSkillBanner(name, elem){ if(!_B)return; _B.skillBanner=name; const 
 
 /* ---- Skill catalog (maps leveling tree + combat skills) ---- */
 export const COMBAT_SKILLS={
-  Hieb:{name:'Hieb',mp:0,pow:1.15,elem:'phys',tree:'kampf'},
+  Hieb:{name:'Hieb',mp:0,pow:1.15,elem:'phys',tree:'kampf',staggerBonus:1.15},
   Parade:{name:'Parade',mp:0,pow:0,defend:1.5,tree:'kampf'},
-  Komboschlag:{name:'Komboschlag',mp:4,pow:1.45,elem:'phys',tree:'kampf'},
-  Finisher:{name:'Finisher',mp:8,pow:2.0,elem:'phys',critBonus:.25,tree:'kampf'},
-  Funke:{name:'Funke',mp:5,pow:1.35,elem:'feuer',tree:'magie'},
+  Komboschlag:{name:'Komboschlag',mp:4,pow:1.45,elem:'phys',tree:'kampf',staggerBonus:1.35},
+  Finisher:{name:'Finisher',mp:8,pow:2.0,elem:'phys',critBonus:.25,tree:'kampf',staggerBonus:1.5},
+  Funke:{name:'Funke',mp:5,pow:1.35,elem:'feuer',tree:'magie',staggerBonus:1.25},
+  Blitzfunke:{name:'Blitzfunke',mp:5,pow:1.35,elem:'blitz',tree:'magie',staggerBonus:1.3},
+  Erdstoß:{name:'Erdstoß',mp:5,pow:1.3,elem:'erde',tree:'magie',staggerBonus:1.4},
+  Eisklinge:{name:'Eisklinge',mp:5,pow:1.3,elem:'eis',tree:'magie',staggerBonus:1.25},
   Schild:{name:'Schild',mp:6,pow:0,status:'schild',self:true,tree:'magie'},
   Nova:{name:'Nova',mp:14,pow:1.55,elem:'licht',aoe:true,tree:'magie'},
   Teleport:{name:'Teleport',mp:8,pow:0,fleeBonus:.35,tree:'magie'},
   Inspiration:{name:'Inspiration',mp:6,pow:0,status:'staerkung',self:true,aoeParty:true,tree:'sozial'},
   'Erste Hilfe':{name:'Erste Hilfe',mp:4,heal:32,tree:'ueberleben'},
+  Heilung:{name:'Heilung',mp:5,heal:40,tree:'ueberleben'},
   Einschüchtern:{name:'Einschüchtern',mp:3,pow:0,status:'betaeubt',statusChance:.4,tree:'sozial'},
   // Limit
   Overdrive:{name:'Overdrive',mp:0,limit:true,pow:2.6,elem:'phys',aoe:true},
@@ -43,7 +47,7 @@ function skillFromProgress(S){
     const def=COMBAT_SKILLS[name]||{name,mp:(typeof sk==='object'?sk.cost:5)||5,pow:1.2,elem:'phys'};
     list.push({...def,name});
   }
-  if(!list.length) list.push({...COMBAT_SKILLS.Hieb},{...COMBAT_SKILLS.Funke});
+  if(!list.length) list.push({...COMBAT_SKILLS.Hieb},{...COMBAT_SKILLS.Funke},{...COMBAT_SKILLS.Blitzfunke},{...COMBAT_SKILLS['Erste Hilfe']});
   return list.slice(0,8);
 }
 
@@ -935,6 +939,10 @@ function doTalk(actor, payload={}){
       _B.log.push(`${actor.name}: „${(choice.text||text).slice(0,80)}“`);
       let res;
       try{ res=window.__game?.C41?.resolveBossDialogue?.(S,t,choice); }catch(_){ res=null; }
+      try{
+        const est=window.__game?.C42?.estimateTalkChance?.(S,t,choice);
+        if(est) _B.log.push(`Chance ~${est.pct}%${est.hints?.length?' · '+est.hints[0]:''}`);
+      }catch(_){}
       if(res?.ok){
         t.hp=Math.max(1,t.hp); t._surrendered=true; t._ended='surrender'; t.alive=false;
         _B.log.push(res.text||`${t.name} lässt die Waffe sinken.`);
@@ -1115,9 +1123,11 @@ function aiCompanion(c){
   const foes=living(_B.foes); if(!foes.length)return;
   const dec=Jrpg.gambitDecide(c,_B);
   if(dec){
+    if(dec.cmd==='analyze'){ doAnalyze(c, dec.targetId); return }
     if(dec.cmd==='skill'){ doSkill(c, dec.skill, dec.targetId); return }
     if(dec.cmd==='item'){ doItem(c, dec.item, dec.targetId); return }
     if(dec.cmd==='attack'){ doAttack(c, dec.targetId); return }
+    if(dec.cmd==='defend'){ doDefend(c); return }
   }
   const sk=c.skills.find(s=>s.pow&&(s.mp|0)<=c.mp)||{name:'Angriff',pow:1.0,elem:'phys'};
   if(sk.mp) c.mp-=sk.mp|0;
@@ -1244,12 +1254,23 @@ function refreshUI(){
     if(sel.mode==='bossTalk'){
       const t=pickTarget(sel.targetId,true)||living(_B.foes)[0];
       const choices=(window.__game?.C41?.bossDialogueChoices?.(_B.S,t))||[
-        {id:'reason',label:'Zur Vernunft reden',text:'Bitte, lass uns reden.'}
+        {id:'reason',label:'Zur Vernunft reden',text:'Bitte, lass uns reden.',base:0.28}
       ];
-      cmd.innerHTML=`<div class="boss-talk-sheet"><div class="bts-title">Reden mit ${t?.name||'Boss'}</div>
-        <div class="bts-choices">${choices.map(c=>`<button type="button" class="bcm social bts" data-cid="${c.id}">${c.label}</button>`).join('')}
+      const estFn=window.__game?.C42?.estimateTalkChance;
+      const rows=choices.map(c=>{
+        const est=estFn?estFn(_B.S,t,c):{pct:Math.round((c.base||0.25)*100),hints:[],risk:false};
+        const hint=(est.hints||[]).slice(0,2).join(' · ')||'Basis';
+        const risk=est.risk?' bts-risk':'';
+        return `<button type="button" class="bcm social bts${risk}" data-cid="${c.id}" title="${hint}">
+          <span class="bts-lab">${c.label}</span>
+          <span class="bts-odds">${est.pct}%</span>
+          <span class="bts-hint">${hint}</span>
+        </button>`;
+      }).join('');
+      cmd.innerHTML=`<div class="boss-talk-sheet"><div class="bts-title">Reden mit ${t?.name||'Boss'} <small>· Chancen sichtbar</small></div>
+        <div class="bts-choices">${rows}
         <button type="button" class="bcm ghost" data-cid="__cancel">Zurück</button></div>
-        <p class="meta">Wahl an Story/Beziehung gebunden — nicht nur Zufall.</p></div>`;
+        <p class="meta">Story/Beziehung heben die Chance — Drohungen können wütend machen.</p></div>`;
       cmd.querySelectorAll('[data-cid]').forEach(btn=>{
         btn.onclick=()=>{
           const cid=btn.dataset.cid;

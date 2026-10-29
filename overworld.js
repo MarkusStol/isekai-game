@@ -114,7 +114,7 @@ const PORTRAITS = {
 
 const SOLID = new Set(['wall','water','tree','void','house','ruin','fence','fence_broken','well','stall']);
 
-let _root=null, _canvas=null, _ctx=null, _imgs={}, _raf=0, _active=false;
+let _root=null, _canvas=null, _ctx=null, _imgs={}, _raf=0, _active=false, _mmTick=0;
 let _map={w:24,h:24,tiles:[], overlay:[], doors:[], name:'', npcs:[], kind:'town'};
 let _hero={x:12,y:12,dir:0,frame:0,moving:false,px:12,py:12};
 let _npcs=[];
@@ -1405,6 +1405,16 @@ function draw(){
     const sx=ox+(c.x-camX)*tw, sy=oy+(c.y-camY)*tw;
     ctx.fillStyle='rgba(0,0,0,0.35)'; ctx.fillRect(sx,sy,tw,tw);
   }
+  // v42 region minimap from real OW tilemap (throttled)
+  if((++_mmTick)%8===0){
+    try{
+      window.__game?.C42?.renderOwRegionMinimap?.(
+        {w:_map.w,h:_map.h,tiles:_map.tiles,name:_map.name},
+        {x:Math.round(_hero.x), y:Math.round(_hero.y)},
+        {name:_map.name, fog:(x,y)=>!_explored.has(fogKey(x,y))}
+      );
+    }catch(_){}
+  }
 }
 
 function pollGamepad(){
@@ -1854,6 +1864,11 @@ export function showOverworld(S){
   }catch(_){}
   if(!_raf) _raf=requestAnimationFrame(loop);
   draw();
+  try{ window.__game?.C42?.renderOwRegionMinimap?.(
+    {w:_map.w,h:_map.h,tiles:_map.tiles,name:_map.name},
+    {x:_hero.x,y:_hero.y},
+    {name:_map.name, fog:(x,y)=>!_explored.has(fogKey(x,y))}
+  ); }catch(_){}
 }
 
 export function hideOverworld(){
@@ -1862,6 +1877,7 @@ export function hideOverworld(){
   _root?.classList.add('hidden');
   document.body.classList.remove('pixel-ow','ow-desktop');
   hideDialogue();
+  try{ window.__game?.C42?.hideOwRegionMinimap?.(); }catch(_){}
 }
 
 export function refreshOverworld(S){

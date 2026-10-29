@@ -2143,3 +2143,21 @@ body.pixel-jrpg .logo,
 .tilemap-mm .mm-canvas{display:block;border:1px solid #3a3048;border-radius:4px;background:#0a0810;margin:4px 0}
 .craft-xp{font-size:11px;opacity:.8}
 .craft-train-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+
+/* v42 OW region minimap + talk odds */
+.ow-region-minimap{
+  position:fixed; right:10px; top:10px; z-index:45;
+  background:#0a0810ee; border:1px solid #3a3048; border-radius:8px;
+  padding:4px 4px 2px; pointer-events:none;
+  box-shadow:0 4px 16px #0008;
+}
+.ow-region-minimap.hidden{display:none!important}
+.ow-region-minimap .ow-mm-canvas{display:block;image-rendering:pixelated;border-radius:4px}
+.ow-region-minimap .ow-mm-label{font-size:10px;opacity:.85;text-align:center;padding:2px 4px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.boss-talk-sheet .bts{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:8px 10px}
+.boss-talk-sheet .bts-lab{font-weight:600}
+.boss-talk-sheet .bts-odds{font-size:12px;color:#8f8;font-variant-numeric:tabular-nums}
+.boss-talk-sheet .bts-risk .bts-odds{color:#f88}
+.boss-talk-sheet .bts-hint{font-size:10px;opacity:.75;line-height:1.2}
+.boss-talk-sheet .bts-title small{opacity:.7;font-weight:400}
+body.pixel-ow .dungeon-minimap-root{display:none!important}

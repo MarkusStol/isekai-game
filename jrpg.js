@@ -198,6 +198,9 @@ export function defaultGambits(){
   return [
     {id:'heal_low', when:'hp_lt', value:0.3, action:'skill', skill:'Heilung', target:'self_lowest_hp'},
     {id:'revive', when:'ally_ko', action:'item', item:'Phönixfeder', target:'ko_ally'},
+    {id:'analyze_boss', when:'boss_unanalyzed', action:'analyze', target:'boss'},
+    {id:'exploit_stagger', when:'foe_staggered', action:'skill_best', target:'staggered_foe'},
+    {id:'build_stagger', when:'foe_stagger_high', action:'skill_stagger', target:'weak_foe'},
     {id:'buff_haste', when:'no_status', status:'hast', action:'skill', skill:'Eile', target:'self'},
     {id:'exploit_weak', when:'foe_weak', action:'skill_elem', target:'weak_foe'},
     {id:'attack', when:'always', action:'attack', target:'lowest_hp_foe'},
@@ -205,17 +208,27 @@ export function defaultGambits(){
 }
 
 export function gambitDecide(actor, battle, gambits){
+  // Prefer C42 skilled decide when available (elements, stagger, analyze)
+  try{
+    const C42=typeof window!=='undefined'?window.__game?.C42:null;
+    if(C42?.skilledGambitDecide){
+      const d=C42.skilledGambitDecide(actor, battle, gambits||actor.gambits||defaultGambits());
+      if(d) return d;
+    }
+  }catch(_){}
   const rules=gambits||actor.gambits||defaultGambits();
   const party=battle.party.filter(u=>true);
   const foes=battle.foes.filter(u=>u.alive);
   const livingParty=party.filter(u=>u.alive);
+  const skills=actor.skills||[];
+  const can=sk=>(sk.mp|0)<=(actor.mp|0);
   for(const r of rules){
     if(r.on===false) continue;
     if(r.when==='hp_lt'){
       const t=livingParty.slice().sort((a,b)=>a.hp/a.maxhp-b.hp/b.maxhp)[0];
       if(t && t.hp/t.maxhp < (r.value||0.3)){
-        const sk=(actor.skills||[]).find(s=>s.heal||s.name===r.skill)||{name:'Heilung',heal:40,mp:5};
-        if((sk.mp|0)<=(actor.mp|0)) return {cmd:'skill', skill:sk, targetId:t._iid||t.id};
+        const sk=skills.find(s=>s.heal||s.name===r.skill)||{name:'Heilung',heal:40,mp:5};
+        if(can(sk)) return {cmd:'skill', skill:sk, targetId:t._iid||t.id};
       }
     }
     if(r.when==='ally_ko'){
@@ -224,16 +237,35 @@ export function gambitDecide(actor, battle, gambits){
         return {cmd:'item', item:r.item||'Phönixfeder', targetId:ko._iid||ko.id};
       }
     }
+    if(r.when==='boss_unanalyzed'){
+      const boss=foes.find(f=>(f.boss||f.talkable)&&!f.analyzed);
+      if(boss) return {cmd:'analyze', targetId:boss._iid};
+    }
+    if(r.when==='foe_staggered'){
+      const t=foes.find(f=>f.staggered);
+      if(t){
+        const sk=skills.filter(s=>s.pow&&can(s)).sort((a,b)=>(b.pow||1)-(a.pow||1))[0];
+        if(sk) return {cmd:'skill', skill:sk, targetId:t._iid};
+        return {cmd:'attack', targetId:t._iid};
+      }
+    }
+    if(r.when==='foe_stagger_high'){
+      const t=foes.slice().sort((a,b)=>((b.stagger||0)/(b.staggerMax||1))-((a.stagger||0)/(a.staggerMax||1)))[0];
+      if(t && t.staggerMax && (t.stagger||0)/t.staggerMax>=0.55 && !t.staggered){
+        const sk=skills.find(s=>s.staggerBonus&&can(s))||skills.find(s=>s.elem&&(t.weak||[]).includes(s.elem)&&can(s));
+        if(sk) return {cmd:'skill', skill:sk, targetId:t._iid};
+      }
+    }
     if(r.when==='no_status'){
       if(!(actor.statuses||[]).some(s=>s.id===r.status)){
-        const sk=(actor.skills||[]).find(s=>s.status===r.status||s.name===r.skill);
-        if(sk && (sk.mp|0)<=(actor.mp|0)) return {cmd:'skill', skill:sk, targetId:actor._iid||actor.id};
+        const sk=skills.find(s=>s.status===r.status||s.name===r.skill);
+        if(sk && can(sk)) return {cmd:'skill', skill:sk, targetId:actor._iid||actor.id};
       }
     }
     if(r.when==='foe_weak' && foes.length){
       for(const f of foes){
-        const sk=(actor.skills||[]).find(s=>s.elem && (f.weak||[]).includes(s.elem));
-        if(sk && (sk.mp|0)<=(actor.mp|0)) return {cmd:'skill', skill:sk, targetId:f._iid};
+        const sk=skills.find(s=>s.elem && (f.weak||[]).includes(s.elem));
+        if(sk && can(sk)) return {cmd:'skill', skill:sk, targetId:f._iid};
       }
     }
     if(r.when==='always' && foes.length){
