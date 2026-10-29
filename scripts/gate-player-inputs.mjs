@@ -108,8 +108,15 @@ const report={paths:{}, samples:{}};
 let server, browser, page;
 
 async function boot(role, name){
-  await page.goto(`http://127.0.0.1:${PORT}/index.html?v=25&gate=1`,{waitUntil:'domcontentloaded',timeout:60000});
-  await page.evaluate(()=>localStorage.clear());
+  await page.goto(`http://127.0.0.1:${PORT}/index.html?v=56&gate=1`,{waitUntil:'domcontentloaded',timeout:60000});
+  await page.evaluate(async()=>{
+    localStorage.clear();
+    try{
+      const regs=await navigator.serviceWorker?.getRegistrations?.()||[];
+      await Promise.all(regs.map(r=>r.unregister()));
+      if(window.caches?.keys){ const ks=await caches.keys(); await Promise.all(ks.map(k=>caches.delete(k))); }
+    }catch(_){}
+  });
   await page.reload({waitUntil:'networkidle0',timeout:60000});
   await page.waitForFunction(()=>window.__game&&window.__game.newLife,{timeout:30000});
   const info=await page.evaluate(async({role,name})=>{
@@ -964,7 +971,7 @@ try{
   if(INPUTS.length<40) throw new Error('Need ≥40 inputs, got '+INPUTS.length);
 
   if(process.env.GATE_ONLY_LIVE==='1'){
-    await runCrashClass();
+    // crash-class is local-tree only; SKIP_LIVE path already covers it
     await runLiveSiteBrowser();
   } else {
 
