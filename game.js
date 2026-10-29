@@ -21,7 +21,7 @@ import * as Depth from './depth.js';
 import * as V25 from './visual25d.js';
 import * as OW from './overworld.js';
 const $=s=>document.querySelector(s);const $$=s=>[...document.querySelectorAll(s)];const R=a=>a[Math.floor(Math.random()*a.length)];const rnd=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
-const VER='24',CACHE_V='v24';
+const VER='25',CACHE_V='v25';
 const ROLES={
  held:{e:'⚔️',name:'Held mit Status-System',d:'Ein blaues Fenster erscheint: [Status]. Die Welt braucht dich.',world:'Königreich Aldheim',
   base:{hp:100,mp:40,str:12,cha:8,ruf:10,gold:40},cls:['Abenteurer','Ritter','Held','Legendärer Held'],pack:'worlds/held.json',
@@ -647,6 +647,7 @@ function migrate(raw){if(!raw)return null;const s=typeof raw==='string'?JSON.par
  if(Number(s.ver)<22){s.ver=22}
  if(Number(s.ver)<23){s.ver=23}
  if(Number(s.ver)<24){s.ver=24}
+ if(Number(s.ver)<25){s.ver=25;s.owFog=s.owFog||{}}
  // v13.1 continuity+time always (kept in v14)
  try{Cont.ensureCont(s);if(s.cal&&s.cal.minute==null)s.cal.minute=0;if(s.cfgCatchupOptIn==null)s.cfgCatchupOptIn=false}catch(e){console.warn('cont migrate',e)}
  // Heal incomplete worlds from old saves (missing orte/graph)
@@ -930,6 +931,8 @@ function discover(place){if(!place)return;if(!S.discovered)S.discovered=[];if(!S
 
 /* ---------- typewriter VN ---------- */
 function typewrite(speaker,text,done){_twDone=false;_twFull=String(text||'').trim()||'…';try{document.body.classList.add('hud-dim')}catch(_){};
+ try{ if(OW.isOverworldActive?.() && OW.isDialogueOpen?.()){ OW.showDialogue?.(speaker||'…', _twFull, 'villager'); } }catch(_){}
+ try{ OW.syncDialogueFromVN?.(); }catch(_){}
  const sp=$('#speaker'),el=$('#vnText'),tap=$('#vnTap');
  if(speaker){sp.textContent=speaker;sp.classList.remove('hidden')}else sp.classList.add('hidden');
  // never leave the dialogue box empty (v14 empty-box fix)

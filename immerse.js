@@ -294,6 +294,17 @@ export function uiTick(){
 
 /* ---- Combat mini-flow ---- */
 export function openCombat(opts={}){
+  /* ROUTE_TO_JRPG_BATTLE: prefer full Battle.startBattle when game exposes it */
+  try{
+    const g=typeof window!=='undefined'?window.__game:null;
+    if(g?.Battle?.startBattle && g.S){
+      const foe={name:opts.foeName||'Gegner', hp:opts.foeHP||40, maxhp:opts.foeMax||40, atk:8, def:3, spd:6, icon:'👹'};
+      g.OW?.hideOverworld?.();
+      g.Battle.startBattle(g.S,{enemies:[foe], atbMode:g.S.cfgAtbMode||'active'});
+      return document.getElementById('battleRoot');
+    }
+  }catch(_){}
+
   const {foeName='Gegner', foeArt='', playerHP=100, playerMax=100, foeHP=40, foeMax=40, skills=[], onSkill, onFlee, onClose}=opts;
   let overlay=document.getElementById('combatFx');
   if(!overlay){overlay=document.createElement('div'); overlay.id='combatFx'; overlay.className='combat-fx hidden'; document.body.appendChild(overlay)}

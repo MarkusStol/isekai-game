@@ -1334,9 +1334,10 @@ body.pixel-ow:not(.ow-dialogue) .vn-wrap{
   margin-top: 0;
 }
 body.pixel-ow:not(.ow-dialogue) .portrait-wrap{ display:none; }
-body.pixel-ow.ow-dialogue .overworld{ max-height: 28vh; overflow:hidden; }
-body.pixel-ow.ow-dialogue #owCanvas{ max-height: 22vh; }
-body.pixel-ow.ow-dialogue .vn-wrap{ max-height: none; }
+/* v25: dialogue overlays — map stays full size */
+body.pixel-ow.ow-dialogue .overworld{ max-height: none; }
+body.pixel-ow.ow-dialogue #owCanvas{ max-height: none; }
+body.pixel-ow.ow-dialogue .vn-wrap{ max-height: 0; overflow:hidden; opacity:0; pointer-events:none; }
 
 /* Battle FF6-style */
 .battle-root.battle-pixel{
@@ -1364,11 +1365,11 @@ body.pixel-ow.ow-dialogue .vn-wrap{ max-height: none; }
   text-align: left;
 }
 .battle-root.battle-pixel .pixel-foe{
-  width: 64px; height: 64px;
+  width: 96px; height: 96px;
   image-rendering: pixelated;
 }
 .battle-root.battle-pixel .pixel-foe img{
-  width: 64px; height: 64px; object-fit: contain;
+  width: 96px; height: 96px; object-fit: contain;
   image-rendering: pixelated;
   filter: drop-shadow(2px 3px 0 #0008);
 }
@@ -1426,3 +1427,55 @@ body.pixel-jrpg .big{
 @media (prefers-reduced-motion: reduce){
   .ow-pad button{ transition:none; }
 }
+
+
+/* ===== v25 JRPG dialogue panel (overlay, no map shrink) ===== */
+.ow-dlg{
+  position: absolute;
+  left: 50%; transform: translateX(-50%);
+  bottom: 8px;
+  width: min(420px, 96%);
+  z-index: 20;
+  pointer-events: auto;
+}
+.ow-dlg.hidden{ display:none !important; }
+.ow-dlg-inner{
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  background: linear-gradient(180deg, #243878 0%, #152050 100%);
+  border: 3px solid #9eb6ff;
+  box-shadow: 0 0 0 2px #0a1030, inset 0 0 0 2px #4a6ad0, 0 8px 24px #000a;
+  border-radius: 4px;
+  padding: 10px 12px;
+  min-height: 72px;
+  position: relative;
+}
+.ow-dlg-port{
+  width: 48px; height: 48px;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  border: 2px solid #9eb6ff;
+  background: #0a1030;
+  flex-shrink: 0;
+}
+.ow-dlg-body{ flex:1; min-width:0; }
+.ow-dlg-name{
+  font-family: 'Press Start 2P', monospace;
+  font-size: 9px;
+  color: #ffe08a;
+  margin-bottom: 6px;
+}
+.ow-dlg-text{
+  font-family: 'Press Start 2P', monospace;
+  font-size: 8px;
+  line-height: 1.7;
+  color: #e8f0ff;
+  min-height: 2.8em;
+}
+.ow-dlg-close{
+  position:absolute; top:4px; right:6px;
+  background:transparent; border:none; color:#9eb6ff;
+  font-size:18px; line-height:1; cursor:pointer;
+}
+body.pixel-ow .ow-dlg{ bottom: 4px; }

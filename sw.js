@@ -1,5 +1,5 @@
 /* Isekai Reinkarnation – offline shell. Network-first for shell; self-heal on version mismatch. */
-const VER = '24';
+const VER = '25';
 const CACHE = 'isekai-v' + VER;
 const ASSETS = [
   './',
@@ -31,6 +31,8 @@ const ASSETS = [
   './manifest.json',
   './icon.svg',
   './assets/pixel/hero/walk.png',
+  './assets/pixel/tiles/water-anim.png',
+  './assets/pixel/portrait/hero.png',
   './assets/pixel/hero/battle.png',
   './assets/pixel/tiles/grass.png',
   './assets/pixel/tiles/path.png',
