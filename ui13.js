@@ -30,6 +30,8 @@ export function renderHome(body, S, {act, closeMenu, phaseLabel}){
       +'<br>'+build+'<br>Garten/Farmen: '+plots+dmgHtml;
   }
   card.innerHTML='<h3>🏠 Zuhause</h3><p class="meta">'+homeHtml+'</p>';
+  if(!h.owned) card.classList.add('no-plot');
+  else card.classList.add('has-plot');
   body.appendChild(card);
   try{V25.decorateCamp25d(card, h, S)}catch(_){}
   const row=document.createElement('div'); row.className='row'; card.appendChild(row);
@@ -179,8 +181,14 @@ export function renderMap(body, S, {act, closeMenu, toast}){
       ctx.globalAlpha=fog==='rumored'?0.45:1;
       ctx.fillStyle=fog==='visited'?'#f0d59a':fog==='known'?'#a78bfa':fog==='rumored'?'#94a3b8':'#334155';
       ctx.beginPath(); ctx.arc(s.x,s.y,fog==='visited'?6:4,0,6.28); ctx.fill();
-      ctx.fillStyle='#e2e8f0'; ctx.font='10px sans-serif';
-      ctx.fillText((loc.icon||'•')+' '+(fog==='rumored'?'???':loc.name).slice(0,14), s.x+6, s.y+3);
+      // v52: declutter — rumored=dot only; known labels only when zoomed; visited always
+      if(fog!=='rumored' && (fog==='visited' || a.zoom>=1.15)){
+        const lab=(loc.icon||'•')+' '+(loc.name||'').slice(0,16);
+        ctx.font='9px monospace';
+        ctx.fillStyle='#000c'; ctx.fillText(lab, s.x+7, s.y+4);
+        ctx.fillStyle=fog==='visited'?'#fef3c7':'#e2e8f0';
+        ctx.fillText(lab, s.x+6, s.y+3);
+      }
       ctx.globalAlpha=1;
     }
     // marks

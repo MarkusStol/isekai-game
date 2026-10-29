@@ -349,6 +349,8 @@ function canAct(unit){
 
 /* ---- Battle state machine ---- */
 let _B=null; let lastBattleSummary=null; let lastBattleFlags=null; let lastBattlePhaseLog=[]; // active battle
+function setBattleOpen(on){try{document.body.classList.toggle('battle-open',!!on);document.documentElement.classList.toggle('battle-open',!!on)}catch(_){}}
+function clearBattleOpen(){setBattleOpen(false)}
 let _music=null;
 
 export function isActive(){return !!_B && !_B.done}
@@ -1194,7 +1196,7 @@ function ensureRoot(){
 export function renderBattleUI(){
   const root=ensureRoot();
   if(!_B){ root.classList.add('hidden'); return }
-  root.classList.remove('hidden'); root.classList.add('battle-pixel');
+  root.classList.remove('hidden'); root.classList.add('battle-pixel'); setBattleOpen(true);
   const B=_B;
   root.classList.remove('battle-25d');
   root.innerHTML=`
@@ -1225,20 +1227,25 @@ export function renderBattleUI(){
 
 function refreshUI(){
   if(!_B)return;
+  setBattleOpen(true)
   const B=_B;
   // timeline
   const tl=el('battleTL');
   if(tl){
     const units=allUnits().filter(u=>u.alive).map(u=>({u,pct:clamp((u.atb||0),0,100)}))
       .sort((a,b)=>b.pct-a.pct).slice(0,8);
-    tl.innerHTML=units.map(({u,pct})=>`<div class="tl-item ${u.kind==='hero'||u.kind==='companion'?'ally':'foe'}" title="${u.name}"><i style="height:${pct}%"></i><span>${(u.name||'?').slice(0,1)}</span></div>`).join('');
+    tl.innerHTML=units.map(({u,pct})=>{
+      const ally=u.kind==='hero'||u.kind==='companion';
+      const icon=ally?(u.kind==='hero'?'🗡️':'⭐'):(u.boss?'💀':'👾');
+      return `<div class="tl-item ${ally?'ally':'foe'}${u.boss?' boss':''}" title="${u.name}" aria-label="${u.name}"><i style="height:${pct}%"></i><span class="tl-ico">${icon}</span></div>`;
+    }).join('');
   }
   // foes
   const foes=el('battleFoes');
   if(foes){
     foes.innerHTML=B.foes.map(f=>`
-      <button type="button" class="foe-card ${foeScaleClass(f)} ${f.alive?'':'dead'} ${B.selecting&&needsTarget()?(_B._hover===f._iid?'target':''):''}" data-iid="${f._iid}" ${f.alive?'':'disabled'}>
-        <div class="foe-art-wrap pixel-foe"><img class="foe-art battler-spr pixelated" src="${pixelEnemyArt(f)}" alt="${f.name}" loading="lazy" onerror="this.onerror=null;this.style.display='none';this.nextElementSibling&&(this.nextElementSibling.style.display='flex');"/><div class="foe-fallback" style="display:none">${f.icon||'👹'}</div></div>
+      <button type="button" class="foe-card foe-bare ${foeScaleClass(f)} ${f.alive?'':'dead'} ${B.selecting&&needsTarget()?(_B._hover===f._iid?'target':''):''}" data-iid="${f._iid}" ${f.alive?'':'disabled'}>
+        <div class="foe-art-wrap pixel-foe"><img class="foe-art battler-spr" src="${pixelEnemyArt(f)}" alt="${f.name}" loading="lazy" onerror="this.onerror=null;this.style.display='none';this.nextElementSibling&&(this.nextElementSibling.style.display='flex');"/><div class="foe-fallback" style="display:none">${f.icon||'👹'}</div></div>
         <div class="foe-plate jrpg-window">
           <div class="foe-name" title="${f.name}">${f.name}</div>
           <div class="foe-tags">${f.boss?'<span class="ftag boss">BOSS</span>':''}${f.analyzed?'<span class="ftag">✦</span>':''}${f.staggered?'<span class="ftag bruch">BRUCH</span>':''}${f.rare?'<span class="ftag">SELTEN</span>':''}</div>
@@ -1274,7 +1281,7 @@ function refreshUI(){
   if(party){
     party.innerHTML=B.party.map(p=>`
       <div class="party-card pixel-party jrpg-window ${p.alive?'':'dead'} ${B.selecting?.actor===p?'active':''} row-${p.row||'front'}" data-iid="${p._iid}">
-        <div class="party-port">${p.portrait?`<img src="${p.portrait}" alt="" loading="lazy"/>`:`<span>${(p.name||'?')[0]}</span>`}</div>
+        <div class="party-port">${p.portrait?`<img src="${p.portrait}" alt="" loading="lazy"/>`:`<span class="ph-role">${p.kind==='hero'?'🗡️':(p.icon||'⭐')}</span>`}</div>
         <div class="party-meta">
           <div class="party-name-row"><b>${p.name}</b>${p.job?` · <span class="party-job">${(Jobs.JOBS[p.job]||{}).name||p.job}</span>`:''}<span class="party-rowtag"> · ${p.row==='back'?'hinten':'vorn'}</span></div>
           <div class="party-bars">
@@ -1350,7 +1357,7 @@ function refreshUI(){
           <button type="button" class="bcm bcm-lg" data-c="skills">Fähigkeit</button>
           <button type="button" class="bcm bcm-lg" data-c="items">Item</button>
           <button type="button" class="bcm bcm-lg social" data-c="talk">Reden</button>
-          <button type="button" class="bcm bcm-lg ghost" data-c="flee">Flucht</button>
+          <button type="button" class="bcm bcm-lg ghost bcm-flucht" data-c="flee">Flucht</button>
         </div>
         <div class="cmd-classic cmd-secondary">
           <button type="button" class="bcm" data-c="magic">Magie</button>
@@ -1489,7 +1496,7 @@ function playVictoryFanfare(){
   }catch(_){}
 }
 
-function hideBattleUI(){
+function hideBattleUI(){ clearBattleOpen();
   try{ window.__game?.C43?.screenTransition?.('fade', 300); }catch(_){}
   const root=el('battleRoot'); if(root) root.classList.add('hidden');
   try{
@@ -1536,14 +1543,18 @@ function partySpriteUrl(p){
   return './assets/pixel/chars/'+role+'_stage.png';
 }
 function sheetRoleForCompanion(unit){
-  const art=String(unit?.npcRef||unit?.name||'').toLowerCase();
-  if(/wache|ritter|guard|soldat/.test(art)) return 'guard';
+  const art=String(unit?.npcRef||unit?.name||unit?.job||'').toLowerCase();
+  if(/wache|ritter|guard|soldat|garrick/.test(art)) return 'guard';
   if(/magier|hexe|zauber|mage|orren/.test(art)) return 'mage';
-  if(/händler|kauf|merchant|wirt/.test(art)) return 'merchant';
+  if(/händler|kauf|merchant|wirt|bauer/.test(art)) return 'merchant';
   if(/späher|dieb|assassin|spy|lyra/.test(art)) return 'spy';
   if(/prinzess|königin|elise|princess/.test(art)) return 'princess';
   if(/dämon|daemon|sukkub|teufel|velka/.test(art)) return 'daemon';
-  return 'neutral';
+  if(/dorf|villager|bauerin|bäuer/.test(art)) return 'villager';
+  // stable unique pick by name hash so clones don't share one silhouette
+  const roles=['spy','mage','merchant','guard','princess','daemon','villager','neutral'];
+  let h=0; for(const c of art) h=(h*31+c.charCodeAt(0))>>>0;
+  return roles[h%roles.length];
 }
 /** Play 4-frame LPC sheet as FX overlay (survives refreshUI). */
 function playSpriteAnim(unit, action, opts={}){
@@ -1773,7 +1784,7 @@ export default {
   startBattle, isActive, getBattle, getLastSummary, getLastResult, playerCommand, buildParty, renderBattleUI,
   maybeRandomEncounter, offerEncounter, COMBAT_SKILLS,
   isStoryNpcFoe, storyNpcName, mercyNeeded, applyMercyDecision,
-  __playSprite: playSpriteAnim, __testDrive, __forceHide: ()=>{ try{ hideBattleUI(); _B=null; }catch(_){ const r=document.getElementById('battleRoot'); if(r){ r.classList.add('hidden'); r.innerHTML=''; } } },
+  __playSprite: playSpriteAnim, __testDrive, __forceHide: ()=>{ try{ hideBattleUI(); clearBattleOpen(); _B=null; }catch(_){ const r=document.getElementById('battleRoot'); if(r){ r.classList.add('hidden'); r.innerHTML=''; } } },
   Jrpg, Jobs, Gems, Summons, Equip
 };
 

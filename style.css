@@ -4793,3 +4793,557 @@ body.pixel-jrpg:not(.pixel-ow) #portraitWrap.portrait-bust img{
   padding-right:2px !important;
   font-size:10px !important;
 }
+
+/* ========== v52: foe bare + full names + timeline icons + craft wrap + thumb SE ========== */
+
+/* Kill foe card chrome / blur / white wrap completely */
+.battle-root.battle-pixel .foe-card,
+.battle-root.battle-pixel .foe-card.foe-bare,
+.battle-root.battle-pixel button.foe-card{
+  background:transparent !important;
+  border:none !important;
+  box-shadow:none !important;
+  outline:none !important;
+  backdrop-filter:none !important;
+  -webkit-backdrop-filter:none !important;
+  filter:none !important;
+  border-radius:0 !important;
+  padding:0 !important;
+  width:auto !important;
+  max-width:100% !important;
+  color:#fff !important;
+}
+.battle-root.battle-pixel .foe-art-wrap,
+.battle-root.battle-pixel .foe-art-wrap.pixel-foe,
+.battle-root.battle-pixel .pixel-foe{
+  background:transparent !important;
+  border:none !important;
+  border-radius:0 !important;
+  box-shadow:none !important;
+  outline:none !important;
+  overflow:visible !important;
+  backdrop-filter:none !important;
+  -webkit-backdrop-filter:none !important;
+  filter:drop-shadow(2px 4px 0 #000a) !important;
+  width:auto !important;
+  height:auto !important;
+  margin:0 !important;
+}
+.battle-root.battle-pixel .foe-art,
+.battle-root.battle-pixel .pixel-foe img,
+.battle-root.battle-pixel .foe-boss .foe-art,
+.battle-root.battle-pixel .foe-boss .pixel-foe img{
+  background:transparent !important;
+  border:none !important;
+  border-radius:0 !important;
+  box-shadow:none !important;
+  outline:none !important;
+  filter:none !important;
+  image-rendering:auto !important;
+  object-fit:contain !important;
+}
+.battle-root.battle-pixel .foe-card.foe-bare{
+  display:flex !important;
+  flex-direction:row !important;
+  align-items:flex-end !important;
+  gap:8px !important;
+  flex-wrap:wrap !important;
+}
+
+/* Full foe names — wrap cleanly, never ellipsis */
+.battle-root.battle-pixel .foe-plate{
+  min-width:150px !important;
+  max-width:min(58vw, 260px) !important;
+  flex:1 1 140px !important;
+  padding:8px 10px !important;
+  align-self:flex-start !important;
+}
+.battle-root.battle-pixel .foe-name{
+  white-space:normal !important;
+  overflow:visible !important;
+  text-overflow:clip !important;
+  display:block !important;
+  -webkit-line-clamp:unset !important;
+  font-size:12px !important;
+  font-weight:800 !important;
+  line-height:1.25 !important;
+  word-break:normal !important;
+  overflow-wrap:anywhere !important;
+  hyphens:manual !important;
+  max-width:none !important;
+}
+
+/* Timeline: icon badges, no letter/number confusion, no edge clip */
+.battle-root.battle-pixel .battle-stage > .battle-timeline{
+  top:max(10px, env(safe-area-inset-top)) !important;
+  right:max(14px, env(safe-area-inset-right)) !important;
+  left:auto !important;
+  gap:6px !important;
+  max-width:calc(100% - 88px) !important;
+  z-index:22 !important;
+}
+.battle-root.battle-pixel .tl-item{
+  width:28px !important;
+  height:36px !important;
+  flex:0 0 28px !important;
+  border-radius:4px !important;
+  background:#0c1838f0 !important;
+  border:1px solid #9eb6ff !important;
+  overflow:hidden !important;
+  position:relative !important;
+}
+.battle-root.battle-pixel .tl-item i{
+  position:absolute; left:0; right:0; bottom:0;
+  background:linear-gradient(180deg,#ffe08a,#f0c040) !important;
+  opacity:.85;
+}
+.battle-root.battle-pixel .tl-item.foe i{
+  background:linear-gradient(180deg,#ff8a8a,#e04040) !important;
+}
+.battle-root.battle-pixel .tl-item .tl-ico,
+.battle-root.battle-pixel .tl-item span{
+  position:absolute; inset:0;
+  display:flex; align-items:center; justify-content:center;
+  font-size:14px !important;
+  line-height:1;
+  z-index:2;
+  text-shadow:0 1px 2px #000;
+  color:#fff !important;
+  font-weight:700;
+}
+.battle-root.battle-pixel .battle-stage > .battle-atb-mode{
+  top:max(10px, env(safe-area-inset-top)) !important;
+  left:max(10px, env(safe-area-inset-left)) !important;
+}
+
+/* Craft: wrap names, keep Gil column */
+.craft-shop-body .pixel-shop-row.craft-row,
+#craftList .pixel-shop-row,
+#cookList .pixel-shop-row,
+#upList .pixel-shop-row,
+.pixel-shop-row.craft-row{
+  display:grid !important;
+  grid-template-columns:32px minmax(0,1fr) minmax(72px,auto) !important;
+  align-items:start !important;
+  gap:8px 10px !important;
+  padding:10px 8px !important;
+}
+.pixel-shop-row.craft-row .shop-info{
+  min-width:0 !important;
+  overflow:visible !important;
+}
+.pixel-shop-row.craft-row .shop-info b{
+  display:block !important;
+  white-space:normal !important;
+  overflow:visible !important;
+  text-overflow:clip !important;
+  font-size:12px !important;
+  line-height:1.25 !important;
+  word-break:break-word !important;
+}
+.pixel-shop-row.craft-row .shop-info .meta{
+  display:block !important;
+  white-space:normal !important;
+  overflow:visible !important;
+  text-overflow:clip !important;
+  font-size:10px !important;
+  line-height:1.3 !important;
+  word-break:break-word !important;
+  margin-top:2px;
+}
+.pixel-shop-row.craft-row .shop-side{
+  align-items:flex-end !important;
+  min-width:72px !important;
+}
+
+/* Thumb-zone: short phones (iPhone SE 375×667) */
+@media (max-height:720px), (max-width:400px){
+  .battle-root.battle-pixel .battle-hud{
+    gap:3px !important;
+    padding:2px 6px calc(4px + env(safe-area-inset-bottom)) !important;
+  }
+  .battle-root.battle-pixel .battle-log{
+    max-height:2.4em !important;
+    font-size:11px !important;
+    padding:4px 8px !important;
+  }
+  .battle-root.battle-pixel .cmd-primary{
+    gap:6px !important;
+    margin-bottom:4px !important;
+  }
+  .battle-root.battle-pixel .cmd-primary .bcm-lg{
+    min-height:44px !important;
+    font-size:14px !important;
+    padding:8px 6px !important;
+  }
+  .battle-root.battle-pixel .cmd-secondary{
+    max-height:14vh !important;
+    gap:3px !important;
+  }
+  .battle-root.battle-pixel .cmd-secondary .bcm{
+    min-height:34px !important;
+    font-size:11px !important;
+    padding:6px !important;
+  }
+  .battle-root.battle-pixel .battle-free{
+    margin-top:2px !important;
+  }
+  .battle-root.battle-pixel .battle-free input{
+    min-height:36px !important;
+    font-size:13px !important;
+  }
+  .battle-root.battle-pixel .party-card.pixel-party{
+    padding:6px 8px !important;
+  }
+  .battle-root.battle-pixel .party-meta .bar,
+  .battle-root.battle-pixel .party-bars .bar{
+    height:11px !important;
+    min-height:11px !important;
+    max-height:11px !important;
+  }
+  .battle-root.battle-pixel .party-meta .bar.lim,
+  .battle-root.battle-pixel .party-meta .bar.atb,
+  .battle-root.battle-pixel .party-bars .bar.lim,
+  .battle-root.battle-pixel .party-bars .bar.atb{
+    height:5px !important;
+    min-height:5px !important;
+    max-height:5px !important;
+  }
+  .battle-root.battle-pixel .party-stage-spr img,
+  .battle-root.battle-pixel .party-stage-spr .pixel-hero-spr{
+    width:88px !important;
+    height:116px !important;
+  }
+  .battle-root.battle-pixel .foe-boss .foe-art,
+  .battle-root.battle-pixel .foe-boss .pixel-foe img{
+    width:132px !important;
+    height:132px !important;
+    max-height:28vh !important;
+  }
+  body.pixel-jrpg .hub-grid{
+    grid-template-columns:repeat(3,1fr) !important;
+    gap:8px !important;
+    padding:6px 8px 20px !important;
+  }
+  body.pixel-jrpg .hub-grid button,
+  body.pixel-jrpg .hub-grid .hub-tile{
+    min-height:52px !important;
+    font-size:12px !important;
+  }
+  .menu-panel, #menu .menu-panel, .pixel-shop-panel{
+    max-height:calc(100dvh - 12px) !important;
+  }
+  .craft-shop-body .craft-header-compact .meta{ font-size:10px !important; }
+}
+
+/* Broader UI polish — title / sheets / hub / atlas / settings */
+#titleScreen .logo, .title-screen .logo{
+  font-size:clamp(28px, 8vw, 42px) !important;
+  line-height:1.1 !important;
+  padding:0 12px !important;
+  word-break:break-word;
+}
+#titleScreen .title-badge, .title-badge{
+  white-space:nowrap;
+  font-size:11px !important;
+}
+#titleScreen .menu-list button,
+.title-screen .menu-list button{
+  min-height:48px !important;
+  font-size:15px !important;
+  padding:10px 14px !important;
+}
+@media (max-height:700px){
+  #titleScreen .logo{ font-size:clamp(24px, 7vw, 34px) !important; margin-bottom:8px !important; }
+  #titleScreen .menu-list{ gap:8px !important; }
+  #titleScreen .menu-list button{ min-height:44px !important; }
+}
+
+.menu-panel .card h3,
+.menu-body h3,
+.sheet-body h3{
+  font-size:15px !important;
+  margin:0 0 8px !important;
+  line-height:1.2 !important;
+}
+.menu-panel .meta, .sheet-body .meta, .menu-body .meta{
+  font-size:11px !important;
+  line-height:1.35 !important;
+  word-break:break-word;
+}
+.atlas-card, .map-card{
+  overflow:hidden !important;
+}
+.atlas-card canvas, .map-card canvas, #atlasCanvas, .map-canvas{
+  max-width:100% !important;
+  height:auto !important;
+}
+.settings-row, .sheet-tab, .menu-list button{
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+#sheet .sheet-tabs, .sheet-tabs{
+  display:flex; flex-wrap:wrap; gap:4px;
+}
+#sheet .sheet-tabs button, .sheet-tabs .sheet-tab{
+  flex:1 1 auto;
+  min-width:64px;
+  font-size:12px !important;
+  padding:8px 6px !important;
+}
+.pixel-shop-panel{
+  width:min(96vw, 480px) !important;
+  max-height:min(92dvh, 900px) !important;
+  overflow:auto !important;
+}
+.pixel-shop-head{
+  display:flex; align-items:center; gap:8px;
+  padding:10px 12px !important;
+}
+.pixel-shop-meta{
+  font-size:11px !important;
+  padding:0 12px 6px !important;
+  white-space:normal !important;
+  word-break:break-word;
+}
+.camp-25d .camp-stage-vis{ max-height:120px; }
+@media (max-width:400px){
+  .pixel-shop-panel{ width:min(98vw, 420px) !important; border-radius:8px !important; }
+  .atlas-card p.meta{ font-size:10px !important; }
+}
+
+/* ========== v52b: settings sheet + sheet panel mobile ========== */
+#sheet:not(.hidden){
+  align-items:center !important;
+  justify-content:center !important;
+  padding:max(8px, env(safe-area-inset-top)) 10px max(8px, env(safe-area-inset-bottom)) !important;
+}
+#sheet .panel, #sheet .sheet-panel, #sheet > .card, #sheet > div{
+  max-width:min(520px, 96vw) !important;
+  max-height:min(88dvh, 860px) !important;
+  overflow:auto !important;
+  width:100% !important;
+  margin:0 auto !important;
+  border-radius:10px !important;
+}
+#sheet label, #sheet .settings-row{
+  display:flex; flex-wrap:wrap; gap:6px 10px;
+  align-items:center;
+  margin:6px 0;
+  font-size:13px;
+}
+#sheet input, #sheet select, #sheet textarea{
+  max-width:100% !important;
+  box-sizing:border-box !important;
+}
+@media (max-height:700px){
+  #sheet .panel, #sheet .sheet-panel{ max-height:92dvh !important; }
+  #sheet h2, #sheet h3{ font-size:15px !important; margin:6px 0 !important; }
+}
+.inv-grid{
+  display:grid !important;
+  grid-template-columns:repeat(auto-fill, minmax(88px, 1fr)) !important;
+  gap:8px !important;
+}
+.inv-cell{
+  min-height:72px !important;
+  overflow:hidden !important;
+}
+.inv-cell .nm{
+  font-size:11px !important;
+  white-space:normal !important;
+  word-break:break-word !important;
+  line-height:1.2 !important;
+}
+.skill-card{
+  display:flex; gap:10px; align-items:flex-start;
+}
+.skill-card h3{ font-size:14px !important; }
+
+/* ========== v52c: SE cmd scroll, party emoji, home empty, menu tabs ========== */
+.battle-root.battle-pixel .party-port .ph-role,
+.battle-root .party-port .ph-role{
+  display:flex; align-items:center; justify-content:center;
+  width:100%; height:100%;
+  font-size:18px; line-height:1;
+  filter:none; text-shadow:0 1px 0 #0008;
+}
+.battle-root.battle-pixel .party-port{
+  width:36px; height:36px; min-width:36px;
+  border-radius:6px; overflow:hidden;
+  background:#0b1a2ecc;
+  display:flex; align-items:center; justify-content:center;
+  font-size:16px; font-weight:700; color:#f0d59a;
+}
+@media (max-height:720px){
+  .battle-root.battle-pixel .battle-cmd{
+    max-height:42dvh !important;
+    overflow-y:auto !important;
+    -webkit-overflow-scrolling:touch;
+    overscroll-behavior:contain;
+  }
+  .battle-root.battle-pixel .battle-cmd .bcm,
+  .battle-root.battle-pixel .battle-cmd button{
+    min-height:40px !important;
+    padding:8px 6px !important;
+    font-size:13px !important;
+  }
+  .battle-root.battle-pixel .battle-party{
+    max-height:22dvh !important;
+    overflow-y:auto !important;
+  }
+  .battle-root.battle-pixel .party-card{
+    padding:4px 6px !important;
+    min-height:0 !important;
+  }
+  .battle-root.battle-pixel .party-bars .bar{ height:6px !important; }
+  .battle-root.battle-pixel .battle-log{
+    max-height:2.4em !important;
+    overflow:hidden !important;
+    font-size:11px !important;
+  }
+  .battle-root.battle-pixel .battle-stage{
+    min-height:28dvh !important;
+    max-height:36dvh !important;
+  }
+}
+.menu-tabs, .hub-tabs, .menu-panel .tabs{
+  display:flex !important;
+  flex-wrap:nowrap !important;
+  overflow-x:auto !important;
+  -webkit-overflow-scrolling:touch;
+  gap:6px !important;
+  padding-bottom:4px !important;
+  scrollbar-width:thin;
+}
+.menu-tabs button, .hub-tabs button, .menu-panel .tabs button{
+  flex:0 0 auto !important;
+  white-space:nowrap !important;
+}
+.home-empty, .home-plot-empty, .zuhause-empty{
+  min-height:72px;
+  display:flex; align-items:center; justify-content:center;
+  background:linear-gradient(180deg,#1e3a5f 0%,#0f2744 100%);
+  border:1px dashed #ffffff28;
+  border-radius:8px;
+  color:#94a3b8;
+  font-size:12px;
+}
+/* hide broken home progress bar when no plot */
+.home-card canvas:empty, .home-vis:empty{ display:none; }
+.map-canvas-wrap, .map-wrap{
+  border-radius:10px;
+  overflow:hidden;
+  border:1px solid #ffffff18;
+}
+.inv-cat-grid, .inv-cats{
+  display:grid;
+  grid-template-columns:repeat(2, minmax(0,1fr));
+  gap:12px;
+  padding:12px 8px;
+}
+.inv-cat-tile{
+  min-height:96px;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:8px;
+}
+
+/* ========== v52d: camp empty + build stub ========== */
+.camp-25d .camp-stage-vis{
+  position:relative; height:88px; border-radius:8px; overflow:hidden;
+  margin:6px 0 10px; border:1px solid #ffffff18;
+  background:linear-gradient(180deg,#3b6ea5 0%,#1a3a5c 55%,#0d2438 100%);
+}
+.camp-25d .camp-sky{ position:absolute; inset:0 0 40% 0; background:linear-gradient(180deg,#5b8fc7,#2a5078); }
+.camp-25d .camp-mid{ position:absolute; left:0; right:0; bottom:18%; height:28%; background:#2d5a3a; opacity:.85; }
+.camp-25d .camp-build{
+  position:absolute; left:50%; bottom:22%; transform:translateX(-50%);
+  width:48px; height:36px; border-radius:4px 4px 2px 2px;
+  background:#8b6914; box-shadow:0 2px 0 #0006;
+}
+.camp-25d .camp-build.s0{
+  width:56px; height:10px; border-radius:2px; background:#5a4630aa;
+  border:1px dashed #c4a57466;
+}
+.camp-25d:not(.has-plot) .camp-build.s0::after{
+  content:'📍'; position:absolute; left:50%; top:-18px; transform:translateX(-50%);
+  font-size:16px;
+}
+.camp-25d .camp-palisade{ position:absolute; left:8%; right:8%; bottom:12%; height:6px; background:#3f2a14; opacity:.5; border-radius:2px; }
+.camp-25d .camp-fg{ position:absolute; left:0; right:0; bottom:0; height:14%; background:#1a3324; }
+.home-panel .meta{ line-height:1.45; }
+
+/* ========== v52e: sheet above battle; hide VN input in battle; foe z; SE fit ========== */
+#sheet{ z-index: 120 !important; }
+#menu{ z-index: 110 !important; }
+#toast{ z-index: 130 !important; }
+body.battle-open .input-row,
+body.battle-open #choices,
+body.battle-open .vn-wrap,
+html.battle-open .input-row{
+  visibility:hidden !important;
+  pointer-events:none !important;
+  height:0 !important;
+  padding:0 !important;
+  margin:0 !important;
+  overflow:hidden !important;
+}
+.battle-root.battle-pixel .battle-foes,
+.battle-root .battle-foes{ z-index: 5 !important; }
+.battle-root.battle-pixel .battle-party-spr,
+.battle-root .battle-party-spr{ z-index: 3 !important; }
+.battle-root.battle-pixel .foe-card,
+.battle-root .foe-card{ z-index: 6 !important; position:relative; }
+.battle-root.battle-pixel .foe-plate{
+  z-index: 7 !important;
+  position:relative;
+  backdrop-filter:none !important;
+  background:#0b1a2ef2 !important;
+}
+/* Timeline: solid badge so emoji reads (not flat X) */
+.battle-root.battle-pixel .tl-item{
+  width:28px !important; height:28px !important;
+  border-radius:6px !important;
+  border:1px solid #f0d59a88 !important;
+  background:#0a1628ee !important;
+  overflow:visible !important;
+  flex-shrink:0;
+}
+.battle-root.battle-pixel .tl-item .tl-ico{
+  font-size:14px !important;
+  line-height:1 !important;
+  filter:drop-shadow(0 1px 0 #000);
+}
+.battle-root.battle-pixel .tl-item.ally{ background:#14305aee !important; border-color:#7dd3fc88 !important; }
+.battle-root.battle-pixel .tl-item.foe{ background:#3a1520ee !important; border-color:#f8717188 !important; }
+.battle-root.battle-pixel .tl-item.boss{ background:#4a1020ee !important; border-color:#fbbf24 !important; }
+@media (max-height:700px){
+  .battle-root.battle-pixel .battle-cmd{
+    grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+    gap:5px !important;
+    padding:6px 8px calc(6px + env(safe-area-inset-bottom)) !important;
+    max-height:38dvh !important;
+  }
+  .battle-root.battle-pixel .battle-cmd .bcm.wide,
+  .battle-root.battle-pixel .battle-cmd button[data-wide],
+  .battle-root.battle-pixel .battle-cmd .bcm-flucht{
+    grid-column:1 / -1 !important;
+  }
+  .battle-root.battle-pixel .battle-hud{
+    max-height:62dvh !important;
+    display:flex; flex-direction:column;
+  }
+}
+
+/* ========== v52f: kill freitext during battle ========== */
+body.battle-open .input-row,
+html.battle-open .input-row,
+body.battle-open #say,
+body.battle-open #actInput,
+body.battle-open input[placeholder*="Freitext"],
+body.battle-open .composer,
+.battle-root ~ .input-row,
+#game:has(.battle-root:not(.hidden)) .input-row,
+#app:has(.battle-root:not(.hidden)) .input-row{
+  display:none !important;
+}
