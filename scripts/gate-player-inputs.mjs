@@ -346,8 +346,8 @@ function fakeOldSave(ver){
 async function runLiveSiteBrowser(){
   const label='live-site';
   let fails=0, total=0;
-  const LIVE='https://markusstol.github.io/isekai-game/';
-  const versions=['13','16','18','20'];
+  const LIVE=process.env.GATE_LIVE_URL||'https://markusstol.github.io/isekai-game/';
+  const versions=['13','16','18','20','22'];
   const safariUA='Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1';
 
   async function oneProfile(name, {ua, seedVer}={}){
@@ -385,13 +385,30 @@ async function runLiveSiteBrowser(){
         const g=window.__game;
         if(!g?.S) return {ok:false, reason:'no-S'};
         try{ if(g.S.flags){ delete g.S.flags._offerEncounter; delete g.S.flags.narratorCombat } }catch(_){}
-        const actP=g.act('hallo');
-        const to=new Promise((_,rej)=>setTimeout(()=>rej(new Error('act-timeout')),30000));
-        try{ await Promise.race([actP, to]); }catch(e){ return {ok:false, reason:String(e.message||e), busy:document.body.classList.contains('busy'), vn:document.getElementById('vnText')?.textContent||''}; }
-        const busy=document.body.classList.contains('busy');
-        const disabled=!!document.getElementById('txt')?.disabled;
-        const vn=(document.getElementById('vnText')?.textContent||'').trim();
-        return {ok:true, busy, disabled, vn, ort:g.S.world?.scene?.ort, hasOrte:!!g.S.world?.orte, hasGraph:!!g.S.world?.graph?.nodes};
+        const INPUTS=['hallo','ich schaue mich um','ich rede mit ihr'];
+        const results=[];
+        for(const text of INPUTS){
+          const before=(document.getElementById('vnText')?.textContent||'').trim();
+          const txt=document.getElementById('txt');
+          if(txt){ txt.disabled=false; txt.value=text; }
+          const form=document.getElementById('inputRow');
+          const t0=performance.now();
+          if(form) form.requestSubmit();
+          else await g.act(text);
+          let last={};
+          for(let i=0;i<50;i++){
+            await new Promise(r=>setTimeout(r,300));
+            const vn=(document.getElementById('vnText')?.textContent||'').trim();
+            last={vn, busy:document.body.classList.contains('busy'), disabled:!!document.getElementById('txt')?.disabled, same:vn===before, ms:Math.round(performance.now()-t0)};
+            if(!last.busy && !last.same && vn.length>=8) break;
+          }
+          results.push({text, ...last});
+          // Must finish within ~12s (hard deadline + typewrite grace)
+          if(last.busy || last.same || (last.vn||'').length<8 || last.ms>12000){
+            return {ok:false, reason:last.busy?'busy-stuck':last.same?'no-reply':(last.ms>12000?'too-slow':'empty'), vn:last.vn, text, ms:last.ms, busy:last.busy, disabled:last.disabled};
+          }
+        }
+        return {ok:true, busy:false, disabled:false, vn:results.at(-1).vn, results, ort:g.S.world?.scene?.ort, hasOrte:!!g.S.world?.orte, hasGraph:!!g.S.world?.graph?.nodes};
       });
       const pageErrs=errs.filter(e=>!/AbortError/i.test(e)); // AbortError from race must not appear after v21.1 — count if present
       const abortErrs=errs.filter(e=>/AbortError/i.test(e));
@@ -419,7 +436,7 @@ async function runLiveSiteBrowser(){
     }
   }
 
-  console.log('\n=== LIVE SITE (fresh + old saves) ===');
+  console.log('\n=== LIVE SITE (fresh + old saves) ===', LIVE);
   try{
     await oneProfile('fresh');
     await oneProfile('safari-fresh', {ua:safariUA});
@@ -485,6 +502,67 @@ async function runBusyPageerror(){
   return fails;
 }
 
+/** Path G: hung narrator fetch must still reply + clear busy within ACT_HARD_MS+grace */
+async function runHungFetchReply(){
+  const label='hung-fetch-reply';
+  let fails=0, total=0;
+  console.log('\n=== HUNG FETCH → ALWAYS REPLY ===');
+  await boot('held','HungTest');
+  total++;
+  const r=await page.evaluate(async()=>{
+    const g=window.__game;
+    window.__setCfg({mode:'free'});
+    const orig=window.fetch;
+    window.fetch=function(url, opts){
+      const u=String(url);
+      if(/pollinations|generativelanguage|openai/i.test(u)) return new Promise(()=>{}); // never resolves
+      return orig.apply(this, arguments);
+    };
+    const before=(document.getElementById('vnText')?.textContent||'').trim();
+    const t0=performance.now();
+    document.getElementById('txt').value='hallo';
+    document.getElementById('inputRow').requestSubmit();
+    let last={};
+    const limit=(g.ACT_HARD_MS||4800)+2500;
+    for(let i=0;i<40;i++){
+      await new Promise(r=>setTimeout(r,200));
+      const vn=(document.getElementById('vnText')?.textContent||'').trim();
+      last={vn, busy:document.body.classList.contains('busy'), disabled:!!document.getElementById('txt')?.disabled, same:vn===before, ms:Math.round(performance.now()-t0)};
+      if(!last.busy && !last.same && vn.length>=8) break;
+      if(performance.now()-t0>limit+2000) break;
+    }
+    window.fetch=orig;
+    return last;
+  });
+  const hard= (await page.evaluate(()=>window.__game?.ACT_HARD_MS)) || 4800;
+  if(r.busy || r.same || (r.vn||'').length<8 || r.ms > hard+3000){
+    fails++; failures.push({path:label, reason:r.busy?'busy-stuck':r.same?'no-reply':`slow:${r.ms}`, text:(r.vn||'').slice(0,80), ms:r.ms});
+    console.log('  FAIL hung-fetch', r);
+  } else console.log('  OK hung-fetch reply in', r.ms+'ms', '→', (r.vn||'').slice(0,60));
+  // second input after hung must also work (no permanent lock)
+  total++;
+  const r2=await page.evaluate(async()=>{
+    const before=(document.getElementById('vnText')?.textContent||'').trim();
+    document.getElementById('txt').value='ich schaue mich um';
+    document.getElementById('inputRow').requestSubmit();
+    let last={};
+    for(let i=0;i<30;i++){
+      await new Promise(r=>setTimeout(r,200));
+      const vn=(document.getElementById('vnText')?.textContent||'').trim();
+      last={vn, busy:document.body.classList.contains('busy'), same:vn===before};
+      if(!last.busy && !last.same && vn.length>=8) break;
+    }
+    return last;
+  });
+  if(r2.busy || r2.same || (r2.vn||'').length<8){
+    fails++; failures.push({path:label, a:'second', reason:r2.busy?'busy-stuck':'no-reply', text:(r2.vn||'').slice(0,80)});
+    console.log('  FAIL second-after-hung', r2);
+  } else console.log('  OK second-after-hung');
+  report.paths[label]={fails,total};
+  console.log(`=== ${label}: ${fails}/${total} fails ===`);
+  return fails;
+}
+
 
 try{
   server=await serve();
@@ -509,6 +587,7 @@ try{
   await runLiveSubset();
   console.log('\n=== BUSY + PAGEERROR ===');
   await runBusyPageerror();
+  await runHungFetchReply();
   // Live site last (needs network); skip if GATE_SKIP_LIVE=1
   if(process.env.GATE_SKIP_LIVE==='1'){
     console.log('\n=== LIVE SITE skipped (GATE_SKIP_LIVE=1) ===');

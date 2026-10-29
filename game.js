@@ -18,8 +18,9 @@ import * as Summons from './summons.js';
 import * as Equip from './equip.js';
 import * as Jrpg from './jrpg.js';
 import * as Depth from './depth.js';
+import * as V25 from './visual25d.js';
 const $=s=>document.querySelector(s);const $$=s=>[...document.querySelectorAll(s)];const R=a=>a[Math.floor(Math.random()*a.length)];const rnd=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
-const VER='22',CACHE_V='v22';
+const VER='23',CACHE_V='v23';
 const ROLES={
  held:{e:'⚔️',name:'Held mit Status-System',d:'Ein blaues Fenster erscheint: [Status]. Die Welt braucht dich.',world:'Königreich Aldheim',
   base:{hp:100,mp:40,str:12,cha:8,ruf:10,gold:40},cls:['Abenteurer','Ritter','Held','Legendärer Held'],pack:'worlds/held.json',
@@ -936,7 +937,11 @@ function typewrite(speaker,text,done){_twDone=false;_twFull=String(text||'').tri
  if(window.__FAST){finish();return}
  let i=Math.min(48,_twFull.length);const step=Math.max(1,Math.floor(_twFull.length/120));
  _twTimer=setInterval(()=>{i=Math.min(_twFull.length,i+step);el.textContent=_twFull.slice(0,i);if(i>=_twFull.length)finish()},12)}
-function typewriteAsync(speaker,text){return new Promise(res=>typewrite(speaker,text,res))}
+function typewriteAsync(speaker,text,maxMs=1800){return new Promise(res=>{
+  let done=false; const finish=()=>{ if(done)return; done=true; res(); };
+  try{ typewrite(speaker,text,finish); }catch(_){ try{ const el=$('#vnText'); if(el) el.textContent=String(text||'…').trim()||'…'; }catch(__){} finish(); return; }
+  setTimeout(()=>{ try{ if(!_twDone){ clearInterval(_twTimer); const el=$('#vnText'); if(el) el.textContent=_twFull||'…'; _twDone=true; $('#vnTap')?.classList.remove('hidden'); } }catch(_){ } finish(); }, maxMs);
+})}
 
 /* ---------- relationships / romance ---------- */
 function bumpRel(name,daff,dtrust,toastOn){if(!S.romance)S.romance={};
@@ -999,7 +1004,7 @@ function applyQuestUpdate(u){if(!u||!S.quests)return;const m=S.quests.main;
  if(u.sideUnlock){const id=String(u.sideUnlock);const sq=(S.quests.side||[]).find(q=>q.id===id);if(sq&&sq.status==='offen')sq.status='aktiv'}}
 
 /* ---------- HUD / choices / log ---------- */
-function hud(){if(!S)return;if(isG())hudG();else hudI();dbgLine()}
+function hud(){if(!S)return;if(isG())hudG();else hudI();dbgLine();try{V25.syncSceneActors(S);V25.setParallaxTheme(document.getElementById('sceneBg')?.dataset?.theme)}catch(_){}}
 function bar(v,m,col){return `<div class="bar"><i style="width:${Math.max(0,Math.min(100,v/Math.max(1,m)*100))}%;background:${col}"></i></div>`}
 function hudI(){const s=S.st,r=ROLES[S.role];
  $('#hud').innerHTML=`<div class="hud-top"><b>${r.e} ${S.pc?.name&&S.pc.name!=='???'?S.pc.name:r.cls[S.cls]}</b><span>Lv ${s.lvl} · 🪙${s.gold|0}</span></div>
@@ -1918,7 +1923,7 @@ async function streamTo(el,iter){let raw='';for await(const c of iter){raw+=c;el
 
 /* ---- v20 free path: race failover, instant 402, seamless continuity ---- */
 const FREE_MODEL='openai-fast';
-const FREE_TTFT_MS=2800; // wait longer for real AI before speculative offline
+const FREE_TTFT_MS=2200; // wait longer for real AI before speculative offline
 const FREE_STATUS_MS=6000;        // hard deadline waiting for HTTP status
 const FREE_TOTAL_MS=16000;
 const FREE_REFERRER='https://markusstol.github.io/isekai-game/';
@@ -2275,8 +2280,46 @@ function parseHostilityOffer(a){
 }
 
 
-function setBusy(on){busy=!!on;const txt=$('#txt'),btn=$('#inputRow button'),ch=$('#choices');if(txt)txt.disabled=on;if(btn)btn.disabled=on;if(ch)ch.querySelectorAll('button').forEach(b=>b.disabled=on);document.body.classList.toggle('busy',on)}
-async function act(a){if(busy||!a.trim())return;
+const ACT_HARD_MS=4800; // hard wall-clock: every input must produce a visible reply
+let _busySince=0, _actGen=0, _busyWatch=null;
+function setBusy(on){
+  busy=!!on;
+  if(on){ _busySince=performance.now();
+    if(!_busyWatch) _busyWatch=setInterval(()=>{
+      if(!busy){ clearInterval(_busyWatch); _busyWatch=null; return; }
+      if(performance.now()-_busySince > ACT_HARD_MS+1500){
+        console.warn('busy-watchdog');
+        try{
+          const el=$('#vnText');
+          const cur=(el?.textContent||'').trim();
+          if(!cur || cur.length<4 || cur==='…'){ if(el) el.textContent='Die Welt stockt einen Atemzug. Versuch es noch einmal.'; }
+        }catch(_){}
+        setBusy(false);
+      }
+    }, 800);
+  } else {
+    _busySince=0;
+    if(_busyWatch){ clearInterval(_busyWatch); _busyWatch=null; }
+  }
+  const txt=$('#txt'),btn=$('#inputRow button'),ch=$('#choices');
+  if(txt)txt.disabled=on; if(btn)btn.disabled=on;
+  if(ch)ch.querySelectorAll('button').forEach(b=>b.disabled=on);
+  document.body.classList.toggle('busy',on);
+}
+function forceUnbusy(msg){
+  try{ if(msg){ const el=$('#vnText'); if(el && (!(el.textContent||'').trim() || (el.textContent||'').trim()==='…')) el.textContent=msg; } }catch(_){}
+  setBusy(false);
+}
+async function act(a){
+  a=String(a||'');
+  if(!a.trim())return;
+  // If a prior turn is stuck, steal it so the player is never locked out
+  if(busy){
+    const age=performance.now()-(_busySince||0);
+    if(age < 2800){ try{toast('Noch am Erzählen…')}catch(_){ } return; }
+    forceUnbusy();
+  }
+
  try{ if(S?.world) ensureGraph(S); }catch(_){}
  // Drop stale encounter offers only after a prior turn left them — handled below per-input
  // Freedom & systems: travel / crime / romance / life-sim offline-first
@@ -2286,16 +2329,17 @@ async function act(a){if(busy||!a.trim())return;
   }catch(e){ console.warn('pre-act parse',e); dest=null;crime=null;life=null;isRom=false; }
   // Continuity: scene lock blocks travel unless the player clearly leaves
   if(dest){try{if(Cont.isSceneLocked(S)&&!Cont.playerWantsExit(a)) dest=null}catch(_){}}
-  if(crime||dest||isRom||life){busy=true;try{let res=null;if(crime){res=crime.type==='kill'?killNPC(crime.who,a):robNPC(crime.who);res={text:res.text,changes:res.changes}}
+  if(crime||dest||isRom||life){setBusy(true);try{let res=null;if(crime){res=crime.type==='kill'?killNPC(crime.who,a):robNPC(crime.who);res={text:res.text,changes:res.changes}}
    else if(life){res={text:life.text,changes:life.changes||{choices:travelChoices()}}}
    else if(dest){const tr=travelTo(dest);res={text:tr.text,changes:tr.changes||{choices:travelChoices(tr.to),xp:5}}}
    else {res=parseRomance(a)}
    if(res){add('p',a);apply(res.changes||{});if(res.changes?.world)applyWorld(res.changes.world);add('n',res.text);
     S.hist=(S.hist||[]).concat([{role:'user',content:'SPIELER: '+a},{role:'assistant',content:res.text}]).slice(-24);
     Cont.noteExchange(S,a,res.text);S.turn++;
-    // travel/crime already advanced time inside helpers — don't worldTick-hour-jump
     scheduleAfterReply([()=>{try{worldTick()}catch(_){}},()=>{try{save()}catch(_){}}]);
-    S.choices=(res.changes&&res.changes.choices)||travelChoices();hud();renderChoices();busy=false;return}}catch(e){console.warn(e)}busy=false}}
+    S.choices=(res.changes&&res.changes.choices)||travelChoices();hud();renderChoices();
+    try{await typewriteAsync(isG()?'Nebel':'Erzähler', res.text, 1200)}catch(_){ try{$('#vnText').textContent=res.text}catch(__){} }
+    return}}catch(e){console.warn(e)}finally{setBusy(false)}}}
 
  // Intro free-text
  if(_mode==='intro'){await actIntro(a);return}
@@ -2352,23 +2396,28 @@ async function act(a){if(busy||!a.trim())return;
  S.turn++;S.log.push({k:'p',t:a});
  // loadPack deferred — never block TTFT
  scheduleAfterReply([()=>{try{loadPack(S.role)}catch(_){}}, ()=>{try{Imm.uiTick()}catch(_){}}]);
+ const withDeadline=async(p,ms)=>{
+   let to; try{ return await Promise.race([p, new Promise((_,rej)=>{ to=setTimeout(()=>rej(Object.assign(new Error('act-deadline'),{deadline:1})), ms); })]); }
+   finally{ clearTimeout(to); }
+ };
  try{if(cfg.mode==='offline')throw 0;
   if(cfg.mode==='gemini'||(cfg.mode!=='webllm'&&cfg.mode!=='api'&&cfg.mode!=='free'&&hasKey())){
-   try{res=await gemini(a,el)}catch(e){softFail=true;el.textContent='…'}}
+   try{res=await withDeadline(gemini(a,el), ACT_HARD_MS)}catch(e){softFail=true; try{el.textContent='…'}catch(_){}}}
   if(!res&&(cfg.mode==='free'||softFail||(cfg.mode!=='gemini'&&cfg.mode!=='webllm'&&cfg.mode!=='api'&&cfg.mode!=='offline'))){
    try{
-     const raw=await aiTurn(a,el,'free'); // freeStream races Pollinations→Gemini→offline seamlessly
-     let p=raw.includes(STREAM_DELIM)?parseStream(raw):parse(raw);
-     // offlineAsStream / gemini serialize the same way
-     if(!p||!p.text){ try{p=parse(raw)}catch(_){}}
+     const raw=await withDeadline(aiTurn(a,el,'free'), ACT_HARD_MS);
+     let p=(raw&&raw.includes&&raw.includes(STREAM_DELIM))?parseStream(raw):parse(raw||'');
+     if(!p||!p.text){ try{p=parse(raw||'')}catch(_){}}
      if(p&&p.text&&p.text!=='…'&&p.text.length>4){
        res=p; softFail=false;
-       // narrator mode already set inside freeStream/raceSecondary
        if(!S._narratorMode) setNarratorMode(cfg.mode==='free'?'free':(S._narratorMode||'offline'));
      }
-   }catch(_){ /* freeStream last-resorts offline; only land here on hard throw */ }
+   }catch(_){ /* deadline or hard throw → offline below */ }
   }
-  if(!res&&cfg.mode!=='gemini'&&cfg.mode!=='free'){const raw=await aiTurn(a,el,cfg.mode);res=parse(raw);setNarratorMode(cfg.mode)}
+  if(!res&&cfg.mode!=='gemini'&&cfg.mode!=='free'){
+    try{ const raw=await withDeadline(aiTurn(a,el,cfg.mode), ACT_HARD_MS); res=parse(raw); setNarratorMode(cfg.mode); }
+    catch(_){}
+  }
   if(!res){ const off=offlineAsStream(a,el); res={text:off.text,changes:off.changes}; softFail=false; setNarratorMode('offline') }
   try{if(res.changes)res.changes=Sim.validateChanges(S,res.changes);if(res.changes?.world)res.changes.world=guardNoRegression(Sim.validateWorldUpdate(S,res.changes.world))}catch(_){}
   {const c=res.changes||{},lim={hp:30,mp:30,str:2,cha:2,ruf:5,xp:60,verstand:15,schuld:5,gold:50};for(const k in lim)if(k in c)c[k]=Math.max(-lim[k],Math.min(lim[k],+c[k]||0));if(c.affinity)for(const n in c.affinity)c.affinity[n]=Math.max(-15,Math.min(15,+c.affinity[n]||0));if(c.trust)for(const n in c.trust)c.trust[n]=Math.max(-10,Math.min(10,+c.trust[n]||0))}
@@ -2486,8 +2535,8 @@ $$('#menuTabs button').forEach(b=>b.onclick=()=>{_menuTab=b.dataset.tab;$$('#men
 $('#inputRow').onsubmit=e=>{e.preventDefault();const v=$('#txt').value;$('#txt').value='';
  if(_mode==='intro'){Promise.resolve(actIntro(v)).catch(err=>console.warn(err));return}
  if(_mode==='intro'||!S){/* grey own name via text */ const t=v.trim();if(t&&document.body.classList.contains('greyw')&&!S){newGrey('own',t,'');return}}
- if(busy){ try{toast('Noch am Erzählen…')}catch(_){ } return; }
- Promise.resolve(act(v)).catch(err=>{ console.warn('act',err); try{setBusy(false)}catch(_){ } });
+ // busy steal / toast handled inside act()
+ Promise.resolve(act(v)).catch(err=>{ console.warn('act',err); try{forceUnbusy('Antwort fehlgeschlagen — tippe erneut.')}catch(_){ try{setBusy(false)}catch(__){} } });
 };
 
 const sync=()=>{$('#webllmBox').style.display=$('#mode').value==='webllm'?'':'none';$('#apiBox').style.display=$('#mode').value==='api'?'':'none'};
@@ -2512,7 +2561,7 @@ $('#btnGateSave').onclick=()=>{const gk=$('#gateKey').value.trim();if(!gk){toast
  toast('Alles bereit.');gmFetch(gk,true).then(()=>gmProbe(gk).catch(()=>{}));enterPlay()};
 $('#btnGateSkip').onclick=()=>{cfg.mode='free';cfg.v2=1;localStorage.setItem(CFG,JSON.stringify(cfg));toast('Erzählerin: Pollinations (ohne Schlüssel)');enterPlay()};
 
-window.__setCfg=o=>{cfg=Object.assign(cfg||{},o||{});try{localStorage.setItem(CFG,JSON.stringify(cfg))}catch(_){}};window.__game={Depth,Battle,Jobs,Gems,Summons,Equip,Jrpg,localBeatLine,parsePlayerIntent,offlineRespondIntent,freeStream,FREE_MODEL,openPendingEncounter,Imm,discoverThing,showCodexInline,Level,UI14,UI17,Know,Cont,lastPromptDump,advanceTimeMinutes,applyActionDuration,newGrey,greyDetails,loadGrey,loadPack,get S(){return S},act,newLife,gBody,msgs,gmRank,gmProbe,parseStream,thinkingCfg,gmOrder,readSSE,STREAM_DELIM,migrate,worldTick,bumpRel,openMenu,stageName,offline,startIntro,setSceneImage,setPortrait,imgUrl,advanceTime,phaseLabel,typewrite,enterPlay,showTitle,analyzeImage,applySceneTheme,themeFromText,loadValidatedImage,openingNarration,travelTo,parseTravel,killNPC,robNPC,addMemory,memoryHint,startProcedural,offlineGenerateWorld,generateWorldPack,GENRES,travelChoices,ensureGraph,whoHere,parseLifeSim,Sim,Persist,WorldMap,Econ,Codex,UI13,save,loadSave,applyCatchUp,findAnyNpc};
+window.__setCfg=o=>{cfg=Object.assign(cfg||{},o||{});try{localStorage.setItem(CFG,JSON.stringify(cfg))}catch(_){}};window.__game={VER,setBusy,forceUnbusy,ACT_HARD_MS,V25,Depth,Battle,Jobs,Gems,Summons,Equip,Jrpg,localBeatLine,parsePlayerIntent,offlineRespondIntent,freeStream,FREE_MODEL,openPendingEncounter,Imm,discoverThing,showCodexInline,Level,UI14,UI17,Know,Cont,lastPromptDump,advanceTimeMinutes,applyActionDuration,newGrey,greyDetails,loadGrey,loadPack,get S(){return S},act,newLife,gBody,msgs,gmRank,gmProbe,parseStream,thinkingCfg,gmOrder,readSSE,STREAM_DELIM,migrate,worldTick,bumpRel,openMenu,stageName,offline,startIntro,setSceneImage,setPortrait,imgUrl,advanceTime,phaseLabel,typewrite,enterPlay,showTitle,analyzeImage,applySceneTheme,themeFromText,loadValidatedImage,openingNarration,travelTo,parseTravel,killNPC,robNPC,addMemory,memoryHint,startProcedural,offlineGenerateWorld,generateWorldPack,GENRES,travelChoices,ensureGraph,whoHere,parseLifeSim,Sim,Persist,WorldMap,Econ,Codex,UI13,save,loadSave,applyCatchUp,findAnyNpc};
 window.__game.askNPC=a=>askNPC(a);window.__game.gemini=gemini;
 if(cfg.gkey)gmFetch(cfg.gkey.trim()).then(()=>gmProbe(cfg.gkey.trim()).catch(()=>{})).catch(()=>{});
 (function(){const root=document.documentElement;const apply=()=>{try{const vv=window.visualViewport;if(!vv)return;const kb=Math.max(0,window.innerHeight-vv.height-vv.offsetTop);root.style.setProperty('--kb',kb+'px')}catch(_){}};
@@ -2520,23 +2569,36 @@ if(cfg.gkey)gmFetch(cfg.gkey.trim()).then(()=>gmProbe(cfg.gkey.trim()).catch(()=
  window.addEventListener('focusin',e=>{if(e.target&&e.target.id==='txt'){setTimeout(()=>{try{e.target.scrollIntoView({block:'end',behavior:'smooth'})}catch(_){};apply()},300)}});
  $('#txt')&&$('#txt').addEventListener('blur',()=>root.style.setProperty('--kb','0px'))})();
 try{if('serviceWorker' in navigator&&navigator.serviceWorker){
-  // Self-heal: if a stale SW cache name mismatches this build, drop caches & re-register
   (async()=>{
     try{
       const expect='isekai-v'+VER;
+      let heal=false;
       if(window.caches){
         const keys=await caches.keys();
         const stale=keys.filter(k=>k.startsWith('isekai-')&&k!==expect);
-        if(stale.length){
-          await Promise.all(stale.map(k=>caches.delete(k)));
-          const regs=await navigator.serviceWorker.getRegistrations();
-          await Promise.all(regs.map(r=>r.unregister()));
-          if(!sessionStorage.getItem('isekai_sw_heal')){ sessionStorage.setItem('isekai_sw_heal','1'); location.reload(); return; }
+        if(stale.length){ heal=true; await Promise.all(stale.map(k=>caches.delete(k))); }
+      }
+      // Also heal when a controlling SW is older than this VER (Safari sticky caches)
+      try{
+        const reg=await navigator.serviceWorker.getRegistration();
+        if(reg){
+          const swUrl=(reg.active||reg.waiting||reg.installing)?.scriptURL||'';
+          if(swUrl && !swUrl.includes('v='+VER) && !swUrl.includes('isekai-v'+VER)){
+            // sw.js?v=VER — if query missing/old, force re-register
+            heal=true;
+          }
         }
+      }catch(_){}
+      if(heal){
+        const regs=await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map(r=>r.unregister()));
+        if(window.caches){ const keys=await caches.keys(); await Promise.all(keys.filter(k=>k.startsWith('isekai-')).map(k=>caches.delete(k))); }
+        if(!sessionStorage.getItem('isekai_sw_heal_'+VER)){ sessionStorage.setItem('isekai_sw_heal_'+VER,'1'); location.reload(); return; }
       }
     }catch(_){}
     navigator.serviceWorker.register('./sw.js?v='+VER).catch(()=>{});
   })();
-  navigator.serviceWorker.addEventListener('controllerchange',()=>{if(sessionStorage.getItem('isekai_sw_reloaded'))return;sessionStorage.setItem('isekai_sw_reloaded','1');location.reload()});
+  navigator.serviceWorker.addEventListener('controllerchange',()=>{if(sessionStorage.getItem('isekai_sw_reloaded_'+VER))return;sessionStorage.setItem('isekai_sw_reloaded_'+VER,'1');location.reload()});
 }}catch(_){}
+try{V25.boot25d()}catch(_){}
 showTitle();

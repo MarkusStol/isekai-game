@@ -5,6 +5,7 @@ import * as Jobs from './jobs.js';
 import * as Gems from './gems.js';
 import * as Summons from './summons.js';
 import * as Equip from './equip.js';
+import * as V25 from './visual25d.js';
 
 const R=a=>a[Math.floor(Math.random()*a.length)];
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
@@ -980,6 +981,7 @@ export function renderBattleUI(){
   root.innerHTML=`
   <div class="battle-bg" id="battleBg" style="background-image:url('${B.bg}')"></div>
   <div class="battle-veil"></div>
+  <div class="battle-stage-25d"><div class="bstage-floor"></div></div>
   <div class="battle-atb-mode">${B.atbMode==='wait'?'WAIT':'ACTIVE'}</div>
   <div class="skill-banner" id="skillBanner"></div>
   <div class="battle-timeline" id="battleTL"></div>
@@ -1199,6 +1201,7 @@ function flashUnit(unit, kind){
 }
 function shakeScreen(){
   const root=el('battleRoot'); if(!root)return;
+  try{V25.decorateBattle25d(root); V25.battleCamPulse(root,'hit')}catch(_){}
   root.classList.add('shake'); setTimeout(()=>root.classList.remove('shake'),400);
 }
 

@@ -1,3 +1,4 @@
+import * as V25 from './visual25d.js';
 /** v13 UI: Home, Chronik, Finance, Kingdom, Codex, Map (zoom/pan/draw) */
 import * as Sim from './sim.js';
 import * as Map from './map.js';
@@ -6,7 +7,8 @@ import * as Codex from './codex.js';
 
 export function renderHome(body, S, {act, closeMenu, phaseLabel}){
   const h=S.home||Sim.blankHome(); const st=Sim.HOME_STAGES[h.stage]||Sim.HOME_STAGES[0]; const next=Sim.HOME_STAGES[h.stage+1];
-  const card=document.createElement('div'); card.className='card';
+  try{ setTimeout(()=>V25.decorateCamp25d(document.querySelector('.home-panel')||document.getElementById('menuBody'), h),0)}catch(_){}
+  const card=document.createElement('div'); card.className='card home-panel';
   let homeHtml='Kein Grundstück – Land beanspruchen.';
   if(h.owned){
     const plots=(S.farm?.plots||[]).map(p=>{
@@ -23,6 +25,7 @@ export function renderHome(body, S, {act, closeMenu, phaseLabel}){
   }
   card.innerHTML='<h3>🏠 Zuhause</h3><p class="meta">'+homeHtml+'</p>';
   body.appendChild(card);
+  try{V25.decorateCamp25d(card, h)}catch(_){}
   const row=document.createElement('div'); row.className='row'; card.appendChild(row);
   const btn=(lab,fn)=>{const b=document.createElement('button');b.type='button';b.className='tiny';b.textContent=lab;b.onclick=()=>{closeMenu();fn()};row.appendChild(b)};
   if(!h.owned) btn('Land beanspruchen',()=>act('Ich beanspruche hier ein Grundstück'));
@@ -137,6 +140,7 @@ export function renderMap(body, S, {act, closeMenu, toast}){
   const cwrap=document.createElement('div'); cwrap.className='map-canvas-wrap';
   const canvas=document.createElement('canvas'); canvas.width=340; canvas.height=340; canvas.style.width='100%'; canvas.style.display='block'; canvas.style.touchAction='none'; canvas.style.background='#0a1620';
   cwrap.appendChild(canvas); wrap.appendChild(cwrap);
+  try{ cwrap.classList.add('map-wrap'); Map.decorateIso?.(cwrap); V25.decorateMapIso(cwrap);}catch(_){}
   const ctx=canvas.getContext('2d');
   const a=S.atlas;
   let drawMode=false, drawing=[];
