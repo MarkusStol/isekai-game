@@ -255,7 +255,10 @@ async function runLive(browser){
     for(const ver of [13,50,57,58]){
       const s={ver, st:{hp:40,maxhp:100,gold:5,str:8}, world:{npcs:{'Sekretärin Velka':{alive:true,art:'Sukkubus'}},scene:{ort:'Test'}}, flags:{onboarded:true}, romance:{}, pc:{name:'Legacy'+ver}, genre:'daemon', role:'daemon'};
       try{
-        (g.C60||g.C58).migrateV60?.(s) || g.C58.migrateV60(s);
+        if(g.C60?.migrateV60) g.C60.migrateV60(s);
+        else if(g.C59?.migrateV59) g.C59.migrateV59(s);
+        else if(g.C58?.migrateV58) g.C58.migrateV58(s);
+        else throw new Error('no migrate');
         out.push({ver, ok:true, outVer:s.ver, campaign:s.campaign?.id, freetext:s.flags?.freetext});
       }catch(e){ out.push({ver, ok:false, err:String(e)});}
     }
