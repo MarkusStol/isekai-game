@@ -436,25 +436,32 @@ export function buildMapForLocation(S, ort){
     prop(cx-3,cy,'statue'); prop(cx+3,cy,'statue');
     scatterProps([[4,cy,'lamp'],[w-5,cy,'lamp'],[cx,4,'sign']]);
   } else if(preset==='throne'){
+    // v61 hand-authored: castle throne hall — pillars, carpet aisle, throne dais
+    kind='interior';
     for(let y=0;y<ht;y++) for(let x=0;x<w;x++) tiles[y][x]='floor';
-    fill(0,0,w,2,'wall'); fill(0,0,2,ht,'wall'); fill(w-2,0,2,ht,'wall'); fill(0,ht-2,w,2,'wall');
-    fill(cx-2, 2, 5, ht-4, 'carpet');
-    fill(cx-4, 3, 9, 5, 'plaza');
-    // v60: denser throne hall — side aisles, save crystal, chests, torch ring
-    fill(3, 3, 3, ht-6, 'path'); fill(w-6, 3, 3, ht-6, 'path');
-    prop(cx,4,'statue'); prop(cx-3,5,'lamp'); prop(cx+3,5,'lamp');
-    anim(cx-3,5,'torch'); anim(cx+3,5,'torch');
-    anim(4,4,'torch'); anim(w-5,4,'torch'); anim(4,ht-5,'torch'); anim(w-5,ht-5,'torch');
-    placeHouse(cx-8, cy-1, 'Nebenkammer',{variant:3});
-    placeHouse(cx+4, cy-1, 'Wache',{variant:0});
-    placeHouse(3, ht-8, 'Velkas Büro',{variant:2});
-    placeHouse(w-7, ht-8, 'Schatzkammer',{variant:1});
-    placeChest(cx+3, 6, {gold:18, item:'Nachtstahl-Splitter'});
+    fill(0,0,w,2,'wall'); fill(0,ht-2,w,2,'wall'); fill(0,0,2,ht,'wall'); fill(w-2,0,2,ht,'wall');
+    fill(cx-1, 3, 3, ht-6, 'carpet');
+    fill(cx-4, 2, 9, 5, 'plaza');
+    fill(cx-2, 2, 5, 3, 'carpet');
+    for(let y=6;y<ht-4;y+=3){
+      prop(cx-5, y, 'statue'); prop(cx+5, y, 'statue');
+      anim(cx-5, y-1, 'torch'); anim(cx+5, y-1, 'torch');
+      if(tiles[y]){ tiles[y][cx-5]='stone'; tiles[y][cx+5]='stone'; }
+    }
+    prop(cx, 3, 'statue');
+    prop(cx-2, 4, 'lamp'); prop(cx+2, 4, 'lamp');
+    anim(cx-3, 3, 'torch'); anim(cx+3, 3, 'torch');
+    fill(2, 4, 3, 4, 'wall'); fill(w-5, 4, 3, 4, 'wall');
+    if(tiles[6]){ tiles[6][3]='door'; tiles[6][w-4]='door'; }
+    fill(2, ht-8, 4, 4, 'stone'); fill(w-6, ht-8, 4, 4, 'stone');
+    prop(3, ht-7, 'barrel'); prop(w-5, ht-7, 'crate');
+    placeChest(cx+3, 5, {gold:18, item:'Nachtstahl-Splitter'});
     placeChest(4, cy, {gold:10, item:'Heiltrank'});
     placeChest(w-5, cy, {gold:12, item:'Antidot'});
-    prop(cx, cy+2, 'well'); // save/rest crystal stand-in
-    prop(cx-5, cy, 'barrel'); prop(cx+5, cy, 'crate');
-    questMark(cx, 5, 'Thron', 'story');
+    prop(cx, cy+2, 'well');
+    prop(cx-3, cy+1, 'bench'); prop(cx+3, cy+1, 'bench');
+    questMark(cx, 4, 'Thron', 'story');
+    fill(cx-1, ht-2, 3, 2, 'path');
   } else if(preset==='market'){
     for(let y=0;y<ht;y++) for(let x=0;x<w;x++) tiles[y][x]='grass';
     fill(0, cy-1, w, 3, 'path');
@@ -518,23 +525,50 @@ export function buildMapForLocation(S, ort){
     prop(cx, cy, 'statue');
     scatterGrass();
   } else if(preset==='wall'){
-    for(let y=0;y<ht;y++) for(let x=0;x<w;x++) tiles[y][x]='grass';
-    fill(0,0,w,4,'stone'); fill(0,0,w,1,'wall');
-    fill(0, cy, w, 2, 'path'); fill(cx-1, 4, 3, ht-6, 'path');
-    placeHouse(2, 5, 'Kaserne', {hall:true, variant:2, w:4, h:3});
-    placeHouse(w-7, 5, 'Turm Ost', {variant:1});
-    placeHouse(cx-2, ht-7, 'Wachstube', {variant:0});
-    placeHouse(w-7, ht-7, 'Nyx-Versteck', {variant:4});
-    placeHouse(2, ht-7, 'Pass-Lager', {variant:3});
-    for(let x=2;x<w-2;x+=4){ anim(x,2,'torch'); prop(x,3,'lamp'); }
-    prop(cx, cy-1, 'sign'); prop(cx+2, cy+1, 'barrel');
-    placeChest(cx+3, cy, {gold:15, item:'Eisen-Schild'});
-    placeChest(5, 8, {gold:10, item:'Antidot'});
-    placeChest(w-6, cy+2, {gold:18, item:'Nyx-Bericht'});
-    prop(cx, cy+2, 'well');
-    questMark(cx, 6, 'Grenzpass', 'story');
-    fill(3, 10, 4, 3, 'water'); fill(w-8, 10, 4, 3, 'water');
-    scatterGrass();
+    // v61 hand-authored: mountain Grenzpass — cliffs, narrow winding path, towers, snow
+    kind='wild';
+    for(let y=0;y<ht;y++) for(let x=0;x<w;x++) tiles[y][x]='sand';
+    // thick cliff bands L/R (stone + wall = rock faces)
+    for(let y=0;y<ht;y++){
+      fill(0, y, 6, 1, 'stone');
+      fill(w-6, y, 6, 1, 'stone');
+      fill(0, y, 3, 1, 'wall');
+      fill(w-3, y, 3, 1, 'wall');
+      if(y%2===0){ tiles[y][5]='wall'; tiles[y][w-6]='wall'; }
+      if(y%3===0){ tiles[y][4]='wall'; tiles[y][w-5]='wall'; }
+      if(y%5===0){ tiles[y][6]='stone'; tiles[y][w-7]='stone'; }
+    }
+    // winding narrow path through pass
+    let ppx=cx, ppy=0;
+    while(ppy<ht){
+      fill(Math.max(7,ppx-1), ppy, 3, 1, 'path');
+      if(ppy%3===0) ppx = Math.max(8, Math.min(w-9, ppx + ((ppy/3|0)%2===0?1:-1)));
+      ppy++;
+    }
+    // cliff shelves / choke points
+    fill(6, 5, w-12, 1, 'stone'); fill(cx-1, 5, 3, 1, 'path');
+    fill(6, 12, w-12, 1, 'wall'); fill(cx-1, 12, 3, 1, 'path');
+    fill(6, ht-7, w-12, 1, 'stone'); fill(cx-1, ht-7, 3, 1, 'path');
+    // watchtowers on cliff shelves
+    placeHouse(7, 6, 'Wachturm West', {variant:1, w:3, h:3});
+    placeHouse(w-10, 6, 'Wachturm Ost', {variant:1, w:3, h:3});
+    placeHouse(7, ht-10, 'Pass-Lager', {variant:3, w:3, h:3});
+    placeHouse(w-10, ht-10, 'Nyx-Versteck', {variant:4, w:3, h:3});
+    // sparse alpine scrub
+    for(let i=0;i<6;i++){
+      const tx=8+(i*4)%Math.max(1,w-16), ty=9+(i*4)%Math.max(1,ht-16);
+      if(tiles[ty]?.[tx]==='sand') tiles[ty][tx]='tree';
+    }
+    // frozen pools
+    fill(8, 14, 3, 2, 'water'); fill(w-12, 16, 3, 2, 'water');
+    for(let x=8;x<w-8;x+=3){ anim(x, 4, 'torch'); }
+    prop(cx, cy, 'sign'); prop(cx+2, cy+1, 'barrel'); prop(cx-2, cy+1, 'crate');
+    placeChest(cx+2, cy-1, {gold:15, item:'Eisen-Schild'});
+    placeChest(8, 10, {gold:10, item:'Antidot'});
+    placeChest(w-9, cy+2, {gold:18, item:'Nyx-Bericht'});
+    prop(cx, cy+3, 'well');
+    questMark(cx, 7, 'Grenzpass', 'story');
+    try{ if(S){ S.flags=S.flags||{}; S.flags.weather='schnee'; } }catch(_){}
   } else if(preset==='garden'){
     for(let y=0;y<ht;y++) for(let x=0;x<w;x++) tiles[y][x]='grass';
     ringFence(1,1,w-2,ht-2);
@@ -546,21 +580,32 @@ export function buildMapForLocation(S, ort){
     prop(cx-4,cy,'bench'); prop(cx+4,cy,'bench'); prop(cx,cy+3,'statue');
     scatterGrass();
   } else if(preset==='church'){
-    for(let y=0;y<ht;y++) for(let x=0;x<w;x++) tiles[y][x]='grass';
-    fill(0,cy,w,2,'path'); fill(cx-1,2,3,ht-4,'path');
-    placeHouse(cx-4, cy-7, 'Kathedrale Solari', {hall:true, variant:3, w:4, h:3});
-    fill(cx-3, cy-3, 7, 5, 'plaza');
-    prop(cx, cy-2, 'statue'); anim(cx-3,cy-4,'torch'); anim(cx+3,cy-4,'torch');
-    placeHouse(2, ht-7, 'Pfarrhaus', {variant:2});
-    placeHouse(w-6, ht-7, 'Friedhofskapelle', {variant:1});
-    placeHouse(2, 3, 'Sakristei', {variant:0});
-    ringFence(w-10, cy+2, 7, 6); fill(w-9,cy+3,5,4,'grass');
-    for(let i=0;i<3;i++) prop(w-8+i, cy+4, 'statue');
-    placeChest(cx+2, cy-1, {gold:22, item:'Heiliges Siegel'});
+    // v61 hand-authored: cathedral nave — aisle, pews, altar, stained-glass bays
+    kind='interior';
+    for(let y=0;y<ht;y++) for(let x=0;x<w;x++) tiles[y][x]='floor';
+    fill(0,0,w,2,'wall'); fill(0,ht-2,w,2,'wall'); fill(0,0,2,ht,'wall'); fill(w-2,0,2,ht,'wall');
+    fill(cx-1, 3, 3, ht-5, 'carpet');
+    fill(cx-4, 2, 9, 4, 'plaza');
+    prop(cx, 3, 'statue');
+    anim(cx-3, 3, 'torch'); anim(cx+3, 3, 'torch');
+    prop(cx-2, 4, 'lamp'); prop(cx+2, 4, 'lamp');
+    for(let y=8;y<ht-5;y+=2){
+      prop(cx-4, y, 'bench'); prop(cx+4, y, 'bench');
+      if(tiles[y]){ tiles[y][cx-4]='wood'; tiles[y][cx+4]='wood'; }
+    }
+    for(const y of [6, 10, 14, 18]){
+      if(y>=ht-3) continue;
+      fill(2, y, 2, 2, 'plaza'); fill(w-4, y, 2, 2, 'plaza');
+      anim(2, y, 'torch'); anim(w-3, y, 'torch');
+      ov(2, y, 'flower'); ov(w-3, y, 'flower');
+    }
+    fill(2, ht-8, 4, 4, 'stone'); fill(w-6, ht-8, 4, 4, 'stone');
+    prop(3, ht-7, 'statue'); prop(w-5, ht-7, 'statue');
+    placeChest(cx+2, 5, {gold:22, item:'Heiliges Siegel'});
     placeChest(3, 8, {gold:14, item:'Weihwasser'});
     prop(cx, cy+1, 'well');
-    questMark(cx, cy-3, 'Altar', 'story');
-    scatterGrass();
+    questMark(cx, 4, 'Altar', 'story');
+    fill(cx-1, ht-2, 3, 2, 'path');
   } else if(preset==='guild'){
     for(let y=0;y<ht;y++) for(let x=0;x<w;x++) tiles[y][x]='grass';
     fill(0,cy,w,2,'path');
@@ -737,22 +782,46 @@ export function buildMapForLocation(S, ort){
     for(let i=0;i<w;i+=3){ tiles[0][i]='tree'; tiles[ht-1][i]='tree'; }
     scatterGrass();
   } else if(preset==='graveyard'){
-    kind='ruins';
-    for(let y=0;y<ht;y++) for(let x=0;x<w;x++) tiles[y][x]='stone';
-    fill(2,2,w-4,ht-4,'floor');
-    fill(0,cy,w,2,'path'); fill(cx-1,2,3,ht-4,'path');
-    ringFence(2,2,w-4,ht-4);
-    placeHouse(cx-3, 2, 'Kapelle Solmir', {hall:true, variant:3, w:4, h:3});
-    for(let j=0;j<3;j++) for(let i=0;i<6;i++){ prop(4+i*3, 8+j*3, 'statue'); }
-    anim(cx-3,4,'torch'); anim(cx+3,4,'torch'); anim(4,cy,'torch'); anim(w-5,cy,'torch');
-    prop(cx,cy,'statue'); placeHouse(w-7, ht-7, 'Gruft', {variant:2});
-    placeHouse(3, ht-7, 'Malgors Anwesen', {variant:1});
-    placeChest(cx+2, 6, {gold:20, item:'Phylakterium-Splitter'});
+    // v61 hand-authored: Solmir crypt — rooms, corridors, coffins, candles
+    kind='dungeon';
+    fill(0,0,w,ht,'void');
+    fill(1,1,w-2,ht-2,'wall');
+    fill(cx-1, 2, 3, ht-4, 'floor');
+    fill(2, cy-1, w-4, 3, 'floor');
+    const rooms=[[2,2,6,5],[w-8,2,6,5],[2,ht-8,6,5],[w-8,ht-8,6,5]];
+    for(const [rx,ry,rw,rh] of rooms){
+      fill(rx, ry, rw, rh, 'floor');
+      const dx = rx<cx ? rx+rw : rx-1;
+      const dy = ry+Math.floor(rh/2);
+      if(tiles[dy]) tiles[dy][Math.max(1,Math.min(w-2,dx))]='floor';
+      for(let i=0;i<3;i++){
+        const cxr=rx+1+i*2, cyr=ry+2;
+        if(cxr<rx+rw-1){ prop(cxr, cyr, 'statue'); prop(cxr, cyr+1, 'crate'); }
+      }
+      anim(rx+1, ry+1, 'torch'); anim(rx+rw-2, ry+1, 'torch');
+      anim(rx+1, ry+rh-2, 'torch');
+    }
+    fill(cx-3, 2, 7, 4, 'floor');
+    prop(cx, 3, 'statue');
+    anim(cx-2, 3, 'torch'); anim(cx+2, 3, 'torch');
+    placeHouse(cx-2, 2, 'Kapelle Solmir', {hall:true, variant:3, w:4, h:2});
+    fill(2, cy-3, 5, 3, 'stone');
+    prop(3, cy-2, 'barrel');
+    // coffins + candles near spawn (visible without exploring rooms)
+    for(let i=-2;i<=2;i++){
+      if(i===0) continue;
+      prop(cx+i, cy-1, 'crate'); // coffin stand-in
+      anim(cx+i, cy-2, 'torch'); // candle
+    }
+    prop(cx-3, cy+1, 'statue'); prop(cx+3, cy+1, 'statue');
+    anim(cx-4, cy, 'torch'); anim(cx+4, cy, 'torch');
+    placeChest(cx+2, 5, {gold:20, item:'Phylakterium-Splitter'});
     placeChest(5, cy+1, {gold:12, item:'Manaessenz'});
-    placeChest(w-6, 10, {gold:16, item:'Knochen-Schlüssel'});
+    placeChest(w-6, ht-6, {gold:16, item:'Knochen-Schlüssel'});
     prop(cx, cy+2, 'well');
     questMark(cx, 4, 'Erster Held', 'secret');
-    scatterGrass();
+    fill(cx-1, ht-3, 3, 2, 'path');
+    if(tiles[ht-2]) tiles[ht-2][cx]='door';
   } else if(preset==='neon'){
     // cyberpunk / neon city — denser urban, Kenney-ish feel via plazas + halls
     for(let y=0;y<ht;y++) for(let x=0;x<w;x++) tiles[y][x]='floor';
@@ -1016,7 +1085,18 @@ export function buildMapForLocation(S, ort){
     if(overlay[y][x]==='lamp') lights.push({x:x+0.5,y:y+0.5,r:2.2,color:'rgba(255,210,120,0.32)'});
   }
   // quest marks filled later in showOverworld
-  try{ const G=window.__game; if(G?.C49?.densifyTownMapV49) G.C49.densifyTownMapV49({w,h:ht,tiles,overlay,kind,overhead,genre}); else if(G?.C48?.densifyTownMapV48) G.C48.densifyTownMapV48({w,h:ht,tiles,overlay,kind,overhead,genre}); else if(G?.C47?.densifyTownMapV47) G.C47.densifyTownMapV47({w,h:ht,tiles,overlay,kind,overhead,genre}); else if(G?.C46?.densifyTownMapV46) G.C46.densifyTownMapV46({w,h:ht,tiles,overlay,kind}); else if(G?.C45?.densifyTownMap) G.C45.densifyTownMap({w,h:ht,tiles,kind}); }catch(_){}
+  // v61: never densify hand-authored Nocturna hubs (wall/graveyard/throne/church)
+  try{
+    const hand=/(wall|graveyard|throne|church)/.test(String(preset||''));
+    if(!hand){
+      const G=window.__game;
+      if(G?.C49?.densifyTownMapV49) G.C49.densifyTownMapV49({w,h:ht,tiles,overlay,kind,overhead,genre});
+      else if(G?.C48?.densifyTownMapV48) G.C48.densifyTownMapV48({w,h:ht,tiles,overlay,kind,overhead,genre});
+      else if(G?.C47?.densifyTownMapV47) G.C47.densifyTownMapV47({w,h:ht,tiles,overlay,kind,overhead,genre});
+      else if(G?.C46?.densifyTownMapV46) G.C46.densifyTownMapV46({w,h:ht,tiles,overlay,kind});
+      else if(G?.C45?.densifyTownMap) G.C45.densifyTownMap({w,h:ht,tiles,kind});
+    }
+  }catch(_){}
   const qmarks=(questMark._buf||[]).slice(); questMark._buf=[];
   return {w,h:ht,tiles,overlay,doors:exits,spawn:{x:sx,y:sy},kind,name,npcs,interiors,overhead,animators,preset,chests,lights,questMarks:qmarks};
 }
@@ -1928,21 +2008,30 @@ function fitCanvas(){
   _desktop=isDesktop();
   document.body.classList.toggle('ow-desktop', _desktop);
   if(_desktop){
-    // Integer-scaled 16:9 pixel canvas
-    const maxW=Math.min(window.innerWidth - 320, 1600); // leave room for side panels
-    const maxH=Math.min(window.innerHeight - 80, 900);
-    let scale=1;
-    while((DESKTOP_LOGICAL.w*(scale+1))<=maxW && (DESKTOP_LOGICAL.h*(scale+1))<=maxH) scale++;
+    // v61: fill desktop width — stretch canvas CSS to viewport; keep pixel logical grid
+    const maxW=Math.max(640, window.innerWidth - 8);
+    const maxH=Math.max(360, window.innerHeight - 64);
+    // logical ~16px tiles, prefer width fill
+    const cssW=maxW;
+    const cssH=Math.min(maxH, Math.floor(cssW*9/16));
+    // integer scale for crisp pixels
+    let scale=Math.max(2, Math.floor(cssW/320));
+    while(DESKTOP_LOGICAL.w*scale>cssW || DESKTOP_LOGICAL.h*scale>cssH) scale--;
     scale=Math.max(2, scale);
-    _intScale=scale;
-    const lw=DESKTOP_LOGICAL.w, lh=DESKTOP_LOGICAL.h;
+    // bump logical so more tiles visible when viewport is wide
+    const lw=Math.max(DESKTOP_LOGICAL.w, Math.floor(cssW/scale/16)*16);
+    const lh=Math.max(DESKTOP_LOGICAL.h, Math.floor(cssH/scale/16)*16);
     _canvas.width=lw;
     _canvas.height=lh;
-    _canvas.style.width=(lw*scale)+'px';
-    _canvas.style.height=(lh*scale)+'px';
-    // how many tiles fit at ~16px logical
-    _viewW=Math.floor(lw/16);
-    _viewH=Math.floor(lh/16);
+    _canvas.style.width=cssW+'px';
+    _canvas.style.height=Math.floor(cssW*(lh/lw))+'px';
+    if(parseInt(_canvas.style.height,10)>cssH){
+      _canvas.style.height=cssH+'px';
+      _canvas.style.width=Math.floor(cssH*(lw/lh))+'px';
+    }
+    _intScale=scale;
+    _viewW=Math.max(16, Math.floor(lw/16));
+    _viewH=Math.max(9, Math.floor(lh/16));
   } else {
     // v45d: canvas = full viewport; tile count fills height (no letterbox)
     const root=_root||document.getElementById('owRoot');
@@ -2187,6 +2276,17 @@ export function showOverworld(S){
  _last=0;
   fitCanvas();
   updatePartyPanel();
+  try{
+    const Sloc=_hooks.getS?.() || S || window.__game?.S;
+    const nm=built.name || Sloc?.world?.scene?.ort || '';
+    if(Sloc?.world?.scene && nm) Sloc.world.scene.ort = nm;
+    try{ window.__game?.syncOwHud?.(nm); }catch(_){}
+    try{ window.__game?.hud?.(); }catch(_){}
+    try{
+      const loc=document.querySelector('#hud .loc-line');
+      if(loc && nm) loc.textContent='📍 '+nm;
+    }catch(_){}
+  }catch(_){}
   try{
     const key=_audioApi?.musicForMapKind?.(built.kind)||'town';
     _audioApi?.fadeTo?.(key);

@@ -12,7 +12,7 @@ import { fileURLToPath } from 'url';
 
 const ROOT=path.join(path.dirname(fileURLToPath(import.meta.url)),'..');
 const PORT=8793;
-const VER='60';
+const VER='61';
 const LIVE='https://markusstol.github.io/isekai-game/';
 const SKIP_LIVE=process.env.GATE_SKIP_LIVE==='1';
 const ONLY_LIVE=process.env.GATE_ONLY_LIVE==='1';
@@ -68,7 +68,7 @@ async function freshOffline(page){
     g.S.setup={done:true}; g.S.flags=Object.assign(g.S.flags||{},{onboarded:true,introDone:true});
     g.S.cfgBattleDiff='story'; g.S.cfgAtbMode='active';
     g.S.st.hp=g.S.st.maxhp=180; g.S.st.mp=g.S.st.maxmp=80; g.S.st.gold=120; g.S.st.str=20; g.S.st.lvl=4;
-    g.C60.migrateV60(g.S);
+    g.C61?.migrateV61?.(g.S) || g.C60.migrateV60(g.S);
     g.enterPlay();
     document.getElementById('title')?.classList.add('hidden');
     document.getElementById('stage')?.classList.remove('hidden');
@@ -255,14 +255,15 @@ async function runLive(browser){
     for(const ver of [13,50,57,58]){
       const s={ver, st:{hp:40,maxhp:100,gold:5,str:8}, world:{npcs:{'Sekretärin Velka':{alive:true,art:'Sukkubus'}},scene:{ort:'Test'}}, flags:{onboarded:true}, romance:{}, pc:{name:'Legacy'+ver}, genre:'daemon', role:'daemon'};
       try{
-        if(g.C60?.migrateV60) g.C60.migrateV60(s);
+        if(g.C61?.migrateV61) g.C61.migrateV61(s);
+        else if(g.C60?.migrateV60) g.C60.migrateV60(s);
         else if(g.C59?.migrateV59) g.C59.migrateV59(s);
         else if(g.C58?.migrateV58) g.C58.migrateV58(s);
         else throw new Error('no migrate');
         out.push({ver, ok:true, outVer:s.ver, campaign:s.campaign?.id, freetext:s.flags?.freetext});
       }catch(e){ out.push({ver, ok:false, err:String(e)});}
     }
-    return {pageVer:g.VER, saves:out, hasC60:!!g.C60};
+    return {pageVer:g.VER, saves:out, hasC61:!!g.C61};
   });
   for(const s of saveTest.saves){
     if(!s.ok) fail('live-old-saves', s); else ok('live-old-saves', s);

@@ -375,6 +375,15 @@ let _music=null;
 
 export function isActive(){return !!_B && !_B.done}
 export function getBattle(){return _B}
+export function __forceLose(text){
+  if(!_B) return false;
+  for(const p of (_B.party||[])){ p.hp=0; p.alive=false; }
+  _B.done=true; _B.result='lose';
+  const summary={text:text||'Die Gruppe sinkt zu Boden. Kehre zur Herberge zurück oder versuche es erneut.', xp:0, gold:0, loot:[], ap:0, learned:[]};
+  try{ showEndScreen('lose', summary); }catch(_){}
+  try{ refreshUI(); }catch(_){}
+  return true;
+}
 export function getLastSummary(){return lastBattleSummary}
 export function getLastResult(){return lastBattleSummary?.result||(_B&&_B.done?_B.result:null)}
 
@@ -393,6 +402,8 @@ function playBattleSwirl(){
   });
 }
 export function startBattle(S, opts={}){
+  try{ const t=document.getElementById('toast'); if(t){ t.classList.remove('on','toast-tip'); t.textContent=''; } }catch(_){}
+  try{ document.body.classList.add('in-battle'); }catch(_){}
   try{ window.__game?.closeMenu?.(); }catch(_){}
   try{ document.getElementById('menu')?.classList.add('hidden'); document.body.classList.remove('menu-open'); document.documentElement.classList.remove('menu-open'); }catch(_){}
   try{
@@ -406,7 +417,8 @@ export function startBattle(S, opts={}){
   try{ window.__game?.Aud?.fadeTo?.('battle'); window.__game?.Aud?.playSfx?.('whoosh',0.25); }catch(_){}
   try{ window.__game?.C43?.stopAmbient?.(); }catch(_){}
 
-  const foes=opts.enemies?.length?spawnFoes(opts.enemies,S):spawnFoes(pickEncounter(S,{count:opts.count,boss:opts.boss,noBoss:opts.noBoss}),S);
+  const foeList=(opts.enemies?.length?opts.enemies:null)||(opts.foes?.length?opts.foes:null);
+  const foes=foeList?spawnFoes(foeList,S):spawnFoes(pickEncounter(S,{count:opts.count,boss:opts.boss,noBoss:opts.noBoss}),S);
   if(!foes.length) return null;
   // ensure boss phases survive spawn
   for(const f of foes){
@@ -628,7 +640,7 @@ function buildSummary(result){
     text: result==='win'?`Sieg! ${killed.map(f=>f.name).join(', ')||'Gegner'} besiegt.${spared.length?' (Verschont: '+spared.map(f=>f.name).join(', ')+')':''}`
       : result==='surrender'?`Ihr kapituliert.`
       : result==='flee'?`Der Konflikt endet ohne Blutbad.${spared.length?' '+spared.map(f=>f.name).join(', ')+'.':''}`
-      : `Niederlage. Die Gruppe sinkt zu Boden.`,
+      : `Die Gruppe sinkt zu Boden.`,
     xp, gold, loot, ap:Math.max(8, Math.round(xp/4)),
     killed:killed.map(f=>({id:f.id,name:f.name,human:!!f.human})),
     humansKilled:humans.map(f=>f.name),
@@ -1173,6 +1185,8 @@ function aiCompanion(c){
 
 function battleTerrainLayers(S, bg){
   try{
+    // v61: nocturna hand BGs stay sharp — no daemon silhouette layers on top
+    if(/nocturna\/(pass|crypt|throne|cathedral)/.test(String(bg||''))) return null;
     const C49=window.__game?.C49;
     if(C49?.battleLayerUrls){
       const key=C49.battleLayerKey?.(S, bg) || 'fantasy';
@@ -1183,11 +1197,11 @@ function battleTerrainLayers(S, bg){
 }
 function battleFloorClass(bg){
   const u=String(bg||'').toLowerCase();
-  if(/dungeon|kerker|cave|crypt|gruft/.test(u)) return 'floor-dungeon';
+  if(/dungeon|kerker|cave|crypt|gruft|nocturna\/crypt/.test(u)) return 'floor-dungeon';
   if(/forest|wald|elfen/.test(u)) return 'floor-forest';
   if(/cyber|neon/.test(u)) return 'floor-cyber';
   if(/zombie|ruin|waste|ash/.test(u)) return 'floor-ruins';
-  if(/snow|ice|frost/.test(u)) return 'floor-snow';
+  if(/snow|ice|frost|nocturna\/pass|grenzpass/.test(u)) return 'floor-snow';
   if(/desert|sand/.test(u)) return 'floor-sand';
   return 'floor-dirt';
 }
@@ -1284,7 +1298,7 @@ function refreshUI(){
     }
     foes.innerHTML=B.foes.map(f=>`
       <button type="button" class="foe-card foe-bare ${foeScaleClass(f)} ${f.alive?'':'dead'} ${B.selecting&&needsTarget()?(_B._hover===f._iid?'target':''):''}" data-iid="${f._iid}" ${f.alive?'':'disabled'}>
-        <div class="foe-art-wrap pixel-foe"><img class="foe-art battler-spr" src="${pixelEnemyArt(f)}" alt="${f.name}" loading="lazy" onerror="this.onerror=null;this.style.display='none';this.nextElementSibling&&(this.nextElementSibling.style.display='flex');"/><div class="foe-fallback" style="display:none">${f.icon||'👹'}</div></div>
+        <div class="foe-art-wrap pixel-foe"><img class="foe-art battler-spr" src="${pixelEnemyArt(f)}" alt="${f.name}" loading="eager" decoding="sync" onerror="this.onerror=null;this.style.display='none';const fb=this.nextElementSibling;if(fb){fb.style.display='flex';fb.style.fontSize='48px';}"/><div class="foe-fallback" style="display:none">${f.icon||'👹'}</div></div>
       </button>`).join('');
     foes.querySelectorAll('.foe-card').forEach(btn=>{
       btn.onclick=()=>{
@@ -1501,14 +1515,21 @@ function showEndScreen(result, summary){
   const end=el('battleEnd'); if(!end)return;
   clearBattleFx();
   try{ const fx=el('battleFx'); if(fx) fx.style.pointerEvents='none'; }catch(_){}
+  // v61: never let tip toast cover the end card; keep foes/BG readable
+  try{
+    const t=document.getElementById('toast');
+    if(t){ t.classList.remove('on','toast-tip'); t.textContent=''; }
+    document.querySelector('.battle-root')?.classList.add('battle-ended');
+  }catch(_){}
   end.classList.remove('hidden');
-  end.style.zIndex='12';
+  end.style.zIndex='200';
   if(_B) _B.ended=true;
   if(result==='win') playVictoryFanfare();
   const ap=summary.ap|0, gil=summary.gold|0;
+  const bodyTxt=String(summary.text||'').replace(/^Niederlage\.\s*/i,'').replace(/^Sieg!\s*/i,'');
   end.innerHTML=`<div class="battle-end-card ${result}">
     <h2>${result==='win'?'SIEG':result==='flee'?'ENTKOMMEN':result==='surrender'?'KAPITULATION':'NIEDERLAGE'}</h2>
-    <p>${summary.text}</p>
+    <p>${bodyTxt}</p>
     ${result==='win'?`<div class="victory-summary">
       <div><span>EXP</span><b>+${summary.xp}</b></div>
       <div><span>AP</span><b>+${ap}</b></div>
@@ -1534,7 +1555,7 @@ function playVictoryFanfare(){
   }catch(_){}
 }
 
-function hideBattleUI(){ clearBattleOpen();
+function hideBattleUI(){ clearBattleOpen(); try{ document.querySelector('.battle-root')?.classList.remove('battle-ended'); }catch(_){} try{ document.body.classList.remove('in-battle'); }catch(_){} 
   try{ window.__game?.C43?.screenTransition?.('fade', 300); }catch(_){}
   const root=el('battleRoot'); if(root) root.classList.add('hidden');
   try{
@@ -1846,7 +1867,7 @@ function resolveNonCombat(S, foes, choice, text){
 }
 
 export default {
-  startBattle, isActive, getBattle, getLastSummary, getLastResult, playerCommand, buildParty, renderBattleUI,
+  startBattle, isActive, getBattle, __forceLose, getLastSummary, getLastResult, playerCommand, buildParty, renderBattleUI,
   maybeRandomEncounter, offerEncounter, COMBAT_SKILLS,
   isStoryNpcFoe, storyNpcName, mercyNeeded, applyMercyDecision,
   __playSprite: playSpriteAnim, __testDrive, __forceHide: ()=>{ try{ hideBattleUI(); clearBattleOpen(); _B=null; }catch(_){ const r=document.getElementById('battleRoot'); if(r){ r.classList.add('hidden'); r.innerHTML=''; } } },

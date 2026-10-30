@@ -6256,3 +6256,155 @@ body.visual59 .battle-root.battle-pixel .party-card .pixel-hero-spr{
   body.visual59 .vn-text{ font-size:14px; }
   body.visual59 .choices button{ min-height:46px; font-size:13.5px; }
 }
+
+
+/* v61: desktop OW fills width — no empty blue side gutters */
+@media (min-width: 900px) and (min-aspect-ratio: 4/3), (min-width: 1000px){
+  body.ow-desktop .ow-side{ display:none !important; }
+  body.ow-desktop .ow-shell{
+    flex-direction: column !important;
+    justify-content: stretch !important;
+    gap: 0 !important;
+    max-height: calc(100dvh - 72px) !important;
+  }
+  body.ow-desktop .ow-main{
+    flex: 1 1 auto !important;
+    width: 100% !important;
+    max-width: none !important;
+    align-items: stretch !important;
+  }
+  body.ow-desktop #owCanvas{
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+  }
+}
+/* v61 battle: toast never over end card; end card above toast; foes stay visible */
+.battle-root #battleEnd, .battle-end{
+  z-index: 200 !important;
+}
+.battle-root.battle-ended #toast,
+body:has(.battle-root:not(.hidden) #battleEnd:not(.hidden)) #toast{
+  display: none !important;
+  opacity: 0 !important;
+}
+.battle-root.battle-ended .battle-cmd{
+  opacity: 1 !important;
+  filter: none !important;
+  pointer-events: none;
+}
+.battle-root.battle-ended .battle-stage{
+  filter: none !important;
+}
+.battle-root.battle-pixel .battle-bg.pixel-battle-bg,
+.battle-root.battle-pixel #battleBg{
+  filter: none !important;
+  opacity: 1 !important;
+  background-size: cover !important;
+  background-position: center bottom !important;
+  image-rendering: auto;
+}
+.battle-root.battle-pixel .foe-art-wrap.pixel-foe,
+.battle-root.battle-pixel .foe-art-wrap.pixel-foe img,
+.battle-root.battle-pixel .foe-art.battler-spr{
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: block !important;
+  filter: none !important;
+  image-rendering: pixelated !important;
+  min-width: 72px;
+  min-height: 72px;
+}
+.battle-end-card p{ font-size: 13px; line-height: 1.4; max-width: 36ch; margin: 0 auto; }
+
+/* v61: hide tip toasts during any battle */
+body.in-battle #toast,
+body.in-battle #toast.on,
+.battle-root:not(.hidden) ~ #toast,
+body:has(#battleRoot:not(.hidden)) #toast{
+  display:none !important;
+  opacity:0 !important;
+  pointer-events:none !important;
+}
+
+/* v61b: hard kill desktop side gutters + stretch OW canvas */
+@media (min-width: 900px){
+  body.ow-desktop .ow-side,
+  body.ow-desktop .ow-side-left,
+  body.ow-desktop .ow-side-right{
+    display: none !important;
+    width: 0 !important;
+    min-width: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+  }
+  body.ow-desktop .ow-shell{
+    flex-direction: column !important;
+    justify-content: flex-start !important;
+    align-items: stretch !important;
+    gap: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+  }
+  body.ow-desktop .ow-main{
+    flex: 1 1 auto !important;
+    width: 100% !important;
+    max-width: none !important;
+    align-items: stretch !important;
+  }
+  body.ow-desktop #owCanvas,
+  body.ow-desktop.pixel-ow #owCanvas{
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 auto !important;
+  }
+  body.ow-desktop .overworld{ padding: 4px 0 !important; }
+}
+/* v61b: nocturna battle BG crisp; no silhouette veil */
+.battle-root.battle-pixel .battle-bg.pixel-battle-bg[style*="nocturna"],
+.battle-root.battle-pixel #battleBg[style*="nocturna"]{
+  filter: none !important;
+  opacity: 1 !important;
+  background-size: cover !important;
+  background-position: center bottom !important;
+}
+.battle-root.battle-pixel .battle-veil{ opacity: .15 !important; }
+.battle-root.battle-pixel .battle-cmd{
+  opacity: 1 !important;
+  filter: none !important;
+}
+.battle-root.battle-pixel .battle-cmd button,
+.battle-root.battle-pixel .bcm{
+  opacity: 1 !important;
+  color: #f0f4ff !important;
+  background: #1a2458 !important;
+  border-color: #9eb6ff !important;
+}
+
+/* v61c: defeat card readable; commands stay crisp (no full-screen blur) */
+.battle-root .battle-end,
+.battle-root #battleEnd,
+.battle-end{
+  background: rgba(0,0,0,.45) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  align-items: center !important;
+  padding-bottom: 28% !important; /* leave command strip clear */
+}
+.battle-root.battle-ended .battle-cmd,
+.battle-root:has(#battleEnd:not(.hidden)) .battle-cmd{
+  opacity: 1 !important;
+  filter: none !important;
+  z-index: 210 !important;
+  position: relative;
+}
+.battle-root.battle-ended .battle-stage,
+.battle-root:has(#battleEnd:not(.hidden)) .battle-stage{
+  filter: none !important;
+  opacity: 1 !important;
+}
+.battle-root.battle-ended .foe-art-wrap,
+.battle-root.battle-ended .foe-art{
+  opacity: 1 !important;
+  filter: none !important;
+}

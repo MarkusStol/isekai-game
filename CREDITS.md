@@ -144,3 +144,10 @@ Genre packs `arch_fan*`, `arch_zom*`, `arch_cyb*`, `arch_des*`, `arch_dark*` plu
   - Used for: `assets/pixel/tiles-nocturna/` grass/water/stone/floor/wall, area grades, battle BG stamps, worldmap
 - Water animation frames derived from the same Overworld sheet (and optional sodri water reference where present)
 - Existing LPC / Ninja Adventure / Kenney credits above still apply for characters, decor houses, UI
+
+## v61 Hand-authored Nocturna hubs
+- Grenzpass: cliffs, narrow path, watchtowers, snow weather
+- Solmir crypt: rooms, corridors, coffins, candles
+- Thronsaal: interior hall, pillars, carpet, throne dais
+- Kathedrale: nave, pews, stained-glass bays, altar
+- Battle UI: crisp foes/BG, no toast-over-defeat, Aschenhund balance
