@@ -99,7 +99,7 @@ export function buildParty(S){
       id:'c_'+n, kind:'companion', name:n,
       hp:60+Math.min(40,aff), maxhp:60+Math.min(40,aff),
       mp:20+Math.min(20,aff/2|0), maxmp:20+Math.min(20,aff/2|0),
-      atk:8+Math.min(10,aff/10|0), def:5, mag:7, spd:9,
+      atk:6+Math.min(6,aff/12|0), def:6, mag:6+Math.min(4,aff/15|0), spd:8,
       limit:0, maxLimit:100, limitTier:1, limitAcc:0,
       skills:companionSkills(npc),
       portrait:null, npcRef:n, row:'back',
@@ -107,7 +107,7 @@ export function buildParty(S){
       statuses:[], guard:1, alive:true, aggro:0.8,
       gambits:Jrpg.defaultGambits()
     });
-    if(comps.length>=2)break;
+    if(comps.length>=3)break;
   }
   return [hero,...comps];
 }
@@ -115,10 +115,10 @@ export function buildParty(S){
 
 function companionJobId(npc,name){
   const art=String(npc?.art||npc?.stimme||name||'').toLowerCase();
-  if(/mag|zauber|hex|orren/.test(art)) return 'magier';
-  if(/heil|priester|arzt/.test(art)) return 'heiler';
-  if(/dieb|assass|schleich|lyra|späh/.test(art)) return 'dieb';
-  if(/wache|ritter|soldat|garrick/.test(art)) return 'krieger';
+  if(/velka|mag|zauber|hex|orren|sukkub/.test(art)) return 'magier';
+  if(/heil|priester|arzt|solara/.test(art)) return 'heiler';
+  if(/nyx|dieb|assass|schleich|lyra|späh|spion/.test(art)) return 'dieb';
+  if(/brok|aria|heldin|wache|ritter|soldat|garrick|ork/.test(art)) return 'krieger';
   if(/händl|kauf|wirt/.test(art)) return 'dieb';
   return 'krieger';
 }
@@ -1609,12 +1609,12 @@ function companionRoleLabel(p){
 
 function sheetRoleForCompanion(unit){
   const art=String(unit?.npcRef||unit?.name||unit?.job||'').toLowerCase();
-  if(/wache|ritter|guard|soldat|garrick/.test(art)) return 'guard';
-  if(/magier|hexe|zauber|mage|orren/.test(art)) return 'mage';
+  if(/brok|ork|wache|ritter|guard|soldat|garrick|aria|heldin/.test(art)) return 'guard';
+  if(/velka|magier|hexe|zauber|mage|orren|sukkub/.test(art)) return 'mage';
   if(/händler|kauf|merchant|wirt|bauer/.test(art)) return 'merchant';
-  if(/späher|dieb|assassin|spy|lyra/.test(art)) return 'spy';
+  if(/nyx|spion|späher|dieb|assassin|spy|lyra/.test(art)) return 'spy';
   if(/prinzess|königin|elise|princess/.test(art)) return 'princess';
-  if(/dämon|daemon|sukkub|teufel|velka/.test(art)) return 'daemon';
+  if(/dämon|daemon|teufel/.test(art)) return 'daemon';
   if(/dorf|villager|bauerin|bäuer/.test(art)) return 'villager';
   // stable unique pick by name hash so clones don't share one silhouette
   const roles=['spy','mage','merchant','guard','princess','daemon','villager','neutral'];

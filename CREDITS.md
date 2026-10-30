@@ -132,3 +132,8 @@ Genre packs `arch_fan*`, `arch_zom*`, `arch_cyb*`, `arch_des*`, `arch_dark*` plu
   `assets/pixel/battler/ally_*.png` (CC-BY-SA 3.0 LPC / prior attributions).
 - Sparse v57 Ninja Adventure crops retained under `assets/pixel/battler/_v57_sparse/` (CC0).
 - Free-text narrator archived: git tag/branch `freetext-archive`; runtime flag `FREETEXT_ENABLED=false` in `content58.js`.
+
+## v59 — Ally fidelity & FF presentation
+- Ally battlers: LPC stage composites (CC-BY-SA 3.0 lineage) re-framed with outline, contrast, ground shadow.
+- Presentation: FF-like nameplate dialogue boxes, column choice menu, fade transitions (`body.visual59`).
+- Softlock fix: boss choice no longer advances chapter before ATB ends; idempotent `onBossVictory`.

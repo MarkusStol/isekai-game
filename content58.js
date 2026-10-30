@@ -384,7 +384,7 @@ export function dungeonMenu(S){
       speaker: d.name,
       text: `Du stehst vor der Boss-Tür. ${d.bossName} wartet.`,
       choices: [
-        { id: 'boss', label: 'Boss bekämpfen', effect: 'battle:'+d.boss, next: 'boss_win' },
+        { id: 'boss', label: 'Boss bekämpfen', effect: 'battle:'+d.boss, next: 'boss_pending' },
         { id: 'leave', label: 'Dungeon verlassen', next: 'town' },
       ],
     };
@@ -494,8 +494,9 @@ export function resolveChoice(S, choice, hooks={}){
   if(next==='dung_after_fight'){
     return showPack(S, dungeonMenu(S), note);
   }
-  if(next==='boss_win'){
-    return onBossVictory(S, hooks);
+  if(next==='boss_pending' || next==='boss_win'){
+    const d=S.campaign?.dungeon;
+    return showPack(S, { speaker:d?.bossName||'Boss', text:(d?.bossName||'Boss')+' erhebt sich.', choices:[{id:'wait',label:'…',next:'dungeon'}] }, note);
   }
 
   // named scene
