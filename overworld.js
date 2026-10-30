@@ -32,6 +32,7 @@ const BASE_TILES = {
   wood: './assets/pixel/tiles/wood.png',
 };
 const WATER_ANIM = './assets/pixel/tiles/water-anim.png';
+const WATER_ANIM_NOCTURNA = './assets/pixel/tiles-nocturna/water-anim.png';
 const DECOR = {
   bush: './assets/pixel/decor/bush32.png',
   fence: './assets/pixel/decor/fence.png',
@@ -88,6 +89,7 @@ const GENRE_SET = {
   cyberpunk: 'tiles-neon',
   postapoc: 'tiles-ruins',
   darkfantasy: 'tiles-dungeon',
+  daemon: 'tiles-nocturna',
 };
 
 const NPC_SHEETS = {
@@ -147,7 +149,7 @@ function loadImg(src){
   const im=new Image(); im.src=src; _imgs[src]=im; return im;
 }
 function tileUrl(t){
-  if(t==='water') return WATER_ANIM;
+  if(t==='water') return (_genre==='daemon' ? WATER_ANIM_NOCTURNA : WATER_ANIM);
   return _tileSet[t] || BASE_TILES[t] || BASE_TILES.void;
 }
 function preload(){
@@ -187,6 +189,22 @@ function applyGenre(S){
       tree:`./assets/pixel/tiles-dungeon/tree.png`,
     });
   }
+  // v60: Nocturna area grades (hand-tinted packs under tiles-nocturna/areas/)
+  if(g==='daemon' || pack==='tiles-nocturna'){
+    const ort=String(S?.world?.scene?.ort||'').toLowerCase();
+    let area='throne';
+    if(/pass|grenze|wachturm/.test(ort)) area='pass';
+    else if(/solmir|gruft|krypta|ruine/.test(ort)) area='crypt';
+    else if(/kathedrale|solari|kirche|licht/.test(ort)) area='cathedral';
+    else if(/thron|festung|katakomb/.test(ort)) area='throne';
+    const base=`./assets/pixel/tiles-nocturna/areas/${area}`;
+    for(const k of ['grass','path','water','stone','floor','wall','tree','sand']){
+      set[k]=`${base}/${k}.png`;
+    }
+    set.plaza=`./assets/pixel/tiles-nocturna/plaza.png`;
+    set.carpet=set.plaza;
+    set.wood=`./assets/pixel/tiles-nocturna/wood.png`;
+  }
   _tileSet=set;
 }
 
@@ -214,6 +232,12 @@ export function buildMapForLocation(S, ort){
 
   // Unique preset key for important orte — genre/terrain heuristics for unknown places
   let preset='default';
+  // v60 Nocturna hub presets (before genre heuristics)
+  if(/thron/.test(low)) preset='throne';
+  else if(/grenzpass|\bpass\b|wachturm/.test(low)) preset='wall';
+  else if(/solmir|gruft|krypta/.test(low)) preset='graveyard';
+  else if(/kathedrale|solari/.test(low)) preset='church';
+
   // Entered buildings always use interior layout
   if(/^in:/.test(low) || /\(innen\)/.test(low)) { preset='interior'; kind='interior'; }
 
@@ -240,7 +264,7 @@ export function buildMapForLocation(S, ort){
     else if(/sumpf|moor|marsch|nebelfenn/.test(low)) preset='swamp';
     else if(/wüste|düne|oase|sand/.test(low)) preset='desert';
     else if(/schnee|gletscher|eis|frost|tundra|nord/.test(low)) preset='snow';
-    else if(/friedhof|grab|nekropole|krypta/.test(low)) preset='graveyard';
+    else if(/friedhof|grab|nekropole|krypta|solmir|gruft/.test(low)) preset='graveyard';
     else if(/labor|werkstatt|fabrik|neon|station|cyber|netz/.test(low)) preset='neon';
     else if(/seuche|zombie|quarantäne|barrikade|parkplatz|eastmall|safehouse|supermarkt ruine|tankstelle/.test(low)) preset='wasteland';
   }
@@ -249,7 +273,7 @@ export function buildMapForLocation(S, ort){
   if(preset==='default'){
     if(/cyber|neon|netz/.test(genre)) preset='neon';
     else if(/zombie|apokal|seuche/.test(genre)) preset='wasteland';
-    else if(/daemon|dämon|hölle|infernal/.test(genre)) preset='ruins';
+    else if(/daemon|dämon|hölle|infernal/.test(genre) && preset==='default') preset='ruins';
     else if(/villainess|adel|hof/.test(genre) && kind==='town') preset='courtyard';
     else if(/held|mensch|fantasy|highfantasy/.test(genre) && kind==='town') preset='village';
   }
@@ -359,6 +383,12 @@ export function buildMapForLocation(S, ort){
     prop(x,y,'chest');
     chests.push({x,y,id:'chest_'+name+'_'+x+'_'+y, open:false, loot:loot||null});
   };
+  const questMark=(x,y,label,kind='story')=>{
+    if(y<0||x<0||y>=ht||x>=w) return;
+    // local marks collected into _questMarks at map finalize via map.questMarks
+    chests; // keep closure warm
+    (questMark._buf = questMark._buf || []).push({x,y,label,kind});
+  };
 
   // ---- Preset layouts ----
   const cx=Math.floor(w/2), cy=Math.floor(ht/2);
@@ -410,10 +440,21 @@ export function buildMapForLocation(S, ort){
     fill(0,0,w,2,'wall'); fill(0,0,2,ht,'wall'); fill(w-2,0,2,ht,'wall'); fill(0,ht-2,w,2,'wall');
     fill(cx-2, 2, 5, ht-4, 'carpet');
     fill(cx-4, 3, 9, 5, 'plaza');
+    // v60: denser throne hall — side aisles, save crystal, chests, torch ring
+    fill(3, 3, 3, ht-6, 'path'); fill(w-6, 3, 3, ht-6, 'path');
     prop(cx,4,'statue'); prop(cx-3,5,'lamp'); prop(cx+3,5,'lamp');
     anim(cx-3,5,'torch'); anim(cx+3,5,'torch');
+    anim(4,4,'torch'); anim(w-5,4,'torch'); anim(4,ht-5,'torch'); anim(w-5,ht-5,'torch');
     placeHouse(cx-8, cy-1, 'Nebenkammer',{variant:3});
     placeHouse(cx+4, cy-1, 'Wache',{variant:0});
+    placeHouse(3, ht-8, 'Velkas Büro',{variant:2});
+    placeHouse(w-7, ht-8, 'Schatzkammer',{variant:1});
+    placeChest(cx+3, 6, {gold:18, item:'Nachtstahl-Splitter'});
+    placeChest(4, cy, {gold:10, item:'Heiltrank'});
+    placeChest(w-5, cy, {gold:12, item:'Antidot'});
+    prop(cx, cy+2, 'well'); // save/rest crystal stand-in
+    prop(cx-5, cy, 'barrel'); prop(cx+5, cy, 'crate');
+    questMark(cx, 5, 'Thron', 'story');
   } else if(preset==='market'){
     for(let y=0;y<ht;y++) for(let x=0;x<w;x++) tiles[y][x]='grass';
     fill(0, cy-1, w, 3, 'path');
@@ -479,12 +520,20 @@ export function buildMapForLocation(S, ort){
   } else if(preset==='wall'){
     for(let y=0;y<ht;y++) for(let x=0;x<w;x++) tiles[y][x]='grass';
     fill(0,0,w,4,'stone'); fill(0,0,w,1,'wall');
-    fill(0, cy, w, 2, 'path');
+    fill(0, cy, w, 2, 'path'); fill(cx-1, 4, 3, ht-6, 'path');
     placeHouse(2, 5, 'Kaserne', {hall:true, variant:2, w:4, h:3});
-    placeHouse(w-7, 5, 'Turm', {variant:1});
+    placeHouse(w-7, 5, 'Turm Ost', {variant:1});
     placeHouse(cx-2, ht-7, 'Wachstube', {variant:0});
+    placeHouse(w-7, ht-7, 'Nyx-Versteck', {variant:4});
+    placeHouse(2, ht-7, 'Pass-Lager', {variant:3});
     for(let x=2;x<w-2;x+=4){ anim(x,2,'torch'); prop(x,3,'lamp'); }
     prop(cx, cy-1, 'sign'); prop(cx+2, cy+1, 'barrel');
+    placeChest(cx+3, cy, {gold:15, item:'Eisen-Schild'});
+    placeChest(5, 8, {gold:10, item:'Antidot'});
+    placeChest(w-6, cy+2, {gold:18, item:'Nyx-Bericht'});
+    prop(cx, cy+2, 'well');
+    questMark(cx, 6, 'Grenzpass', 'story');
+    fill(3, 10, 4, 3, 'water'); fill(w-8, 10, 4, 3, 'water');
     scatterGrass();
   } else if(preset==='garden'){
     for(let y=0;y<ht;y++) for(let x=0;x<w;x++) tiles[y][x]='grass';
@@ -498,14 +547,19 @@ export function buildMapForLocation(S, ort){
     scatterGrass();
   } else if(preset==='church'){
     for(let y=0;y<ht;y++) for(let x=0;x<w;x++) tiles[y][x]='grass';
-    fill(0,cy,w,2,'path');
-    placeHouse(cx-4, cy-7, 'Kirche', {hall:true, variant:3, w:4, h:3});
+    fill(0,cy,w,2,'path'); fill(cx-1,2,3,ht-4,'path');
+    placeHouse(cx-4, cy-7, 'Kathedrale Solari', {hall:true, variant:3, w:4, h:3});
     fill(cx-3, cy-3, 7, 5, 'plaza');
     prop(cx, cy-2, 'statue'); anim(cx-3,cy-4,'torch'); anim(cx+3,cy-4,'torch');
     placeHouse(2, ht-7, 'Pfarrhaus', {variant:2});
     placeHouse(w-6, ht-7, 'Friedhofskapelle', {variant:1});
+    placeHouse(2, 3, 'Sakristei', {variant:0});
     ringFence(w-10, cy+2, 7, 6); fill(w-9,cy+3,5,4,'grass');
     for(let i=0;i<3;i++) prop(w-8+i, cy+4, 'statue');
+    placeChest(cx+2, cy-1, {gold:22, item:'Heiliges Siegel'});
+    placeChest(3, 8, {gold:14, item:'Weihwasser'});
+    prop(cx, cy+1, 'well');
+    questMark(cx, cy-3, 'Altar', 'story');
     scatterGrass();
   } else if(preset==='guild'){
     for(let y=0;y<ht;y++) for(let x=0;x<w;x++) tiles[y][x]='grass';
@@ -684,13 +738,20 @@ export function buildMapForLocation(S, ort){
     scatterGrass();
   } else if(preset==='graveyard'){
     kind='ruins';
-    for(let y=0;y<ht;y++) for(let x=0;x<w;x++) tiles[y][x]='grass';
-    fill(0,cy,w,2,'path');
+    for(let y=0;y<ht;y++) for(let x=0;x<w;x++) tiles[y][x]='stone';
+    fill(2,2,w-4,ht-4,'floor');
+    fill(0,cy,w,2,'path'); fill(cx-1,2,3,ht-4,'path');
     ringFence(2,2,w-4,ht-4);
-    placeHouse(cx-3, 2, 'Kapelle', {hall:true, variant:3, w:4, h:3});
+    placeHouse(cx-3, 2, 'Kapelle Solmir', {hall:true, variant:3, w:4, h:3});
     for(let j=0;j<3;j++) for(let i=0;i<6;i++){ prop(4+i*3, 8+j*3, 'statue'); }
-    anim(cx-3,4,'torch'); anim(cx+3,4,'torch');
+    anim(cx-3,4,'torch'); anim(cx+3,4,'torch'); anim(4,cy,'torch'); anim(w-5,cy,'torch');
     prop(cx,cy,'statue'); placeHouse(w-7, ht-7, 'Gruft', {variant:2});
+    placeHouse(3, ht-7, 'Malgors Anwesen', {variant:1});
+    placeChest(cx+2, 6, {gold:20, item:'Phylakterium-Splitter'});
+    placeChest(5, cy+1, {gold:12, item:'Manaessenz'});
+    placeChest(w-6, 10, {gold:16, item:'Knochen-Schlüssel'});
+    prop(cx, cy+2, 'well');
+    questMark(cx, 4, 'Erster Held', 'secret');
     scatterGrass();
   } else if(preset==='neon'){
     // cyberpunk / neon city — denser urban, Kenney-ish feel via plazas + halls
@@ -956,7 +1017,8 @@ export function buildMapForLocation(S, ort){
   }
   // quest marks filled later in showOverworld
   try{ const G=window.__game; if(G?.C49?.densifyTownMapV49) G.C49.densifyTownMapV49({w,h:ht,tiles,overlay,kind,overhead,genre}); else if(G?.C48?.densifyTownMapV48) G.C48.densifyTownMapV48({w,h:ht,tiles,overlay,kind,overhead,genre}); else if(G?.C47?.densifyTownMapV47) G.C47.densifyTownMapV47({w,h:ht,tiles,overlay,kind,overhead,genre}); else if(G?.C46?.densifyTownMapV46) G.C46.densifyTownMapV46({w,h:ht,tiles,overlay,kind}); else if(G?.C45?.densifyTownMap) G.C45.densifyTownMap({w,h:ht,tiles,kind}); }catch(_){}
-  return {w,h:ht,tiles,overlay,doors:exits,spawn:{x:sx,y:sy},kind,name,npcs,interiors,overhead,animators,preset,chests,lights};
+  const qmarks=(questMark._buf||[]).slice(); questMark._buf=[];
+  return {w,h:ht,tiles,overlay,doors:exits,spawn:{x:sx,y:sy},kind,name,npcs,interiors,overhead,animators,preset,chests,lights,questMarks:qmarks};
 }
 
 function walkable(x,y){
@@ -2094,6 +2156,7 @@ export function showOverworld(S){
   _animators=built.animators||[];
   __map=built;
   _chests=(built.chests||[]).map(c=>({...c}));
+  if(Array.isArray(built.questMarks)&&built.questMarks.length){ _questMarks=(_questMarks||[]).concat(built.questMarks); }
   _lights=built.lights||[];
   try{
     const opened=S?.flags?.chests||{};

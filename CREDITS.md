@@ -137,3 +137,10 @@ Genre packs `arch_fan*`, `arch_zom*`, `arch_cyb*`, `arch_des*`, `arch_dark*` plu
 - Ally battlers: LPC stage composites (CC-BY-SA 3.0 lineage) re-framed with outline, contrast, ground shadow.
 - Presentation: FF-like nameplate dialogue boxes, column choice menu, fade transitions (`body.visual59`).
 - Softlock fix: boss choice no longer advances chapter before ATB ends; idempotent `onBossVictory`.
+
+
+## v60 Nocturna tileset pack
+- **ArMM1998** — Zelda-like tilesets (Overworld / Inner / Objects) — **CC0 1.0** (OpenGameArt)
+  - Used for: `assets/pixel/tiles-nocturna/` grass/water/stone/floor/wall, area grades, battle BG stamps, worldmap
+- Water animation frames derived from the same Overworld sheet (and optional sodri water reference where present)
+- Existing LPC / Ninja Adventure / Kenney credits above still apply for characters, decor houses, UI

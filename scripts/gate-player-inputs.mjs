@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * v59 release gate — classic JRPG Nocturna.
+ * v60 release gate — classic JRPG Nocturna.
  * GATE_SKIP_LIVE=1 → local only. GATE_ONLY_LIVE=1 → live Pages + old saves.
  * Real ATB for chapter bosses (no __gateNoBattle stub).
  */
@@ -12,7 +12,7 @@ import { fileURLToPath } from 'url';
 
 const ROOT=path.join(path.dirname(fileURLToPath(import.meta.url)),'..');
 const PORT=8793;
-const VER='59';
+const VER='60';
 const LIVE='https://markusstol.github.io/isekai-game/';
 const SKIP_LIVE=process.env.GATE_SKIP_LIVE==='1';
 const ONLY_LIVE=process.env.GATE_ONLY_LIVE==='1';
@@ -68,7 +68,7 @@ async function freshOffline(page){
     g.S.setup={done:true}; g.S.flags=Object.assign(g.S.flags||{},{onboarded:true,introDone:true});
     g.S.cfgBattleDiff='story'; g.S.cfgAtbMode='active';
     g.S.st.hp=g.S.st.maxhp=180; g.S.st.mp=g.S.st.maxmp=80; g.S.st.gold=120; g.S.st.str=20; g.S.st.lvl=4;
-    g.C59.migrateV59(g.S);
+    g.C60.migrateV60(g.S);
     g.enterPlay();
     document.getElementById('title')?.classList.add('hidden');
     document.getElementById('stage')?.classList.remove('hidden');
@@ -164,21 +164,21 @@ async function runLocal(browser){
   // real ATB bosses c1–c4
   async function prepBoss(chId){
     await page.evaluate((chId)=>{
-      const g=window.__game; const ch=g.C59.CHAPTERS.find(c=>c.id===chId);
-      g.S.campaign.chapterIdx=g.C59.CHAPTERS.findIndex(c=>c.id===chId);
+      const g=window.__game; const ch=g.C60.CHAPTERS.find(c=>c.id===chId);
+      g.S.campaign.chapterIdx=g.C60.CHAPTERS.findIndex(c=>c.id===chId);
       const keep=g.S.campaign.flags||{};
       g.S.campaign.flags={}; // fresh beat flags per chapter attempt
-      g.C59.startDungeon(g.S, ch);
-      g.C59.recruitMember(g.S,'Sekretärin Velka',{});
-      g.C59.recruitMember(g.S,'Spionin Nyx',{});
-      g.C59.recruitMember(g.S,'General Brok',{});
-      if(chId==='c3'||chId==='c4'){ g.S.romance['Heldin Aria']={affection:50,stage:3}; g.C59.recruitMember(g.S,'Heldin Aria',{}); }
+      g.C60.startDungeon(g.S, ch);
+      g.C60.recruitMember(g.S,'Sekretärin Velka',{});
+      g.C60.recruitMember(g.S,'Spionin Nyx',{});
+      g.C60.recruitMember(g.S,'General Brok',{});
+      if(chId==='c3'||chId==='c4'){ g.S.romance['Heldin Aria']={affection:50,stage:3}; g.C60.recruitMember(g.S,'Heldin Aria',{}); }
       g.S.st.lvl = chId==='c1'?4:chId==='c2'?5:chId==='c3'?7:9;
       g.S.st.str = chId==='c1'?22:chId==='c2'?26:chId==='c3'?30:36;
       g.S.st.maxhp = chId==='c1'?200:chId==='c2'?230:chId==='c3'?280:380;
       g.S.st.maxmp = 90; g.S.st.hp=g.S.st.maxhp; g.S.st.mp=g.S.st.maxmp;
       g.S.campaign.dungeon.room=(g.S.campaign.dungeon.rooms|0)+1;
-      g.applyJrpgPack(g.C59.resolveChoice(g.S,{next:'dungeon'},{}));
+      g.applyJrpgPack(g.C60.resolveChoice(g.S,{next:'dungeon'},{}));
     }, chId);
   }
   for(const chId of ['c1','c2','c3','c4']){
@@ -214,7 +214,7 @@ async function runLocal(browser){
     const results=[];
     for(const ver of [13,40,50,56,57,58]){
       const s={ver, st:{hp:50,maxhp:100,gold:10}, world:{npcs:{},scene:{}}, flags:{}, romance:{}, pc:{name:'Alt'}};
-      try{ g.C59.migrateV59(s); results.push({ver, out:s.ver, campaign:s.campaign?.id, jrpg59:!!s.flags?.jrpg59}); }
+      try{ g.C60.migrateV60(s); results.push({ver, out:s.ver, campaign:s.campaign?.id, jrpg59:!!s.flags?.jrpg59}); }
       catch(e){ results.push({ver, err:String(e)});}
     }
     return results;
@@ -255,11 +255,11 @@ async function runLive(browser){
     for(const ver of [13,50,57,58]){
       const s={ver, st:{hp:40,maxhp:100,gold:5,str:8}, world:{npcs:{'Sekretärin Velka':{alive:true,art:'Sukkubus'}},scene:{ort:'Test'}}, flags:{onboarded:true}, romance:{}, pc:{name:'Legacy'+ver}, genre:'daemon', role:'daemon'};
       try{
-        (g.C59||g.C58).migrateV59?.(s) || g.C58.migrateV58(s);
+        (g.C60||g.C58).migrateV60?.(s) || g.C58.migrateV60(s);
         out.push({ver, ok:true, outVer:s.ver, campaign:s.campaign?.id, freetext:s.flags?.freetext});
       }catch(e){ out.push({ver, ok:false, err:String(e)});}
     }
-    return {pageVer:g.VER, saves:out, hasC59:!!g.C59};
+    return {pageVer:g.VER, saves:out, hasC60:!!g.C60};
   });
   for(const s of saveTest.saves){
     if(!s.ok) fail('live-old-saves', s); else ok('live-old-saves', s);

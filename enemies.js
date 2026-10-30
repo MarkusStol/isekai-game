@@ -33,7 +33,7 @@ export const ENEMIES={
   net_ghost:{id:'net_ghost',name:'Netzgeist',icon:'👾',art:'assets/creature/net_ghost.webp',genre:['cyberpunk'],hp:42,mp:45,atk:5,def:4,mag:18,spd:12,exp:40,gold:10,element:'techno',weak:['licht'],resist:['phys'],ai:'caster',skills:[{id:'glitch',name:'Glitch',pow:1.2,elem:'techno',mp:7,status:'betaeubt',statusChance:.35}],loot:[{name:'Datenkern',icon:'💾',chance:.4}]},
 
   lesser_fiend:{id:'lesser_fiend',name:'Niederer Fiend',icon:'🦇',art:'assets/creature/lesser_fiend.webp',genre:['daemon'],hp:60,mp:18,atk:14,def:8,mag:12,spd:10,exp:44,gold:16,element:'schatten',weak:['licht'],ai:'aggro',skills:[{id:'krallen',name:'Höllenkrallen',pow:1.25,elem:'schatten'}],loot:[{name:'Dämonenhorn',icon:'📯',chance:.3}]},
-  hellhound:{id:'hellhound',name:'Höllenhund',icon:'🔥',art:'assets/creature/hellhound.webp',genre:['daemon'],hp:65,mp:0,atk:16,def:8,mag:6,spd:13,exp:40,gold:10,element:'feuer',weak:['eis'],resist:['feuer'],ai:'aggro',skills:[{id:'flammenbiss',name:'Flammenbiss',pow:1.3,elem:'feuer',status:'brand',statusChance:.4}],loot:[{name:'Höllenkohle',icon:'⬛',chance:.4}]},
+  hellhound:{id:'hellhound',name:'Höllenhund',icon:'🔥',art:'assets/creature/hellhound.webp',genre:['daemon'],hp:70,mp:0,atk:14,def:9,mag:6,spd:12,exp:48,gold:14,element:'feuer',weak:['eis','wasser'],resist:['feuer'],ai:'aggro',skills:[{id:'flammenbiss',name:'Flammenbiss',pow:1.15,elem:'feuer',status:'brand',statusChance:.22}],loot:[{name:'Höllenkohle',icon:'⬛',chance:.4}]},
   cultist:{id:'cultist',name:'Dämonenkultist',icon:'🕯️',art:'assets/creature/cultist.svg',genre:['daemon'],hp:46,mp:32,atk:8,def:5,mag:15,spd:8,exp:36,gold:14,element:'schatten',weak:['licht'],ai:'healer',human:true,skills:[{id:'fluch',name:'Fluch',pow:1.1,elem:'schatten',mp:6},{id:'dunkle_heilung',name:'Dunkle Heilung',heal:24,mp:9}],loot:[{name:'Kultrobe',icon:'🧥',chance:.2}]},
 
   fog_passenger:{id:'fog_passenger',name:'Nebelpassagier',icon:'🌫️',art:'assets/creature/fog_passenger.svg',genre:['grey'],hp:50,mp:20,atk:10,def:6,mag:12,spd:9,exp:34,gold:0,element:'schatten',weak:['licht'],resist:['phys'],ai:'cautious',skills:[{id:'nebelgriff',name:'Nebelgriff',pow:1.2,elem:'schatten',status:'schlaf',statusChance:.3}],loot:[{name:'Fahrkarte',icon:'🎫',chance:.5}]},
@@ -76,13 +76,17 @@ export const BATTLE_BG={
   held:'assets/bg/battle/arena-fantasy.webp',
   fantasy:'assets/bg/battle/arena-fantasy.webp',
   darkfantasy:'assets/bg/battle/arena-dark.webp',
-  daemon:'assets/bg/battle/arena-daemon.webp',
+  daemon:'assets/pixel/bg-battle/nocturna/throne.png',
   zombie:'assets/bg/battle/arena-zombie.svg',
   postapoc:'assets/bg/battle/arena-zombie.svg',
   cyberpunk:'assets/bg/battle/arena-cyber.webp',
   grey:'assets/bg/battle/arena-grey.webp',
   forest:'assets/bg/battle/arena-forest.webp',
-  dungeon:'assets/bg/battle/arena-dungeon.webp'
+  dungeon:'assets/bg/battle/arena-dungeon.webp',
+  nocturna_throne:'assets/pixel/bg-battle/nocturna/throne.png',
+  nocturna_pass:'assets/pixel/bg-battle/nocturna/pass.png',
+  nocturna_crypt:'assets/pixel/bg-battle/nocturna/crypt.png',
+  nocturna_cathedral:'assets/pixel/bg-battle/nocturna/cathedral.png',
 };
 
 export function enemyById(id){
@@ -137,6 +141,11 @@ function iRand(){return Math.random().toString(36).slice(2,7)}
 export function battleBgFor(S){
   const genre=String(S.genre||S.role||'held').toLowerCase();
   const ort=String(S.world?.scene?.ort||'').toLowerCase();
+  // v60 Nocturna per-area battle BGs
+  if(/thron|festung|katakomb/.test(ort)) return BATTLE_BG.nocturna_throne;
+  if(/pass|grenze|wachturm/.test(ort)) return BATTLE_BG.nocturna_pass;
+  if(/solmir|gruft|krypta|ruine/.test(ort)) return BATTLE_BG.nocturna_crypt;
+  if(/kathedrale|solari|kirche/.test(ort)) return BATTLE_BG.nocturna_cathedral;
   if(/wald|forest|elfen/.test(ort)) return BATTLE_BG.forest;
   if(/kerker|dungeon|höhle|keller|verlies|katakomb|gruft|bunker/.test(ort)) return BATTLE_BG.dungeon;
   if(BATTLE_BG[genre]) return BATTLE_BG[genre];
