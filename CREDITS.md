@@ -151,3 +151,8 @@ Genre packs `arch_fan*`, `arch_zom*`, `arch_cyb*`, `arch_des*`, `arch_dark*` plu
 - Thronsaal: interior hall, pillars, carpet, throne dais
 - Kathedrale: nave, pews, stained-glass bays, altar
 - Battle UI: crisp foes/BG, no toast-over-defeat, Aschenhund balance
+
+
+## v62 Natural hubs + progression
+- Irregular cliffs, frozen stream, tall watchtowers, pines, camp NPCs
+- Per-character skill trees, craft tiers, chapter sidequests & puzzles, optional superboss

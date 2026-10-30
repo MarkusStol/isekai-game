@@ -351,4 +351,77 @@ export const JRPG_HUB_TILES=[
   {id:'summons',icon:'🌟',label:'Geister'},
 ];
 
-export default {renderEquip, renderGambits, renderJobs, renderCraft, renderSummons, startSuperbossSetpiece, JRPG_HUB_TILES};
+
+/** v62: per-character skills, craft tiers, sidequests, puzzles, superboss */
+export function renderV62Progress(body, S, helpers={}){
+  const {toast, save, Battle}=helpers;
+  const C62=window.__game?.C62;
+  if(!C62){ body.innerHTML='<p class="meta">v62 Modul fehlt</p>'; return; }
+  C62.ensureV62(S);
+  const v=S.v62;
+  const wrap=document.createElement('div');
+  wrap.innerHTML=`<div class="card"><h3>Skillpunkte: ${v.skillPts|0}</h3><p class="meta">Pro Charakter freischalten. Bosse und Sidequests geben Punkte.</p></div>`;
+  body.appendChild(wrap.firstChild);
+  Object.entries(C62.CHAR_SKILL_TREES).forEach(([who,tree])=>{
+    const st=v.charSkills[who]||{unlocked:[]};
+    const card=document.createElement('div'); card.className='card';
+    card.innerHTML=`<h3>${tree.name}</h3>`;
+    tree.nodes.forEach(n=>{
+      const on=st.unlocked.includes(n.id);
+      const b=document.createElement('button'); b.type='button'; b.className='bcm'+(on?' on':'');
+      b.textContent=(on?'✓ ':'')+n.name+' ('+n.cost+' SP) — '+n.desc;
+      b.disabled=on;
+      b.onclick=()=>{ const r=C62.unlockSkillNode(S,who,n.id); toast?.(r.text); save?.(); body.innerHTML=''; renderV62Progress(body,S,helpers); };
+      card.appendChild(b);
+    });
+    body.appendChild(card);
+  });
+  // Craft
+  const craft=document.createElement('div'); craft.className='card';
+  craft.innerHTML=`<h3>Werkstatt (Stufe ${v.craftTier|0})</h3><p class="meta">Material: ${Object.entries(v.mats||{}).map(([k,n])=>k+'×'+n).join(', ')||'—'}</p>`;
+  C62.craftTierOf(S).forEach(t=>{
+    t.recipes.forEach(rid=>{
+      const rec=C62.CRAFT_RECIPES[rid]; if(!rec) return;
+      const b=document.createElement('button'); b.type='button'; b.className='bcm';
+      b.textContent=`Herstellen: ${rec.name} (${rec.cost.gold}G)`;
+      b.onclick=()=>{ const r=C62.tryCraft(S,rid); toast?.(r.text); save?.(); body.innerHTML=''; renderV62Progress(body,S,helpers); };
+      craft.appendChild(b);
+    });
+  });
+  body.appendChild(craft);
+  // Side + puzzle
+  const sq=C62.sidequestForChapter(S);
+  const pz=C62.puzzleForChapter(S);
+  const q=document.createElement('div'); q.className='card';
+  q.innerHTML=`<h3>Kapitel-Aufträge</h3>
+    <p><b>Side:</b> ${sq?sq.title+' — '+sq.desc:('—')} ${sq&&v.sideDone.includes(sq.id)?'✓':''}</p>
+    <p><b>Rätsel:</b> ${pz?pz.title+' — '+pz.prompt:('—')} ${pz&&v.puzzlesDone.includes(pz.id)?'✓':''}</p>`;
+  if(pz && !v.puzzlesDone.includes(pz.id)){
+    const b=document.createElement('button'); b.type='button'; b.className='bcm';
+    b.textContent='Rätsel lösen (Auto: richtige Reihenfolge)';
+    b.onclick=()=>{ const r=C62.solvePuzzle(S,pz.id,pz.solution); toast?.(r.text); save?.(); body.innerHTML=''; renderV62Progress(body,S,helpers); };
+    q.appendChild(b);
+  }
+  if(sq && !v.sideDone.includes(sq.id)){
+    const b=document.createElement('button'); b.type='button'; b.className='bcm';
+    b.textContent='Sidequest abschließen (Story-Szene empfohlen)';
+    b.onclick=()=>{ const r=C62.completeSidequest(S,sq.id); toast?.(r.text); save?.(); body.innerHTML=''; renderV62Progress(body,S,helpers); };
+    q.appendChild(b);
+  }
+  body.appendChild(q);
+  // Superboss
+  const sb=document.createElement('div'); sb.className='card';
+  const unlocked=!!v.superbossUnlocked || !!S.flags?.superboss_aether;
+  sb.innerHTML=`<h3>Optionaler Superboss</h3><p class="meta">${C62.OPTIONAL_SUPERBOSS.blurb}</p>`;
+  const b=document.createElement('button'); b.type='button'; b.className='bcm';
+  b.textContent=unlocked?'Herausforderung: Ätherwyrm':'Noch gesperrt (Sides + Rätsel + Ende)';
+  b.disabled=!unlocked;
+  b.onclick=()=>{
+    if(!unlocked) return;
+    startSuperbossSetpiece(S, Battle||window.__game?.Battle, helpers);
+  };
+  sb.appendChild(b);
+  body.appendChild(sb);
+}
+
+export default {renderEquip, renderGambits, renderJobs, renderCraft, renderSummons, startSuperbossSetpiece, renderV62Progress, JRPG_HUB_TILES};

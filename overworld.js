@@ -48,6 +48,18 @@ const DECOR = {
   statue: './assets/pixel/decor/statue.png',
   cart: './assets/pixel/decor/cart.png',
   shadow: './assets/pixel/decor/shadow.png',
+  watchtower: './assets/pixel/decor/watchtower.png',
+  pine: './assets/pixel/decor/pine.png',
+  rock: './assets/pixel/decor/rock.png',
+  snowdrift: './assets/pixel/decor/snowdrift.png',
+  campfire: './assets/pixel/decor/campfire.png',
+  coffin: './assets/pixel/decor/coffin.png',
+  throne_chair: './assets/pixel/decor/throne_chair.png',
+  altar: './assets/pixel/decor/altar.png',
+  glass_blue: './assets/pixel/tiles-nocturna/areas/cathedral/glass_blue.png',
+  glass_red: './assets/pixel/tiles-nocturna/areas/cathedral/glass_red.png',
+  glass_green: './assets/pixel/tiles-nocturna/areas/cathedral/glass_green.png',
+  glass_gold: './assets/pixel/tiles-nocturna/areas/cathedral/glass_gold.png',
   d0: './assets/pixel/decor/d0.png',
   d1: './assets/pixel/decor/d1.png',
   d2: './assets/pixel/decor/d2.png',
@@ -304,8 +316,10 @@ export function buildMapForLocation(S, ort){
   }
 
   // v47: taller towns so mobile FOV (viewH~30) stays inside map — no void band
-  const w = kind==='dungeon'?26: kind==='camp'?18: kind==='interior'?16:30;
-  const ht = kind==='dungeon'?32: kind==='camp'?16: kind==='interior'?14:34; // v47d: dungeon tall enough for mobile FOV
+  // v62: hand hubs need room for pillars/glass/towers
+  const handHub=/(wall|graveyard|throne|church)/.test(String(preset||''));
+  const w = handHub?30: kind==='dungeon'?26: kind==='camp'?18: kind==='interior'?16:30;
+  const ht = handHub?34: kind==='dungeon'?32: kind==='camp'?16: kind==='interior'?14:34;
   const tiles=Array.from({length:ht},()=>Array(w).fill('grass'));
   const overlay=Array.from({length:ht},()=>Array(w).fill(null));
   const interiors=[];
@@ -313,6 +327,7 @@ export function buildMapForLocation(S, ort){
   const animators=[];
   const chests=[];
   let _pendingLights=[];
+  const _hubNpcs=[]; // v62 hand-placed NPCs for hubs
   const fill=(x,y,tw,th,t)=>{ for(let j=0;j<th;j++) for(let i=0;i<tw;i++){ const xx=x+i,yy=y+j; if(yy>=0&&yy<ht&&xx>=0&&xx<w) tiles[yy][xx]=t; } };
   const ov=(x,y,id)=>{ if(y>=0&&y<ht&&x>=0&&x<w) overlay[y][x]=id; };
   const prop=(x,y,id)=>{ if(y>=0&&y<ht&&x>=0&&x<w){ overlay[y][x]=id; } };
@@ -436,32 +451,40 @@ export function buildMapForLocation(S, ort){
     prop(cx-3,cy,'statue'); prop(cx+3,cy,'statue');
     scatterProps([[4,cy,'lamp'],[w-5,cy,'lamp'],[cx,4,'sign']]);
   } else if(preset==='throne'){
-    // v61 hand-authored: castle throne hall — pillars, carpet aisle, throne dais
+    // v62: castle hall — pillars, carpet, real throne, side alcoves
     kind='interior';
     for(let y=0;y<ht;y++) for(let x=0;x<w;x++) tiles[y][x]='floor';
     fill(0,0,w,2,'wall'); fill(0,ht-2,w,2,'wall'); fill(0,0,2,ht,'wall'); fill(w-2,0,2,ht,'wall');
-    fill(cx-1, 3, 3, ht-6, 'carpet');
+    // wide carpet aisle with soft edge (plaza border)
+    fill(cx-2, 3, 5, ht-6, 'carpet');
+    for(let y=3;y<ht-3;y++){
+      if(tiles[y]){ tiles[y][cx-3]='plaza'; tiles[y][cx+3]='plaza'; }
+    }
+    // throne dais
     fill(cx-4, 2, 9, 5, 'plaza');
     fill(cx-2, 2, 5, 3, 'carpet');
-    for(let y=6;y<ht-4;y+=3){
+    overhead.push({x:cx-1,y:2,src:DECOR.throne_chair,tw:2,th:2.5,label:'Thron'});
+    prop(cx, 3, 'statue');
+    // pillar rows with torch glow
+    for(let y=7;y<ht-5;y+=3){
+      if(tiles[y]){ tiles[y][cx-5]='stone'; tiles[y][cx+5]='stone'; }
       prop(cx-5, y, 'statue'); prop(cx+5, y, 'statue');
       anim(cx-5, y-1, 'torch'); anim(cx+5, y-1, 'torch');
-      if(tiles[y]){ tiles[y][cx-5]='stone'; tiles[y][cx+5]='stone'; }
+      _pendingLights.push({x:cx-5+0.5,y:y-0.5,r:3}); _pendingLights.push({x:cx+5+0.5,y:y-0.5,r:3});
     }
-    prop(cx, 3, 'statue');
-    prop(cx-2, 4, 'lamp'); prop(cx+2, 4, 'lamp');
-    anim(cx-3, 3, 'torch'); anim(cx+3, 3, 'torch');
-    fill(2, 4, 3, 4, 'wall'); fill(w-5, 4, 3, 4, 'wall');
-    if(tiles[6]){ tiles[6][3]='door'; tiles[6][w-4]='door'; }
-    fill(2, ht-8, 4, 4, 'stone'); fill(w-6, ht-8, 4, 4, 'stone');
-    prop(3, ht-7, 'barrel'); prop(w-5, ht-7, 'crate');
+    // side chambers
+    fill(2, 5, 4, 5, 'floor'); fill(w-6, 5, 4, 5, 'floor');
+    if(tiles[7]){ tiles[7][5]='door'; tiles[7][w-6]='door'; }
+    fill(2, 5, 4, 1, 'wall'); fill(w-6, 5, 4, 1, 'wall');
+    prop(3, 7, 'barrel'); prop(w-5, 7, 'crate');
     placeChest(cx+3, 5, {gold:18, item:'Nachtstahl-Splitter'});
     placeChest(4, cy, {gold:10, item:'Heiltrank'});
     placeChest(w-5, cy, {gold:12, item:'Antidot'});
-    prop(cx, cy+2, 'well');
     prop(cx-3, cy+1, 'bench'); prop(cx+3, cy+1, 'bench');
     questMark(cx, 4, 'Thron', 'story');
     fill(cx-1, ht-2, 3, 2, 'path');
+    _hubNpcs.push({name:'Sekretärin Velka', x:cx+2, y:5, px:cx+2, py:5, sheet:'mage', e:'📜'});
+    _hubNpcs.push({name:'General Brok', x:cx-2, y:cy, px:cx-2, py:cy, sheet:'guard', e:'🪓'});
   } else if(preset==='market'){
     for(let y=0;y<ht;y++) for(let x=0;x<w;x++) tiles[y][x]='grass';
     fill(0, cy-1, w, 3, 'path');
@@ -525,49 +548,101 @@ export function buildMapForLocation(S, ort){
     prop(cx, cy, 'statue');
     scatterGrass();
   } else if(preset==='wall'){
-    // v61 hand-authored: mountain Grenzpass — cliffs, narrow winding path, towers, snow
+    // v62: natural mountain pass — irregular cliffs, frozen stream, tall towers, camp
     kind='wild';
-    for(let y=0;y<ht;y++) for(let x=0;x<w;x++) tiles[y][x]='sand';
-    // thick cliff bands L/R (stone + wall = rock faces)
-    for(let y=0;y<ht;y++){
-      fill(0, y, 6, 1, 'stone');
-      fill(w-6, y, 6, 1, 'stone');
-      fill(0, y, 3, 1, 'wall');
-      fill(w-3, y, 3, 1, 'wall');
-      if(y%2===0){ tiles[y][5]='wall'; tiles[y][w-6]='wall'; }
-      if(y%3===0){ tiles[y][4]='wall'; tiles[y][w-5]='wall'; }
-      if(y%5===0){ tiles[y][6]='stone'; tiles[y][w-7]='stone'; }
+    const rnd=(n)=>((h*1103515245+n*12345)>>>0)%100;
+    for(let y=0;y<ht;y++) for(let x=0;x<w;x++){
+      const edgeL = x < 5 + ((y*3+h)%4) + (rnd(x+y*17)%3);
+      const edgeR = x > w-6 - ((y*5+h)%3) - (rnd(x*3+y)%3);
+      if(edgeL || edgeR){
+        tiles[y][x] = (rnd(x+y*9)%5===0)?'wall':'stone';
+      } else {
+        tiles[y][x]='sand';
+      }
     }
-    // winding narrow path through pass
+    // winding path with soft edges
     let ppx=cx, ppy=0;
     while(ppy<ht){
-      fill(Math.max(7,ppx-1), ppy, 3, 1, 'path');
-      if(ppy%3===0) ppx = Math.max(8, Math.min(w-9, ppx + ((ppy/3|0)%2===0?1:-1)));
+      const half=1+(rnd(ppy*7)%2);
+      for(let dx=-half;dx<=half;dx++){
+        const xx=Math.max(6,Math.min(w-7,ppx+dx));
+        if(tiles[ppy]?.[xx]) tiles[ppy][xx]='path';
+      }
+      // soft shoulder snow
+      for(const s of [-half-1, half+1]){
+        const xx=Math.max(5,Math.min(w-6,ppx+s));
+        if(tiles[ppy]?.[xx]==='sand' && rnd(ppy+xx)%3===0) tiles[ppy][xx]='path';
+      }
+      if(ppy%2===0) ppx = Math.max(8, Math.min(w-9, ppx + ((ppy/2|0)%2===0?1:-1) + (rnd(ppy)%3-1)));
       ppy++;
     }
-    // cliff shelves / choke points
-    fill(6, 5, w-12, 1, 'stone'); fill(cx-1, 5, 3, 1, 'path');
-    fill(6, 12, w-12, 1, 'wall'); fill(cx-1, 12, 3, 1, 'path');
-    fill(6, ht-7, w-12, 1, 'stone'); fill(cx-1, ht-7, 3, 1, 'path');
-    // watchtowers on cliff shelves
-    placeHouse(7, 6, 'Wachturm West', {variant:1, w:3, h:3});
-    placeHouse(w-10, 6, 'Wachturm Ost', {variant:1, w:3, h:3});
-    placeHouse(7, ht-10, 'Pass-Lager', {variant:3, w:3, h:3});
-    placeHouse(w-10, ht-10, 'Nyx-Versteck', {variant:4, w:3, h:3});
-    // sparse alpine scrub
-    for(let i=0;i<6;i++){
-      const tx=8+(i*4)%Math.max(1,w-16), ty=9+(i*4)%Math.max(1,ht-16);
-      if(tiles[ty]?.[tx]==='sand') tiles[ty][tx]='tree';
+    // frozen stream — continuous meander with soft banks (not square pools)
+    let sx=Math.floor(w*0.32), sy=2;
+    while(sy<ht-2){
+      const bend=Math.sin(sy*0.35+(h%7))*2.2;
+      const mid=Math.max(8, Math.min(w-10, Math.round(sx+bend)));
+      for(let k=-1;k<=2;k++){
+        const xx=mid+k;
+        if(xx<6||xx>w-7) continue;
+        if(tiles[sy]?.[xx]==='wall'||tiles[sy]?.[xx]==='stone') continue;
+        tiles[sy][xx]='water';
+      }
+      // snowy banks
+      for(const bank of [mid-2, mid+3]){
+        if(bank>5&&bank<w-6 && tiles[sy]?.[bank]==='sand'){
+          ov(bank, sy, 'snowdrift'); prop(bank, sy, 'snowdrift');
+        }
+      }
+      sx = mid;
+      sy++;
     }
-    // frozen pools
-    fill(8, 14, 3, 2, 'water'); fill(w-12, 16, 3, 2, 'water');
-    for(let x=8;x<w-8;x+=3){ anim(x, 4, 'torch'); }
-    prop(cx, cy, 'sign'); prop(cx+2, cy+1, 'barrel'); prop(cx-2, cy+1, 'crate');
+    // cliff shelves (irregular choke)
+    for(let x=6;x<w-6;x++){
+      if(Math.abs(x-cx)>2 && rnd(x+50)%3!==0){ tiles[6][x]='stone'; if(rnd(x)%4===0) tiles[6][x]='wall'; }
+      if(Math.abs(x-cx)>2 && rnd(x+90)%3!==0){ tiles[ht-8][x]='stone'; }
+    }
+    fill(cx-1,6,3,1,'path'); fill(cx-1,ht-8,3,1,'path');
+    // pass camp with fire (near spawn so towers+NPCs are on camera)
+    const campX=cx-3, campY=Math.max(8, cy-1);
+    fill(campX, campY, 7, 5, 'path');
+    for(let j=0;j<5;j++) for(let i=0;i<7;i++){
+      if(i===0||i===6||j===0||j===4){
+        if(rnd(i+j*8)%2===0 && tiles[campY+j]?.[campX+i]) tiles[campY+j][campX+i]='stone';
+      }
+    }
+    // tall watchtowers flanking the camp (visible at spawn)
+    const twY=Math.max(3, campY-5);
+    overhead.push({x:campX-4,y:twY,src:DECOR.watchtower,tw:3,th:5,label:'Wachturm West'});
+    overhead.push({x:campX+8,y:twY,src:DECOR.watchtower,tw:3,th:5,label:'Wachturm Ost'});
+    for(let j=0;j<5;j++) for(let i=0;i<3;i++){
+      const y1=twY+j, xL=campX-4+i, xR=campX+8+i;
+      if(tiles[y1]?.[xL]!=null) tiles[y1][xL]=(j>=4)?'path':'stone';
+      if(tiles[y1]?.[xR]!=null) tiles[y1][xR]=(j>=4)?'path':'stone';
+    }
+    prop(campX+3, campY+2, 'campfire');
+    anim(campX+3, campY+2, 'torch');
+    prop(campX+1, campY+2, 'barrel');
+    prop(campX+5, campY+2, 'crate');
+    prop(campX+2, campY+3, 'bench');
+    prop(campX+4, campY+3, 'bench');
+    // pines, rocks, snowdrifts (irregular scatter)
+    for(let i=0;i<14;i++){
+      const tx=7+(rnd(i*13)*3)%Math.max(1,w-14);
+      const ty=8+(rnd(i*17)*5)%Math.max(1,ht-16);
+      if(!tiles[ty]?.[tx] || tiles[ty][tx]!=='sand') continue;
+      if(i%3===0){ overhead.push({x:tx,y:ty-1,src:DECOR.pine,tw:2,th:3}); tiles[ty][tx]='tree'; }
+      else if(i%3===1){ prop(tx, ty, 'rock'); }
+      else { ov(tx, ty, 'snowdrift'); prop(tx, ty, 'snowdrift'); }
+    }
     placeChest(cx+2, cy-1, {gold:15, item:'Eisen-Schild'});
-    placeChest(8, 10, {gold:10, item:'Antidot'});
+    placeChest(8, 11, {gold:10, item:'Antidot'});
     placeChest(w-9, cy+2, {gold:18, item:'Nyx-Bericht'});
-    prop(cx, cy+3, 'well');
+    prop(cx, cy-2, 'sign');
     questMark(cx, 7, 'Grenzpass', 'story');
+    // camp NPCs with context
+    _hubNpcs.push({name:'Wächter Toren', x:campX+2, y:campY+1, px:campX+2, py:campY+1, sheet:'guard', e:'🛡️', home:{x:campX+2,y:campY+1}});
+    _hubNpcs.push({name:'Kundschafterin Lira', x:campX+4, y:campY+1, px:campX+4, py:campY+1, sheet:'spy', e:'🕵️', home:{x:campX+4,y:campY+1}});
+    _hubNpcs.push({name:'Händler Bram', x:campX+3, y:campY+3, px:campX+3, py:campY+3, sheet:'merchant', e:'🧳', home:{x:campX+3,y:campY+3}});
     try{ if(S){ S.flags=S.flags||{}; S.flags.weather='schnee'; } }catch(_){}
   } else if(preset==='garden'){
     for(let y=0;y<ht;y++) for(let x=0;x<w;x++) tiles[y][x]='grass';
@@ -580,32 +655,47 @@ export function buildMapForLocation(S, ort){
     prop(cx-4,cy,'bench'); prop(cx+4,cy,'bench'); prop(cx,cy+3,'statue');
     scatterGrass();
   } else if(preset==='church'){
-    // v61 hand-authored: cathedral nave — aisle, pews, altar, stained-glass bays
+    // v62: cathedral nave — stained glass, pillars, pews, altar
     kind='interior';
     for(let y=0;y<ht;y++) for(let x=0;x<w;x++) tiles[y][x]='floor';
     fill(0,0,w,2,'wall'); fill(0,ht-2,w,2,'wall'); fill(0,0,2,ht,'wall'); fill(w-2,0,2,ht,'wall');
     fill(cx-1, 3, 3, ht-5, 'carpet');
+    for(let y=3;y<ht-3;y++){
+      if(tiles[y]){ tiles[y][cx-2]='plaza'; tiles[y][cx+2]='plaza'; }
+    }
+    // altar
     fill(cx-4, 2, 9, 4, 'plaza');
+    overhead.push({x:cx-1,y:2,src:DECOR.altar,tw:2,th:1.5,label:'Altar'});
     prop(cx, 3, 'statue');
     anim(cx-3, 3, 'torch'); anim(cx+3, 3, 'torch');
-    prop(cx-2, 4, 'lamp'); prop(cx+2, 4, 'lamp');
+    // pews
     for(let y=8;y<ht-5;y+=2){
       prop(cx-4, y, 'bench'); prop(cx+4, y, 'bench');
       if(tiles[y]){ tiles[y][cx-4]='wood'; tiles[y][cx+4]='wood'; }
     }
-    for(const y of [6, 10, 14, 18]){
-      if(y>=ht-3) continue;
-      fill(2, y, 2, 2, 'plaza'); fill(w-4, y, 2, 2, 'plaza');
-      anim(2, y, 'torch'); anim(w-3, y, 'torch');
-      ov(2, y, 'flower'); ov(w-3, y, 'flower');
+    // stained-glass window bays along walls
+    const glasses=['glass_blue','glass_red','glass_green','glass_gold'];
+    for(let i=0;i<4;i++){
+      const y=6+i*4; if(y>=ht-4) continue;
+      fill(2, y, 2, 3, 'plaza'); fill(w-4, y, 2, 3, 'plaza');
+      ov(2, y+1, glasses[i%4]); ov(w-3, y+1, glasses[i%4]);
+      // mark glass as special overlay drawn later
+      if(tiles[y+1]){ tiles[y+1][2]='plaza'; tiles[y+1][w-3]='plaza'; }
+      anim(3, y, 'torch'); anim(w-4, y, 'torch');
+      _pendingLights.push({x:2.5,y:y+1.5,r:2.5,color:'glass'});
+      _pendingLights.push({x:w-2.5,y:y+1.5,r:2.5,color:'glass'});
     }
-    fill(2, ht-8, 4, 4, 'stone'); fill(w-6, ht-8, 4, 4, 'stone');
-    prop(3, ht-7, 'statue'); prop(w-5, ht-7, 'statue');
+    // pillars
+    for(let y=8;y<ht-6;y+=4){
+      if(tiles[y]){ tiles[y][cx-5]='stone'; tiles[y][cx+5]='stone'; }
+      prop(cx-5, y, 'statue'); prop(cx+5, y, 'statue');
+    }
     placeChest(cx+2, 5, {gold:22, item:'Heiliges Siegel'});
     placeChest(3, 8, {gold:14, item:'Weihwasser'});
-    prop(cx, cy+1, 'well');
     questMark(cx, 4, 'Altar', 'story');
     fill(cx-1, ht-2, 3, 2, 'path');
+    _hubNpcs.push({name:'Priesterin Solara', x:cx+2, y:4, px:cx+2, py:4, sheet:'mage', e:'✝️'});
+    _hubNpcs.push({name:'Akolyth', x:cx-3, y:cy, px:cx-3, py:cy, sheet:'villager', e:'🙏'});
   } else if(preset==='guild'){
     for(let y=0;y<ht;y++) for(let x=0;x<w;x++) tiles[y][x]='grass';
     fill(0,cy,w,2,'path');
@@ -782,46 +872,58 @@ export function buildMapForLocation(S, ort){
     for(let i=0;i<w;i+=3){ tiles[0][i]='tree'; tiles[ht-1][i]='tree'; }
     scatterGrass();
   } else if(preset==='graveyard'){
-    // v61 hand-authored: Solmir crypt — rooms, corridors, coffins, candles
+    // v62: Solmir crypt — rooms, coffins, candles, irregular chambers
     kind='dungeon';
+    const rnd=(n)=>((h*1103515245+n*12345)>>>0)%100;
     fill(0,0,w,ht,'void');
     fill(1,1,w-2,ht-2,'wall');
+    // organic corridor (not perfect cross) via jittered dig
     fill(cx-1, 2, 3, ht-4, 'floor');
     fill(2, cy-1, w-4, 3, 'floor');
-    const rooms=[[2,2,6,5],[w-8,2,6,5],[2,ht-8,6,5],[w-8,ht-8,6,5]];
+    for(let y=3;y<ht-3;y++){
+      const j=((h+y*7)%3)-1;
+      if(tiles[y]?.[cx+j]) tiles[y][cx+j]='floor';
+      if(tiles[y]?.[cx+j+1]) tiles[y][cx+j+1]='floor';
+    }
+    const rooms=[[2,2,7,6],[w-9,2,7,6],[2,ht-9,7,6],[w-9,ht-9,7,6],[cx-4,cy-4,8,7]];
     for(const [rx,ry,rw,rh] of rooms){
       fill(rx, ry, rw, rh, 'floor');
-      const dx = rx<cx ? rx+rw : rx-1;
-      const dy = ry+Math.floor(rh/2);
-      if(tiles[dy]) tiles[dy][Math.max(1,Math.min(w-2,dx))]='floor';
+      // doorway toward center
+      const midy=ry+Math.floor(rh/2), midx=rx+Math.floor(rw/2);
+      if(rx<cx) fill(rx+rw-1, midy, 3, 1, 'floor');
+      else if(rx>cx) fill(rx-2, midy, 3, 1, 'floor');
+      if(ry<cy) fill(midx, ry+rh-1, 1, 3, 'floor');
+      else if(ry>cy) fill(midx, ry-2, 1, 3, 'floor');
+      // coffins + candles
       for(let i=0;i<3;i++){
-        const cxr=rx+1+i*2, cyr=ry+2;
-        if(cxr<rx+rw-1){ prop(cxr, cyr, 'statue'); prop(cxr, cyr+1, 'crate'); }
+        const cxr=rx+2+i*2, cyr=ry+2;
+        if(cxr<rx+rw-1 && cyr<ry+rh-1){
+          prop(cxr, cyr, 'coffin');
+          anim(cxr, cyr-1, 'torch');
+          _pendingLights.push({x:cxr+0.5,y:cyr-0.5,r:2});
+        }
       }
-      anim(rx+1, ry+1, 'torch'); anim(rx+rw-2, ry+1, 'torch');
-      anim(rx+1, ry+rh-2, 'torch');
+      anim(rx+1, ry+1, 'torch'); anim(rx+rw-2, ry+rh-2, 'torch');
     }
     fill(cx-3, 2, 7, 4, 'floor');
+    overhead.push({x:cx-2,y:2,src:DECOR.altar,tw:2,th:1.5,label:'Kapelle'});
     prop(cx, 3, 'statue');
     anim(cx-2, 3, 'torch'); anim(cx+2, 3, 'torch');
-    placeHouse(cx-2, 2, 'Kapelle Solmir', {hall:true, variant:3, w:4, h:2});
-    fill(2, cy-3, 5, 3, 'stone');
-    prop(3, cy-2, 'barrel');
-    // coffins + candles near spawn (visible without exploring rooms)
+    // coffins near spawn
     for(let i=-2;i<=2;i++){
       if(i===0) continue;
-      prop(cx+i, cy-1, 'crate'); // coffin stand-in
-      anim(cx+i, cy-2, 'torch'); // candle
+      prop(cx+i, cy-1, 'coffin');
+      anim(cx+i, cy-2, 'torch');
     }
     prop(cx-3, cy+1, 'statue'); prop(cx+3, cy+1, 'statue');
-    anim(cx-4, cy, 'torch'); anim(cx+4, cy, 'torch');
     placeChest(cx+2, 5, {gold:20, item:'Phylakterium-Splitter'});
     placeChest(5, cy+1, {gold:12, item:'Manaessenz'});
     placeChest(w-6, ht-6, {gold:16, item:'Knochen-Schlüssel'});
-    prop(cx, cy+2, 'well');
     questMark(cx, 4, 'Erster Held', 'secret');
     fill(cx-1, ht-3, 3, 2, 'path');
     if(tiles[ht-2]) tiles[ht-2][cx]='door';
+    _hubNpcs.push({name:'Grabräuber', x:cx-2, y:cy+1, px:cx-2, py:cy+1, sheet:'spy', e:'💀'});
+    _hubNpcs.push({name:'Chronistin Mara', x:5, y:4, px:5, py:4, sheet:'mage', e:'📖'});
   } else if(preset==='neon'){
     // cyberpunk / neon city — denser urban, Kenney-ish feel via plazas + halls
     for(let y=0;y<ht;y++) for(let x=0;x<w;x++) tiles[y][x]='floor';
@@ -998,6 +1100,20 @@ export function buildMapForLocation(S, ort){
 
   const present=S?.world?.scene?.anwesend||[];
   const npcs=[]; const used=new Set([sx+','+sy]);
+  // v62: merge hand-authored hub NPCs first (camp guards etc.)
+  for(const hn of _hubNpcs){
+    const xx=Math.max(1,Math.min(w-2, Math.round(hn.x)));
+    const yy=Math.max(1,Math.min(ht-2, Math.round(hn.y)));
+    const key=xx+','+yy;
+    if(SOLID.has(tiles[yy]?.[xx]) || used.has(key)) continue;
+    used.add(key);
+    npcs.push({
+      name:hn.name, x:xx, y:yy, px:xx, py:yy,
+      sheet:hn.sheet||'villager', dir:0, frame:0, e:hn.e||'👤',
+      home:hn.home||{x:xx,y:yy}, waypoints:[hn.home||{x:xx,y:yy}], wp:0,
+      pace:hn.pace||'idle', wait:0, calendar:null, schedule:[], roleHint:hn.sheet||'villager'
+    });
+  }
   present.slice(0,8).forEach((nm,i)=>{
     const n=S.world?.npcs?.[nm]||{};
     const art=String(n.art||n.stimme||'').toLowerCase()+nm.toLowerCase();
@@ -1110,10 +1226,11 @@ function fogKey(x,y){ return x+','+y; }
 function recomputeFog(){
   _visible=new Set();
   // v45d: FoW radius must cover the tile frustum or mobile shows a tiny circle in black void
-  const townish=_map && !['dungeon','wild','cave','crypt'].includes(_map.kind);
+  const handHub=_map && /(wall|graveyard|throne|church)/.test(String(_map.preset||''));
+  const townish=(_map && !['dungeon','wild','cave','crypt'].includes(_map.kind)) || handHub;
   const R=_desktop
-    ? (townish?14:10)
-    : Math.max(townish?16:12, Math.ceil(Math.max(_viewW||13,_viewH||15)*0.55));
+    ? (townish?18:10)
+    : Math.max(townish?18:12, Math.ceil(Math.max(_viewW||13,_viewH||15)*0.55));
   const hx=_hero.x, hy=_hero.y;
   for(let y=hy-R;y<=hy+R;y++){
     for(let x=hx-R;x<=hx+R;x++){
@@ -1453,10 +1570,8 @@ function draw(){
   const waterIm=loadImg(WATER_ANIM);
   const ox=Math.floor((cssW - _viewW*tw)/2);
   // v47: no black letterbox band — pin map to top, extend view if needed
-  let oy=_desktop?Math.floor((cssH - _viewH*tw)/2):0;
-  if(!_desktop && oy===0 && _viewH*tw < cssH){
-    // absorb remainder by slightly larger tiles already chosen; fill leftover with grass edge
-  }
+  // v62: never letterbox — pin to top so black bands disappear
+  let oy=0;
 
   for(let y=y0;y<=y1;y++){
     for(let x=x0;x<=x1;x++){
@@ -1526,12 +1641,58 @@ function draw(){
           if(mask) C44.drawTileEdgeBlend(ctx,sx,sy,tw,mask);
         }
       }catch(_){}
+      // v62: soft irregular edge between differing walkable tiles
+      try{
+        if(t && t!=='void' && t!=='wall'){
+          const dirs=[[1,0],[-1,0],[0,1],[0,-1]];
+          for(const [dx,dy] of dirs){
+            const nx=x+dx, ny=y+dy;
+            if(ny<0||nx<0||ny>=_map.h||nx>=_map.w) continue;
+            const nt=_map.tiles[ny][nx];
+            if(nt && nt!==t && nt!=='void'){
+              ctx.fillStyle='rgba(0,0,0,0.18)';
+              if(dx===1) ctx.fillRect(sx+tw-2, sy, 2, tw);
+              if(dx===-1) ctx.fillRect(sx, sy, 2, tw);
+              if(dy===1) ctx.fillRect(sx, sy+tw-2, tw, 2);
+              if(dy===-1) ctx.fillRect(sx, sy, tw, 2);
+            }
+          }
+        }
+      }catch(_){}
+      // v62: cliff vertical face — stone/wall above sand/path gets a dark drop + snow lip
+      try{
+        if((t==='stone'||t==='wall') && y+1<_map.h){
+          const below=_map.tiles[y+1][x];
+          if(below==='sand'||below==='path'||below==='grass'||below==='water'){
+            // vertical face spilling into the tile below
+            ctx.fillStyle='rgba(28,30,40,0.92)';
+            ctx.fillRect(sx, sy+tw*0.35, tw, tw*0.65);
+            ctx.fillStyle='rgba(12,14,20,0.75)';
+            ctx.fillRect(sx, sy+tw*0.7, tw, tw*0.3);
+            ctx.fillStyle='rgba(8,8,12,0.35)';
+            ctx.fillRect(sx, sy+tw, tw, tw*0.35); // shadow on tile below
+            ctx.fillStyle='rgba(235,242,250,0.95)';
+            ctx.fillRect(sx, sy+tw*0.32, tw, Math.max(2,tw*0.1));
+            // jagged edge
+            ctx.fillStyle='rgba(60,65,80,0.8)';
+            for(let i=0;i<4;i++) ctx.fillRect(sx+i*(tw/4), sy+tw*0.35, tw/8, tw*0.15);
+          }
+        }
+      }catch(_){}
       const ov=_map.overlay?.[y]?.[x];
       if(ov && DECOR[ov] && !String(ov).startsWith('house') && !/^d\d$/.test(String(ov))){
         const dim=loadImg(DECOR[ov]);
         if(dim.complete && dim.naturalWidth){
-          const dw=(ov==='bush'||ov==='tree'?tw:tw*0.85);
-          ctx.drawImage(dim, sx+(tw-dw)/2, sy+(tw-dw)/2, dw, dw);
+          let dw=tw*0.85, dh=tw*0.85, ox=0, oy=0;
+          if(ov==='bush'||ov==='tree'){ dw=tw; dh=tw; }
+          else if(ov==='pine'){ dw=tw*1.6; dh=tw*2.4; oy=-tw*1.2; }
+          else if(ov==='campfire'){ dw=tw*1.1; dh=tw*1.1; }
+          else if(ov==='coffin'){ dw=tw*1.5; dh=tw*0.9; }
+          else if(ov==='rock'){ dw=tw*1.2; dh=tw*0.9; }
+          else if(ov==='snowdrift'){ dw=tw*1.8; dh=tw*0.7; oy=tw*0.3; }
+          else if(/^glass_/.test(ov)){ dw=tw; dh=tw*1.4; oy=-tw*0.2; }
+          else if(ov==='throne_chair'||ov==='altar'){ dw=tw*1.8; dh=tw*2; oy=-tw; }
+          ctx.drawImage(dim, sx+(tw-dw)/2+ox, sy+(tw-dh)/2+oy, dw, dh);
         }
       }
       if(!vis){
@@ -1631,7 +1792,18 @@ function draw(){
     // v30: keep buildings legible at night (never too dim)
     const night=_dayTint==='night'||_dayTint==='dusk';
     ctx.globalAlpha=vis?(night?0.95:1):(night?0.7:0.5);
-    ctx.drawImage(im, sx, sy, (oh.tw||3)*tw, (oh.th||3)*tw);
+    let dw=(oh.tw||3)*tw, dh=(oh.th||3)*tw;
+    // v62: tall landmarks keep sprite aspect (watchtower/pine)
+    if(/watchtower|pine|throne_chair|altar/.test(String(oh.src||oh.label||''))){
+      const aspect=im.naturalHeight/Math.max(1,im.naturalWidth);
+      dw=(oh.tw||3)*tw;
+      dh=dw*aspect;
+      // sit on footprint bottom
+      const footY=oy+(oh.y+(oh.th||3)-camY)*tw;
+      ctx.drawImage(im, sx, footY-dh, dw, dh);
+    } else {
+      ctx.drawImage(im, sx, sy, dw, dh);
+    }
     ctx.globalAlpha=1;
   }
 
@@ -2008,30 +2180,32 @@ function fitCanvas(){
   _desktop=isDesktop();
   document.body.classList.toggle('ow-desktop', _desktop);
   if(_desktop){
-    // v61: fill desktop width — stretch canvas CSS to viewport; keep pixel logical grid
-    const maxW=Math.max(640, window.innerWidth - 8);
-    const maxH=Math.max(360, window.innerHeight - 64);
-    // logical ~16px tiles, prefer width fill
+    // v62: fill FULL desktop width AND height (no black band / no forced 16:9 letterbox)
+    const stage=document.getElementById('stage');
+    const topbar=document.querySelector('.topbar');
+    const topbarH=(topbar?.getBoundingClientRect?.().height)|0 || 52;
+    const maxW=Math.max(640, (stage?.clientWidth||window.innerWidth) - 2);
+    const maxH=Math.max(400, (stage?.clientHeight ? stage.clientHeight - 4 : (window.innerHeight - topbarH)));
     const cssW=maxW;
-    const cssH=Math.min(maxH, Math.floor(cssW*9/16));
-    // integer scale for crisp pixels
+    const cssH=maxH;
     let scale=Math.max(2, Math.floor(cssW/320));
     while(DESKTOP_LOGICAL.w*scale>cssW || DESKTOP_LOGICAL.h*scale>cssH) scale--;
     scale=Math.max(2, scale);
-    // bump logical so more tiles visible when viewport is wide
-    const lw=Math.max(DESKTOP_LOGICAL.w, Math.floor(cssW/scale/16)*16);
-    const lh=Math.max(DESKTOP_LOGICAL.h, Math.floor(cssH/scale/16)*16);
+    // logical buffer matches aspect of available area
+    let lw=Math.floor(cssW/scale);
+    let lh=Math.floor(cssH/scale);
+    lw=Math.max(320, Math.floor(lw/16)*16);
+    lh=Math.max(180, Math.floor(lh/16)*16);
     _canvas.width=lw;
     _canvas.height=lh;
     _canvas.style.width=cssW+'px';
-    _canvas.style.height=Math.floor(cssW*(lh/lw))+'px';
-    if(parseInt(_canvas.style.height,10)>cssH){
-      _canvas.style.height=cssH+'px';
-      _canvas.style.width=Math.floor(cssH*(lw/lh))+'px';
-    }
+    _canvas.style.height=cssH+'px';
     _intScale=scale;
     _viewW=Math.max(16, Math.floor(lw/16));
-    _viewH=Math.max(9, Math.floor(lh/16));
+    _viewH=Math.max(12, Math.floor(lh/16));
+    // bump view to consume leftover pixels inside buffer
+    while(_viewH*Math.floor(Math.min(lw/_viewW, lh/_viewH)) < lh-2 && _viewH<48) _viewH++;
+    while(_viewW*Math.floor(Math.min(lw/_viewW, lh/_viewH)) < lw-2 && _viewW<64) _viewW++;
   } else {
     // v45d: canvas = full viewport; tile count fills height (no letterbox)
     const root=_root||document.getElementById('owRoot');
@@ -2349,7 +2523,8 @@ export function syncDialogueFromVN(){
 export function __debug(){
   return {active:_active, desktop:_desktop, scale:_intScale, view:{w:_viewW,h:_viewH}, hero:{..._hero}, map:{w:_map.w,h:_map.h,name:_map.name,kind:_map.kind,preset:_map.preset,overhead:(_overhead||[]).length}, overhead:_overhead.slice(0,8), npcs:_npcs.map(n=>({name:n.name,x:n.x,y:n.y,slot:n._calSlot,cal:!!n.calendar,pace:n.pace})), questMarks:_questMarks.slice(), chests:_chests.slice(0,8), doors:_map.doors, fog:{explored:_explored.size, visible:_visible.size}};
 }
+export function __setHero(x,y){ if(!_hero) return false; _hero.x=+x; _hero.y=+y; _hero.px=_hero.x; _hero.py=_hero.y; _hero.moving=false; try{draw();}catch(_){} return true; }
 export function __tryMove(dx,dy){ return tryMove(dx,dy); }
 export function __talkNearest(){ return talkNearest(); }
 
-export default { mountOverworld, showOverworld, hideOverworld, refreshOverworld, isOverworldActive, buildMapForLocation, showDialogue, hideDialogue, syncDialogueFromVN, __debug, __tryMove, __talkNearest, get __map(){ return __map; } };
+export default { mountOverworld, showOverworld, hideOverworld, refreshOverworld, isOverworldActive, buildMapForLocation, showDialogue, hideDialogue, syncDialogueFromVN, __debug, __setHero, __tryMove, __talkNearest, get __map(){ return __map; } };

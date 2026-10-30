@@ -6408,3 +6408,77 @@ body:has(#battleRoot:not(.hidden)) #toast{
   opacity: 1 !important;
   filter: none !important;
 }
+
+/* v62: desktop OW — canvas fills stage height, no black band under map */
+@media (min-width: 900px){
+  body.ow-desktop.pixel-ow:not(.ow-dialogue) .vn-wrap{
+    display: none !important;
+    max-height: 0 !important;
+    height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  body.ow-desktop.pixel-ow #stage{
+    grid-template-rows: auto 1fr !important;
+    height: 100dvh !important;
+  }
+  body.ow-desktop.pixel-ow .overworld{
+    padding: 0 !important;
+    height: 100% !important;
+    max-height: none !important;
+  }
+  body.ow-desktop.pixel-ow .ow-shell{
+    max-height: none !important;
+    height: 100% !important;
+  }
+  body.ow-desktop.pixel-ow .ow-toolbar{
+    display: none !important;
+  }
+  body.ow-desktop.pixel-ow .ow-pad{
+    display: none !important;
+  }
+  body.ow-desktop.pixel-ow #owCanvas,
+  body.ow-desktop.pixel-ow.pixel-ow #owCanvas{
+    width: 100% !important;
+    height: 100% !important;
+    max-height: none !important;
+    object-fit: fill;
+  }
+  body.ow-desktop.pixel-ow .ow-main{
+    height: 100% !important;
+    flex: 1 1 auto !important;
+  }
+}
+
+/* v62b: absolute OW fill — kill residual black band under canvas */
+@media (min-width: 900px){
+  body.ow-desktop.pixel-ow #app,
+  body.ow-desktop.pixel-ow #stage{
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+  }
+  body.ow-desktop.pixel-ow .topbar{
+    flex: 0 0 auto;
+  }
+  body.ow-desktop.pixel-ow .overworld,
+  body.ow-desktop.pixel-ow .ow-shell,
+  body.ow-desktop.pixel-ow .ow-main{
+    flex: 1 1 auto !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+  }
+  body.ow-desktop.pixel-ow #owRoot,
+  body.ow-desktop.pixel-ow .ow-root{
+    height: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+  body.ow-desktop.pixel-ow #owCanvas{
+    flex: 1 1 auto !important;
+    width: 100% !important;
+    height: 100% !important;
+    max-height: none !important;
+    display: block !important;
+  }
+}
