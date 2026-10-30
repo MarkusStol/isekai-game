@@ -124,3 +124,11 @@ Genre packs `arch_fan*`, `arch_zom*`, `arch_cyb*`, `arch_des*`, `arch_dark*` plu
   integer nearest-neighbor upscale + 1px outline; where denser, Universal LPC
   walk/idle front rows (CC-BY-SA 3.0) were preferred for the hero composite.
 - Additional SFX (`hit_*`, `step_*`, `ui_*`): from Ninja Adventure sounds pack (**CC0 1.0**).
+
+
+## v58 — Classic JRPG allies + Nocturna campaign
+- Ally battlers rebuilt from denser LPC stage composites already in-repo
+  (`assets/pixel/chars/*_stage.png`, `assets/pixel/hero/stage.png`) →
+  `assets/pixel/battler/ally_*.png` (CC-BY-SA 3.0 LPC / prior attributions).
+- Sparse v57 Ninja Adventure crops retained under `assets/pixel/battler/_v57_sparse/` (CC0).
+- Free-text narrator archived: git tag/branch `freetext-archive`; runtime flag `FREETEXT_ENABLED=false` in `content58.js`.

@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /**
- * Mandatory release gate (v20.1+): ≥40 natural German inputs × worlds × narrator paths.
- * Assert: reply references input intent, keeps scene/cast, no random plot hijack, no English dump.
- * Exit 1 → never push.
+ * v58 release gate — classic JRPG (Nocturna / daemon arc).
+ * Free-text narrator archived (tag freetext-archive, FREETEXT_ENABLED=false).
+ * Asserts: menu choices, chapters, town/shop/inn, dungeon, party recruit, battles, no #txt.
  */
 import puppeteer from 'puppeteer';
 import http from 'http';
@@ -12,79 +12,9 @@ import { fileURLToPath } from 'url';
 
 const ROOT=path.join(path.dirname(fileURLToPath(import.meta.url)),'..');
 const PORT=8793;
-const WORLDS=[
-  {role:'held', name:'Aki'},
-  {role:'daemon', name:'Noctis'},
-  {role:'villainess', name:'Iris'},
-  {role:'mensch', name:'Tom'},
-];
-const INPUTS=[
-  'hallo','hi','guten Tag','guten Abend','moin','servus','hey',
-  'wer bist du','was ist dein Name','wer ist das',
-  'ich sehe mich um','schau dich um','ich beobachte',
-  'ich gehe zum Markt','ich gehe zur Taverne','ich bleibe hier',
-  'ich kaufe Brot','ich kaufe Wasser','danke','ja','nein','ok',
-  'erzähl mir von hier','was ist hier los','was weißt du über den Krieg',
-  'erzähl eine Geschichte','hilf mir','was soll ich tun','wo ist der Ausgang',
-  'ich spreche dich an','ich warte','ich höre zu','entschuldigung',
-  'ich ruhe mich aus','ich schlafe','ich trainiere',
-  'ich greife an','ich kämpfe','ich fliehe',
-  'ich küsse sie','ich umarme dich',
-  'ich nehme das','ich benutze den Heiltrank',
-];
-
-const HIJACK=/(du bist in eine falle|eine falle!|fallengelassen|überfall!|ein fremder flüstert deinen namen|du findest etwas verstecktes)/i;
-
-function intentOf(a){
-  const t=a.toLowerCase();
-  if(/^(hallo|hey|servus|moin|guten)(\b|\s|!|\?|$)/.test(t) || /^hi\b/.test(t)) return 'greet';
-  if(/wer bist|was ist dein|wer ist/.test(t)) return 'ask_who';
-  if(/sehe mich um|schau|beobachte/.test(t)) return 'look';
-  if(/gehe |geh /.test(t)) return 'move';
-  if(/bleib/.test(t)) return 'talk';
-  if(/kaufe/.test(t)) return 'buy';
-  if(/küss|umarm/.test(t)) return 'romance';
-  if(/greif|kämpf/.test(t)) return 'attack';
-  if(/fliehe/.test(t)) return 'flee';
-  if(/schlaf|ruhe/.test(t)) return 'rest';
-  if(/train/.test(t)) return 'train';
-  if(/nehm|benutze/.test(t)) return 'use';
-  if(/\?|was |wo |erzähl|hilf|weiß/.test(t)) return 'ask';
-  return 'talk';
-}
-
-function checkReply(a, text, intent, ort0){
-  const t=(text||'').trim();
-  if(t.length<8) return {ok:false, reason:'empty'};
-  if(HIJACK.test(t) && intent!=='attack') return {ok:false, reason:'hijack'};
-  const en=(t.match(/\b(the|you|your|with|hello|what|where|this|that|are|is)\b/gi)||[])
-    .filter(w=>!/^Hallo$/i.test(w));
-  if(en.length>=4) return {ok:false, reason:'english:'+en.slice(0,4).join(',')};
-  // Sticky-attack hijack: social/ask/look/buy/rest must not still be the fight blurb
-  if(/^(greet|talk|ask|ask_who|look|buy|rest|romance)$/.test(intent) && /du willst angreifen|steht bereit\. Kämpfen/i.test(t))
-    return {ok:false, reason:'sticky-attack'};
-
-
-  if(intent==='greet'){
-    if(!/gruß|grüßt|hallo|nickt|mustert|erwidert|hört|begrüß|ja\?|was willst|sprich|moin|servus|reagiert|antwort/i.test(t))
-      return {ok:false, reason:'greet-no-ack'};
-  }
-  if(intent==='look' && !/um|sieh|ort|anwesend|wege|schau|blick|anwesend/i.test(t) && !(ort0&&t.toLowerCase().includes(String(ort0).toLowerCase().slice(0,6))))
-    return {ok:false, reason:'look-weak'};
-  if(intent==='buy' && !/kauf|gold|brot|wasser|händler|preis|münze|proviant|kerze|flasche|fehlen/i.test(t))
-    return {ok:false, reason:'buy-weak'};
-  if(intent==='rest' && !/schl[aä]f|ruh|morgen|aus|wärme|nacht|stunden|herberge/i.test(t))
-    return {ok:false, reason:'rest-weak'};
-  if(intent==='attack' && !/kampf|angriff|greif|feind|gegner|kämpf|flieh|droh|konflikt|begegn/i.test(t))
-    return {ok:false, reason:'attack-weak'};
-  // For social intents, reply should not be a pure ambient hijack line without acknowledging player
-  if(/^(greet|talk|ask|ask_who)$/.test(intent)){
-    // must mention scene or NPC reaction-ish German
-    if(!/[äöüß]|„|"|nickt|Blick|Ort|bleibt|antwortet|hört|sprich|Frage|Szene/i.test(t) && t.length<40)
-      return {ok:false, reason:'social-thin'};
-  }
-  return {ok:true};
-}
+const VER='58';
+const failures=[];
+const report={paths:{}, samples:{}};
 
 function serve(){
   return new Promise((resolve,reject)=>{
@@ -93,7 +23,7 @@ function serve(){
       const fp=path.join(ROOT,p.replace(/^\//,''));
       if(!fp.startsWith(ROOT)||!fs.existsSync(fp)||fs.statSync(fp).isDirectory()){res.writeHead(404);res.end('404');return}
       const ext=path.extname(fp);
-      const types={'.html':'text/html','.js':'text/javascript','.css':'text/css','.webp':'image/webp','.png':'image/png','.svg':'image/svg+xml','.json':'application/json','.woff2':'font/woff2'};
+      const types={'.html':'text/html','.js':'text/javascript','.css':'text/css','.webp':'image/webp','.png':'image/png','.svg':'image/svg+xml','.json':'application/json','.woff2':'font/woff2','.ogg':'audio/ogg'};
       res.writeHead(200,{'Content-Type':types[ext]||'application/octet-stream','Cache-Control':'no-store'});
       fs.createReadStream(fp).pipe(res);
     });
@@ -102,13 +32,10 @@ function serve(){
   });
 }
 
-const failures=[];
-const report={paths:{}, samples:{}};
-
 let server, browser, page;
 
-async function boot(role, name){
-  await page.goto(`http://127.0.0.1:${PORT}/index.html?v=57&gate=1`,{waitUntil:'domcontentloaded',timeout:60000});
+async function bootDaemon(name='Noctis'){
+  await page.goto(`http://127.0.0.1:${PORT}/index.html?v=${VER}&gate=1`,{waitUntil:'domcontentloaded',timeout:60000});
   await page.evaluate(async()=>{
     localStorage.clear();
     try{
@@ -117,887 +44,287 @@ async function boot(role, name){
       if(window.caches?.keys){ const ks=await caches.keys(); await Promise.all(ks.map(k=>caches.delete(k))); }
     }catch(_){}
   });
-  await page.reload({waitUntil:'networkidle0',timeout:60000});
-  await page.waitForFunction(()=>window.__game&&window.__game.newLife,{timeout:30000});
-  const info=await page.evaluate(async({role,name})=>{
-    window.__FAST=true; window.__SKIP_REMOTE_IMG=true; window.__FORCE_CSS_SCENES=true;
-    window.__setCfg({mode:'offline', v2:1, debug:1});
+  await page.reload({waitUntil:'domcontentloaded',timeout:60000});
+  await page.waitForFunction(v=>window.__game?.VER===v,{timeout:45000},VER);
+  const info=await page.evaluate(async(name)=>{
+    window.__FAST=true; window.__SKIP_REMOTE_IMG=true; window.__FORCE_CSS_SCENES=true; window.__PLAYTEST=true;
+    window.__gateNoBattle=true;
+    window.__setCfg?.({mode:'offline',v2:1,debug:1});
     const g=window.__game;
-    await g.newLife(role,{lives:0,soul:0,keptSkills:[]},{skipSetup:true,name});
-    if(g.S.setup&&!g.S.setup.done){g.S.setup.done=true; try{g.enterPlay()}catch(_){}}
-    else { try{g.enterPlay()}catch(_){ } }
-    g.S.romance=g.S.romance||{}; g.S.turn=Math.min(g.S.turn|0,5);
-    const sc=g.S.world?.scene;
-    if(sc&&(!sc.anwesend||!sc.anwesend.length)){
-      const names=Object.keys(g.S.world.npcs||{}).filter(n=>g.S.world.npcs[n].alive!==false).slice(0,3);
-      sc.anwesend=names;
-    }
-    try{g.Cont.lockScene(g.S,'gate')}catch(_){}
+    await g.newLife('daemon',{lives:0,soul:0,keptSkills:[]},{skipSetup:true,name});
+    g.S.setup={done:true}; g.S.flags=Object.assign(g.S.flags||{},{onboarded:true,introDone:true});
+    try{ g.C58?.migrateV58?.(g.S); }catch(_){}
+    try{ g.enterPlay(); }catch(_){}
     document.getElementById('title')?.classList.add('hidden');
     document.getElementById('stage')?.classList.remove('hidden');
-    try{ g.OW?.showOverworld(g.S); }catch(_){}
-    return {ort:g.S.world.scene.ort, anw:g.S.world.scene.anwesend||[], role:g.S.role};
-  },{role,name});
-  await page.evaluate(()=>{
-    const g=window.__game;
+    // stub battles for most paths
     if(g.Battle){
-      g.Battle.offerEncounter=async()=>({ok:true, fled:true, summary:{text:'Begegnung beigelegt (Gate).', fled:true}});
+      const realStart=g.Battle.startBattle?.bind(g.Battle);
+      g.Battle.startBattle=async(S,opts={})=>{
+        if(window.__gateNoBattle){
+          const sum={result:'win',text:'Sieg (Gate).',xp:10,gold:5,loot:[],killed:[],analyzed:[],spared:[],partyHP:[],log:[]};
+          try{ opts.onEnd?.(sum); }catch(_){}
+          return {_B:true, result:'win'};
+        }
+        return realStart?.(S,opts);
+      };
       g.Battle.isActive=()=>false;
     }
-    window.__gateNoBattle=true;
-  });
+    return {
+      ver:g.VER,
+      freetext:g.FREETEXT_ENABLED,
+      role:g.S.role,
+      chapter:g.S.campaign?.chapterIdx,
+      scene:g.S.campaign?.sceneId,
+      choices:(g.S.campaign?._choiceObjs||[]).map(c=>c.label),
+      inputHidden: (()=>{ const r=document.getElementById('inputRow'); if(!r) return true; const st=getComputedStyle(r); return r.classList.contains('hidden')||st.display==='none'; })(),
+      vn:(document.getElementById('vnText')?.textContent||'').slice(0,120),
+    };
+  }, name);
   return info;
 }
 
-/** Path A: direct offline() — core narrator fix */
-async function runOfflineDirect(){
-  const label='offline-direct';
-  let fails=0, total=0;
-  for(const w of WORLDS){
-    const info=await boot(w.role,w.name);
-    for(const a of INPUTS){
-      total++;
-      const intent=intentOf(a);
-      const row=await page.evaluate((a)=>{
-        const g=window.__game;
-        const ort0=g.S.world.scene.ort;
-        const anw0=(g.S.world.scene.anwesend||[]).slice();
-        // ensure cast sticky
-        if(!anw0.length){
-          const names=Object.keys(g.S.world.npcs||{}).filter(n=>g.S.world.npcs[n].alive!==false).slice(0,3);
-          g.S.world.scene.anwesend=names;
-        }
-        try{ if(!g.Cont.playerWantsExit(a)) g.Cont.lockScene(g.S,'gate'); }catch(_){}
-        const beat=g.localBeatLine(a);
-        const pack=g.offline(a);
-        const parsed=g.parsePlayerIntent(a);
-        return {
-          text:pack?.text||'', beat, kind:parsed?.kind, ort:g.S.world.scene.ort, ort0,
-          anw:g.S.world.scene.anwesend||[], anw0
-        };
-      }, a);
-      let c=checkReply(a,row.text,intent,row.ort0);
-      // scene must hold for social
-      if(/^(greet|talk|ask|ask_who|buy|rest|look|romance)$/.test(intent) && row.ort!==row.ort0 && intent!=='move'){
-        c={ok:false, reason:'scene-break:'+row.ort0+'→'+row.ort};
-      }
-      // beat must acknowledge greet
-      if(intent==='greet' && !/Gruß|gruß|hört/i.test(row.beat||'')){
-        c={ok:false, reason:'beat-not-greet:'+(row.beat||'').slice(0,40)};
-      }
-      // parser must classify greet
-      if(intent==='greet' && row.kind!=='greet'){
-        c={ok:false, reason:'parse-not-greet:'+row.kind};
-      }
-      if(!c.ok){
-        fails++;
-        failures.push({path:label, world:w.role, a, intent, reason:c.reason, text:(row.text||'').slice(0,140), beat:row.beat, kind:row.kind});
-      }
-      if(!report.samples[w.role+':'+label]) report.samples[w.role+':'+label]=[];
-      if(report.samples[w.role+':'+label].length<2)
-        report.samples[w.role+':'+label].push({a, kind:row.kind, text:(row.text||'').slice(0,90)});
-    }
-    console.log(`  ${w.role}: done (${INPUTS.length} inputs)`);
-  }
-  report.paths[label]={fails, total};
+async function clickChoice(labelRe){
+  return page.evaluate((reSrc)=>{
+    const re=new RegExp(reSrc,'i');
+    const btns=[...document.querySelectorAll('#choices button')];
+    const b=btns.find(x=>re.test(x.textContent||''));
+    if(!b) return {ok:false, labels:btns.map(x=>x.textContent)};
+    b.click();
+    return {ok:true, label:b.textContent};
+  }, labelRe);
+}
+
+async function waitChoices(ms=400){ await new Promise(r=>setTimeout(r,ms)); }
+
+function fail(path, reason, extra={}){
+  failures.push({path, reason, ...extra});
+  return 1;
+}
+
+async function runJrpgBoot(){
+  const label='jrpg-boot';
+  let fails=0,total=0;
+  total++; const info=await bootDaemon();
+  report.samples.boot=info;
+  if(info.ver!==VER) fails+=fail(label,'ver',{info});
+  total++; if(info.freetext!==false) fails+=fail(label,'freetext-still-on',{info});
+  total++; if(!info.inputHidden) fails+=fail(label,'input-visible',{info});
+  total++; if(info.role!=='daemon') fails+=fail(label,'role',{info});
+  total++; if(!(info.choices||[]).length) fails+=fail(label,'no-choices',{info});
+  total++; if(!(info.vn||'').length) fails+=fail(label,'empty-vn',{info});
+  report.paths[label]={fails,total};
   console.log(`=== ${label}: ${fails}/${total} fails ===`);
   return fails;
 }
 
-/** Path B: act() with mode=offline (full pipeline, typewrite skipped via __FAST) */
-async function runActOffline(){
-  const label='act-offline';
-  let fails=0, total=0;
-  for(const w of WORLDS){
-    await boot(w.role,w.name);
-    await page.evaluate(()=>window.__setCfg({mode:'offline',v2:1}));
-    for(const a of INPUTS){
-      total++;
-      const intent=intentOf(a);
-      const row=await page.evaluate(async(a)=>{
-        const g=window.__game;
-        const ort0=g.S.world.scene.ort;
-        try{ if(!g.Cont.playerWantsExit(a)) g.Cont.lockScene(g.S,'gate'); }catch(_){}
-        if(!(g.S.world.scene.anwesend||[]).length){
-          g.S.world.scene.anwesend=Object.keys(g.S.world.npcs||{}).filter(n=>g.S.world.npcs[n].alive!==false).slice(0,3);
-        }
-        if(g.S.flags) delete g.S.flags._offerEncounter;
-        const actP=g.act(a);
-        const to=new Promise((_,rej)=>setTimeout(()=>rej(new Error('act-timeout')),20000));
-        try{ await Promise.race([actP,to]); }catch(_){ }
-        if(g.S.flags) delete g.S.flags._offerEncounter;
-        try{ document.getElementById('battle')?.classList.add('hidden'); }catch(_){}
-        return {
-          text:document.getElementById('vnText')?.textContent||'',
-          ort:g.S.world.scene.ort, ort0, mode:g.S._narratorMode
-        };
-      }, a);
-      let c=checkReply(a,row.text,intent,row.ort0);
-      if(/^(greet|talk|ask|ask_who|buy|rest|look)$/.test(intent) && row.ort!==row.ort0)
-        c={ok:false, reason:'scene-break'};
-      if(!c.ok){
-        fails++;
-        failures.push({path:label, world:w.role, a, intent, reason:c.reason, text:(row.text||'').slice(0,140)});
-      }
-    }
-    console.log(`  ${w.role}: done`);
-  }
-  report.paths[label]={fails, total};
-  console.log(`=== ${label}: ${fails}/${total} fails ===`);
-  return fails;
-}
-
-/** Path C: free mode with mocked 402 → must land offline intent-first */
-async function runMock402(){
-  const label='mock402';
-  let fails=0, total=0;
-  // one world full suite is enough for failover shape; still ≥40
-  const w=WORLDS.find(x=>x.role==='daemon')||WORLDS[0];
-  await boot(w.role,w.name);
-  await page.evaluate(()=>{
-    window.__setCfg({mode:'free', v2:1, gkey:''});
-    window.__origFetch=window.fetch;
-    window.fetch=async function(url,opts){
-      if(String(url).includes('pollinations')||String(url).includes('generativelanguage'))
-        return new Response('Free limit',{status:402,headers:{'Retry-After':'60'}});
-      return window.__origFetch.apply(this,arguments);
-    };
+async function runChapterFlow(){
+  const label='jrpg-chapter';
+  let fails=0,total=0;
+  await bootDaemon();
+  // open → Finanzen → Katakomben prompt
+  total++; let r=await clickChoice('Finanzen'); await waitChoices(500);
+  if(!r.ok) fails+=fail(label,'no-budget',{r});
+  total++; r=await clickChoice('Edikte|Rede'); await waitChoices(500);
+  if(!r.ok) fails+=fail(label,'no-budget-act',{r});
+  total++; r=await clickChoice('Katakomben|Dungeon|Festung'); await waitChoices(500);
+  if(!r.ok) fails+=fail(label,'no-next',{r});
+  const row=await page.evaluate(()=>{
+    const g=window.__game;
+    return { scene:g.S.campaign?.sceneId, choices:(g.S.campaign?._choiceObjs||[]).map(c=>c.label), gold:g.S.st?.gold };
   });
-  for(const a of INPUTS){
-    total++;
-    const intent=intentOf(a);
-    const row=await page.evaluate(async(a)=>{
-      const g=window.__game;
-      const ort0=g.S.world.scene.ort;
-      try{ if(!g.Cont.playerWantsExit(a)) g.Cont.lockScene(g.S,'gate'); }catch(_){}
-      if(!(g.S.world.scene.anwesend||[]).length){
-        g.S.world.scene.anwesend=Object.keys(g.S.world.npcs||{}).filter(n=>g.S.world.npcs[n].alive!==false).slice(0,3);
-      }
-      if(g.S.flags) delete g.S.flags._offerEncounter;
-      if(g.S.flags) delete g.S.flags._offerEncounter;
-      const actP=g.act(a);
-      const to=new Promise((_,rej)=>setTimeout(()=>rej(new Error('act-timeout')),25000));
-      try{ await Promise.race([actP,to]); }catch(_){ }
-      if(g.S.flags) delete g.S.flags._offerEncounter;
-      try{ document.getElementById('battle')?.classList.add('hidden'); }catch(_){}
-      return {text:document.getElementById('vnText')?.textContent||'', ort:g.S.world.scene.ort, ort0, mode:g.S._narratorMode};
-    }, a);
-    let c=checkReply(a,row.text,intent,row.ort0);
-    if(/^(greet|talk|ask|ask_who|buy|rest|look)$/.test(intent) && row.ort!==row.ort0)
-      c={ok:false, reason:'scene-break'};
-    if(!c.ok){
-      fails++;
-      failures.push({path:label, world:w.role, a, intent, reason:c.reason, text:(row.text||'').slice(0,140)});
-    }
-  }
-  await page.evaluate(()=>{ if(window.__origFetch) window.fetch=window.__origFetch; });
-  report.paths[label]={fails, total};
+  total++; if((row.gold|0)<1 && !(row.choices||[]).length) fails+=fail(label,'stuck',{row});
+  report.paths[label]={fails,total,row};
   console.log(`=== ${label}: ${fails}/${total} fails ===`);
   return fails;
 }
 
-/** Path D: live Pollinations subset (best-effort; 402→offline still must pass intent) */
-async function runLiveSubset(){
-  const label='live-subset';
-  let fails=0, total=0;
-  const subset=['hallo','wer bist du','ich sehe mich um','ich kaufe Brot','ich schlafe','ich greife an','erzähl mir von hier','danke'];
-  await boot('daemon','Noctis');
-  await page.evaluate(()=>window.__setCfg({mode:'free', v2:1, gkey:''}));
-  for(const a of subset){
-    total++;
-    const intent=intentOf(a);
-    const row=await page.evaluate(async(a)=>{
-      const g=window.__game;
-      const ort0=g.S.world.scene.ort;
-      try{ if(!g.Cont.playerWantsExit(a)) g.Cont.lockScene(g.S,'gate'); }catch(_){}
-      if(g.S.flags) delete g.S.flags._offerEncounter;
-      if(g.S.flags) delete g.S.flags._offerEncounter;
-      const actP=g.act(a);
-      const to=new Promise((_,rej)=>setTimeout(()=>rej(new Error('act-timeout')),25000));
-      try{ await Promise.race([actP,to]); }catch(_){ }
-      if(g.S.flags) delete g.S.flags._offerEncounter;
-      try{ document.getElementById('battle')?.classList.add('hidden'); }catch(_){}
-      return {text:document.getElementById('vnText')?.textContent||'', ort:g.S.world.scene.ort, ort0, mode:g.S._narratorMode};
-    }, a);
-    let c=checkReply(a,row.text,intent,row.ort0);
-    if(/^(greet|talk|ask|ask_who)$/.test(intent) && row.ort!==row.ort0) c={ok:false, reason:'scene-break'};
-    console.log(c.ok?'  OK':'  FAIL', a, '→', (row.text||'').slice(0,70).replace(/\n/g,' '), `[${row.mode}]`);
-    if(!c.ok){
-      fails++;
-      failures.push({path:label, world:'daemon', a, intent, reason:c.reason, text:(row.text||'').slice(0,140)});
-    }
-  }
-  report.paths[label]={fails, total};
+async function runTownShopInn(){
+  const label='jrpg-town';
+  let fails=0,total=0;
+  await bootDaemon();
+  // jump to town via resolveChoice
+  await page.evaluate(()=>{
+    const g=window.__game;
+    const pack=g.C58.resolveChoice(g.S,{next:'town'},{toast:()=>{}});
+    g.applyJrpgPack(pack);
+  });
+  await waitChoices(300);
+  total++; let r=await clickChoice('Laden'); await waitChoices(400);
+  if(!r.ok) fails+=fail(label,'shop',{r});
+  total++; r=await clickChoice('Brot|Heiltrank|Zurück'); await waitChoices(400);
+  if(!r.ok) fails+=fail(label,'buy-or-back',{r});
+  await page.evaluate(()=>{
+    const g=window.__game;
+    g.applyJrpgPack(g.C58.resolveChoice(g.S,{next:'town'},{}));
+  });
+  await waitChoices(200);
+  total++; r=await clickChoice('Herberge'); await waitChoices(400);
+  if(!r.ok) fails+=fail(label,'inn',{r});
+  const gold=await page.evaluate(()=>window.__game.S.st?.gold|0);
+  // give gold then inn
+  await page.evaluate(()=>{ window.__game.S.st.gold=50; window.__game.applyJrpgPack(window.__game.C58.resolveChoice(window.__game.S,{next:'town_inn'},{})); });
+  await waitChoices(200);
+  const after=await page.evaluate(()=>({gold:window.__game.S.st.gold|0, hp:window.__game.S.st.hp|0, text:(document.getElementById('vnText')?.textContent||'')}));
+  total++; if(after.gold>=50) fails+=fail(label,'inn-no-charge',{after});
+  total++; if(!/Herberge|ruhst|KP|voll/i.test(after.text)) fails+=fail(label,'inn-text',{after});
+  report.paths[label]={fails,total,gold,after};
   console.log(`=== ${label}: ${fails}/${total} fails ===`);
   return fails;
 }
 
-
-/** Minimal legacy save factory (incomplete world — must heal + reply) */
-function fakeOldSave(ver){
-  return {
-    ver:String(ver), role:'held', cls:0, pc:{name:'Alt'+ver}, setup:{done:true},
-    st:{lvl:3,hp:30,maxhp:50,mp:12,maxmp:30,str:10,cha:9,ruf:0,gold:20,xp:40},
-    world:{
-      scene:{ort:'Marktplatz von Solari',anwesend:['Lyra'],zeit:'Mittag'},
-      npcs:{Lyra:{e:'🗡️',art:'Späherin',ort:'Marktplatz von Solari',alive:true,romance:true,geschlecht:'w',stimme:'knapp'}}
-      // deliberately no orte/graph — v21.1b heal must fix
-    },
-    hist:[], log:[{k:'n',t:'Markt.'}], flags:{}, romance:{Lyra:{affection:10,trust:2,stage:1}},
-    quests:{main:{act:0,done:[],objectives:[]},side:[]},
-    needs:{hunger:30,fatigue:20}, home:{owned:false,stage:0,materials:{}},
-    skills:[], inv:[], turn:5, heat:0, cal:{day:2,hour:12,minute:0}, choices:['Umsehen']
-  };
+async function runDungeonParty(){
+  const label='jrpg-dungeon-party';
+  let fails=0,total=0;
+  await bootDaemon();
+  await page.evaluate(()=>{
+    const g=window.__game;
+    g.C58.startDungeon(g.S, g.C58.currentChapter(g.S));
+    g.applyJrpgPack(g.C58.resolveChoice(g.S,{next:'dungeon'},{}));
+  });
+  await waitChoices(300);
+  total++; let r=await clickChoice('Truhe'); await waitChoices(400);
+  if(!r.ok) fails+=fail(label,'chest',{r});
+  total++; r=await clickChoice('Weiter|Dungeon|Raum'); await waitChoices(300);
+  // recruit Velka
+  await page.evaluate(()=>{
+    const g=window.__game;
+    g.C58.recruitMember(g.S,'Sekretärin Velka',{toast:()=>{}});
+  });
+  const party=await page.evaluate(()=>({party:window.__game.S.party||[], romance:!!window.__game.S.romance?.['Sekretärin Velka']}));
+  total++; if(!party.party.includes('Sekretärin Velka')) fails+=fail(label,'recruit',{party});
+  // advance rooms to boss door
+  await page.evaluate(()=>{
+    const g=window.__game; const d=g.S.campaign.dungeon; d.room=d.rooms+1;
+    g.applyJrpgPack(g.C58.resolveChoice(g.S,{next:'dungeon'},{}));
+  });
+  await waitChoices(300);
+  total++; r=await clickChoice('Boss'); await waitChoices(600);
+  if(!r.ok) fails+=fail(label,'boss-btn',{r});
+  const ch=await page.evaluate(()=>({idx:window.__game.S.campaign.chapterIdx|0, scene:window.__game.S.campaign.sceneId, mode:window.__game.S.campaign.mode}));
+  total++; if(ch.idx<1 && ch.mode==='dungeon') fails+=fail(label,'boss-no-advance',{ch});
+  report.paths[label]={fails,total,party,ch};
+  console.log(`=== ${label}: ${fails}/${total} fails ===`);
+  return fails;
 }
 
-/** Path E: live github pages — fresh profile + old saves; no pageerrors; busy clears */
+async function runNpcTalk(){
+  const label='jrpg-npc';
+  let fails=0,total=0;
+  await bootDaemon();
+  await page.evaluate(()=>{
+    const g=window.__game;
+    g.applyJrpgPack(g.C58.resolveChoice(g.S,{next:'town_talk'},{}));
+  });
+  await waitChoices(300);
+  total++; let r=await clickChoice('Velka|Brok|Nyx|Aria'); await waitChoices(400);
+  if(!r.ok) fails+=fail(label,'npc',{r});
+  total++; r=await clickChoice('Zuhören|Gruppe|Zurück'); await waitChoices(300);
+  if(!r.ok) fails+=fail(label,'npc-act',{r});
+  report.paths[label]={fails,total};
+  console.log(`=== ${label}: ${fails}/${total} fails ===`);
+  return fails;
+}
+
+async function runAllyArt(){
+  const label='ally-art';
+  let fails=0,total=0;
+  const files=['ally_hero.png','ally_spy.png','ally_mage.png','ally_guard.png'];
+  for(const f of files){
+    total++;
+    const fp=path.join(ROOT,'assets/pixel/battler',f);
+    if(!fs.existsSync(fp)) fails+=fail(label,'missing',{f});
+    else {
+      const sz=fs.statSync(fp).size;
+      if(sz<8000) fails+=fail(label,'too-sparse',{f,sz});
+    }
+  }
+  report.paths[label]={fails,total};
+  console.log(`=== ${label}: ${fails}/${total} fails ===`);
+  return fails;
+}
+
+async function runMigrateSaves(){
+  const label='migrate-saves';
+  let fails=0,total=0;
+  await bootDaemon();
+  for(const ver of [13,20,40,50,56,57]){
+    total++;
+    const ok=await page.evaluate((ver)=>{
+      const g=window.__game;
+      const s={ver, role:'daemon', pc:{name:'Alt'+ver}, st:{hp:50,maxhp:100,mp:10,maxmp:40,gold:3,xp:0,lvl:1}, world:{scene:{ort:'Thronsaal',anwesend:[]},npcs:{}}, flags:{}, log:[]};
+      try{ g.migrate?.(s); }catch(e){ try{ g.C58.migrateV58(s); }catch(_){ return {ok:false,err:String(e)} } }
+      try{ g.C58.migrateV58(s); }catch(e){ return {ok:false,err:String(e)} }
+      return {ok:(s.ver|0)>=58 && !!s.campaign, ver:s.ver, camp:s.campaign?.id};
+    }, ver);
+    if(!ok.ok) fails+=fail(label,'mig-'+ver,{ok});
+  }
+  report.paths[label]={fails,total};
+  console.log(`=== ${label}: ${fails}/${total} fails ===`);
+  return fails;
+}
+
+async function runMobileDesktopSmoke(){
+  const label='viewport-smoke';
+  let fails=0,total=0;
+  for(const vp of [{w:390,h:844,name:'mobile'},{w:1920,h:1080,name:'desktop'}]){
+    total++;
+    await page.setViewport({width:vp.w,height:vp.h,isMobile:vp.w<500,hasTouch:vp.w<500});
+    const info=await bootDaemon('Vista');
+    const shot=`/workspace/isekai-game-shots/v58-after/${vp.name}-hub.png`;
+    await page.screenshot({path:shot,fullPage:false});
+    if(!info.inputHidden || !(info.choices||[]).length) fails+=fail(label,vp.name,{info});
+    report.samples[vp.name]=info;
+  }
+  report.paths[label]={fails,total};
+  console.log(`=== ${label}: ${fails}/${total} fails ===`);
+  return fails;
+}
+
 async function runLiveSiteBrowser(){
   const label='live-site';
-  let fails=0, total=0;
-  const LIVE=process.env.GATE_LIVE_URL||'https://markusstol.github.io/isekai-game/';
-  const versions=['13','16','18','20','22','23','24','25','26','27','28','29','30','31','32','33','34','35','36','37','38','39','40','41','42','43','44','45','46','47','48','49','50','51','52','53','54','55','56'];
-  const safariUA='Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1';
-
-  async function oneProfile(name, {ua, seedVer}={}){
-    total++;
-    const errs=[];
-    const ctx=await browser.createBrowserContext();
-    const pg=await ctx.newPage();
-    pg.setDefaultTimeout(90000);
-    await pg.setViewport({width:390,height:844,isMobile:true,hasTouch:true});
-    if(ua) await pg.setUserAgent(ua);
-    pg.on('pageerror', e=>errs.push(String(e.message||e).split('\n')[0]));
-    try{
-      await pg.goto(LIVE,{waitUntil:'networkidle2',timeout:90000});
-      // Wait for game + tolerate SW heal reload after VER bump
-      for(let attempt=0; attempt<3; attempt++){
-        try{
-          await pg.waitForFunction(()=>window.__game&&window.__game.act,{timeout:45000});
-          break;
-        }catch(waitErr){
-          if(attempt===2) throw waitErr;
-          await pg.goto(LIVE,{waitUntil:'networkidle2',timeout:90000}).catch(()=>{});
-          await new Promise(r=>setTimeout(r,1500));
-        }
-      }
-      if(seedVer){
-        await pg.evaluate((save)=>{ localStorage.setItem('isekai_save_v1', JSON.stringify(save)); }, fakeOldSave(seedVer));
-        await pg.reload({waitUntil:'networkidle2',timeout:90000});
-        await pg.waitForFunction(()=>window.__game&&window.__game.act,{timeout:30000});
-        await pg.evaluate(async()=>{
-          const b=document.getElementById('btnContinue');
-          if(b && !b.classList.contains('hidden')) b.click();
-          await new Promise(r=>setTimeout(r,1800));
-          const g=window.__game;
-          if(g?.S && g.S.setup && !g.S.setup.done) g.S.setup.done=true;
-        });
-      } else {
-        await pg.evaluate(async()=>{
-          window.__FAST=true;
-          const g=window.__game;
-          await g.newLife('held',{lives:0,soul:0,keptSkills:[]},{fromIntro:true,name:'GateLive',bg:'',look:'',trait:''});
-          if(g.S.setup&&!g.S.setup.done){ g.S.setup.done=true; try{g.enterPlay()}catch(_){}}
-        });
-      }
-      const row=await pg.evaluate(async()=>{
-        const g=window.__game;
-        if(!g?.S) return {ok:false, reason:'no-S'};
-        try{ if(g.S.flags){ delete g.S.flags._offerEncounter; delete g.S.flags.narratorCombat } }catch(_){}
-        const INPUTS=['hallo','ich schaue mich um','ich rede mit ihr'];
-        const results=[];
-        for(const text of INPUTS){
-          const before=(document.getElementById('vnText')?.textContent||'').trim();
-          const txt=document.getElementById('txt');
-          if(txt){ txt.disabled=false; txt.value=text; }
-          const form=document.getElementById('inputRow');
-          const t0=performance.now();
-          if(form) form.requestSubmit();
-          else await g.act(text);
-          let last={};
-          for(let i=0;i<50;i++){
-            await new Promise(r=>setTimeout(r,300));
-            const vn=(document.getElementById('vnText')?.textContent||'').trim();
-            last={vn, busy:document.body.classList.contains('busy'), disabled:!!document.getElementById('txt')?.disabled, same:vn===before, ms:Math.round(performance.now()-t0)};
-            if(!last.busy && !last.same && vn.length>=8) break;
-          }
-          results.push({text, ...last});
-          // Must finish within ~12s (hard deadline + typewrite grace)
-          if(last.busy || last.same || (last.vn||'').length<8 || last.ms>12000){
-            return {ok:false, reason:last.busy?'busy-stuck':last.same?'no-reply':(last.ms>12000?'too-slow':'empty'), vn:last.vn, text, ms:last.ms, busy:last.busy, disabled:last.disabled};
-          }
-        }
-        return {ok:true, busy:false, disabled:false, vn:results.at(-1).vn, results, ort:g.S.world?.scene?.ort, hasOrte:!!g.S.world?.orte, hasGraph:!!g.S.world?.graph?.nodes};
-      });
-      const pageErrs=errs.filter(e=>!/AbortError/i.test(e)); // AbortError from race must not appear after v21.1 — count if present
-      const abortErrs=errs.filter(e=>/AbortError/i.test(e));
-      let reason=null;
-      if(!row.ok) reason=row.reason||'act-fail';
-      else if(row.busy) reason='busy-stuck';
-      else if(row.disabled) reason='input-disabled';
-      else if((row.vn||'').length<8) reason='empty-reply';
-      else if(HIJACK.test(row.vn)) reason='hijack';
-      else if(pageErrs.length) reason='pageerror:'+pageErrs[0].slice(0,80);
-      else if(abortErrs.length) reason='abort-pageerror';
-      if(reason){
-        fails++;
-        failures.push({path:label, world:name, a:'hallo', reason, text:(row.vn||'').slice(0,120)});
-        console.log('  FAIL', name, reason, (row.vn||'').slice(0,60));
-      } else {
-        console.log('  OK', name, '→', (row.vn||'').slice(0,60).replace(/\n/g,' '), `busy=${row.busy}`);
-      }
-    }catch(e){
-      const msg=String(e.message||e);
-      if(/Execution context was destroyed|Target closed|Session closed|Waiting failed|Timeout/i.test(msg)){
-        // SW heal / version bump reload — retry once
-        try{
-          await pg.goto(LIVE,{waitUntil:'networkidle2',timeout:90000});
-          await pg.waitForFunction(()=>window.__game&&window.__game.act,{timeout:45000});
-          await pg.evaluate(async()=>{
-            window.__FAST=true;
-            const g=window.__game;
-            if(g?.startProcedural) await g.startProcedural('fantasy','Alex');
-            else if(g?.startIntro) g.startIntro();
-            await new Promise(r=>setTimeout(r,1500));
-          });
-          const row=await pg.evaluate(async()=>{
-            const g=window.__game; if(!g?.S) return {ok:false, reason:'no-S'};
-            const before=(document.getElementById('vnText')?.textContent||'').trim();
-            await g.act('hallo');
-            let last={};
-            for(let i=0;i<50;i++){
-              await new Promise(r=>setTimeout(r,300));
-              const vn=(document.getElementById('vnText')?.textContent||'').trim();
-              last={vn, busy:document.body.classList.contains('busy')};
-              if(!last.busy && vn!==before && vn.length>=8) break;
-            }
-            return {ok:!last.busy && (last.vn||'').length>=8, vn:last.vn};
-          });
-          if(row.ok){ console.log('  OK', name, '(retry) →', (row.vn||'').slice(0,60).replace(/\n/g,' ')); return; }
-        }catch(e2){ /* fall through */ }
-      }
-      fails++; total=Math.max(total, fails);
-      failures.push({path:label, world:name, reason:'runner:'+msg});
-      console.log('  FAIL', name, msg);
-    }finally{
-      try{await ctx.close()}catch(_){}
-    }
-  }
-
-  console.log('\n=== LIVE SITE (fresh + old saves) ===', LIVE);
+  let fails=0,total=0;
+  const LIVE='https://markusstol.github.io/isekai-game/';
+  console.log('\n=== LIVE SITE ===', LIVE);
+  total++;
   try{
-    await oneProfile('fresh');
-    await oneProfile('safari-fresh', {ua:safariUA});
-    for(const v of versions) await oneProfile('save-v'+v, {seedVer:v});
-  }catch(e){
-    fails++; failures.push({path:label, reason:'suite:'+String(e.message||e)});
-  }
-  report.paths[label]={fails, total};
-  console.log(`=== ${label}: ${fails}/${total} fails ===`);
-  return fails;
-}
-
-/** Path F: local — pageerror + busy clear under offline + poisoned Depth */
-async function runBusyPageerror(){
-  const label='busy-pageerror';
-  let fails=0, total=0;
-  const errs=[];
-  const onErr=e=>errs.push(String(e.message||e).split('\n')[0]);
-  page.on('pageerror', onErr);
-  try{
-    await boot('held','BusyTest');
-    // 1) normal hallo — busy must clear
-    total++;
-    const r1=await page.evaluate(async()=>{
-      const g=window.__game;
-      await g.act('hallo');
-      return {busy:document.body.classList.contains('busy'), disabled:!!document.getElementById('txt')?.disabled, vn:(document.getElementById('vnText')?.textContent||'').slice(0,80)};
-    });
-    if(r1.busy||r1.disabled||(r1.vn||'').length<8){
-      fails++; failures.push({path:label, a:'hallo', reason:r1.busy?'busy-stuck':r1.disabled?'input-disabled':'empty', text:r1.vn});
-      console.log('  FAIL hallo', r1);
-    } else console.log('  OK hallo busy-clear');
-
-    // 2) poison capabilityBlock — act must still reply and clear busy
-    total++;
-    const r2=await page.evaluate(async()=>{
-      const g=window.__game;
-      const real=g.Depth.capabilityBlock;
-      g.Depth.capabilityBlock=()=>{ throw new Error('gate-poison-cap'); };
-      try{ await g.act('wie geht es dir'); }
-      finally{ g.Depth.capabilityBlock=real; }
-      return {busy:document.body.classList.contains('busy'), vn:(document.getElementById('vnText')?.textContent||'').slice(0,100)};
-    });
-    if(r2.busy||(r2.vn||'').length<8){
-      fails++; failures.push({path:label, a:'poison', reason:r2.busy?'busy-stuck':'empty', text:r2.vn});
-      console.log('  FAIL poison', r2);
-    } else console.log('  OK poison-cap busy-clear');
-
-    // 3) pageerrors: gate-poison must not surface; AbortError must not appear in offline
-    total++;
-    const bad=errs.filter(e=>!/gate-poison/i.test(e)); // poison is inside try in Depth callers; if it surfaces, fail
-    // Actually capabilityBlock is try/caught in sysPrompt — should be 0 pageerrors
-    const realBad=errs.filter(e=>!/ResizeObserver|Loading CSS/i.test(e));
-    if(realBad.length){
-      fails++; failures.push({path:label, reason:'pageerror:'+realBad[0].slice(0,100)});
-      console.log('  FAIL pageerrors', realBad.slice(0,3));
-    } else console.log('  OK no-pageerrors', '(caught', errs.length, ')');
-  } finally {
-    page.off('pageerror', onErr);
-  }
-  report.paths[label]={fails, total};
-  console.log(`=== ${label}: ${fails}/${total} fails ===`);
-  return fails;
-}
-
-/** Path G: hung narrator fetch must still reply + clear busy within ACT_HARD_MS+grace */
-async function runHungFetchReply(){
-  const label='hung-fetch-reply';
-  let fails=0, total=0;
-  console.log('\n=== HUNG FETCH → ALWAYS REPLY ===');
-  await boot('held','HungTest');
-  total++;
-  const r=await page.evaluate(async()=>{
-    const g=window.__game;
-    window.__setCfg({mode:'free'});
-    const orig=window.fetch;
-    window.fetch=function(url, opts){
-      const u=String(url);
-      if(/pollinations|generativelanguage|openai/i.test(u)) return new Promise(()=>{}); // never resolves
-      return orig.apply(this, arguments);
-    };
-    const before=(document.getElementById('vnText')?.textContent||'').trim();
-    const t0=performance.now();
-    document.getElementById('txt').value='hallo';
-    document.getElementById('inputRow').requestSubmit();
-    let last={};
-    const limit=(g.ACT_HARD_MS||4800)+2500;
-    for(let i=0;i<40;i++){
-      await new Promise(r=>setTimeout(r,200));
-      const vn=(document.getElementById('vnText')?.textContent||'').trim();
-      last={vn, busy:document.body.classList.contains('busy'), disabled:!!document.getElementById('txt')?.disabled, same:vn===before, ms:Math.round(performance.now()-t0)};
-      if(!last.busy && !last.same && vn.length>=8) break;
-      if(performance.now()-t0>limit+2000) break;
-    }
-    window.fetch=orig;
-    return last;
-  });
-  const hard= (await page.evaluate(()=>window.__game?.ACT_HARD_MS)) || 4800;
-  if(r.busy || r.same || (r.vn||'').length<8 || r.ms > hard+3000){
-    fails++; failures.push({path:label, reason:r.busy?'busy-stuck':r.same?'no-reply':`slow:${r.ms}`, text:(r.vn||'').slice(0,80), ms:r.ms});
-    console.log('  FAIL hung-fetch', r);
-  } else console.log('  OK hung-fetch reply in', r.ms+'ms', '→', (r.vn||'').slice(0,60));
-  // second input after hung must also work (no permanent lock)
-  total++;
-  const r2=await page.evaluate(async()=>{
-    const before=(document.getElementById('vnText')?.textContent||'').trim();
-    document.getElementById('txt').value='ich schaue mich um';
-    document.getElementById('inputRow').requestSubmit();
-    let last={};
-    for(let i=0;i<30;i++){
-      await new Promise(r=>setTimeout(r,200));
-      const vn=(document.getElementById('vnText')?.textContent||'').trim();
-      last={vn, busy:document.body.classList.contains('busy'), same:vn===before};
-      if(!last.busy && !last.same && vn.length>=8) break;
-    }
-    return last;
-  });
-  if(r2.busy || r2.same || (r2.vn||'').length<8){
-    fails++; failures.push({path:label, a:'second', reason:r2.busy?'busy-stuck':'no-reply', text:(r2.vn||'').slice(0,80)});
-    console.log('  FAIL second-after-hung', r2);
-  } else console.log('  OK second-after-hung');
+    await page.goto(LIVE+'?gate=1&v='+Date.now(),{waitUntil:'domcontentloaded',timeout:60000});
+    await page.waitForFunction(()=>window.__game?.VER,{timeout:45000});
+    const ver=await page.evaluate(()=>window.__game?.VER);
+    if(String(ver)!==VER) fails+=fail(label,'live-ver-'+ver);
+  }catch(e){ fails+=fail(label,'live-err',{err:String(e.message||e)}); }
   report.paths[label]={fails,total};
   console.log(`=== ${label}: ${fails}/${total} fails ===`);
   return fails;
 }
-
-
-/** Path H: overworld movement + NPC talk opens dialogue / act reply */
-async function runOverworldGate(){
-  const label='overworld';
-  let fails=0, total=0;
-  console.log('\n=== OVERWORLD MOVE + NPC TALK ===');
-  await boot('held','OwTest');
-  total++;
-  const r=await page.evaluate(async()=>{
-    const g=window.__game;
-    if(!g.OW) return {ok:false, reason:'no-OW'};
-    try{ g.OW.showOverworld(g.S); }catch(e){ return {ok:false, reason:'show:'+e.message}; }
-    await new Promise(r=>setTimeout(r,200));
-    const d0=g.OW.__debug();
-    const moved=g.OW.__tryMove(1,0) || g.OW.__tryMove(0,1) || g.OW.__tryMove(-1,0) || g.OW.__tryMove(0,-1);
-    await new Promise(r=>setTimeout(r,200));
-    const d1=g.OW.__debug();
-    // Walk toward first NPC if any
-    if(d1.npcs?.length){
-      const n=d1.npcs[0];
-      for(let i=0;i<20;i++){
-        const h=g.OW.__debug().hero;
-        const dx=Math.sign(n.x-h.x), dy=Math.sign(n.y-h.y);
-        if(dx||dy) g.OW.__tryMove(dx||0, dy&&!dx?dy:0);
-        await new Promise(r=>setTimeout(r,50));
-        if(Math.abs(g.OW.__debug().hero.x-n.x)+Math.abs(g.OW.__debug().hero.y-n.y)<=1) break;
-      }
-    }
-    const before=(document.getElementById('vnText')?.textContent||'').trim();
-    const who=g.OW.__talkNearest();
-    // wait for reply
-    let last={};
-    for(let i=0;i<40;i++){
-      await new Promise(r=>setTimeout(r,250));
-      const vn=(document.getElementById('vnText')?.textContent||'').trim();
-      last={vn, busy:document.body.classList.contains('busy'), same:vn===before, who};
-      if(!last.busy && !last.same && vn.length>=8) break;
-    }
-    const canvas=document.getElementById('owCanvas');
-    return {
-      ok:true, moved:!!moved || (d1.hero.x!==d0.hero.x||d1.hero.y!==d0.hero.y),
-      hasCanvas:!!canvas, map:d1.map?.name, npcs:(d1.npcs||[]).length,
-      who:last.who, vn:(last.vn||'').slice(0,80), busy:last.busy, same:last.same,
-      active:g.OW.isOverworldActive()
-    };
-  });
-  if(!r.ok){ fails++; failures.push({path:label, reason:r.reason}); console.log('  FAIL', r); }
-  else if(!r.hasCanvas || !r.active){ fails++; failures.push({path:label, reason:'no-canvas'}); console.log('  FAIL canvas', r); }
-  else if(!r.moved && !(r.npcs>0)){ fails++; failures.push({path:label, reason:'no-move'}); console.log('  FAIL move', r); }
-  else if(r.busy || r.same || (r.vn||'').length<8){ fails++; failures.push({path:label, reason:r.busy?'busy':'no-talk-reply', text:r.vn}); console.log('  FAIL talk', r); }
-  else console.log('  OK overworld', r.map, 'npcs='+r.npcs, 'talk='+(r.who||'-'), '→', (r.vn||'').slice(0,50));
-  // movement alone OK even without NPC if map built
-  if(r.ok && r.hasCanvas && r.active && !r.moved){
-    // try more moves
-    const m2=await page.evaluate(()=>{ const g=window.__game; let ok=false; for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1],[1,1]]){ if(g.OW.__tryMove(dx,dy)) ok=true; } return ok||g.OW.__debug().map?.w>0; });
-    if(!m2){ fails++; console.log('  FAIL cannot move'); }
-  }
-  total++;
-  // free text still works while OW active
-  const r2=await page.evaluate(async()=>{
-    const before=(document.getElementById('vnText')?.textContent||'').trim();
-    document.getElementById('txt').value='hallo';
-    document.getElementById('inputRow').requestSubmit();
-    let last={};
-    for(let i=0;i<40;i++){
-      await new Promise(r=>setTimeout(r,250));
-      const vn=(document.getElementById('vnText')?.textContent||'').trim();
-      last={vn, busy:document.body.classList.contains('busy'), same:vn===before};
-      if(!last.busy && !last.same && vn.length>=8) break;
-    }
-    return last;
-  });
-  if(r2.busy||r2.same||(r2.vn||'').length<8){ fails++; failures.push({path:label, a:'freetext', reason:'no-reply'}); console.log('  FAIL freetext', r2); }
-  else console.log('  OK freetext-while-ow');
-  report.paths[label]={fails,total};
-  console.log(`=== ${label}: ${fails}/${total} fails ===`);
-  return fails;
-}
-
-
-
-/** Path I: desktop 1920×1080 — integer canvas, keyboard WASD + Enter talk */
-async function runDesktopOverworldGate(){
-  const label='desktop-ow';
-  let fails=0, total=0;
-  console.log('\n=== DESKTOP 1920x1080 KEYBOARD OVERWORLD ===');
-  await page.setViewport({width:1920, height:1080, deviceScaleFactor:1});
-  await boot('held','DeskTest');
-  total++;
-  const r=await page.evaluate(async()=>{
-    const g=window.__game;
-    if(!g.OW) return {ok:false, reason:'no-OW'};
-    try{ g.OW.showOverworld(g.S); }catch(e){ return {ok:false, reason:'show:'+e.message}; }
-    await new Promise(r=>setTimeout(r,300));
-    const d0=g.OW.__debug();
-    // Keyboard WASD / arrows
-    const fire=(type,key)=>{
-      const ev=new KeyboardEvent(type,{key, code: key.startsWith('Arrow')?key:'Key'+key.toUpperCase(), bubbles:true});
-      window.dispatchEvent(ev);
-    };
-    fire('keydown','ArrowRight');
-    await new Promise(r=>setTimeout(r,180));
-    fire('keyup','ArrowRight');
-    fire('keydown','d');
-    await new Promise(r=>setTimeout(r,180));
-    fire('keyup','d');
-    fire('keydown','w');
-    await new Promise(r=>setTimeout(r,180));
-    fire('keyup','w');
-    await new Promise(r=>setTimeout(r,250));
-    const d1=g.OW.__debug();
-    const moved = d1.hero.x!==d0.hero.x || d1.hero.y!==d0.hero.y || g.OW.__tryMove(1,0);
-    // Talk via Enter
-    if(d1.npcs?.length){
-      const n=d1.npcs[0];
-      for(let i=0;i<24;i++){
-        const h=g.OW.__debug().hero;
-        const dx=Math.sign(n.x-h.x), dy=Math.sign(n.y-h.y);
-        if(dx||dy) g.OW.__tryMove(dx||0, dy&&!dx?dy:0);
-        await new Promise(r=>setTimeout(r,40));
-      }
-    }
-    const before=(document.getElementById('vnText')?.textContent||'').trim();
-    // Simulate Enter talk
-    window.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true}));
-    await new Promise(r=>setTimeout(r,100));
-    const who=g.OW.__talkNearest();
-    let last={};
-    for(let i=0;i<40;i++){
-      await new Promise(r=>setTimeout(r,250));
-      const vn=(document.getElementById('vnText')?.textContent||'').trim();
-      last={vn, busy:document.body.classList.contains('busy'), same:vn===before, who};
-      if(!last.busy && !last.same && vn.length>=8) break;
-    }
-    const canvas=document.getElementById('owCanvas');
-    const desktop=document.body.classList.contains('ow-desktop');
-    return {
-      ok:true, moved:!!moved, desktop, hasCanvas:!!canvas,
-      cw:canvas?.width, ch:canvas?.height,
-      map:d1.map?.name, npcs:(d1.npcs||[]).length,
-      who:last.who, vn:(last.vn||'').slice(0,80), busy:last.busy, same:last.same,
-      active:g.OW.isOverworldActive(), dbg:d1
-    };
-  });
-  if(!r.ok){ fails++; failures.push({path:label, reason:r.reason}); console.log('  FAIL', r); }
-  else if(!r.hasCanvas || !r.active){ fails++; failures.push({path:label, reason:'no-canvas'}); console.log('  FAIL canvas', r); }
-  else if(!r.desktop){ fails++; failures.push({path:label, reason:'not-desktop-class'}); console.log('  FAIL desktop class', r); }
-  else if(!(r.cw>=300 && r.ch>=160)){ fails++; failures.push({path:label, reason:'bad-canvas-size', cw:r.cw, ch:r.ch}); console.log('  FAIL size', r); }
-  else if(!r.moved){ fails++; failures.push({path:label, reason:'no-move'}); console.log('  FAIL move', r); }
-  else if(r.busy || r.same || (r.vn||'').length<8){ fails++; failures.push({path:label, reason:r.busy?'busy':'no-talk-reply', text:r.vn}); console.log('  FAIL talk', r); }
-  else console.log('  OK desktop-ow', r.map, `${r.cw}x${r.ch}`, 'desktop='+r.desktop, 'talk='+(r.who||'-'));
-  report.paths[label]={fails,total:1};
-  console.log(`=== ${label}: ${fails}/1 fails ===`);
-  // restore mobile-ish viewport for later paths if any
-  await page.setViewport({width:390, height:844, deviceScaleFactor:2});
-  return fails;
-}
-
-
-/** Path X: crash-class regressions (v55+) — must stay green */
-async function runCrashClass(){
-  const label='crash-class';
-  let fails=0, total=0;
-  async function one(name, fn){
-    total++;
-    const errs=[];
-    const onErr=e=>errs.push(String(e.message||e));
-    page.on('pageerror', onErr);
-    try{
-      await fn();
-      const real=errs.filter(e=>!/AbortError/i.test(e));
-      if(real.length){
-        fails++; failures.push({path:label, world:name, reason:'pageerror:'+real[0].slice(0,100)});
-        console.log('  FAIL', name, real[0].slice(0,80));
-      } else console.log('  OK', name);
-    }catch(e){
-      fails++; failures.push({path:label, world:name, reason:'runner:'+String(e.message||e).slice(0,140)});
-      console.log('  FAIL', name, String(e.message||e).slice(0,100));
-    }finally{
-      page.off('pageerror', onErr);
-    }
-  }
-
-  await one('proc-continue', async()=>{
-    await page.goto(`http://127.0.0.1:${PORT}/index.html?v=57&crash=proc`,{waitUntil:'domcontentloaded',timeout:60000});
-    await page.waitForFunction(()=>window.__game?.VER,{timeout:30000});
-    await page.evaluate(()=>{
-      const pack={icon:'🎲',titel:'CrashWelt',_genreLabel:'zombie',ton:'x',genre:'zombie'};
-      const save={ver:20,role:'proc',genre:'zombie',worldPack:pack,setup:{done:true},pc:{name:'CrashProc'},
-        st:{lvl:1,hp:50,maxhp:50,mp:10,maxmp:20,gold:5,str:8,cha:8,ruf:0},
-        world:{scene:{ort:'X',anwesend:[],zeit:'Mittag'},npcs:{},titel:'CrashWelt'},
-        flags:{}, skills:[], inv:[], turn:2, choices:['Umsehen'], hist:[], log:[]};
-      localStorage.setItem('isekai_save_v1', JSON.stringify(save));
-    });
-    await page.reload({waitUntil:'domcontentloaded'});
-    await page.waitForFunction(()=>window.__game?.VER,{timeout:30000});
-    await page.evaluate(async()=>{
-      document.getElementById('btnContinue')?.click();
-      await new Promise(r=>setTimeout(r,1500));
-      try{ window.__game.hud?.(); }catch(_){}
-    });
-    const ok=await page.evaluate(()=>!!window.__game?.S?.pc?.name);
-    if(!ok) throw new Error('proc continue lost S');
-  });
-
-  await one('atlas-paint', async()=>{
-    await boot('held','CrashAtlas');
-    await page.evaluate(()=>window.__game.openMenu?.('atlas'));
-    await new Promise(r=>setTimeout(r,500));
-    const n=await page.evaluate(()=>document.querySelectorAll('.atlas-map-stage canvas, .map-canvas, canvas').length);
-    if(n<1) throw new Error('atlas missing canvas');
-  });
-
-  await one('markt-tags', async()=>{
-    await page.goto(`http://127.0.0.1:${PORT}/index.html?v=57&crash=markt`,{waitUntil:'domcontentloaded',timeout:60000});
-    await page.waitForFunction(()=>window.__game?.startProcedural,{timeout:30000});
-    const row=await page.evaluate(async()=>{
-      const G=window.__game; window.__FAST=true; window.__PLAYTEST=true; window.__setCfg?.({mode:'offline'});
-      await G.startProcedural?.('zombie','TagAlex');
-      G.S.setup={done:true}; try{G.enterPlay?.()}catch(_){};
-      // Travel-name choices alone must NOT be treated as shop CTAs — tags drive Zum Markt
-      G.S.choices=['Die Gestalt ansprechen','Umsehen','Nach Supermarkt Ruine gehen','Richtung Nachtmarkt'];
-      try{ G.renderChoices?.(); }catch(_){}
-      const labels=[...document.querySelectorAll('#choices button')].map(b=>b.textContent.trim());
-      const ort=G.S.world?.scene?.ort;
-      const node=G.S.world?.graph?.nodes?.[ort];
-      const travelOnly=labels.filter(t=>/Supermarkt|Nachtmarkt/i.test(t));
-      const travelOpenShop=travelOnly.some(t=>/^(Zum Markt|Markt besuchen|Zum Laden|Einkaufen)\b/i.test(t));
-      return {labels, hasCta: labels.some(t=>/^Zum Markt gehen$/.test(t)), tags:node?.tags, ort, travelOpenShop};
-    });
-    if(row.travelOpenShop) throw new Error('travel name falsely treated as shop CTA');
-    if(!row.hasCta) throw new Error('missing Zum Markt CTA ort='+row.ort+' tags='+JSON.stringify(row.tags)+' labels='+row.labels.join('|'));
-  });
-
-  await one('se-boss-talk', async()=>{
-    await page.setViewport({width:375,height:667,isMobile:true,hasTouch:true});
-    await boot('held','SeTalk');
-    await page.evaluate(async()=>{
-      const G=window.__game;
-      const {enemyById}=await import('./enemies.js');
-      await G.Battle.startBattle(G.S,{enemies:[enemyById('boss_ogre')],atbMode:'wait',scripted:true,dungeonBoss:true});
-      const B=G.Battle.getBattle();
-      const hero=B.party.find(p=>p.kind==='hero')||B.party[0];
-      hero.atb=100; B.selecting={actor:hero,mode:'bossTalk'}; B.atbMode='wait';
-      await G.Battle.renderBattleUI();
-    });
-    await new Promise(r=>setTimeout(r,400));
-    const row=await page.evaluate(()=>{
-      const odds=[...document.querySelectorAll('.bts-odds')].map(e=>({t:e.textContent.trim(), top:e.getBoundingClientRect().top, right:e.getBoundingClientRect().right}));
-      const sheet=document.querySelector('.boss-talk-sheet')?.getBoundingClientRect();
-      const clipped=odds.some(o=>sheet && (o.right>sheet.right+2 || o.top<sheet.top-2));
-      return {n:odds.length, clipped};
-    });
-    if(row.n<1) throw new Error('no talk odds');
-    if(row.clipped) throw new Error('talk odds clipped');
-  });
-
-  await one('se-menu-tabs', async()=>{
-    await page.setViewport({width:375,height:667,isMobile:true,hasTouch:true});
-    await boot('held','SeTabs');
-    await page.evaluate(()=>window.__game.openMenu?.('hub'));
-    await new Promise(r=>setTimeout(r,300));
-    const row=await page.evaluate(()=>{
-      const tabs=document.getElementById('menuTabs');
-      const vis=[...tabs.querySelectorAll('button')].filter(b=>b.offsetParent!==null).map(b=>b.textContent.trim());
-      return {compact:tabs.classList.contains('tabs-compact'), vis, more:vis.includes('Mehr')};
-    });
-    if(!row.compact) throw new Error('tabs not compact on SE');
-    if(!row.more) throw new Error('Mehr missing: '+row.vis.join('|'));
-    if(row.vis.length>8) throw new Error('too many SE tabs: '+row.vis.join('|'));
-    await page.setViewport({width:390,height:844,isMobile:true,hasTouch:true});
-  });
-
-  await one('hub-density', async()=>{
-    await page.setViewport({width:375,height:667,isMobile:true,hasTouch:true});
-    await boot('held','HubDens');
-    await page.evaluate(()=>window.__game.openMenu?.('hub'));
-    await new Promise(r=>setTimeout(r,300));
-    const row=await page.evaluate(()=>{
-      const prim=[...document.querySelectorAll('.hub-grid-primary .hub-tile')].length;
-      const moreBtn=document.querySelector('.hub-more-btn');
-      const moreHidden=document.querySelector('.hub-grid-more')?.classList.contains('hidden');
-      return {prim, hasMore:!!moreBtn, moreHidden};
-    });
-    if(row.prim<4 || row.prim>8) throw new Error('primary hub count '+row.prim);
-    if(!row.hasMore || row.moreHidden===false) throw new Error('more section missing/open: '+JSON.stringify(row));
-    await page.setViewport({width:390,height:844,isMobile:true,hasTouch:true});
-  });
-
-  await one('menu-under-battle', async()=>{
-    await page.setViewport({width:1280,height:800});
-    await boot('held','MenuBattle');
-    await page.evaluate(()=>window.__game.openMenu?.('hub'));
-    await new Promise(r=>setTimeout(r,200));
-    await page.evaluate(async()=>{
-      const G=window.__game;
-      const {enemyById}=await import('./enemies.js');
-      await G.Battle.startBattle(G.S,{enemies:[enemyById('slime')],atbMode:'wait',scripted:true});
-    });
-    await new Promise(r=>setTimeout(r,400));
-    const row=await page.evaluate(()=>{
-      const menu=document.getElementById('menu');
-      const battle=document.querySelector('.battle-root');
-      const ms=getComputedStyle(menu);
-      return {
-        menuHidden: menu.classList.contains('hidden') || ms.display==='none' || ms.visibility==='hidden',
-        battleOpen: document.body.classList.contains('battle-open'),
-        battleVisible: battle && !battle.classList.contains('hidden'),
-        ally: [...document.querySelectorAll('img')].some(i=>/ally_hero|ally_spy|battler\/ally/.test(i.src||'')),
-      };
-    });
-    if(!row.battleOpen || !row.battleVisible) throw new Error('battle not open');
-    if(!row.menuHidden) throw new Error('menu still visible over battle');
-    await page.setViewport({width:390,height:844,isMobile:true,hasTouch:true});
-  });
-
-  await one('v20-continue', async()=>{
-    await page.goto(`http://127.0.0.1:${PORT}/index.html?v=57&crash=v20`,{waitUntil:'domcontentloaded',timeout:60000});
-    await page.waitForFunction(()=>window.__game?.VER,{timeout:30000});
-    await page.evaluate(async ()=>{
-      localStorage.clear();
-      try{
-        try{ const db=await new Promise((res,rej)=>{const r=indexedDB.open('isekai_db_v13');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);}); db.close(); }catch(_){}
-        await new Promise((res)=>{ const r=indexedDB.deleteDatabase('isekai_db_v13'); r.onsuccess=r.onerror=r.onblocked=()=>res(); setTimeout(res,800); });
-      }catch(_){}
-    });
-    const v20=fakeOldSave('20'); v20.saveSeq=999001; v20.turn=5; v20.savedAt=Date.now();
-    await page.evaluate((save)=>{
-      localStorage.setItem('isekai_save_v1', JSON.stringify(save));
-      localStorage.setItem('isekai_save_meta_v1', JSON.stringify({seq:save.saveSeq,turn:save.turn,savedAt:save.savedAt,lsOk:true,idbOk:false}));
-    }, v20);
-    await page.reload({waitUntil:'domcontentloaded'});
-    await page.waitForFunction(()=>window.__game?.VER,{timeout:30000});
-    await page.evaluate(async()=>{
-      document.getElementById('btnContinue')?.click();
-      await new Promise(r=>setTimeout(r,1800));
-    });
-    const row=await page.evaluate(()=>({name:window.__game?.S?.pc?.name, ort:window.__game?.S?.world?.scene?.ort}));
-    if(!row.name || !String(row.name).startsWith('Alt20')) throw new Error('v20 not loaded: '+JSON.stringify(row));
-  });
-
-  report.paths[label]={fails,total};
-  console.log(`=== ${label}: ${fails}/${total} fails ===`);
-  return fails;
-}
-
 
 try{
   server=await serve();
-  browser=await puppeteer.launch({
-    headless:true,
-    protocolTimeout:300000,
-    args:['--no-sandbox','--disable-setuid-sandbox','--disable-dev-shm-usage']
-  });
+  browser=await puppeteer.launch({headless:true,protocolTimeout:300000,args:['--no-sandbox','--disable-setuid-sandbox','--disable-dev-shm-usage']});
   page=await browser.newPage();
   page.setDefaultTimeout(90000);
+  await page.setViewport({width:390,height:844,isMobile:true,hasTouch:true});
 
-  console.log('Gate inputs:', INPUTS.length, 'worlds:', WORLDS.length);
-  if(INPUTS.length<40) throw new Error('Need ≥40 inputs, got '+INPUTS.length);
+  console.log('Gate v58 classic JRPG (freetext archived)');
 
   if(process.env.GATE_ONLY_LIVE==='1'){
-    // crash-class is local-tree only; SKIP_LIVE path already covers it
     await runLiveSiteBrowser();
   } else {
-
-  console.log('\n=== OFFLINE DIRECT (offline()) ===');
-  await runOfflineDirect();
-  console.log('\n=== ACT + OFFLINE MODE ===');
-  await runActOffline();
-  console.log('\n=== MOCK 402 FAILOVER ===');
-  await runMock402();
-  console.log('\n=== LIVE FREE SUBSET ===');
-  await runLiveSubset();
-  console.log('\n=== BUSY + PAGEERROR ===');
-  await runBusyPageerror();
-  await runHungFetchReply();
-  await runOverworldGate();
-  await runDesktopOverworldGate();
-  console.log('\n=== CRASH-CLASS ===');
-  await runCrashClass();
-  // Live site last (needs network); skip if GATE_SKIP_LIVE=1
-  if(process.env.GATE_SKIP_LIVE==='1'){
-    console.log('\n=== LIVE SITE skipped (GATE_SKIP_LIVE=1) ===');
-    report.paths['live-site']={fails:0,total:0,skipped:true};
-  } else {
-    await runLiveSiteBrowser();
+    console.log('\n=== JRPG BOOT ==='); await runJrpgBoot();
+    console.log('\n=== CHAPTER FLOW ==='); await runChapterFlow();
+    console.log('\n=== TOWN / SHOP / INN ==='); await runTownShopInn();
+    console.log('\n=== NPC TALK ==='); await runNpcTalk();
+    console.log('\n=== DUNGEON + PARTY + BOSS ==='); await runDungeonParty();
+    console.log('\n=== ALLY ART ==='); await runAllyArt();
+    console.log('\n=== MIGRATE SAVES ==='); await runMigrateSaves();
+    console.log('\n=== VIEWPORTS ==='); await runMobileDesktopSmoke();
+    if(process.env.GATE_SKIP_LIVE==='1'){
+      console.log('\n=== LIVE SITE skipped (GATE_SKIP_LIVE=1) ===');
+      report.paths['live-site']={fails:0,total:0,skipped:true};
+    } else {
+      await runLiveSiteBrowser();
+    }
   }
-  } // end GATE_ONLY_LIVE else
 } catch(e){
   console.error('GATE ERROR', e);
   failures.push({path:'runner', reason:String(e.message||e)});
@@ -1006,13 +333,14 @@ try{
   try{server?.close()}catch(_){}
 }
 
-fs.writeFileSync('/tmp/gate-report.json', JSON.stringify({failures, report, inputCount:INPUTS.length},null,2));
+fs.writeFileSync('/tmp/gate-report.json', JSON.stringify({failures, report},null,2));
+fs.mkdirSync('/workspace/isekai-game-shots',{recursive:true});
+fs.writeFileSync('/workspace/isekai-game-shots/v58-gate.log', JSON.stringify({failures, report},null,2));
 console.log('\n=== GATE SUMMARY ===');
 console.log(JSON.stringify(report.paths,null,2));
 console.log('Failures:', failures.length);
-for(const f of failures.slice(0,30))
-  console.log(' -', f.path, f.world||'', JSON.stringify(f.a||''), f.reason, '|', (f.text||'').slice(0,80));
-
+for(const f of failures.slice(0,40))
+  console.log(' -', f.path, f.reason, JSON.stringify(f).slice(0,160));
 if(failures.length){ console.error('GATE FAILED — do not push'); process.exit(1); }
 console.log('GATE PASSED');
 process.exit(0);

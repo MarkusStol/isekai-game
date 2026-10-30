@@ -6102,3 +6102,46 @@ body.battle-open #menu:not(.hidden){
   background-color: #0a0810;
   image-rendering: auto;
 }
+
+
+/* === v58 classic JRPG (no free-text) === */
+body.no-freetext #inputRow,
+body.jrpg-classic #inputRow{ display:none !important; }
+body.no-freetext .choices,
+body.jrpg-classic .choices{
+  gap:8px; padding:10px 12px 18px; max-width:720px; margin:0 auto;
+}
+body.no-freetext .choices button,
+body.jrpg-classic .choices button{
+  flex:1 1 46%; min-height:48px; font-size:14px; font-weight:700;
+  border-radius:14px; border:1px solid #e8c47a55;
+  background:linear-gradient(180deg,#2a1c48,#160e2c);
+  color:#f6efd8; letter-spacing:.01em;
+  box-shadow:0 6px 16px #0006, inset 0 1px 0 #ffffff18;
+}
+body.no-freetext .choices button:active{ transform:scale(.98); border-color:#e8c47a; }
+body.no-freetext .vn-box,
+body.jrpg-classic .vn-box{
+  border:1px solid #e8c47a44; border-radius:16px;
+  background:linear-gradient(180deg,#1a1230ee,#0c0818f2);
+  box-shadow:0 10px 28px #0008;
+}
+body.no-freetext .vn-text{ font-size:15px; line-height:1.45; }
+@media (min-width:1100px){
+  body.no-freetext .choices{ max-width:880px; }
+  body.no-freetext .choices button{ flex:1 1 30%; min-height:52px; font-size:15px; }
+  body.no-freetext .vn-text{ font-size:16px; }
+}
+@media (max-width:430px){
+  body.no-freetext .choices button{ flex:1 1 100%; min-height:46px; }
+  body.no-freetext .vn-wrap{ padding:0 8px; }
+}
+/* party vs foe battler clarity */
+.battle-root.battle-pixel .party-card .battler-spr{
+  width:72px !important; height:96px !important; object-fit:contain;
+  image-rendering:pixelated; filter:drop-shadow(0 4px 0 #0008);
+}
+.battle-root.battle-pixel .foe-card .foe-art{
+  width:96px !important; height:110px !important; object-fit:contain;
+  image-rendering:pixelated;
+}
