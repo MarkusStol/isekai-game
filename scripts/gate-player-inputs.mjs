@@ -12,7 +12,7 @@ import { fileURLToPath } from 'url';
 
 const ROOT=path.join(path.dirname(fileURLToPath(import.meta.url)),'..');
 const PORT=8793;
-const VER='66';
+const VER='67';
 const LIVE='https://markusstol.github.io/isekai-game/';
 const SKIP_LIVE=process.env.GATE_SKIP_LIVE==='1';
 const ONLY_LIVE=process.env.GATE_ONLY_LIVE==='1';
@@ -304,7 +304,7 @@ async function runLocal(browser){
     for(const ver of [13,40,50,56,57,58]){
       const s={ver, st:{hp:50,maxhp:100,gold:10}, world:{npcs:{},scene:{}}, flags:{}, romance:{}, pc:{name:'Alt'}};
       try{
-        g.C66?.migrateV66?.(s) || g.C64?.migrateV64?.(s) || g.C63?.migrateV63?.(s) || g.C62?.migrateV62?.(s) || g.C61?.migrateV61?.(s) || g.C60.migrateV60(s);
+        (g.C67?.migrateV67||g.C66?.migrateV66||g.C64?.migrateV64||g.C63?.migrateV63||g.C62?.migrateV62||g.C61?.migrateV61||g.C60?.migrateV60)?.(s);
         results.push({ver, out:s.ver, campaign:s.campaign?.id, jrpg59:!!s.flags?.jrpg59, freetext:!!s.flags?.freetext});
       } catch(e){ results.push({ver, err:String(e)});}
     }
@@ -352,7 +352,11 @@ async function runLive(browser){
     for(const ver of [13,50,57,58]){
       const s={ver, st:{hp:40,maxhp:100,gold:5,str:8}, world:{npcs:{'Sekretärin Velka':{alive:true,art:'Sukkubus'}},scene:{ort:'Test'}}, flags:{onboarded:true}, romance:{}, pc:{name:'Legacy'+ver}, genre:'daemon', role:'daemon'};
       try{
-        if(g.C66?.migrateV66) g.C66.migrateV66(s); else if(g.C66?.migrateV66) g.C66.migrateV66(s); else if(g.C64?.migrateV64) g.C64.migrateV64(s); else if(g.C63?.migrateV63) g.C63.migrateV63(s); else if(g.C62?.migrateV62) g.C62.migrateV62(s);
+        if(g.C67?.migrateV67) g.C67.migrateV67(s);
+        else if(g.C66?.migrateV66) g.C66.migrateV66(s);
+        else if(g.C64?.migrateV64) g.C64.migrateV64(s);
+        else if(g.C63?.migrateV63) g.C63.migrateV63(s);
+        else if(g.C62?.migrateV62) g.C62.migrateV62(s);
         else if(g.C61?.migrateV61) g.C61.migrateV61(s);
         else if(g.C60?.migrateV60) g.C60.migrateV60(s);
         else if(g.C59?.migrateV59) g.C59.migrateV59(s);
@@ -361,7 +365,7 @@ async function runLive(browser){
         out.push({ver, ok:true, outVer:s.ver, campaign:s.campaign?.id, freetext:s.flags?.freetext});
       }catch(e){ out.push({ver, ok:false, err:String(e)});}
     }
-    return {pageVer:g.VER, saves:out, hasC61:!!g.C61,hasC62:!!g.C62,hasC63:!!g.C63,hasC64:!!g.C64,hasC66:!!g.C66};
+    return {pageVer:g.VER, saves:out, hasC61:!!g.C61,hasC62:!!g.C62,hasC63:!!g.C63,hasC64:!!g.C64,hasC66:!!g.C66,hasC67:!!g.C67};
   });
   for(const s of saveTest.saves){
     if(!s.ok) fail('live-old-saves', s); else ok('live-old-saves', s);

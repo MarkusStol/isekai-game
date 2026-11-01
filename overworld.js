@@ -1406,8 +1406,9 @@ function recomputeFog(){
   // v45d: FoW radius must cover the tile frustum or mobile shows a tiny circle in black void
   const handHub=_map && /(wall|graveyard|throne|church)/.test(String(_map.preset||''));
   const townish=(_map && !['dungeon','wild','cave','crypt'].includes(_map.kind)) || handHub;
+  // v67 PC: FoW covers full frustum (no tiny black circle on small side maps)
   const R=_desktop
-    ? (townish?18:10)
+    ? Math.max(townish?22:16, Math.ceil(Math.hypot(_viewW||24,_viewH||18)*0.65))
     : Math.max(townish?18:12, Math.ceil(Math.max(_viewW||13,_viewH||15)*0.55));
   const hx=_hero.x, hy=_hero.y;
   for(let y=hy-R;y<=hy+R;y++){
@@ -1420,9 +1421,10 @@ function recomputeFog(){
       }
     }
   }
-  // towns: reveal whole map once so Chrono-Trigger density is visible
-  if(townish && _map){
-    for(let y=0;y<_map.h;y++) for(let x=0;x<_map.w;x++) _explored.add(fogKey(x,y));
+  // towns + small interiors/dungeons: reveal whole map (PC setpiece rooms)
+  const smallMap=_map && ((_map.w|0)<=36 || (_map.h|0)<=28);
+  if((townish || (_desktop && smallMap)) && _map){
+    for(let y=0;y<_map.h;y++) for(let x=0;x<_map.w;x++){ const k=fogKey(x,y); _explored.add(k); if(_desktop&&smallMap) _visible.add(k); }
   }
   try{
     const S=_hooks.getS?.();
@@ -1820,7 +1822,19 @@ function draw(){
   const cssW=_canvas.width, cssH=_canvas.height;
   ctx.imageSmoothingEnabled=false;
   const _indoorFill=(_map?.kind==='dungeon'||_map?.kind==='interior');
-  ctx.fillStyle=_indoorFill?'#2a2438':'#1e4a28'; ctx.fillRect(0,0,cssW,cssH);
+  // v67: rich void fill (no dead black letterbox around small maps)
+  const grd=ctx.createRadialGradient(cssW*0.5,cssH*0.45,cssW*0.08,cssW*0.5,cssH*0.5,cssW*0.75);
+  if(_indoorFill){ grd.addColorStop(0,'#3a3250'); grd.addColorStop(0.55,'#1c1830'); grd.addColorStop(1,'#0a0814'); }
+  else { grd.addColorStop(0,'#2a6a3a'); grd.addColorStop(0.55,'#143828'); grd.addColorStop(1,'#081410'); }
+  ctx.fillStyle=grd; ctx.fillRect(0,0,cssW,cssH);
+  // subtle pixel noise / stone stars
+  ctx.globalAlpha=0.22;
+  for(let i=0;i<120;i++){
+    const x=((i*97)%cssW)|0, y=((i*57+13)%cssH)|0;
+    ctx.fillStyle=_indoorFill?((i%3)?'#6a6088':'#a898c0'):((i%3)?'#4a8858':'#c8e0a0');
+    ctx.fillRect(x,y,1+(i%2),1+(i%2));
+  }
+  ctx.globalAlpha=1;
 
   // v65: map fills canvas — zoom into small interiors so void never letterboxes
   const dlgOpen = !!(typeof document!=='undefined' && document.body?.classList?.contains('ow-dialogue'));
@@ -1830,6 +1844,10 @@ function draw(){
       // v66: do NOT clamp viewH to map.h — that caused mobile black bars under short interiors
       // (tw locked by width → viewH*tw << cssH). OOB biome fill covers extra tiles.
       viewW = Math.min(viewW, Math.max(11, _map.w + (_desktop?0:2)));
+      // v67 PC: tall narrow maps — widen frustum so pillars don't dominate
+      if(_desktop && _map.h > _map.w + 4){
+        viewW = Math.max(viewW, Math.min(Math.max(_map.w+6, 28), Math.ceil((_map.h||24)*0.85)));
+      }
     }
   }catch(_){}
   // v66 PC: dialogue overlays; do not shrink camera

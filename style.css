@@ -6862,3 +6862,317 @@ body.ow-desktop #sheet .panel{
     font-size:12px; color:#e8d9a8cc; z-index:5; pointer-events:none;
   }
 }
+
+/* ========== v67 FF6-style PC battle ========== */
+.battle-root.battle-ff67{
+  display:flex !important;
+  flex-direction:column !important;
+  background:#05040a !important;
+  font-family: "Press Start 2P", "Courier New", monospace;
+}
+.battle-root.battle-ff67 .battle-stage{
+  position:relative !important;
+  flex: 0 0 70vh !important;
+  height:70vh !important;
+  max-height:70vh !important;
+  min-height:420px !important;
+  overflow:hidden !important;
+}
+.battle-root.battle-ff67 .battle-hud.battle-hud-ff{
+  flex: 1 1 30vh !important;
+  min-height:220px !important;
+  max-height:32vh !important;
+  display:grid !important;
+  grid-template-columns: 28% 1fr 42% !important;
+  gap:8px !important;
+  padding:8px 12px 12px !important;
+  background:linear-gradient(180deg,#0a1a48,#061030) !important;
+  border-top:3px solid #9eb6ff !important;
+  z-index:20 !important;
+}
+.battle-root.battle-ff67 .battle-field{
+  position:absolute; inset:8% 4% 12% 4%;
+  display:flex; align-items:flex-end; justify-content:space-between;
+  z-index:5; pointer-events:none;
+}
+.battle-root.battle-ff67 .battle-foes{
+  position:relative !important; left:auto !important; top:auto !important;
+  display:flex !important; flex-direction:column !important;
+  align-items:flex-start !important; gap:18px !important;
+  pointer-events:auto; width:42%; padding-left:4%;
+}
+.battle-root.battle-ff67 .battle-party-spr{
+  position:relative !important; right:auto !important; bottom:auto !important;
+  display:flex !important; flex-direction:column-reverse !important;
+  align-items:flex-end !important; gap:10px !important;
+  pointer-events:none; width:42%; padding-right:6%;
+}
+.battle-root.battle-ff67 .foe-card{
+  background:transparent !important; border:none !important;
+  box-shadow:none !important; padding:0 !important;
+  width:auto !important; min-width:0 !important;
+  filter:drop-shadow(0 10px 0 #0008) !important;
+}
+.battle-root.battle-ff67 .foe-art-wrap.pixel-foe,
+.battle-root.battle-ff67 .pixel-foe{
+  width:auto !important; height:auto !important;
+  min-width:180px !important; min-height:180px !important;
+  background:transparent !important; border:none !important;
+  overflow:visible !important;
+}
+.battle-root.battle-ff67 .foe-art.battler-spr,
+.battle-root.battle-ff67 .pixel-foe img{
+  width:220px !important; height:220px !important;
+  max-width:28vw !important; max-height:38vh !important;
+  object-fit:contain !important;
+  image-rendering:pixelated !important;
+  transform:scale(1) !important;
+}
+.battle-root.battle-ff67 .foe-card.foe-boss .foe-art,
+.battle-root.battle-ff67 .battle-setpiece .foe-art{
+  width:280px !important; height:280px !important;
+  max-width:34vw !important; max-height:46vh !important;
+}
+.battle-root.battle-ff67 .party-stage-spr{
+  position:relative !important; right:auto !important; bottom:auto !important;
+  margin:0 !important; transform:none !important;
+}
+.battle-root.battle-ff67 .party-stage-spr .pixel-hero-spr{
+  width:160px !important; height:160px !important;
+  max-width:18vw !important; max-height:28vh !important;
+  object-fit:contain !important;
+  image-rendering:pixelated !important;
+  filter:drop-shadow(0 8px 0 #000a) !important;
+}
+.battle-root.battle-ff67 .party-stage-spr.active .pixel-hero-spr{
+  filter:drop-shadow(0 0 12px #f0d59a) drop-shadow(0 8px 0 #000a) !important;
+}
+.battle-root.battle-ff67 .battle-cmd-pop,
+.battle-root.battle-ff67 #battleCmd{
+  position:absolute !important;
+  left:52% !important; bottom:8% !important;
+  width:220px !important; max-width:28vw !important;
+  z-index:30 !important;
+  background:linear-gradient(180deg,#1a3a8a,#0c2058) !important;
+  border:3px solid #c8d8ff !important;
+  border-radius:4px !important;
+  box-shadow:4px 4px 0 #000a, inset 0 0 0 2px #4a6ad0 !important;
+  padding:8px 6px !important;
+  display:flex !important; flex-direction:column !important; gap:2px !important;
+  font-size:12px !important;
+}
+.battle-root.battle-ff67 .ff-cmd-title{
+  color:#9eb6ff; font-size:9px; letter-spacing:.04em; margin:0 4px 6px;
+}
+.battle-root.battle-ff67 #battleCmd .bcm,
+.battle-root.battle-ff67 .cmd-ff-main .bcm{
+  display:flex !important; align-items:center !important; gap:6px !important;
+  width:100% !important; min-height:28px !important;
+  background:transparent !important; border:none !important;
+  border-radius:0 !important; box-shadow:none !important;
+  color:#f4f7ff !important; font-size:12px !important;
+  font-family:inherit !important; text-align:left !important;
+  padding:4px 8px !important; justify-content:flex-start !important;
+}
+.battle-root.battle-ff67 #battleCmd .bcm .ff-c{ opacity:0; color:#f0d59a; }
+.battle-root.battle-ff67 #battleCmd .bcm:hover .ff-c,
+.battle-root.battle-ff67 #battleCmd .bcm:focus .ff-c,
+.battle-root.battle-ff67 #battleCmd .bcm:focus-visible .ff-c{ opacity:1; }
+.battle-root.battle-ff67 #battleCmd .bcm:hover,
+.battle-root.battle-ff67 #battleCmd .bcm:focus{
+  background:#2a4a9a55 !important; color:#fff !important; outline:none;
+}
+.battle-root.battle-ff67 .battle-wait{
+  padding:10px; color:#9eb6ff; font-size:11px;
+}
+.battle-root.battle-ff67 .battle-strip-left,
+.battle-root.battle-ff67 #battleFoePlates{
+  background:linear-gradient(180deg,#1a3a8a,#0c2058) !important;
+  border:3px solid #c8d8ff !important;
+  border-radius:4px !important;
+  padding:8px 10px !important;
+  overflow:auto !important;
+  font-size:12px !important;
+}
+.battle-root.battle-ff67 .ff-foe-list-title{ color:#9eb6ff; font-size:9px; margin-bottom:6px; }
+.battle-root.battle-ff67 .ff-foe-row{
+  display:flex; align-items:center; gap:6px; padding:3px 0; color:#f4f7ff;
+}
+.battle-root.battle-ff67 .ff-foe-row .ff-cursor{ opacity:0; color:#f0d59a; }
+.battle-root.battle-ff67 .ff-foe-row.boss .ff-foe-name{ color:#f0d59a; }
+.battle-root.battle-ff67 .ff-foe-row.dead{ opacity:.35; text-decoration:line-through; }
+.battle-root.battle-ff67 .battle-strip-mid,
+.battle-root.battle-ff67 #battleLog{
+  background:linear-gradient(180deg,#1a3a8a,#0c2058) !important;
+  border:3px solid #c8d8ff !important;
+  border-radius:4px !important;
+  padding:8px 10px !important;
+  font-size:11px !important; line-height:1.45 !important;
+  overflow:auto !important; color:#e8f0ff !important;
+}
+.battle-root.battle-ff67 .battle-strip-right,
+.battle-root.battle-ff67 #battleParty{
+  display:flex !important; flex-direction:column !important; gap:4px !important;
+  background:linear-gradient(180deg,#1a3a8a,#0c2058) !important;
+  border:3px solid #c8d8ff !important;
+  border-radius:4px !important;
+  padding:6px 8px !important;
+  overflow:auto !important;
+}
+.battle-root.battle-ff67 .ff-party-row,
+.battle-root.battle-ff67 .party-card.ff-party-row{
+  display:grid !important;
+  grid-template-columns: 110px 1fr !important;
+  gap:8px !important; align-items:center !important;
+  background:transparent !important; border:none !important;
+  border-radius:0 !important; padding:4px 4px !important;
+  min-width:0 !important; box-shadow:none !important;
+}
+.battle-root.battle-ff67 .ff-party-row.active{
+  background:#2a4a9a66 !important;
+  box-shadow:inset 0 0 0 1px #f0d59a88 !important;
+}
+.battle-root.battle-ff67 .ff-pname{ font-size:12px; color:#f4f7ff; }
+.battle-root.battle-ff67 .ff-hand{ margin-right:4px; }
+.battle-root.battle-ff67 .ff-gauges{ display:flex; flex-direction:column; gap:2px; }
+.battle-root.battle-ff67 .ff-hp,
+.battle-root.battle-ff67 .ff-mp,
+.battle-root.battle-ff67 .ff-atb{
+  display:grid; grid-template-columns:28px 1fr 64px; gap:6px; align-items:center;
+  font-size:9px; color:#9eb6ff;
+}
+.battle-root.battle-ff67 .ff-gauges .bar{
+  height:8px !important; border-radius:0 !important;
+  background:#061028 !important; border:1px solid #4a6ad0 !important;
+  position:relative; overflow:hidden;
+}
+.battle-root.battle-ff67 .ff-gauges .bar i{ display:block; height:100%; }
+.battle-root.battle-ff67 .ff-gauges .bar.hp i{ background:linear-gradient(90deg,#e85a5a,#ff8a8a) !important; }
+.battle-root.battle-ff67 .ff-gauges .bar.mp i{ background:linear-gradient(90deg,#4a8aff,#8ab4ff) !important; }
+.battle-root.battle-ff67 .ff-gauges .bar.atb i{ background:linear-gradient(90deg,#f0d59a,#ffe9a8) !important; }
+.battle-root.battle-ff67 .ff-gauges em{ font-style:normal; color:#e8f0ff; font-size:9px; text-align:right; }
+.battle-root.battle-ff67 .battle-kb-hint{
+  position:absolute; top:10px; right:14px; z-index:8;
+  font-size:10px; color:#e8d9a8cc; letter-spacing:.03em;
+  background:#0008; padding:4px 8px; border:1px solid #ffffff22; border-radius:4px;
+}
+.battle-root.battle-ff67 .battle-foe-plates{ display:none !important; } /* moved into strip */
+.battle-root.battle-ff67 .foe-plate-dock{ display:none !important; }
+.battle-root.battle-ff67.flash-hit .battle-veil{ background:#fff6 !important; }
+.battle-root.battle-ff67 .dmg-pop{
+  font-size:28px !important; font-weight:700 !important;
+  text-shadow:2px 2px 0 #000, -1px 0 #000 !important;
+  z-index:40 !important;
+}
+.battle-root.battle-ff67 .pixel-battle-floor,
+.battle-root.battle-ff67 .battle-bg-live{
+  filter:saturate(1.15) contrast(1.05) !important;
+}
+.battle-root.battle-ff67.battle-setpiece .skill-banner{
+  font-size:22px !important; letter-spacing:.12em;
+}
+.battle-root.battle-ff67 .battle-atb-mode{
+  top:10px; left:14px; font-size:10px;
+  background:#000a; border:1px solid #9eb6ff66; padding:4px 8px;
+}
+
+/* Hide old stretched mobile cmd chrome under ff67 */
+.battle-root.battle-ff67 .battle-hud > .battle-cmd{ display:none; }
+
+
+/* v67 menu keyboard/gamepad prompts */
+body.pc-only .menu-panel::after,
+body.ow-desktop .menu-panel::after{
+  content:"↑↓ Enter/A · Esc/B schließen · Gamepad";
+  display:block; text-align:center; font-size:11px; color:#e8d9a8cc;
+  padding:8px 10px 10px; border-top:1px solid #ffffff18;
+}
+body.pc-only #sheet .panel::after,
+body.pc-only .inn-card::after{
+  content:"Enter/A bestätigen · Esc/B zurück";
+  display:block; margin-top:10px; font-size:11px; color:#e8d9a8cc;
+}
+body.pc-only .menu-tabs button::after{ /* keep clean */ }
+
+/* v67 FF battle depth floor (not flat blocks) */
+.battle-root.battle-ff67 .pixel-battle-floor{
+  background:
+    linear-gradient(180deg, transparent 0%, #0a1028aa 55%, #050814ee 100%),
+    repeating-linear-gradient(90deg, #1a284422 0 2px, transparent 2px 48px),
+    repeating-linear-gradient(0deg, #1a284422 0 2px, transparent 2px 28px) !important;
+  opacity:1 !important;
+}
+.battle-root.battle-ff67 .battle-layer-floor{
+  transform: perspective(600px) rotateX(58deg) scale(1.35);
+  transform-origin: center bottom;
+  filter: brightness(.85) saturate(1.1);
+}
+.battle-root.battle-ff67.battle-setpiece .battle-veil{
+  background: radial-gradient(ellipse at 40% 45%, #ffd70022, #20001088 70%, #000c) !important;
+}
+.battle-root.battle-ff67.battle-setpiece .battle-stage::before{
+  content:""; position:absolute; inset:0; z-index:4; pointer-events:none;
+  box-shadow: inset 0 0 120px #000c, inset 0 -40px 80px #4a102066;
+}
+.battle-root.battle-ff67 .foe-card.foe-boss .foe-art-wrap,
+.battle-root.battle-ff67 .foe-card.foe-large .foe-art-wrap{
+  min-width:240px !important; min-height:240px !important;
+}
+
+/* v67 FF SPRITE SCALE HARD OVERRIDE */
+.battle-root.battle-ff67.battle-pixel,
+.battle-root.battle-pixel.battle-ff67{
+  position:fixed !important; inset:0 !important; width:100vw !important; height:100vh !important;
+  max-width:none !important; max-height:none !important; margin:0 !important;
+  z-index:9000 !important; background:#05040a !important;
+}
+.battle-root.battle-ff67.battle-pixel .battle-stage{
+  flex:0 0 70% !important; height:70% !important; max-height:70% !important; min-height:0 !important;
+}
+.battle-root.battle-ff67.battle-pixel .battle-hud.battle-hud-ff{
+  flex:0 0 30% !important; height:30% !important; max-height:30% !important; min-height:0 !important;
+}
+.battle-root.battle-ff67.battle-pixel .foe-art-wrap,
+.battle-root.battle-ff67.battle-pixel .foe-art-wrap.pixel-foe,
+.battle-root.battle-ff67.battle-pixel .pixel-foe,
+.battle-root.battle-ff67.battle-pixel .foe-card .foe-art-wrap,
+.battle-root.battle-ff67.battle-pixel .foe-normal .foe-art-wrap,
+.battle-root.battle-ff67.battle-pixel .foe-large .foe-art-wrap{
+  width:240px !important; height:240px !important;
+  min-width:240px !important; min-height:240px !important;
+  max-width:none !important; max-height:none !important;
+  overflow:visible !important; background:transparent !important; border:none !important;
+  transform:none !important; scale:1 !important;
+}
+.battle-root.battle-ff67.battle-pixel .foe-art,
+.battle-root.battle-ff67.battle-pixel .foe-art.battler-spr,
+.battle-root.battle-ff67.battle-pixel .pixel-foe img,
+.battle-root.battle-ff67.battle-pixel .foe-normal .foe-art,
+.battle-root.battle-ff67.battle-pixel .foe-normal .pixel-foe img,
+.battle-root.battle-ff67.battle-pixel .foe-large .foe-art,
+.battle-root.battle-ff67.battle-pixel .foe-card .foe-art{
+  width:240px !important; height:240px !important;
+  min-width:240px !important; min-height:240px !important;
+  max-width:32vw !important; max-height:42vh !important;
+  object-fit:contain !important; transform:none !important;
+  image-rendering:pixelated !important;
+}
+.battle-root.battle-ff67.battle-pixel .foe-boss .foe-art,
+.battle-root.battle-ff67.battle-pixel .foe-boss .pixel-foe img,
+.battle-root.battle-ff67.battle-pixel.battle-setpiece .foe-art,
+.battle-root.battle-ff67.battle-pixel .foe-card.foe-boss .foe-art{
+  width:320px !important; height:320px !important;
+  min-width:280px !important; min-height:280px !important;
+  max-width:38vw !important; max-height:50vh !important;
+}
+.battle-root.battle-ff67.battle-pixel .party-stage-spr .pixel-hero-spr,
+.battle-root.battle-ff67.battle-pixel .party-stage-spr .pixel-hero-spr.battler-spr,
+.battle-root.battle-ff67.battle-pixel .party-stage-spr .pixel-hero-spr.pixelated,
+.battle-root.battle-ff67.battle-pixel .pixel-hero-spr.battler-spr{
+  width:180px !important; height:180px !important;
+  min-width:140px !important; min-height:140px !important;
+  max-width:20vw !important; max-height:32vh !important;
+  object-fit:contain !important; transform:none !important;
+  image-rendering:pixelated !important;
+}
+

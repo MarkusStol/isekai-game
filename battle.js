@@ -462,6 +462,16 @@ export function startBattle(S, opts={}){
     const hero=party.find(p=>p.kind==='hero')||party[0];
     if(hero) hero.atb=100;
   }
+  try{
+    _B.opts=opts||{};
+    if(opts.setpiece||opts.banner){
+      (_B.foes||[]).forEach(f=>{ f.setpiece=true; if(opts.bossName) f.name=opts.bossName; });
+      _B.log.unshift(opts.banner||('SETPIECE · '+(opts.bossName||'Boss')));
+      if(opts.blurb) _B.log.push(opts.blurb);
+      try{ showSkillBanner(opts.banner||opts.bossName||'BOSS'); }catch(_){}
+      try{ shakeScreen(); }catch(_){}
+    }
+  }catch(_){}
   renderBattleUI();
   startBattleMusic(S);
   if(!_B.scripted) advanceUntilPlayer();
@@ -1240,6 +1250,9 @@ export function renderBattleUI(){
   root.classList.remove('hidden'); root.classList.add('battle-pixel'); setBattleOpen(true);
   const B=_B;
   root.classList.remove('battle-25d');
+  root.classList.add('battle-ff67');
+  const setpiece=!!(B.opts?.setpiece||B.foes.some(f=>f.boss||f.setpiece));
+  if(setpiece) root.classList.add('battle-setpiece'); else root.classList.remove('battle-setpiece');
   root.innerHTML=`
   <div class="battle-stage battle-parallax" id="battleStage" data-terrain="${(battleTerrainLayers(B.S,B.bg)||{}).key||battleFloorClass(B.bg)}">
     <div class="battle-bg pixel-battle-bg battle-bg-live" id="battleBg" style="background-image:url('${B.bg}')"></div>
@@ -1252,16 +1265,19 @@ export function renderBattleUI(){
     <div class="battle-veil"></div>
     <div class="battle-atb-mode">${B.atbMode==='wait'?'Warten':'Aktiv'}</div>
     <div class="battle-timeline" id="battleTL"></div>
-    <div class="battle-foe-plates" id="battleFoePlates" aria-live="polite"></div>
     <div class="skill-banner" id="skillBanner"></div>
-    <div class="battle-foes" id="battleFoes"></div>
-    <div class="battle-party-spr" id="battlePartySpr"></div>
+    <div class="battle-field">
+      <div class="battle-foes" id="battleFoes"></div>
+      <div class="battle-party-spr" id="battlePartySpr"></div>
+    </div>
     <div class="battle-fx" id="battleFx" aria-hidden="true"></div>
+    <div class="battle-cmd-pop jrpg-window" id="battleCmd"></div>
+    <div class="battle-kb-hint">↑↓ Enter/A · Esc/B · Gamepad</div>
   </div>
-  <div class="battle-hud">
-    <div class="battle-party" id="battleParty"></div>
-    <div class="battle-log jrpg-window" id="battleLog"></div>
-    <div class="battle-cmd jrpg-window" id="battleCmd"></div>
+  <div class="battle-hud battle-hud-ff">
+    <div class="battle-strip-left jrpg-window" id="battleFoePlates" aria-live="polite"></div>
+    <div class="battle-strip-mid jrpg-window" id="battleLog"></div>
+    <div class="battle-strip-right" id="battleParty"></div>
   </div>
   <div class="battle-end hidden" id="battleEnd"></div>`;
   refreshUI();
@@ -1288,12 +1304,10 @@ function refreshUI(){
   if(foes){
     const plates=el('battleFoePlates');
     if(plates){
-      plates.innerHTML=B.foes.filter(f=>f.alive!==false).slice(0,2).map(f=>`
-        <div class="foe-plate jrpg-window foe-plate-dock" data-iid="${f._iid}">
-          <div class="foe-name" title="${f.name}">${f.name}</div>
-          <div class="foe-tags">${f.boss?'<span class="ftag boss">BOSS</span>':''}${f.analyzed?'<span class="ftag">✦</span>':''}${f.staggered?'<span class="ftag bruch">BRUCH</span>':''}${f.rare?'<span class="ftag">SELTEN</span>':''}</div>
-          <div class="bar foe-hp"><i style="width:${Math.max(0,f.hp/f.maxhp*100)}%"></i></div>
-          <div class="bar foe-stagger ${f.staggered?'broken':''}" title="Bruch"><i style="width:${Math.max(0,(f.stagger||0)/Math.max(1,f.staggerMax||1)*100)}%"></i></div>
+      plates.innerHTML=`<div class="ff-foe-list-title">Gegner</div>`+B.foes.map(f=>`
+        <div class="ff-foe-row ${f.alive?'':'dead'} ${f.boss?'boss':''}" data-iid="${f._iid}">
+          <span class="ff-cursor" aria-hidden="true">▶</span>
+          <span class="ff-foe-name">${f.name}${f.boss?' ★':''}</span>
         </div>`).join('');
     }
     foes.innerHTML=B.foes.map(f=>`
@@ -1325,16 +1339,12 @@ function refreshUI(){
   const party=el('battleParty');
   if(party){
     party.innerHTML=B.party.map(p=>`
-      <div class="party-card pixel-party jrpg-window ${p.alive?'':'dead'} ${B.selecting?.actor===p?'active':''} row-${p.row||'front'}" data-iid="${p._iid}">
-        <div class="party-port">${p.portrait?`<img src="${p.portrait}" alt="" loading="lazy"/>`:`<img class="ph-role-img" src="./assets/pixel/ui/tl/${p.kind==='hero'?'hero':'ally'}.png" alt="" width="16" height="16"/>`}</div>
-        <div class="party-meta">
-          <div class="party-name-row"><b>${p.name}</b> · <span class="party-job">${p.kind==='hero'?jobLabelDE(p.job||(_B?.S?.jobs?.active)||'krieger'):companionRoleLabel(p)}</span><span class="party-rowtag"> · ${p.row==='back'?'hinten':'vorn'}</span></div>
-          <div class="party-bars">
-            <div class="bar hp" title="HP"><i style="width:${Math.max(0,p.hp/p.maxhp*100)}%"></i><em>${p.hp|0}/${p.maxhp|0}</em></div>
-            <div class="bar mp" title="MP"><i style="width:${Math.max(0,p.mp/Math.max(1,p.maxmp)*100)}%"></i></div>
-            <div class="bar lim" title="Limit"><i style="width:${Math.max(0,(p.limit||0)/100*100)}%"></i></div>
-            <div class="bar atb" title="ATB"><i style="width:${Math.max(0,Math.min(100,p.atb||0))}%"></i></div>
-          </div>
+      <div class="party-card pixel-party jrpg-window ff-party-row ${p.alive?'':'dead'} ${B.selecting?.actor===p?'active':''} row-${p.row||'front'}" data-iid="${p._iid}">
+        <div class="ff-pname"><span class="ff-hand">${B.selecting?.actor===p?'👉':''}</span><b>${p.name}</b></div>
+        <div class="ff-gauges">
+          <div class="ff-hp"><span>HP</span><div class="bar hp"><i style="width:${Math.max(0,p.hp/p.maxhp*100)}%"></i></div><em>${p.hp|0}/${p.maxhp|0}</em></div>
+          <div class="ff-mp"><span>MP</span><div class="bar mp"><i style="width:${Math.max(0,p.mp/Math.max(1,p.maxmp)*100)}%"></i></div><em>${p.mp|0}/${p.maxmp|0}</em></div>
+          <div class="ff-atb"><span>ATB</span><div class="bar atb"><i style="width:${Math.max(0,Math.min(100,p.atb||0))}%"></i></div></div>
         </div>
       </div>`).join('');
   }
@@ -1397,13 +1407,14 @@ function refreshUI(){
     }
     if(sel.mode==='main'){
       cmd.innerHTML=`
-        <div class="cmd-primary cmd-ff-main">
-          <button type="button" class="bcm bcm-lg" data-c="attack">Angriff</button>
-          <button type="button" class="bcm bcm-lg" data-c="skills">Fähigkeit</button>
-          <button type="button" class="bcm bcm-lg" data-c="items">Item</button>
-          <button type="button" class="bcm bcm-lg" data-c="technik">Technik</button>
-          <button type="button" class="bcm bcm-lg social" data-c="talk">Reden</button>
-          <button type="button" class="bcm bcm-lg ghost bcm-flucht" data-c="flee">Flucht</button>
+        <div class="cmd-primary cmd-ff-main ff-cmd-pop">
+          <div class="ff-cmd-title">Befehl <small>↑↓ Enter</small></div>
+          <button type="button" class="bcm" data-c="attack"><span class="ff-c">▶</span> Angriff</button>
+          <button type="button" class="bcm" data-c="skills"><span class="ff-c">▶</span> Fähigkeit</button>
+          <button type="button" class="bcm" data-c="items"><span class="ff-c">▶</span> Item</button>
+          <button type="button" class="bcm" data-c="technik"><span class="ff-c">▶</span> Technik</button>
+          <button type="button" class="bcm social" data-c="talk"><span class="ff-c">▶</span> Reden</button>
+          <button type="button" class="bcm ghost bcm-flucht" data-c="flee"><span class="ff-c">▶</span> Flucht</button>
         </div>`;
       cmd.querySelectorAll('.bcm').forEach(b=>b.onclick=()=>{
         const c=b.dataset.c;
@@ -1738,9 +1749,12 @@ function playDeathFade(unit){
   setTimeout(()=>{ card.classList.add('dead'); }, 520);
 }
 function shakeScreen(){
-  const root=el('battleRoot'); if(!root)return;
-  try{ /* v30: no stacked 25d stage — pure FF6 pixel battle */ V25.battleCamPulse?.(root,'hit') }catch(_){}
-  root.classList.add('shake'); setTimeout(()=>root.classList.remove('shake'),400);
+  const root=el('battleRoot')||document.querySelector('.battle-root');
+  if(!root) return;
+  root.classList.remove('shake','cam-shake-hard','flash-hit');
+  void root.offsetWidth;
+  root.classList.add('shake','cam-shake-hard','flash-hit');
+  setTimeout(()=>root.classList.remove('shake','cam-shake-hard','flash-hit'),420);
 }
 
 /* ---- Music ---- */

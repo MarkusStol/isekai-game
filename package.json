@@ -1,15 +1,19 @@
 {
-  "name": "isekai-game",
-  "version": "1.0.0",
-  "description": "",
-  "main": "game.js",
+  "name": "nocturna",
+  "version": "0.67.0",
+  "description": "Nocturna \u2014 classic JRPG (PC)",
+  "main": "electron/main.mjs",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "gate": "node scripts/gate-player-inputs.mjs",
-    "release-gate": "node scripts/gate-player-inputs.mjs"
+    "release-gate": "node scripts/gate-player-inputs.mjs",
+    "start": "electron .",
+    "shot": "node scripts/shot-v67.mjs",
+    "dist:win": "electron-builder --win nsis --x64",
+    "pack": "electron-builder --dir"
   },
   "keywords": [],
-  "author": "",
+  "author": "MarkusStol",
   "license": "ISC",
   "type": "module",
   "dependencies": {
@@ -17,5 +21,46 @@
   },
   "allowScripts": {
     "puppeteer@23.11.1": true
+  },
+  "productName": "Nocturna",
+  "build": {
+    "appId": "com.markusstol.nocturna",
+    "productName": "Nocturna",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "electron/**/*",
+      "index.html",
+      "*.js",
+      "*.css",
+      "assets/**/*",
+      "sw.js",
+      "!scripts/**",
+      "!node_modules/**/puppeteer/**",
+      "!**/*.md"
+    ],
+    "asar": true,
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "Nocturna-Setup-${version}-${arch}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "shortcutName": "Nocturna"
+    }
+  },
+  "devDependencies": {
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8"
   }
 }
