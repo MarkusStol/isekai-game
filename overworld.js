@@ -200,15 +200,26 @@ function wangUrlFor(t,x,y){
   const slash = base.lastIndexOf('/');
   const dir = slash>=0 ? base.slice(0,slash+1) : '';
   const walk = (tt)=> tt==='sand'||tt==='path'||tt==='grass'||tt==='water'||tt==='floor'||tt==='carpet'||tt==='plaza'||tt==='wood';
-  // Cliff/rock Wang for stone & wall
+  // v65: indoor wall/stone BEFORE outdoor cliff wang (cliff2/4/5/6 are green grass)
+  if(dir.includes('/areas/') && (_map.kind==='interior'||_map.kind==='dungeon')){
+    if(t==='wall'){
+      const mask = wangSameMask(x,y,(xx,yy)=> _map.tiles?.[yy]?.[xx]==='wall');
+      const opts=[0,1,2,3,4,6];
+      return dir + 'iwall' + opts[mask % opts.length] + '.png';
+    }
+    if(t==='stone'){
+      const mask = wangSameMask(x,y,(xx,yy)=>{ const nt=_map.tiles?.[yy]?.[xx]; return nt==='stone'||nt==='floor'||nt==='carpet'; });
+      return dir + 'cfloor' + (mask % 6) + '.png';
+    }
+  }
+  // Cliff/rock Wang for outdoor stone & wall only
   if(t==='stone'||t==='wall'||t==='cliff'){
     const mask = wangSameMask(x,y,(xx,yy)=> isCliffMat(_map.tiles?.[yy]?.[xx]));
     const below = _map.tiles?.[y+1]?.[x];
     let idx = mask & 7;
-    if(walk(below)) idx = ((mask & ~4) | 1) & 7; // open south → face-ish
+    if(walk(below)) idx = ((mask & ~4) | 1) & 7;
     return dir + 'cliff' + idx + '.png';
   }
-  // Blob variants for grass/path/water/tree when numbered sheets exist
   if(t==='grass'||t==='path'||t==='water'||t==='tree'){
     const n = WANG_COUNTS[t]|0;
     if(n>1){
@@ -216,18 +227,14 @@ function wangUrlFor(t,x,y){
       return dir + t + (mask % n) + '.png';
     }
   }
-  // Indoor floor/wall variants
   if(t==='floor' && dir.includes('/areas/')){
     const mask = wangSameMask(x,y,(xx,yy)=> { const nt=_map.tiles?.[yy]?.[xx]; return nt==='floor'||nt==='carpet'||nt==='plaza'||nt==='wood'; });
     return dir + 'ifloor' + (mask % 6) + '.png';
   }
-  if(t==='wall' && dir.includes('/areas/') && (_map.kind==='interior'||_map.kind==='dungeon')){
-    const mask = wangSameMask(x,y,(xx,yy)=> _map.tiles?.[yy]?.[xx]==='wall');
-    const opts=[0,1,2,3,4,6];
-    return dir + 'iwall' + opts[mask % opts.length] + '.png';
-  }
   if(t==='carpet' && dir.includes('/areas/')){
+    // v65: icarpet sheets are olive/plaza-tinted — use dark cfloor runner instead
     const mask = wangSameMask(x,y,(xx,yy)=> _map.tiles?.[yy]?.[xx]==='carpet');
+    if(_map.kind==='interior'||_map.kind==='dungeon') return dir + 'cfloor' + (1 + (mask % 4)) + '.png';
     return dir + 'icarpet' + (mask % 5) + '.png';
   }
   return base;
@@ -265,9 +272,20 @@ function applyGenre(S){
       set[k]=`${base}/${k}.png`;
     }
     set.cliff=`${base}/cliff.png`;
-    set.plaza=`./assets/pixel/tiles-nocturna/plaza.png`;
-    set.carpet=set.plaza;
     set.wood=`./assets/pixel/tiles-nocturna/wood.png`;
+    // v65: castle hubs — carpet/plaza/path never resolve to outdoor plaza or green cliff
+    if(area==='throne' || area==='cathedral' || area==='crypt'){
+      set.floor=`${base}/ifloor1.png`;
+      set.stone=`${base}/cfloor0.png`;
+      set.carpet=`${base}/cfloor1.png`;
+      set.plaza=`${base}/ifloor0.png`;
+      set.path=`${base}/ifloor0.png`;
+      set.grass=`${base}/ifloor1.png`; // leak-guard: never bright outdoor grass indoors
+      set.wood=`${base}/cfloor1.png`;
+    } else {
+      set.plaza=`./assets/pixel/tiles-nocturna/plaza.png`;
+      set.carpet=`./assets/pixel/tiles-nocturna/carpet.png`;
+    }
   }
   _tileSet=set;
 }
@@ -372,7 +390,7 @@ export function buildMapForLocation(S, ort){
   const handHub=/(wall|graveyard|throne|church)/.test(String(preset||''));
   const w = handHub?30: kind==='dungeon'?26: kind==='camp'?18: kind==='interior'?16:30;
   // v64: throne court is compact (not endless hallway canvas)
-  const ht = preset==='throne'?22: handHub?30: kind==='dungeon'?32: kind==='camp'?16: kind==='interior'?14:34;
+  const ht = preset==='throne'?20: preset==='church'?22: preset==='graveyard'?24: handHub?28: kind==='dungeon'?32: kind==='camp'?16: kind==='interior'?14:34;
   const tiles=Array.from({length:ht},()=>Array(w).fill('grass'));
   const overlay=Array.from({length:ht},()=>Array(w).fill(null));
   const interiors=[];
@@ -504,58 +522,52 @@ export function buildMapForLocation(S, ort){
     prop(cx-3,cy,'statue'); prop(cx+3,cy,'statue');
     scatterProps([[4,cy,'lamp'],[w-5,cy,'lamp'],[cx,4,'sign']]);
   } else if(preset==='throne'){
-    // v64b: compact court — dais, broken rugs, pillars, banners, west/east chambers (not endless checker aisle)
+    // v65: castle court — stone floor, carpet runners, pillars, side chambers (no outdoor grass/plaza)
     kind='interior';
     for(let y=0;y<ht;y++) for(let x=0;x<w;x++) tiles[y][x]='wall';
-    // court floor (shorter than canvas)
-    const y0=2, y1=ht-2;
-    fill(2,y0,w-4,y1-y0,'wood');
+    fill(2,2,w-4,ht-4,'floor');
     fill(0,0,w,2,'wall'); fill(0,ht-2,w,2,'wall'); fill(0,0,2,ht,'wall'); fill(w-2,0,2,ht,'wall');
-    // dais + throne
+    // raised dais
     fill(cx-5, 3, 11, 5, 'stone');
-    fill(cx-3, 4, 7, 3, 'plaza');
-    fill(cx-2, 5, 5, 2, 'carpet');
+    fill(cx-3, 4, 7, 3, 'carpet');
     overhead.push({x:cx-1,y:3,src:DECOR.throne_chair,tw:2.2,th:2.8,label:'Thron'});
     prop(cx-4, 4, 'statue'); prop(cx+4, 4, 'statue');
     anim(cx-4, 5, 'torch'); anim(cx+4, 5, 'torch');
     _pendingLights.push({x:cx-3.5,y:5.5,r:3.4}); _pendingLights.push({x:cx+4.5,y:5.5,r:3.4});
-    // broken carpet runners (not one continuous strip)
-    fill(cx-1, 8, 3, 2, 'carpet');
-    fill(cx-2, 11, 5, 2, 'carpet');
-    fill(cx-1, 14, 3, 2, 'carpet');
-    fill(cx-3, 16, 7, 2, 'plaza'); // audience rug
-    // pillar pairs + banner stubs
-    for(const y of [7,10,13]){
-      tiles[y][cx-6]='stone'; tiles[y][cx+6]='stone';
-      prop(cx-6, y, 'statue'); prop(cx+6, y, 'statue');
-      anim(cx-6, y-1, 'torch'); anim(cx+6, y-1, 'torch');
-      _pendingLights.push({x:cx-5.5,y:y-0.5,r:2.8}); _pendingLights.push({x:cx+6.5,y:y-0.5,r:2.8});
-      // banner-colored wall niches
-      if(tiles[y-1]){ tiles[y-1][cx-7]='wall'; tiles[y-1][cx+7]='wall'; }
-      if(overlay[y-1]){ overlay[y-1][cx-7]='lamp'; overlay[y-1][cx+7]='lamp'; }
+    // carpet aisle segments
+    fill(cx-1, 8, 3, 3, 'carpet');
+    fill(cx-1, 12, 3, 3, 'carpet');
+    fill(cx-2, 16, 5, 2, 'carpet');
+    // pillar colonnade
+    for(const y of [7,10,13,16]){
+      tiles[y][cx-5]='stone'; tiles[y][cx+5]='stone';
+      prop(cx-5, y, 'statue'); prop(cx+5, y, 'statue');
+      anim(cx-5, y-1, 'torch'); anim(cx+5, y-1, 'torch');
+      _pendingLights.push({x:cx-4.5,y:y-0.5,r:2.6}); _pendingLights.push({x:cx+5.5,y:y-0.5,r:2.6});
     }
-    // WEST archive chamber
-    fill(2, 7, 6, 7, 'floor');
-    fill(2, 7, 6, 1, 'wall'); fill(2, 13, 6, 1, 'wall'); fill(2, 7, 1, 7, 'wall');
-    if(tiles[10]) tiles[10][7]='door';
+    // WEST archive
+    fill(2, 7, 5, 7, 'floor');
+    fill(2, 7, 5, 1, 'wall'); fill(2, 13, 5, 1, 'wall'); fill(2, 7, 1, 7, 'wall');
+    if(tiles[10]) tiles[10][6]='door';
     prop(3, 9, 'barrel'); prop(4, 11, 'crate'); prop(5, 9, 'bench');
     placeChest(3, 12, {gold:14, item:'Runenstein'});
     // EAST war room
-    fill(w-8, 7, 6, 7, 'floor');
-    fill(w-8, 7, 6, 1, 'wall'); fill(w-8, 13, 6, 1, 'wall'); fill(w-3, 7, 1, 7, 'wall');
-    if(tiles[10]) tiles[10][w-8]='door';
-    prop(w-6, 9, 'barrel'); prop(w-5, 11, 'bench'); prop(w-4, 9, 'crate');
-    placeChest(w-6, 12, {gold:16, item:'Nachtstahl-Splitter'});
-    // south vestibule / entrance rug
-    fill(cx-4, ht-6, 9, 3, 'path');
+    fill(w-7, 7, 5, 7, 'floor');
+    fill(w-7, 7, 5, 1, 'wall'); fill(w-7, 13, 5, 1, 'wall'); fill(w-3, 7, 1, 7, 'wall');
+    if(tiles[10]) tiles[10][w-7]='door';
+    prop(w-5, 9, 'barrel'); prop(w-4, 11, 'bench'); prop(w-5, 10, 'crate');
+    placeChest(w-5, 12, {gold:16, item:'Nachtstahl-Splitter'});
+    // south vestibule (stone, not path/grass)
+    fill(cx-4, ht-6, 9, 3, 'stone');
     prop(cx-3, 15, 'bench'); prop(cx+3, 15, 'bench');
     placeChest(cx+4, 6, {gold:20, item:'Heiltrank'});
     questMark(cx, 5, 'Thron', 'story');
-    fill(cx-1, ht-2, 3, 2, 'path');
+    fill(cx-1, ht-2, 3, 2, 'floor');
     if(tiles[ht-2]) tiles[ht-2][cx]='door';
     _hubNpcs.push({name:'Sekretärin Velka', x:cx+2, y:6, px:cx+2, py:6, sheet:'mage', e:'📜'});
     _hubNpcs.push({name:'General Brok', x:cx-2, y:14, px:cx-2, py:14, sheet:'guard', e:'🪓'});
     _hubNpcs.push({name:'Wächter Toren', x:cx+4, y:17, px:cx+4, py:17, sheet:'guard', e:'🛡️'});
+
 
   } else if(preset==='market'){
     for(let y=0;y<ht;y++) for(let x=0;x<w;x++) tiles[y][x]='grass';
@@ -584,7 +596,7 @@ export function buildMapForLocation(S, ort){
   } else if(preset==='tavern'){
     for(let y=0;y<ht;y++) for(let x=0;x<w;x++) tiles[y][x]='grass';
     fill(0, cy, w, 2, 'path');
-    placeHouse(cx-4, cy-6, 'Zum Silberfuchs', {hall:true, variant:0, w:4, h:3});
+    placeHouse(cx-4, cy-6, 'Herberge Silbermond', {hall:true, variant:0, w:4, h:3});
     placeHouse(2, ht-8, 'Stall', {variant:3});
     placeHouse(w-6, ht-8, 'Lager', {variant:4});
     fill(cx-3, cy-2, 7, 4, 'plaza');
@@ -750,6 +762,7 @@ export function buildMapForLocation(S, ort){
     prop(cx, cy-2, 'sign');
     questMark(cx, 7, 'Grenzpass', 'story');
     // camp NPCs with context
+        placeHouse(Math.max(8,cx-3), Math.min(ht-8, cy+4), 'Herberge', {variant:3});
     _hubNpcs.push({name:'Wächter Toren', x:campX+2, y:campY+1, px:campX+2, py:campY+1, sheet:'guard', e:'🛡️', home:{x:campX+2,y:campY+1}});
     _hubNpcs.push({name:'Kundschafterin Lira', x:campX+4, y:campY+1, px:campX+4, py:campY+1, sheet:'spy', e:'🕵️', home:{x:campX+4,y:campY+1}});
     _hubNpcs.push({name:'Händler Bram', x:campX+3, y:campY+3, px:campX+3, py:campY+3, sheet:'merchant', e:'🧳', home:{x:campX+3,y:campY+3}});
@@ -766,48 +779,55 @@ export function buildMapForLocation(S, ort){
     prop(cx-4,cy,'bench'); prop(cx+4,cy,'bench'); prop(cx,cy+3,'statue');
     scatterGrass();
   } else if(preset==='church'){
-    // v62: cathedral nave — stained glass, pillars, pews, altar
+    // v65: cathedral — short nave, transept, side chapels (not endless checker)
     kind='interior';
-    for(let y=0;y<ht;y++) for(let x=0;x<w;x++) tiles[y][x]='floor';
+    for(let y=0;y<ht;y++) for(let x=0;x<w;x++) tiles[y][x]='wall';
+    fill(2,2,w-4,ht-4,'floor');
     fill(0,0,w,2,'wall'); fill(0,ht-2,w,2,'wall'); fill(0,0,2,ht,'wall'); fill(w-2,0,2,ht,'wall');
-    fill(cx-1, 3, 3, ht-5, 'carpet');
-    for(let y=3;y<ht-3;y++){
-      if(tiles[y]){ tiles[y][cx-2]='plaza'; tiles[y][cx+2]='plaza'; }
-    }
-    // altar
-    fill(cx-4, 2, 9, 4, 'plaza');
+    // nave carpet (broken segments)
+    fill(cx-1, 6, 3, 4, 'carpet');
+    fill(cx-1, 11, 3, 4, 'carpet');
+    fill(cx-1, 16, 3, 3, 'carpet');
+    // sanctuary / altar dais
+    fill(cx-4, 2, 9, 4, 'stone');
+    fill(cx-2, 3, 5, 2, 'carpet');
     overhead.push({x:cx-1,y:2,src:DECOR.altar,tw:2,th:1.5,label:'Altar'});
     prop(cx, 3, 'statue');
     anim(cx-3, 3, 'torch'); anim(cx+3, 3, 'torch');
-    // pews
-    for(let y=8;y<ht-5;y+=2){
+    _pendingLights.push({x:cx-2.5,y:3.5,r:3}); _pendingLights.push({x:cx+3.5,y:3.5,r:3});
+    // transept (cross bar)
+    fill(3, 9, w-6, 3, 'floor');
+    fill(cx-6, 9, 3, 3, 'carpet'); fill(cx+4, 9, 3, 3, 'carpet');
+    // side chapels
+    fill(2, 5, 4, 4, 'floor'); fill(w-6, 5, 4, 4, 'floor');
+    if(tiles[7]){ tiles[7][5]='door'; tiles[7][w-6]='door'; }
+    prop(3, 6, 'bench'); prop(w-5, 6, 'bench');
+    // pews + pillars (paired, few)
+    for(const y of [8,12,15]){
       prop(cx-4, y, 'bench'); prop(cx+4, y, 'bench');
-      if(tiles[y]){ tiles[y][cx-4]='wood'; tiles[y][cx+4]='wood'; }
-    }
-    // stained-glass window bays along walls
-    const glasses=['glass_blue','glass_red','glass_green','glass_gold'];
-    for(let i=0;i<4;i++){
-      const y=6+i*4; if(y>=ht-4) continue;
-      fill(2, y, 2, 3, 'plaza'); fill(w-4, y, 2, 3, 'plaza');
-      ov(2, y+1, glasses[i%4]); ov(w-3, y+1, glasses[i%4]);
-      // mark glass as special overlay drawn later
-      if(tiles[y+1]){ tiles[y+1][2]='plaza'; tiles[y+1][w-3]='plaza'; }
-      anim(3, y, 'torch'); anim(w-4, y, 'torch');
-      _pendingLights.push({x:2.5,y:y+1.5,r:2.5,color:'glass'});
-      _pendingLights.push({x:w-2.5,y:y+1.5,r:2.5,color:'glass'});
-    }
-    // pillars
-    for(let y=8;y<ht-6;y+=4){
-      if(tiles[y]){ tiles[y][cx-5]='stone'; tiles[y][cx+5]='stone'; }
+      tiles[y][cx-5]='stone'; tiles[y][cx+5]='stone';
       prop(cx-5, y, 'statue'); prop(cx+5, y, 'statue');
+      anim(cx-5, y-1, 'torch'); anim(cx+5, y-1, 'torch');
+    }
+    // stained glass bays (3 only)
+    const glasses=['glass_blue','glass_red','glass_gold'];
+    for(let i=0;i<3;i++){
+      const y=6+i*4; if(y>=ht-4) continue;
+      ov(2, y+1, glasses[i%3]); ov(w-3, y+1, glasses[i%3]);
+      anim(3, y, 'torch'); anim(w-4, y, 'torch');
+      _pendingLights.push({x:2.5,y:y+1.5,r:2.4,color:'glass'});
+      _pendingLights.push({x:w-2.5,y:y+1.5,r:2.4,color:'glass'});
     }
     placeChest(cx+2, 5, {gold:22, item:'Heiliges Siegel'});
     placeChest(3, 8, {gold:14, item:'Weihwasser'});
     questMark(cx, 4, 'Altar', 'story');
-    fill(cx-1, ht-2, 3, 2, 'path');
+    fill(cx-1, ht-2, 3, 2, 'floor');
+    if(tiles[ht-2]) tiles[ht-2][cx]='door';
     _hubNpcs.push({name:'Priesterin Solara', x:cx+2, y:4, px:cx+2, py:4, sheet:'mage', e:'✝️'});
-    _hubNpcs.push({name:'Akolyth Ren', x:cx-3, y:cy, px:cx-3, py:cy, sheet:'villager', e:'🙏'});
-    _hubNpcs.push({name:'Heldin Aria', x:cx+3, y:cy+1, px:cx+3, py:cy+1, sheet:'princess', e:'⚔️'});
+    _hubNpcs.push({name:'Akolyth Ren', x:cx-3, y:12, px:cx-3, py:12, sheet:'villager', e:'🙏'});
+    _hubNpcs.push({name:'Heldin Aria', x:cx+3, y:12, px:cx+3, py:12, sheet:'princess', e:'⚔️'});
+
+
   } else if(preset==='guild'){
     for(let y=0;y<ht;y++) for(let x=0;x<w;x++) tiles[y][x]='grass';
     fill(0,cy,w,2,'path');
@@ -826,7 +846,7 @@ export function buildMapForLocation(S, ort){
     placeHouse(cx-5,cy-5,'Bauernhaus',{variant:0});
     placeHouse(cx+2,cy-5,'Mühle',{variant:1});
     placeHouse(cx-5,cy+2,'Scheune',{variant:2});
-    placeHouse(cx+2,cy+2,'Gasthof',{variant:3});
+    placeHouse(cx+2,cy+2,'Herberge',{variant:3});
     placeHouse(cx-8,cy-1,'Schmiede',{variant:4});
     placeHouse(cx+5,cy-1,'Laden',{variant:5});
     placeHouse(2,2,'Hütte Nord',{variant:6});
@@ -984,58 +1004,48 @@ export function buildMapForLocation(S, ort){
     for(let i=0;i<w;i+=3){ tiles[0][i]='tree'; tiles[ht-1][i]='tree'; }
     scatterGrass();
   } else if(preset==='graveyard'){
-    // v62: Solmir crypt — rooms, coffins, candles, irregular chambers
+    // v65: crypt complex — linked chambers (not endless checker cross)
     kind='dungeon';
-    const rnd=(n)=>((h*1103515245+n*12345)>>>0)%100;
     fill(0,0,w,ht,'void');
     fill(1,1,w-2,ht-2,'wall');
-    // organic corridor (not perfect cross) via jittered dig
-    fill(cx-1, 2, 3, ht-4, 'floor');
-    fill(2, cy-1, w-4, 3, 'floor');
-    for(let y=3;y<ht-3;y++){
-      const j=((h+y*7)%3)-1;
-      if(tiles[y]?.[cx+j]) tiles[y][cx+j]='floor';
-      if(tiles[y]?.[cx+j+1]) tiles[y][cx+j+1]='floor';
-    }
-    const rooms=[[2,2,7,6],[w-9,2,7,6],[2,ht-9,7,6],[w-9,ht-9,7,6],[cx-4,cy-4,8,7]];
+    // central shrine chamber
+    fill(cx-4, cy-3, 9, 7, 'floor');
+    fill(cx-2, cy-1, 5, 3, 'carpet');
+    overhead.push({x:cx-1,y:cy-2,src:DECOR.altar,tw:2,th:1.5,label:'Kapelle'});
+    prop(cx, cy-1, 'statue');
+    anim(cx-3, cy-1, 'torch'); anim(cx+3, cy-1, 'torch');
+    _pendingLights.push({x:cx-2.5,y:cy-0.5,r:2.8}); _pendingLights.push({x:cx+3.5,y:cy-0.5,r:2.8});
+    // four corner tombs connected by short halls
+    const rooms=[[2,2,8,6],[w-10,2,8,6],[2,ht-9,8,6],[w-10,ht-9,8,6]];
     for(const [rx,ry,rw,rh] of rooms){
       fill(rx, ry, rw, rh, 'floor');
-      // doorway toward center
       const midy=ry+Math.floor(rh/2), midx=rx+Math.floor(rw/2);
-      if(rx<cx) fill(rx+rw-1, midy, 3, 1, 'floor');
-      else if(rx>cx) fill(rx-2, midy, 3, 1, 'floor');
-      if(ry<cy) fill(midx, ry+rh-1, 1, 3, 'floor');
-      else if(ry>cy) fill(midx, ry-2, 1, 3, 'floor');
-      // coffins + candles
-      for(let i=0;i<3;i++){
-        const cxr=rx+2+i*2, cyr=ry+2;
-        if(cxr<rx+rw-1 && cyr<ry+rh-1){
-          prop(cxr, cyr, 'coffin');
-          anim(cxr, cyr-1, 'torch');
-          _pendingLights.push({x:cxr+0.5,y:cyr-0.5,r:2});
-        }
+      // short connector toward center (2–3 tiles, not full cross)
+      if(rx<cx) fill(rx+rw-1, midy, Math.max(2, cx-(rx+rw)+2), 2, 'floor');
+      else fill(cx+3, midy, Math.max(2, rx-(cx+3)), 2, 'floor');
+      if(ry<cy) fill(midx, ry+rh-1, 2, Math.max(2, cy-(ry+rh)+2), 'floor');
+      else fill(midx, cy+2, 2, Math.max(2, ry-(cy+2)), 'floor');
+      for(let i=0;i<2;i++){
+        const cxr=rx+2+i*3, cyr=ry+2;
+        prop(cxr, cyr, 'coffin');
+        anim(cxr, cyr-1, 'torch');
+        _pendingLights.push({x:cxr+0.5,y:cyr-0.5,r:2});
       }
-      anim(rx+1, ry+1, 'torch'); anim(rx+rw-2, ry+rh-2, 'torch');
+      anim(rx+1, ry+1, 'torch');
     }
+    // north antechamber
     fill(cx-3, 2, 7, 4, 'floor');
-    overhead.push({x:cx-2,y:2,src:DECOR.altar,tw:2,th:1.5,label:'Kapelle'});
-    prop(cx, 3, 'statue');
-    anim(cx-2, 3, 'torch'); anim(cx+2, 3, 'torch');
-    // coffins near spawn
-    for(let i=-2;i<=2;i++){
-      if(i===0) continue;
-      prop(cx+i, cy-1, 'coffin');
-      anim(cx+i, cy-2, 'torch');
-    }
-    prop(cx-3, cy+1, 'statue'); prop(cx+3, cy+1, 'statue');
-    placeChest(cx+2, 5, {gold:20, item:'Phylakterium-Splitter'});
-    placeChest(5, cy+1, {gold:12, item:'Manaessenz'});
+    prop(cx-2, 3, 'statue'); prop(cx+2, 3, 'statue');
+    placeChest(cx+2, 4, {gold:20, item:'Phylakterium-Splitter'});
+    placeChest(4, cy, {gold:12, item:'Manaessenz'});
     placeChest(w-6, ht-6, {gold:16, item:'Knochen-Schlüssel'});
-    questMark(cx, 4, 'Erster Held', 'secret');
-    fill(cx-1, ht-3, 3, 2, 'path');
+    questMark(cx, cy-2, 'Erster Held', 'secret');
+    fill(cx-1, ht-3, 3, 2, 'floor');
     if(tiles[ht-2]) tiles[ht-2][cx]='door';
-    _hubNpcs.push({name:'Grabräuber Jex', x:cx-2, y:cy+1, px:cx-2, py:cy+1, sheet:'spy', e:'💀'});
-    _hubNpcs.push({name:'Chronistin Mara', x:5, y:4, px:5, py:4, sheet:'mage', e:'📖'});
+    _hubNpcs.push({name:'Grabräuber Jex', x:cx-2, y:cy+2, px:cx-2, py:cy+2, sheet:'spy', e:'💀'});
+    _hubNpcs.push({name:'Chronistin Mara', x:4, y:4, px:4, py:4, sheet:'mage', e:'📖'});
+
+
   } else if(preset==='neon'){
     // cyberpunk / neon city — denser urban, Kenney-ish feel via plazas + halls
     for(let y=0;y<ht;y++) for(let x=0;x<w;x++) tiles[y][x]='floor';
@@ -1607,6 +1617,11 @@ function tryMove(dx,dy){
     _audioApi?.stepSfx?.(surf);
   }catch(_){}
   if(door?.to){
+    // v65: Herberge / Gasthof → real inn screen (rest + save), not empty interior
+    if(/herberge|gasthof|gasthaus|\binn\b|taverne|wirtshaus/i.test(String(door.label||door.to||''))){
+      try{ if(_hooks.openInn){ _hooks.openInn(); return 'inn'; } }catch(_){}
+      try{ if(window.__game?.openInn){ window.__game.openInn(); return 'inn'; } }catch(_){}
+    }
     if(door.exitInterior){
       setTimeout(()=>{
         try{
@@ -1757,40 +1772,61 @@ function draw(){
   const ctx=_ctx;
   const cssW=_canvas.width, cssH=_canvas.height;
   ctx.imageSmoothingEnabled=false;
-  ctx.fillStyle=(_map?.kind==='dungeon'||_map?.kind==='interior')?'#0a0c12':'#1e4a28'; ctx.fillRect(0,0,cssW,cssH);
+  const _indoorFill=(_map?.kind==='dungeon'||_map?.kind==='interior');
+  ctx.fillStyle=_indoorFill?'#121018':'#1e4a28'; ctx.fillRect(0,0,cssW,cssH);
 
-  let tw = Math.floor(Math.min(cssW/_viewW, cssH/_viewH));
-  // v47: prefer covering full height on mobile (absorb 1–2px remainder into tile size)
-  if(!_desktop && tw*_viewH < cssH && tw*_viewW <= cssW){
-    const twH=Math.floor(cssH/_viewH);
-    if(twH*_viewW <= cssW+2) tw=Math.max(tw, twH);
-  }
-  let camX=_hero.px - _viewW/2 + 0.5;
-  let camY=_hero.py - _viewH/2 + 0.5;
-  // v63: clamp camera so map edge / gray void never fills the left side
+  // v65: map fills canvas — zoom into small interiors so void never letterboxes
+  const dlgOpen = !!(typeof document!=='undefined' && document.body?.classList?.contains('ow-dialogue'));
+  let viewH = _viewH, viewW = _viewW;
   try{
     if(_map?.w && _map?.h){
-      if(_map.w > _viewW) camX=Math.max(0, Math.min(_map.w - _viewW, camX));
-      else camX=(_map.w - _viewW)/2; // center smaller maps
-      if(_map.h > _viewH) camY=Math.max(0, Math.min(_map.h - _viewH, camY));
-      else camY=Math.max(0, (_map.h - _viewH)/2);
+      // never show more tiles than the map (centers & zooms castle/crypt/cathedral)
+      viewW = Math.min(viewW, Math.max(9, _map.w));
+      viewH = Math.min(viewH, Math.max(9, _map.h));
+    }
+  }catch(_){}
+  if(dlgOpen && !_desktop){
+    viewH = Math.max(8, viewH - 2);
+  }
+  let tw = Math.floor(Math.min(cssW/viewW, cssH/viewH));
+  {
+    const twH=Math.floor(cssH/viewH);
+    if(twH*viewW <= cssW+8) tw=Math.max(tw, twH);
+  }
+  if(tw*viewH < cssH && tw*viewW <= cssW+12){
+    const bump=Math.ceil(cssH/viewH);
+    if(bump*viewW <= cssW+14) tw=bump;
+  }
+  let camX=_hero.px - viewW/2 + 0.5;
+  let camY=_hero.py - viewH/2 + 0.5;
+  try{
+    if(_map?.w && _map?.h){
+      if(_map.w > viewW) camX=Math.max(0, Math.min(_map.w - viewW, camX));
+      else camX=(_map.w - viewW)/2;
+      if(_map.h > viewH) camY=Math.max(0, Math.min(_map.h - viewH, camY));
+      else camY=(_map.h - viewH)/2;
     }
   }catch(_){}
   const x0=Math.floor(camX)-1, y0=Math.floor(camY)-1;
-  const x1=x0+_viewW+3, y1=y0+_viewH+3;
+  const x1=x0+viewW+3, y1=y0+viewH+3;
   const waterIm=loadImg(WATER_ANIM);
-  const ox=Math.floor((cssW - _viewW*tw)/2);
-  // v47: no black letterbox band — pin map to top, extend view if needed
-  // v62: never letterbox — pin to top so black bands disappear
-  let oy=0;
+  const ox=Math.floor((cssW - viewW*tw)/2);
+  // center vertically when a 1–2px remainder remains; biome-fill covers gaps
+  let oy=Math.max(0, Math.floor((cssH - viewH*tw)/2));
 
   for(let y=y0;y<=y1;y++){
     for(let x=x0;x<=x1;x++){
       const sx=ox+(x-camX)*tw, sy=oy+(y-camY)*tw;
       if(y<0||x<0||y>=_map.h||x>=_map.w){
-        // v47c: extend biome beyond map — grass town, dark dungeon (no black letterbox)
+        // v65: extend biome — indoor castle floor (never flat black band)
         const indoor=_map.kind==='dungeon'||_map.kind==='interior';
-        if(indoor){ ctx.fillStyle='#0a0c12'; ctx.fillRect(sx,sy,tw,tw); }
+        if(indoor){
+          const under=_map.kind==='dungeon'?'floor':'floor';
+          const gim=loadImg(tileUrl(under));
+          if(gim.complete && gim.naturalWidth) ctx.drawImage(gim, sx, sy, tw, tw);
+          else { ctx.fillStyle='#1a1520'; ctx.fillRect(sx,sy,tw,tw); }
+          ctx.fillStyle='rgba(5,4,12,.35)'; ctx.fillRect(sx,sy,tw,tw);
+        }
         else {
           // v63: beyond map = mountain/forest continuation (not flat gray-green void)
           const useCliff = (_map.preset==='wall' || /pass|grenze|berg/i.test(String(_map.name||'')));
@@ -1811,7 +1847,9 @@ function draw(){
         // v47c: unexplored ground matches biome — grass outdoors, dark stone in dungeon/interior
         const indoor=_map.kind==='dungeon'||_map.kind==='interior';
         if(indoor){
-          ctx.fillStyle='#12141c'; ctx.fillRect(sx,sy,tw,tw);
+          const gim=loadImg(tileUrl('floor'));
+          if(gim.complete && gim.naturalWidth) ctx.drawImage(gim, sx, sy, tw, tw);
+          else { ctx.fillStyle='#1a1520'; ctx.fillRect(sx,sy,tw,tw); }
           ctx.fillStyle='rgba(5,4,10,.55)'; ctx.fillRect(sx,sy,tw,tw);
         } else {
           const gim=loadImg(tileUrl('grass'));
@@ -1822,12 +1860,14 @@ function draw(){
         continue;
       }
       const t=_map.tiles[y][x];
-      // ground under solids / transparent decor tiles (flower etc.)
-      const needsGrass = t!=='void' && t!=='wall' && t!=='floor' && (SOLID.has(t) || t==='door' || t==='house' || t==='flower' || t==='bush' || t==='well' || t==='stall');
-      if(needsGrass || t==='flower' || t==='bush' || t==='well' || t==='stall'){
-        const gim=loadImg(tileUrl('grass'));
+      // ground under solids / transparent decor — v65: indoor = floor (never outdoor grass in castle/crypt)
+      const indoorHere=_map.kind==='dungeon'||_map.kind==='interior';
+      const needsUnder = t!=='void' && t!=='wall' && t!=='floor' && t!=='carpet' && t!=='wood' && t!=='stone' && t!=='plaza' && t!=='path' && (SOLID.has(t) || t==='door' || t==='house' || t==='flower' || t==='bush' || t==='well' || t==='stall');
+      if(needsUnder || t==='flower' || t==='bush' || t==='well' || t==='stall'){
+        const under = indoorHere ? 'floor' : 'grass';
+        const gim=loadImg(tileUrl(under));
         if(gim.complete && gim.naturalWidth) ctx.drawImage(gim, sx, sy, tw, tw);
-        else { ctx.fillStyle='#2a5a28'; ctx.fillRect(sx,sy,tw,tw); }
+        else { ctx.fillStyle=indoorHere?'#2a2438':'#2a5a28'; ctx.fillRect(sx,sy,tw,tw); }
       }
       if(t==='water' && waterIm.complete && waterIm.naturalWidth){
         const fw=16;
@@ -1850,10 +1890,12 @@ function draw(){
           }
         }
       }
-      // flower overlay: ensure green underlay if somehow missing
+      // flower overlay underlay — outdoor only (v65: never paint grass into castle/crypt)
       if(_map.overlay?.[y]?.[x]==='flower' && t!=='grass' && t!=='path' && t!=='plaza'){
-        const gim=loadImg(tileUrl('grass'));
-        if(gim.complete && gim.naturalWidth) ctx.drawImage(gim, sx, sy, tw, tw);
+        if(!(_map.kind==='interior'||_map.kind==='dungeon')){
+          const gim=loadImg(tileUrl('grass'));
+          if(gim.complete && gim.naturalWidth) ctx.drawImage(gim, sx, sy, tw, tw);
+        }
       }
       // v44 autotile edge blend
       try{
@@ -1970,18 +2012,27 @@ function draw(){
     // v45e: nameplate only when near hero — stops giant ghost labels on desktop scale
     const near=Math.hypot((n.px||n.x)-_hero.px,(n.py||n.y)-_hero.py)<4.5;
     if(near){
-      let label='?';
+      let label='';
       try{
         const Know=window.__game?.Know;
         const S=_hooks.getS?.();
-        if(Know?.isNameKnown?.(S,n.name)) label=(n.name||'').split(' ')[0].slice(0,8);
-        else label='…';
-      }catch(_){ label='…'; }
-      if(label && label!=='…'){
-        ctx.fillStyle='rgba(0,0,0,.55)';
-        ctx.font='bold 9px monospace';
+        const ROLE={guard:'Wächter',mage:'Gelehrte',merchant:'Händler',spy:'Vermummte',villager:'Passant',daemon:'Gestalt',princess:'Edelfrau',orc:'Ork',succubus:'Sukkubus'};
+        if(Know?.isNameKnown?.(S,n.name)) label=String(n.name||'');
+        else label=ROLE[n.sheet]||ROLE[String(n.sheet||'').toLowerCase()]||'Fremde';
+      }catch(_){ label='Fremde'; }
+      // v65: full readable tag — no mid-word cut; allow up to 18 chars on word boundary
+      label=String(label||'').trim().replace(/[,.;:]+$/,'');
+      if(label.length>18){
+        const parts=label.split(/\s+/);
+        let acc='';
+        for(const p of parts){ const next=acc?acc+' '+p:p; if(next.length>18) break; acc=next; }
+        label=acc||parts[0].slice(0,18);
+      }
+      if(label){
+        ctx.fillStyle='rgba(0,0,0,.62)';
+        ctx.font='bold 10px "Noto Sans",system-ui,sans-serif';
         const twm=ctx.measureText(label).width;
-        ctx.fillRect(sx+tw/2-twm/2-3, sy-11, twm+6, 11);
+        ctx.fillRect(sx+tw/2-twm/2-4, sy-13, twm+8, 13);
         ctx.fillStyle='#ffe8a0'; ctx.fillText(label, sx+tw/2-twm/2, sy-3);
       }
     }

@@ -1870,7 +1870,7 @@ export default {
   startBattle, isActive, getBattle, __forceLose, getLastSummary, getLastResult, playerCommand, buildParty, renderBattleUI,
   maybeRandomEncounter, offerEncounter, COMBAT_SKILLS,
   isStoryNpcFoe, storyNpcName, mercyNeeded, applyMercyDecision,
-  __playSprite: playSpriteAnim, __testDrive, __forceHide: ()=>{ try{ hideBattleUI(); clearBattleOpen(); _B=null; }catch(_){ const r=document.getElementById('battleRoot'); if(r){ r.classList.add('hidden'); r.innerHTML=''; } } },
+  __playSprite: playSpriteAnim, __testDrive, __forceHide: ()=>{ try{ hideBattleUI(); clearBattleOpen(); setBattleOpen(false); _B=null; }catch(_){ } try{ document.body.classList.remove('in-battle','battle-open','battle-ended'); document.documentElement.classList.remove('in-battle','battle-open','battle-ended'); const r=document.getElementById('battleRoot'); if(r){ r.classList.add('hidden'); r.innerHTML=''; r.style.display='none'; } document.querySelectorAll('.battle-root').forEach(el=>{ el.classList.add('hidden'); el.style.display='none'; }); }catch(_){ } },
   Jrpg, Jobs, Gems, Summons, Equip
 };
 

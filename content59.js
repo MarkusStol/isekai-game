@@ -491,6 +491,7 @@ export function resolveChoice(S, choice, hooks={}){
   if(next==='town_talk') return showPack(S, talkMenu(S), note);
   if(next==='town_shop') return showPack(S, shopMenu(S), note);
   if(next==='town_inn'){
+    try{ if(typeof window!=='undefined' && window.__game?.openInn){ window.__game.openInn(); return showPack(S, townChoices(S), note||'Herberge'); } }catch(_){}
     const r=innRest(S);
     return showPack(S, { speaker:'Herberge', text:r.text, choices:[{id:'b',label:'Zurück',next:'town'}] }, note);
   }

@@ -165,7 +165,7 @@ try{ // v63 scrub AI cfg from localStorage
 
  // v41: test-only scripted, fair ATB bosses, boss dialogue talk-down, tilemap minimap, craft XP→T4
 const $=s=>document.querySelector(s);const $$=s=>[...document.querySelectorAll(s)];const R=a=>a[Math.floor(Math.random()*a.length)];const rnd=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
-const VER='64',CACHE_V='v64';
+const VER='65',CACHE_V='v65';
 const FREETEXT_ENABLED = false; // v63: classic JRPG only — free-text archived on freetext-archive
 
 try{ const _tb=document.querySelector('.title-badge'); if(_tb) _tb.textContent='v'+VER; }catch(_e){}
@@ -1486,7 +1486,7 @@ function enterPlay(){try{syncFreetextUI()}catch(_){} try{ensurePlaceCommerceTags
        // keep overworld available as side view but story is choice-driven
        Promise.resolve(ensureOW()).then((mod)=>{
          try{
-           mod.mountOverworld({ audio:Aud, act:(t)=>{ if(FREETEXT_ENABLED) act(t); else toast('Menüwahl nutzen'); }, getS:()=>S, toast, save, openShop:(who)=>openPixelShop(who), openTravel:()=>openRegionTravelMap(), openMenu:(tab)=>openMenu(tab||'quests'), onLocation:(dest)=>{ try{ toast('Reise: '+dest+' (Menü)'); }catch(_){ } } });
+           mod.mountOverworld({ audio:Aud, act:(t)=>{ if(FREETEXT_ENABLED) act(t); else toast('Menüwahl nutzen'); }, getS:()=>S, toast, save, openShop:(who)=>openPixelShop(who), openTravel:()=>openRegionTravelMap(), openMenu:(tab)=>openMenu(tab||'quests'), openInn:()=>openInn(), onLocation:(dest)=>{ try{ toast('Reise: '+dest+' (Menü)'); }catch(_){ } } });
            mod.showOverworld(S);
            document.body.classList.add('pixel-jrpg');
          }catch(e){ console.warn('overworld',e); }
@@ -1522,7 +1522,7 @@ function enterPlay(){try{syncFreetextUI()}catch(_){} try{ensurePlaceCommerceTags
          save:()=>save(),
          openShop:(who)=>openPixelShop(who),
          openTravel:()=>openRegionTravelMap(),
-         openMenu:(tab)=>openMenu(tab||'quests'),
+         openMenu:(tab)=>openMenu(tab||'quests'), openInn:()=>openInn(),
          onLocation:(dest)=>{ try{ const r=travelTo(dest); if(r?.text){ add('n',r.text); apply(r.changes||{}); if(r.changes?.world)applyWorld(r.changes.world); hud(); renderChoices(); OW.refreshOverworld(S); typewrite(isG()?'Nebel':'Erzähler', r.text, ()=>{}); save(); } }catch(e){ console.warn('ow-travel',e);} }
        });
        mod.showOverworld(S);
@@ -1741,6 +1741,57 @@ function ensureV62Tab(){
   tabs.appendChild(b);
   b.addEventListener('click',()=>{ _menuTab='v62'; $$('#menuTabs button').forEach(x=>x.classList.toggle('on',x.dataset.tab==='v62')); renderMenu(); });
 }
+
+function openInn(){
+  closeInn();
+  try{ closeMenu(); }catch(_){}
+  const cost=15;
+  const el=document.createElement('div');
+  el.id='innScreen'; el.className='inn-screen'; el.setAttribute('role','dialog');
+  el.setAttribute('aria-label','Herberge');
+  const gold=S?.st?.gold|0;
+  const hp=S?.st?.hp|0, mhp=S?.st?.maxhp|100;
+  const mp=S?.st?.mp|0, mmp=S?.st?.maxmp|40;
+  el.innerHTML=`<div class="inn-card pixel-panel">
+    <div class="inn-art" aria-hidden="true">🛏️</div>
+    <h2>Herberge «Silbermond»</h2>
+    <p class="meta">Wärme, ruhige Betten und ein sicherer Speicherplatz.</p>
+    <p class="inn-stats">HP ${hp}/${mhp} · MP ${mp}/${mmp} · 🪙 ${gold}</p>
+    <div class="inn-actions">
+      <button type="button" class="bcm" id="innRest">Ausruhen (−${cost} Gold)</button>
+      <button type="button" class="bcm" id="innSave">Spielstand speichern</button>
+      <button type="button" class="bcm ghost" id="innLeave">Verlassen</button>
+    </div>
+    <p class="inn-msg meta" id="innMsg"></p>
+  </div>`;
+  document.body.appendChild(el);
+  document.body.classList.add('inn-open');
+  const msg=()=>el.querySelector('#innMsg');
+  el.querySelector('#innRest').onclick=()=>{
+    if(!S?.st) return;
+    if((S.st.gold|0)<cost){ msg().textContent=`Zu wenig Gold (braucht ${cost}).`; return; }
+    S.st.gold-=cost;
+    S.st.hp=S.st.maxhp|100;
+    S.st.mp=S.st.maxmp|40;
+    try{ if(Array.isArray(S.party)){ /* party HP if present */ } }catch(_){}
+    msg().textContent=`Du ruhst dich aus (−${cost} Gold). KP/MP voll.`;
+    el.querySelector('.inn-stats').textContent=`HP ${S.st.hp}/${S.st.maxhp|100} · MP ${S.st.mp}/${S.st.maxmp|40} · 🪙 ${S.st.gold|0}`;
+    try{ hud(); }catch(_){}
+    try{ save(); }catch(_){}
+    try{ Aud.playSfx?.('heal'); }catch(_){}
+  };
+  el.querySelector('#innSave').onclick=()=>{
+    try{ save(); msg().textContent='Spielstand gesichert.'; toast('💾 Gespeichert'); }
+    catch(e){ msg().textContent='Speichern fehlgeschlagen.'; }
+  };
+  el.querySelector('#innLeave').onclick=()=>closeInn();
+  el.addEventListener('click',e=>{ if(e.target===el) closeInn(); });
+}
+function closeInn(){
+  try{ document.getElementById('innScreen')?.remove(); }catch(_){}
+  try{ document.body.classList.remove('inn-open'); }catch(_){}
+}
+
 function openMenu(tab){ try{ ensureV62Tab(); }catch(_){} 
  try{ C43.screenTransition?.('menu', 300); Aud.playSfx?.('menu'); }catch(_){}_menuTab=tab||'hub';const m=$('#menu'); if(!m)return; m.classList.remove('hidden'); try{document.body.classList.add('menu-open');document.documentElement.classList.add('menu-open')}catch(_){}; try{syncMenuTabOverflow()}catch(_){};
  $$('#menuTabs button').forEach(b=>b.classList.toggle('on',b.dataset.tab===_menuTab));renderMenu()}
@@ -3649,7 +3700,7 @@ try{ const bgs=$('#btnGateSave'); if(bgs) bgs.onclick=()=>enterPlay(); }catch(_)
 try{ const bgk=$('#btnGateSkip'); if(bgk) bgk.onclick=()=>{cfg.mode='offline';enterPlay();}; }catch(_){}
 try{ const bms=$('#btnMusicSheet'); if(bms) bms.onclick=()=>{ try{ $('#btnMusic')?.click(); }catch(_){} }; }catch(_){}
 
-window.__setCfg=o=>{cfg=Object.assign(cfg||{},o||{},{mode:'offline',gkey:'',pollenKey:''});try{localStorage.setItem(CFG,JSON.stringify(cfg))}catch(_){}};window.__game={VER,hud,syncOwHud,FREETEXT_ENABLED,jrpgPick,applyJrpgPack,syncFreetextUI,Aud,toast,clearTypewrite,renderChoices,C39,C40,C41,C42,C43,C44,C45,C46,C47,C48,C49,C50,C51,C52,C53,C54,C55,C56,C57,C58,C59,C60,C61,C62,C63, C64,Cut40,updateNarratorDot,narratorStatusText,openSheet,setBusy,forceUnbusy,ACT_HARD_MS,V25,OW,Depth,Battle,Jobs,Gems,Summons,Equip,Jrpg,localBeatLine,parsePlayerIntent,offlineRespondIntent,freeStream,FREE_MODEL,msgsLean,FREE_URLS,openPendingEncounter,Imm,discoverThing,showCodexInline,Level,UI14,UI17,Know,Cont,lastPromptDump,advanceTimeMinutes,applyActionDuration,newGrey,greyDetails,loadGrey,loadPack,get S(){return S},act,newLife,gBody,msgs,gmRank,gmProbe,parseStream,thinkingCfg,gmOrder,readSSE,STREAM_DELIM,migrate,worldTick,bumpRel,openMenu,openPixelShop,openRegionTravelMap,stageName,offline,startIntro,setSceneImage,setPortrait,imgUrl,advanceTime,phaseLabel,typewrite,enterPlay,showTitle,analyzeImage,applySceneTheme,themeFromText,loadValidatedImage,openingNarration,travelTo,parseTravel,killNPC,robNPC,addMemory,memoryHint,startProcedural,offlineGenerateWorld,generateWorldPack,GENRES,travelChoices,ensureGraph,whoHere,parseLifeSim,Sim,Persist,WorldMap,TravelMap,Cut31,Econ,Codex,UI13,save,loadSave,applyCatchUp,findAnyNpc,placeFlavorText,enrichPlaceDescs};
+window.__setCfg=o=>{cfg=Object.assign(cfg||{},o||{},{mode:'offline',gkey:'',pollenKey:''});try{localStorage.setItem(CFG,JSON.stringify(cfg))}catch(_){}};window.__game={VER,hud,syncOwHud,FREETEXT_ENABLED,jrpgPick,applyJrpgPack,syncFreetextUI,Aud,toast,clearTypewrite,renderChoices,C39,C40,C41,C42,C43,C44,C45,C46,C47,C48,C49,C50,C51,C52,C53,C54,C55,C56,C57,C58,C59,C60,C61,C62,C63, C64,Cut40,updateNarratorDot,narratorStatusText,openSheet,setBusy,forceUnbusy,ACT_HARD_MS,V25,OW,Depth,Battle,Jobs,Gems,Summons,Equip,Jrpg,localBeatLine,parsePlayerIntent,offlineRespondIntent,freeStream,FREE_MODEL,msgsLean,FREE_URLS,openPendingEncounter,Imm,discoverThing,showCodexInline,Level,UI14,UI17,Know,Cont,lastPromptDump,advanceTimeMinutes,applyActionDuration,newGrey,greyDetails,loadGrey,loadPack,get S(){return S},act,newLife,gBody,msgs,gmRank,gmProbe,parseStream,thinkingCfg,gmOrder,readSSE,STREAM_DELIM,migrate,worldTick,bumpRel,openMenu,closeMenu,openInn,closeInn,openPixelShop,openRegionTravelMap,stageName,offline,startIntro,setSceneImage,setPortrait,imgUrl,advanceTime,phaseLabel,typewrite,enterPlay,showTitle,analyzeImage,applySceneTheme,themeFromText,loadValidatedImage,openingNarration,travelTo,parseTravel,killNPC,robNPC,addMemory,memoryHint,startProcedural,offlineGenerateWorld,generateWorldPack,GENRES,travelChoices,ensureGraph,whoHere,parseLifeSim,Sim,Persist,WorldMap,TravelMap,Cut31,Econ,Codex,UI13,save,loadSave,applyCatchUp,findAnyNpc,placeFlavorText,enrichPlaceDescs};
 window.__game.askNPC=a=>askNPC(a);window.__game.gemini=gemini;
 try{ syncFreetextUI(); }catch(_){};
 if(cfg.gkey)gmFetch(cfg.gkey.trim()).then(()=>gmProbe(cfg.gkey.trim()).catch(()=>{})).catch(()=>{});

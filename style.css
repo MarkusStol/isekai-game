@@ -6506,3 +6506,47 @@ body.pixel-ow #toast.on.toast-tip{
 body.pixel-ow.ow-dialogue #toast,
 body.pixel-ow #toast:empty,
 body.pixel-ow #toast.on:empty{ display:none !important; opacity:0 !important; }
+
+
+/* ===== v65: Herberge screen (rest + save) ===== */
+.inn-screen{
+  position:fixed; inset:0; z-index:120;
+  display:flex; align-items:center; justify-content:center;
+  background:rgba(4,6,14,.72);
+  padding:16px;
+}
+.inn-card{
+  width:min(420px, 94vw);
+  background:linear-gradient(180deg,#1a1528,#0e1018) !important;
+  border:2px solid #d4b45a !important;
+  border-radius:14px;
+  padding:18px 16px 14px;
+  box-shadow:0 12px 40px rgba(0,0,0,.55);
+  text-align:center;
+  color:#f0f4ff !important;
+}
+.inn-art{ font-size:42px; margin-bottom:6px; filter:drop-shadow(0 2px 0 #000); }
+.inn-card h2{
+  font-family:Cinzel,"Noto Serif",serif;
+  font-size:1.15rem; color:#f0d59a; margin:0 0 6px;
+}
+.inn-stats{ margin:10px 0 14px; color:#c8d0e8; font-size:.95rem; }
+.inn-actions{ display:flex; flex-direction:column; gap:8px; }
+.inn-actions .bcm{ width:100%; }
+.inn-msg{ min-height:1.2em; margin-top:10px; color:#9ad4a0; }
+body.inn-open .ow-pad-float,
+body.inn-open .ow-keyboard{ pointer-events:none; opacity:.35; }
+
+/* v65: dialogue — canvas stays full-bleed under dlg (no black letterbox strip) */
+body.pixel-ow.ow-dialogue #owCanvas,
+body.pixel-ow.ow-dialogue canvas#gameCanvas,
+body.pixel-ow.ow-dialogue .overworld canvas{
+  background:#121018 !important;
+}
+body.pixel-ow.ow-dialogue .overworld{
+  background:#121018 !important;
+}
+
+/* v65: coach never steals the OW dialogue frame */
+body.pixel-ow #onboardCoach:not(.force-show){ display:none !important; }
+#onboardCoach.hidden{ display:none !important; }

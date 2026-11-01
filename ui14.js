@@ -10,6 +10,7 @@ export const HUB_PRIMARY=[
   {id:'quests',icon:'quests',label:'Quests'},
   {id:'atlas',icon:'atlas',label:'Weltkarte'},
   {id:'craft',icon:'craft',label:'Werkstatt'},
+  {id:'inn',icon:'home',label:'Herberge'},
 ];
 export const HUB_MORE=[
   {id:'level',icon:'level',label:'Aufstieg'},
@@ -63,7 +64,7 @@ export function openHub(root, S, helpers){
   const mkTile=(t)=>{
     const b=document.createElement('button'); b.type='button'; b.className='hub-tile';
     b.innerHTML=`<span class="hub-ico">${hubIcon(t.icon)}</span><span class="hub-lab">${t.label}</span>`;
-    b.onclick=()=>openTab(t.id);
+    b.onclick=()=>{ if(t.id==='inn'){ try{ helpers.closeMenu?.(); }catch(_){ } try{ window.__game?.openInn?.(); }catch(_){ } return; } openTab(t.id); };
     return b;
   };
   const grid=document.createElement('div'); grid.className='hub-grid hub-grid-primary';
