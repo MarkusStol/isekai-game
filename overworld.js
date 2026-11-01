@@ -289,7 +289,8 @@ function applyGenre(S){
     if(/pass|grenze|wachturm/.test(ort)) area='pass';
     else if(/solmir|gruft|krypta|ruine/.test(ort)) area='crypt';
     else if(/kathedrale|solari|kirche|licht/.test(ort)) area='cathedral';
-    else if(/thron|festung|katakomb/.test(ort)) area='throne';
+    else if(/katakomb|eishöhlen|eishoehlen|reliquien|knochenlabyrinth|ätherspalte|aetherspalte|wachtürme|wachtuerme/.test(ort)) area='crypt';
+    else if(/thron|festung/.test(ort)) area='throne';
     const base=`./assets/pixel/tiles-nocturna/areas/${area}`;
     for(const k of ['grass','path','water','stone','floor','wall','tree','sand','cliff']){
       set[k]=`${base}/${k}.png`;
@@ -345,11 +346,17 @@ export function buildMapForLocation(S, ort){
   // Unique preset key for important orte — genre/terrain heuristics for unknown places
   let preset='default';
   // v60 Nocturna hub presets (before genre heuristics)
-  if(/thron/.test(low)) preset='throne';
-  else if(/grenzpass|\bpass\b|wachturm/.test(low)) preset='wall';
-  else if(/solmir|gruft|krypta/.test(low)) preset='graveyard';
-  else if(/kathedrale|solari/.test(low)) preset='church';
-  else if(/katakomben|eishöhlen|eishoehlen|reliquiengewölbe|reliquiengewoelbe|knochenlabyrinth|ätherspalte|aetherspalte/.test(low)) { preset='dungeon'; kind='dungeon'; }
+  if(/thron/.test(low) && !/katakomb/.test(low)) preset='throne';
+  else if(/grenzpass|\bpass\b|wachturm/.test(low) && !/wachtürme|wachtuerme/.test(low)) preset='wall';
+  else if(/solmir|gruft|krypta/.test(low) && !/katakomb/.test(low)) preset='graveyard';
+  else if(/kathedrale|solari/.test(low) && !/raum|dungeon|gewölbe/.test(low)) preset='church';
+  else if(/schatzkatakomben|katakomben/.test(low)) { preset='catacomb'; kind='dungeon'; }
+  else if(/eishöhlen|eishoehlen/.test(low)) { preset='ice_cave'; kind='dungeon'; }
+  else if(/reliquiengewölbe|reliquiengewoelbe/.test(low)) { preset='relic_vault'; kind='dungeon'; }
+  else if(/knochenlabyrinth/.test(low)) { preset='bone_labyrinth'; kind='dungeon'; }
+  else if(/wachtürme|wachtuerme|vorhut/.test(low)) { preset='watch_dungeon'; kind='dungeon'; }
+  else if(/ätherspalte|aetherspalte|kathedrale solari|finaler/.test(low)) { preset='aether_rift'; kind='dungeon'; }
+  else if(/dungeon|kerker|verlies|höhle/.test(low)) { preset='catacomb'; kind='dungeon'; }
 
   // Entered buildings always use interior layout
   if(/^in:/.test(low) || /\(innen\)/.test(low)) { preset='interior'; kind='interior'; }
@@ -395,10 +402,16 @@ export function buildMapForLocation(S, ort){
   if(/wüste|düne/.test(blob) && preset==='default') preset='desert';
   if(/schnee|eisberg|gletscher/.test(blob) && preset==='default') preset='snow';
   if(/strand|küste/.test(blob) && preset==='default') preset='beach';
-  // v47c: active dungeon run always uses dungeon floorplan (not village/gate from name tokens)
-  if(S?.content39?.dungeon || kind==='dungeon'){
-    // don't let "Ostwall"/gate tokens steal the layout
-    if(!/summon|throne|interior/.test(preset)) { preset='dungeon'; kind='dungeon'; }
+  // v47c/v71: dungeon runs keep authored variants (catacomb/ice/relic/bone/watch/aether); never throne
+  if(S?.content39?.dungeon || kind==='dungeon' || S?.campaign?.mode==='dungeon'){
+    const lowName=String(name||'').toLowerCase();
+    // remap hub presets that leaked into dungeon Raum N before generic stomp
+    if(preset==='throne'){ preset='catacomb'; kind='dungeon'; }
+    else if(preset==='graveyard' || (/solmir|gruft|krypta/.test(lowName) && /raum/.test(lowName))){ preset='bone_labyrinth'; kind='dungeon'; }
+    else if(preset==='church' && /raum|dungeon/.test(lowName)){ preset='aether_rift'; kind='dungeon'; }
+    const authored=/catacomb|ice_cave|relic_vault|bone_labyrinth|watch_dungeon|aether_rift|dungeon/.test(String(preset||''));
+    if(authored){ kind='dungeon'; }
+    else if(!/summon|interior/.test(preset)) { preset='dungeon'; kind='dungeon'; }
   }
     // v36: owned home / camp kind always wins over genre neon/wasteland fallback
   if(kind==='camp' || (S?.home?.owned && S.home.location===name)){
@@ -420,9 +433,9 @@ export function buildMapForLocation(S, ort){
   // v62: hand hubs need room for pillars/glass/towers
   const handHub=/(wall|graveyard|throne|church)/.test(String(preset||''));
   // v69: Grenzpass must exceed gameplay frustum (~40×22) so camera follows the player
-  const w = preset==='wall'?52: handHub?30: kind==='dungeon'?26: kind==='camp'?18: kind==='interior'?16:30;
+  const w = preset==='wall'?52: /catacomb|ice_cave|relic_vault|bone_labyrinth|watch_dungeon|aether_rift|dungeon/.test(String(preset))?56: handHub?30: kind==='dungeon'?56: kind==='camp'?18: kind==='interior'?16:30;
   // v64: throne court is compact (not endless hallway canvas)
-  const ht = preset==='wall'?42: preset==='throne'?20: preset==='church'?26: preset==='graveyard'?24: handHub?28: kind==='dungeon'?32: kind==='camp'?16: kind==='interior'?14:34;
+  const ht = preset==='wall'?42: /catacomb|ice_cave|relic_vault|bone_labyrinth|watch_dungeon|aether_rift|dungeon/.test(String(preset))?48: preset==='throne'?20: preset==='church'?26: preset==='graveyard'?24: handHub?28: kind==='dungeon'?48: kind==='camp'?16: kind==='interior'?14:34;
   const tiles=Array.from({length:ht},()=>Array(w).fill('grass'));
   const overlay=Array.from({length:ht},()=>Array(w).fill(null));
   const interiors=[];
@@ -521,30 +534,168 @@ export function buildMapForLocation(S, ort){
     anim(2,2,'torch'); anim(w-3,2,'torch');
     tiles[ht-2][Math.floor(w/2)]='door';
     // exit door handled later via _owReturn
-  } else if(preset==='dungeon'){
+  } else if(preset==='dungeon' || preset==='catacomb' || preset==='ice_cave' || preset==='relic_vault' || preset==='bone_labyrinth' || preset==='watch_dungeon' || preset==='aether_rift'){
     kind='dungeon';
-    fill(0,0,w,ht,'void');
-    fill(1,1,w-2,ht-2,'wall');
-    // v47d/v66: multi-chamber + optional boss dais
-    [[2,2,10,8],[14,2,10,8],[2,12,10,8],[14,12,10,8],[8,8,10,6],[2,22,10,7],[14,22,10,7]].forEach(([rx,ry,rw,rh])=>{
-      if(ry+rh<ht && rx+rw<w) fill(rx,ry,rw,rh,'floor');
-    });
-    fill(11,6,4,3,'floor'); fill(6,10,3,5,'floor'); fill(17,10,3,5,'floor');
-    fill(11,18,4,4,'floor');
-    for(const [px,py] of [[4,4],[8,4],[16,4],[20,4],[4,14],[8,14],[16,14],[20,14],[4,24],[16,24]]){
-      if(py<ht&&px<w) tiles[py][px]='stone';
+    let variant=preset==='dungeon'?'catacomb':preset;
+    // v71: each Raum N within a dungeon gets a distinct sub-layout (hash-shifted carve)
+    const roomMatch=/raum\s*(\d+)/i.exec(name);
+    const roomN = roomMatch ? (parseInt(roomMatch[1],10)||1) : (S?.campaign?.dungeon?.room|1);
+    const roomShift = ((roomN*17 + h)%7);
+    // solid rock shell
+    for(let y=0;y<ht;y++) for(let x=0;x<w;x++) tiles[y][x]='wall';
+    const carve=(x,y,ww,hh,mat='floor')=>{ fill(x,y,ww,hh,mat); };
+    const corridor=(x0,y0,x1,y1)=>{
+      let x=x0,y=y0;
+      while(x!==x1||y!==y1){
+        if(y>1&&y<ht-2&&x>1&&x<w-2){ tiles[y][x]='floor'; if(tiles[y][x+1]) tiles[y][x+1]='floor'; }
+        if(x!==x1) x+=x1>x?1:-1;
+        else if(y!==y1) y+=y1>y?1:-1;
+      }
+    };
+    const crackFloor=(x,y,n)=>{
+      for(let i=0;i<n;i++){
+        const tx=x+(rnd(i*3+x)%7)-3, ty=y+(rnd(i*5+y)%5)-2;
+        if(tiles[ty]?.[tx]==='floor' && rnd(i+tx)%3===0) tiles[ty][tx]='stone';
+      }
+    };
+    const rnd=(n)=>((h*1103515245+n*12345)>>>0)%100;
+
+    if(variant==='catacomb'){
+      // Schatzkatakomben: narrow corridors, coffin niches, treasure vault, puzzle seal — per-room focus
+      const rs=roomShift;
+      carve(3, ht-8, 6, 5); // entry vestibule
+      carve(4, 18, 4, 8); corridor(5,18,5,12);
+      carve(3+ (rs%3), 8, 8, 6); // west hall
+      corridor(10,10,18,10);
+      carve(16, 6+(rs%2), 10, 8); // east vault
+      corridor(20,14,20,22);
+      carve(14, 20, 12, 8); // south gallery
+      corridor(8,22,14,22);
+      carve(6+(rs%2), 3, 10, 5); // puzzle seal chamber (north)
+      carve(28-(rs%3), 10+(rs%2), 10, 8); // treasure vault
+      corridor(25,10,28,12);
+      // room focus markers (unique silhouette per Raum)
+      if(roomN===1){ carve(10, 26, 8, 4); } // antechamber alcove
+      else if(roomN===2){ carve(22, 3, 8, 4); corridor(20,6,24,6); } // upper niche
+      else if(roomN===3){ carve(8, 3, 12, 6); fill(10,4,6,3,'carpet'); } // puzzle room wide
+      else if(roomN===4){ carve(30, 20, 8, 6); corridor(28,18,32,22); } // side vault
+      else { carve(cx-4, 14, 9, 7); } // central ossuary for boss approach
+      // coffin niches along west hall
+      for(const [cx0,cy0] of [[4,9],[4,11],[9,9],[9,11],[17,22],[17,24],[22,22],[22,24]]){
+        if(tiles[cy0]?.[cx0]==='floor'){ prop(cx0,cy0,'coffin'); ov(cx0,cy0,'coffin'); }
+      }
+      // cracked floors
+      crackFloor(8,10,18); crackFloor(20,12,14); crackFloor(18,24,12);
+      // pillars / cracked stones
+      for(const [px,py] of [[7,10],[12,10],[18,9],[22,9],[18,12],[30,13],[33,13]]){
+        if(tiles[py]?.[px]==='floor') tiles[py][px]='stone';
+      }
+      placeChest(30, 12, {gold:28, item:'Schattenkristall'});
+      placeChest(32, 14, {gold:18, item:'Antidot'});
+      placeChest(8, 5, {gold:12, item:'Siegelbruchstück'});
+      prop(8,4,'altar'); ov(8,4,'altar');
+      questMark(8, 4, 'Siegelsaal', 'puzzle');
+      questMark(31, 12, 'Schatzkammer', 'side');
+      anim(5,9,'torch'); anim(10,9,'torch'); anim(18,7,'torch'); anim(24,7,'torch');
+      anim(30,11,'torch'); anim(34,11,'torch'); anim(7,4,'torch'); anim(12,4,'torch');
+      anim(16,22,'torch'); anim(24,22,'torch');
+      _hubNpcs.push({name:'Imp-Schuldner', x:7, y:11, px:7, py:11, sheet:'daemon', e:'👿'});
+      _hubNpcs.push({name:'Grabräuber Jex', x:19, y:23, px:19, py:23, sheet:'spy', e:'🗝️'});
+    } else if(variant==='ice_cave'){
+      // Eishöhlen: icy tunnels, frozen pools, crystal niches
+      carve(cx-3, ht-7, 7, 5);
+      corridor(cx, ht-7, cx, 20);
+      carve(cx-8, 14, 8, 7); carve(cx+2, 14, 8, 7);
+      corridor(cx-4, 17, cx+4, 17);
+      corridor(cx-6, 14, cx-6, 6); corridor(cx+6, 14, cx+6, 6);
+      carve(cx-10, 3, 9, 6); carve(cx+3, 3, 9, 6);
+      carve(cx-2, 8, 5, 5); // ice nexus
+      for(let y=4;y<ht-4;y++) for(let x=3;x<w-3;x++){
+        if(tiles[y][x]==='floor' && rnd(x*7+y)%11===0) tiles[y][x]='water'; // frozen pools as water tint
+      }
+      crackFloor(cx,16,20);
+      for(const [px,py] of [[cx-7,5],[cx-5,5],[cx+5,5],[cx+7,5],[cx,10]]){
+        if(tiles[py]?.[px]) { tiles[py][px]='stone'; prop(px,py,'rock'); }
+      }
+      placeChest(cx-8, 5, {gold:22, item:'Frosttrank'});
+      placeChest(cx+7, 5, {gold:20, item:'Eiskristall'});
+      questMark(cx, 9, 'Eiskern', 'story');
+      anim(cx-3,15,'torch'); anim(cx+3,15,'torch'); anim(cx-8,4,'torch'); anim(cx+8,4,'torch');
+      try{ if(S){ S.flags=S.flags||{}; S.flags.weather='schnee'; } }catch(_){}
+    } else if(variant==='relic_vault'){
+      // Reliquiengewölbe: orthogonal halls, altar bays, glass niches
+      carve(cx-2, ht-6, 5, 4);
+      corridor(cx, ht-6, cx, 4);
+      for(const y of [8,14,20,26]){ carve(4, y, w-8, 4); }
+      for(const x of [6,14,22,30]){ corridor(x, 8, x, 28); }
+      carve(cx-4, 3, 9, 5); // high altar
+      prop(cx, 4, 'altar'); ov(cx,4,'altar');
+      for(const [gx,gy,g] of [[8,9,'glass_blue'],[16,9,'glass_red'],[24,9,'glass_gold'],[32,9,'glass_green'],
+                               [8,21,'glass_red'],[16,21,'glass_blue'],[24,21,'glass_green'],[32,21,'glass_gold']]){
+        if(tiles[gy]?.[gx]==='floor'){ ov(gx,gy,g); prop(gx,gy,g); }
+      }
+      placeChest(cx-2, 5, {gold:30, item:'Heiliges Siegel'});
+      placeChest(10, 15, {gold:16, item:'Weihwasser'});
+      placeChest(28, 15, {gold:18, item:'Reliquiensplitter'});
+      questMark(cx, 4, 'Hochaltar', 'story');
+      anim(cx-3,4,'torch'); anim(cx+3,4,'torch');
+      for(const y of [9,15,21]){ anim(5,y,'torch'); anim(w-6,y,'torch'); }
+    } else if(variant==='bone_labyrinth'){
+      // Knochenlabyrinth: maze corridors, dead ends, bone piles
+      carve(cx-2, ht-6, 5, 4);
+      // maze grid
+      for(let y=3;y<ht-3;y+=3) for(let x=3;x<w-3;x+=3){
+        carve(x, y, 2, 2);
+        if(rnd(x+y*5)%2===0) corridor(x, y, Math.min(w-4,x+3), y);
+        if(rnd(x*3+y)%2===0) corridor(x, y, x, Math.min(ht-4,y+3));
+      }
+      corridor(cx, ht-6, cx, 4);
+      carve(cx-3, 3, 7, 5); // bone heart
+      for(let i=0;i<28;i++){
+        const tx=4+(rnd(i*9)% (w-8)), ty=4+(rnd(i*11)%(ht-8));
+        if(tiles[ty]?.[tx]==='floor' && rnd(i)%2===0){ prop(tx,ty,'coffin'); ov(tx,ty,'coffin'); }
+      }
+      crackFloor(cx,12,30);
+      placeChest(cx, 4, {gold:26, item:'Knochenamulett'});
+      placeChest(8, 16, {gold:14, item:'Antidot'});
+      questMark(cx, 5, 'Knochenherz', 'boss');
+      anim(cx-2,4,'torch'); anim(cx+2,4,'torch');
+    } else if(variant==='watch_dungeon'){
+      // Wachtürme am Pass: vertical shaft rooms + barracks
+      carve(cx-4, ht-7, 9, 5);
+      for(const y of [6,12,18,24]) carve(cx-5, y, 11, 5);
+      corridor(cx, ht-7, cx, 6);
+      carve(4, 12, 8, 8); carve(w-12, 12, 8, 8); // side barracks
+      corridor(cx-5, 15, 11, 15); corridor(cx+5, 15, w-12, 15);
+      for(const [px,py] of [[cx-3,7],[cx+3,7],[cx-3,13],[cx+3,13],[cx-3,19],[cx+3,19]]){
+        if(tiles[py]?.[px]) tiles[py][px]='stone';
+      }
+      prop(6,14,'barrel'); prop(7,16,'crate'); prop(w-8,14,'barrel'); prop(w-7,16,'bench');
+      placeChest(cx, 7, {gold:24, item:'Wachtrank'});
+      placeChest(6, 15, {gold:12, item:'Seil'});
+      questMark(cx, 8, 'Kommandostube', 'story');
+      anim(cx-4,7,'torch'); anim(cx+4,7,'torch'); anim(5,13,'torch'); anim(w-6,13,'torch');
+    } else { // aether_rift / cathedral final
+      carve(cx-3, ht-6, 7, 4);
+      corridor(cx, ht-6, cx, 10);
+      carve(6, 8, w-12, 10); // nave
+      carve(cx-6, 2, 13, 7); // choir / rift
+      fill(cx-3, 4, 7, 3, 'carpet');
+      prop(cx, 3, 'altar'); ov(cx,3,'altar');
+      for(const y of [10,14]) for(const x of [8,14,20,26,32]){
+        if(tiles[y]?.[x]==='floor'){ tiles[y][x]='stone'; anim(x,y-1,'torch'); }
+      }
+      placeChest(cx-4, 5, {gold:40, item:'Äthersplitter'});
+      placeChest(cx+4, 5, {gold:40, item:'Nachtstahl'});
+      questMark(cx, 4, 'Ätherspalt', 'boss');
+      anim(cx-5,4,'torch'); anim(cx+5,4,'torch');
     }
-    fill(11,14,4,4,'plaza');
-    prop(12,15,'chest'); prop(13,15,'barrel');
-    anim(3,3,'torch'); anim(w-4,3,'torch'); anim(3,ht-5,'torch'); anim(w-4,ht-5,'torch');
-    anim(12,14,'torch'); anim(14,14,'torch');
-    tiles[Math.floor(ht/2)][Math.floor(w/2)]='door';
-    // v66 optional boss chamber (north)
-    fill(9, 2, 8, 5, 'stone'); fill(11, 3, 4, 3, 'carpet');
-    prop(12, 3, 'statue'); prop(14, 3, 'statue');
-    placeChest(13, 4, {gold:40, item:'Nachtstahl-Splitter'});
-    questMark(13, 3, 'Optionaler Boss', 'boss');
-    anim(10, 3, 'torch'); anim(16, 3, 'torch');
+    // shared spawn + exit
+    const spawnY=ht-5, spawnX=cx;
+    if(tiles[spawnY]){ tiles[spawnY][spawnX]='floor'; tiles[spawnY][spawnX-1]='floor'; tiles[spawnY][spawnX+1]='floor'; }
+    tiles[ht-2][cx]='door';
+    prop(cx+2, spawnY, 'sign');
+    anim(cx-2, spawnY, 'torch'); anim(cx+2, spawnY, 'torch');
   } else if(preset==='summon'){
     // Summoning hall — marble plaza, pillars, central circle
     for(let y=0;y<ht;y++) for(let x=0;x<w;x++) tiles[y][x]='floor';
@@ -1909,7 +2060,9 @@ function draw(){
         // v69: FIXED gameplay camera — follow player at fitCanvas frustum (~40×22 @3×)
         // Never expand outdoor/pass to whole-map overview (tiny characters)
         const isPass = _map.preset==='wall' || /pass|grenze|berg|wild/i.test(String(_map.name||_map.preset||''));
-        const indoor = (_map.kind==='interior' || _map.kind==='dungeon') && !isPass;
+        const isDungeonFollow = _map.kind==='dungeon' || /catacomb|ice_cave|relic_vault|bone_labyrinth|watch_dungeon|aether_rift/i.test(String(_map.preset||''));
+        // v71: dungeons use same 3× follow camera as overworld (never zoom-out black border)
+        const indoor = (_map.kind==='interior') && !isPass && !isDungeonFollow;
         if(indoor && _map.w && _map.h && _map.w <= viewW+4 && _map.h <= viewH+4){
           const aspect = Math.max(1.2, (cssW||960) / Math.max(1, cssH||540));
           viewH = Math.max(10, _map.h + 2);
@@ -2863,15 +3016,22 @@ export function showOverworld(S){
   _map=built;
   applyGenre(S);
   if(built.kind==='dungeon'){
+    // v71: nocturna crypt grade for catacombs (not throne hall tiles)
+    const crypt='./assets/pixel/tiles-nocturna/areas/crypt';
+    const ice=/ice_cave/i.test(String(built.preset||''));
     _tileSet={..._tileSet,
-      grass:'./assets/pixel/tiles-dungeon/grass.png',
-      path:'./assets/pixel/tiles-dungeon/path.png',
-      floor:'./assets/pixel/tiles-dungeon/floor.png',
-      wall:'./assets/pixel/tiles-dungeon/wall.png',
-      tree:'./assets/pixel/tiles-dungeon/tree.png',
-      void:'./assets/pixel/tiles-dungeon/void.png',
-      door:'./assets/pixel/tiles-dungeon/door.png',
-      stone:'./assets/pixel/tiles-dungeon/stone.png',
+      grass: ice ? './assets/pixel/tiles-nocturna/areas/pass/sand.png' : (crypt+'/ifloor1.png'),
+      path: crypt+'/ifloor0.png',
+      floor: crypt+'/ifloor1.png',
+      wall: crypt+'/cwall0.png',
+      tree: './assets/pixel/tiles-dungeon/tree.png',
+      void: './assets/pixel/tiles-dungeon/void.png',
+      door: './assets/pixel/tiles-dungeon/door.png',
+      stone: crypt+'/cfloor0.png',
+      carpet: crypt+'/cfloor1.png',
+      plaza: crypt+'/ifloor0.png',
+      sand: ice ? './assets/pixel/tiles-nocturna/areas/pass/sand.png' : (crypt+'/ifloor1.png'),
+      water: ice ? './assets/pixel/tiles-nocturna/areas/pass/water0.png' : './assets/pixel/tiles-dungeon/water.png',
     };
   }
   _npcs=(built.npcs||[]).map(n=>({...n, dir:0, frame:0}));

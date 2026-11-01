@@ -415,6 +415,7 @@ export function startDungeon(S, ch){
     chests: {},
   };
   S.world.scene.ort = ch.dungeon.name + ' · Raum 1';
+  S.flags = S.flags || {}; S.flags.owNeedsRefresh = true;
 }
 
 export function townChoices(S){
@@ -522,6 +523,7 @@ export function advanceDungeonRoom(S){
   const d=S.campaign?.dungeon; if(!d) return;
   d.room = Math.min((d.rooms|0)+1, (d.room|0)+1);
   S.world.scene.ort = `${d.name} · Raum ${Math.min(d.room,d.rooms)}`;
+  S.flags = S.flags || {}; S.flags.owNeedsRefresh = true;
 }
 
 export function openChest(S){

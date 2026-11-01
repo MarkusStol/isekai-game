@@ -1200,7 +1200,7 @@ function battleTerrainLayers(S, bg){
   try{
     const u=String(bg||'');
     // v70: nocturna hall/crypt use dungeon layers under the hand BG for stone texture + depth
-    if(/nocturna\/(throne|cathedral)/.test(u)){
+    if(/nocturna\/(throne|cathedral|dungeon)/.test(u)){
       return {
         key:'dungeon',
         far:'./assets/pixel/bg-battle/layers/dungeon-far.webp',

@@ -12,7 +12,7 @@ import { fileURLToPath } from 'url';
 
 const ROOT=path.join(path.dirname(fileURLToPath(import.meta.url)),'..');
 const PORT=8793;
-const VER='70';
+const VER='71';
 const LIVE='https://markusstol.github.io/isekai-game/';
 const SKIP_LIVE=process.env.GATE_SKIP_LIVE==='1';
 const ONLY_LIVE=process.env.GATE_ONLY_LIVE==='1';
@@ -369,6 +369,132 @@ async function runLocal(browser){
     else ok('battle-bg-tex',{layers:bat.layers});
     await page.evaluate(()=>{ try{ window.__game.Battle.__forceHide(); }catch(_){} });
   }catch(e){ fail('unique-battlers','exception',{err:String(e)}); }
+
+  // v71: battler size + no overlap (party ~100-120px @1080p; foes large & centered)
+  try{
+    const sz = await page.evaluate(async()=>{
+      const g=window.__game; const S=g.S;
+      S.world=S.world||{}; S.world.npcs=S.world.npcs||{}; S.romance=S.romance||{};
+      for(const n of ['Sekretärin Velka','General Brok','Heldin Aria']){
+        S.world.npcs[n]=Object.assign({alive:true,art:n}, S.world.npcs[n]||{});
+        S.romance[n]={affection:40,stage:2};
+      }
+      S.party=['Sekretärin Velka','General Brok','Heldin Aria'];
+      const En=await import('./enemies.js');
+      const f=En.enemyById('lesser_fiend')||En.enemyById('hellhound')||Object.values(En.ENEMIES||{})[0];
+      try{ g.Battle.__forceHide?.(); }catch(_){ }
+      document.body.classList.add('in-battle'); document.documentElement.classList.add('in-battle','battle-open');
+      g.Battle.startBattle(S,{enemies:[structuredClone(f)],scripted:true});
+      await new Promise(r=>setTimeout(r,1100));
+      const root=document.getElementById('battleRoot')||document.querySelector('.battle-root');
+      if(root){ root.classList.remove('hidden'); root.style.display=''; root.style.visibility='visible'; root.style.opacity='1'; }
+      const party=[...document.querySelectorAll('.party-stage-spr img.battler-spr, .party-stage-spr img.pixel-hero-spr, .party-stage-spr img')].map(el=>{
+        const r=el.getBoundingClientRect();
+        const cs=getComputedStyle(el);
+        const cw=parseFloat(cs.width)||0, ch=parseFloat(cs.height)||0;
+        return {w:(r.width||cw)|0,h:(r.height||ch)|0,l:r.left|0,t:r.top|0,r:r.right|0,b:r.bottom|0,cw:cw|0,ch:ch|0};
+      });
+      const foes=[...document.querySelectorAll('.foe-art.battler-spr, .foe-art, .pixel-foe img, .foe-art-wrap img')].map(el=>{
+        const r=el.getBoundingClientRect();
+        const cs=getComputedStyle(el);
+        const cw=parseFloat(cs.width)||0, ch=parseFloat(cs.height)||0;
+        return {w:(r.width||cw)|0,h:(r.height||ch)|0,l:r.left|0,t:r.top|0,cx:((r.left+r.right)/2|| (parseFloat(cs.left)||0))|0,cw:cw|0,ch:ch|0};
+      });
+      const stage=document.querySelector('.battle-stage, #battleRoot, .battle-root');
+      const sw=stage?.getBoundingClientRect()?.width || window.innerWidth || 1920;
+      function ov(a,b){ const x=Math.max(0,Math.min(a.r,b.r)-Math.max(a.l,b.l)); const y=Math.max(0,Math.min(a.b,b.b)-Math.max(a.t,b.t)); return x*y; }
+      let overlapPairs=0, maxOv=0;
+      for(let i=0;i<party.length;i++) for(let j=i+1;j<party.length;j++){ const o=ov(party[i],party[j]); if(o>1800){ overlapPairs++; maxOv=Math.max(maxOv,o);} }
+      const minH=party.length?Math.min(...party.map(p=>p.h)):0;
+      const maxH=party.length?Math.max(...party.map(p=>p.h)):0;
+      const foeH=foes[0]?.h||0; const foeCx=foes[0]?.cx||0;
+      const hasAtkCss = !!(document.querySelector('style,link') && true);
+      const cssText=[...document.styleSheets].flatMap(ss=>{ try{ return [...ss.cssRules].map(r=>r.cssText||''); }catch(_){ return []; } }).join('\n');
+      const atkOk=/atkStepFwd|atk-step|slash/.test(cssText) || /atkStepFwd/.test(document.documentElement.innerHTML);
+      return {party, foes, minH, maxH, overlapPairs, maxOv, foeH, foeCx, sw, atkOk, vh:window.innerHeight};
+    });
+    const minCssH = Math.min(...(sz.party||[]).map(p=>p.ch||p.h||0), 999);
+    const tallEnough = Math.max(sz.minH|0, minCssH|0) >= 90;
+    if(!(sz.party||[]).length) fail('battler-size', 'no party sprites found', sz);
+    else if(!tallEnough) fail('battler-size', 'party sprites too small', sz);
+    else if((sz.overlapPairs|0)>0 && (sz.minH|0)>0) fail('battler-size', 'party sprites overlap', sz);
+    else ok('battler-size', {minH:sz.minH,maxH:sz.maxH,minCssH,overlapPairs:sz.overlapPairs,n:sz.party.length});
+    const foeH = Math.max(sz.foeH|0, ...(sz.foes||[]).map(f=>f.ch||0), 0);
+    const foeCx = sz.foeCx|0;
+    if(foeH < 160) fail('foe-size', 'enemy too small', {foeH, foes:sz.foes, sw:sz.sw});
+    else if(foeCx > 0 && foeCx > (sz.sw*0.55)) fail('foe-size', 'enemy not in left half', {foeH, foeCx, sw:sz.sw});
+    else ok('foe-size', {foeH, foeCx, sw:sz.sw});
+    if(!sz.atkOk) fail('atk-fx', 'missing atkStepFwd/slash css'); else ok('atk-fx',{atkOk:true});
+    await page.evaluate(()=>{ try{ window.__game.Battle.__forceHide(); }catch(_){} });
+  }catch(e){ fail('battler-size','exception',{err:String(e)}); }
+
+  // v71: dungeon layout reuse + follow camera (no black-border zoom-out)
+  try{
+    const dung = await page.evaluate(async()=>{
+      const g=window.__game; const S=g.S;
+      const orte=[
+        'Schatzkatakomben · Raum 1','Schatzkatakomben · Raum 3','Schatzkatakomben · Raum 5',
+        'Wachtürme am Pass · Raum 1','Eishöhlen · Raum 1','Reliquiengewölbe · Raum 1',
+        'Knochenlabyrinth · Raum 1','Gruft von Solmir · Raum 1','Kathedrale Solari · Raum 1',
+        'Thronsaal'
+      ];
+      const maps=[];
+      for(const ort of orte){
+        S.world=S.world||{}; S.world.scene=S.world.scene||{};
+        S.world.scene.ort=ort;
+        if(/Raum/.test(ort)) { S.campaign=S.campaign||{}; S.campaign.mode='dungeon'; S.campaign.dungeon={name:ort.split('·')[0].trim(),room:parseInt((/Raum\\s*(\\d+)/.exec(ort)||[])[1]||'1',10),rooms:5}; }
+        else { if(S.campaign) S.campaign.mode='scene'; }
+        const m=g.OW.buildMapForLocation(S, ort);
+        // fingerprint: floor mask hash + counts
+        let floor=0,wall=0,sig=[];
+        for(let y=0;y<m.h;y+=2) for(let x=0;x<m.w;x+=2){
+          const t=m.tiles[y][x]; if(t==='floor'||t==='carpet'||t==='plaza'||t==='stone'){ floor++; sig.push(x+','+y+':'+t); }
+          else if(t==='wall'||t==='void') wall++;
+        }
+        maps.push({ort,preset:m.preset,kind:m.kind,w:m.w,h:m.h,floor,wall,sig:sig.slice(0,80).join('|'), nChests:(m.chests||[]).length, nMarks:(m.questMarks||[]).length});
+      }
+      // camera check on Schatzkatakomben
+      S.world.scene.ort='Schatzkatakomben · Raum 1';
+      S.campaign.mode='dungeon';
+      try{ g.OW.hideOverworld?.(); }catch(_){}
+      try{ g.OW.mountOverworld?.({getS:()=>g.S, toast:()=>{}, save:()=>{}}); }catch(_){}
+      g.OW.showOverworld(S);
+      await new Promise(r=>setTimeout(r,600));
+      const st=g.OW.__debug?.()||{};
+      const view=st.renderView||st.view||{};
+      const map=st.map||{};
+      const scale=st.scale|0;
+      const wholeMap = (view.w|0) >= (map.w|0) && (view.h|0) >= (map.h|0);
+      return {maps, cam:{scale, viewW:view.w|0, viewH:view.h|0, mapW:map.w|0, mapH:map.h|0, preset:map.preset, kind:map.kind, wholeMap}};
+    });
+    const throne=dung.maps.find(m=>m.ort==='Thronsaal');
+    const reuse=[];
+    for(const m of dung.maps){
+      if(m.ort==='Thronsaal') continue;
+      if(m.preset==='throne') reuse.push({ort:m.ort, reason:'preset-throne'});
+      if(throne && m.sig===throne.sig) reuse.push({ort:m.ort, reason:'sig-equals-throne'});
+      if(m.kind!=='dungeon' && /Raum/.test(m.ort)) reuse.push({ort:m.ort, reason:'not-dungeon-kind', preset:m.preset, kind:m.kind});
+    }
+    // distinct presets among named dungeons
+    const named=dung.maps.filter(m=>/Raum 1$/.test(m.ort));
+    const presets=named.map(m=>m.preset);
+    const uniqPres=[...new Set(presets)];
+    // room variants within Schatzkatakomben should not be identical sigs
+    const skat=dung.maps.filter(m=>/Schatzkatakomben/.test(m.ort));
+    const skatSigs=[...new Set(skat.map(m=>m.sig))];
+    if(reuse.length) fail('layout-reuse', 'dungeon reused throne/non-dungeon', {reuse, maps:dung.maps.map(m=>({ort:m.ort,preset:m.preset,kind:m.kind,w:m.w,h:m.h}))});
+    else if(uniqPres.length < 4) fail('layout-reuse', 'too few distinct dungeon presets', {presets, uniqPres});
+    else if(skatSigs.length < 2) fail('layout-reuse', 'Schatzkatakomben rooms identical', {skat:skat.map(s=>({ort:s.ort,floor:s.floor}))});
+    else ok('layout-reuse', {presets:uniqPres, skatRooms:skatSigs.length, maps:dung.maps.map(m=>({ort:m.ort,preset:m.preset,w:m.w,h:m.h,floor:m.floor}))});
+
+    if((dung.cam.scale|0)<2 || (dung.cam.scale|0)>4) fail('dungeon-camera', 'scale not ~3', dung.cam);
+    else if(dung.cam.wholeMap) fail('dungeon-camera', 'zoom-out whole map / black border risk', dung.cam);
+    else if((dung.cam.mapW|0) <= (dung.cam.viewW|0)+2) fail('dungeon-camera', 'map not larger than view (border risk)', dung.cam);
+    else if((dung.cam.mapW|0) < 48) fail('dungeon-camera', 'map too small for follow cam', dung.cam);
+    else ok('dungeon-camera', dung.cam);
+    try{ await page.evaluate(()=>window.__game.OW.hideOverworld?.()); }catch(_){}
+  }catch(e){ fail('layout-reuse','exception',{err:String(e)}); }
+
 
   try{
     const cam = await page.evaluate(async()=>{

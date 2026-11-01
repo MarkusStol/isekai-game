@@ -7264,42 +7264,8 @@ body.pc-only .menu-tabs button::after{ /* keep clean */ }
   white-space:nowrap !important;
 }
 
-/* Party stage: keep all 4 inside field (no top clip) */
-.battle-root.battle-ff67 .battle-field{
-  inset:4% 3% 8% 3% !important;
-  align-items:center !important;
-}
-.battle-root.battle-ff67 .battle-party-spr{
-  align-self:stretch !important;
-  justify-content:space-evenly !important;
-  padding:2% 2% 2% 0 !important;
-  height:100% !important;
-  max-height:100% !important;
-  box-sizing:border-box !important;
-  gap:0 !important;
-  overflow:visible !important;
-}
-.battle-root.battle-ff67 .battle-foes{
-  align-self:stretch !important;
-  justify-content:center !important;
-}
-.battle-root.battle-ff67 .party-stage-spr{
-  flex:1 1 0 !important;
-  display:flex !important;
-  align-items:center !important;
-  justify-content:flex-end !important;
-  max-height:none !important;
-  min-height:0 !important;
-}
-.battle-root.battle-ff67 .party-stage-spr .pixel-hero-spr{
-  width:min(120px, 11vw, 16vh) !important;
-  height:min(120px, 11vw, 16vh) !important;
-  max-width:11vw !important;
-  max-height:16vh !important;
-}
-.battle-root.battle-ff67 .battle-stage{
-  overflow:hidden !important;
-}
+/* v71: shrinky field/party rules removed — see end of file */
+
 
 /* Party strip: short name column */
 .battle-root.battle-ff67 .ff-party-row,
@@ -7461,32 +7427,92 @@ body.ow-desktop #overworld canvas{
 }
 .skill-tree .skill-node b{ font-size:12px; letter-spacing:.01em; }
 
-/* v70: party stage vertical order matches HUD list (Noctis→… top to bottom) */
+/* v71: FF6 diagonal party stagger — large sprites, list order top→bottom, no overlap */
+.battle-root.battle-ff67 .battle-field,
+.battle-root.battle-ff67.battle-pixel .battle-field{
+  inset:6% 3% 10% 3% !important;
+  display:block !important;
+  pointer-events:none !important;
+}
 .battle-root.battle-ff67 .battle-party-spr,
-.battle-root.battle-pixel .battle-party-spr{
-  display:flex !important;
-  flex-direction:column !important;
-  flex-wrap:nowrap !important;
-  align-items:flex-end !important;
-  justify-content:flex-start !important;
-  gap:10px !important;
-  right:3% !important;
-  top:12% !important;
-  bottom:auto !important;
-  width:auto !important;
+.battle-root.battle-ff67.battle-pixel .battle-party-spr,
+.battle-root.battle-pixel.battle-ff67 .battle-party-spr{
+  position:absolute !important;
+  right:1% !important;
+  left:auto !important;
+  top:10% !important;
+  bottom:12% !important;
+  width:52% !important;
   height:auto !important;
-  max-height:58% !important;
+  max-height:none !important;
+  display:block !important;
+  flex-direction:unset !important;
+  align-items:unset !important;
+  justify-content:unset !important;
+  pointer-events:none !important;
+  z-index:8 !important;
+  padding:0 !important;
+  gap:0 !important;
 }
 .battle-root.battle-ff67 .party-stage-spr,
-.battle-root.battle-pixel .party-stage-spr{
-  position:relative !important;
+.battle-root.battle-ff67.battle-pixel .party-stage-spr,
+.battle-root.battle-pixel.battle-ff67 .party-stage-spr{
+  position:absolute !important;
+  /* i=0 Noctis top-back-right … i=3 Aria bottom-front-left — wide diagonal so boxes do not overlap */
+  right: calc(1vw + (var(--i, 0) * 7.2vw)) !important;
+  top: calc(2% + (var(--i, 0) * 16.5%)) !important;
+  left:auto !important;
+  bottom:auto !important;
   transform:none !important;
-  right:auto !important;
-  --i:0;
+  margin:0 !important;
+  flex:none !important;
+  width:auto !important;
+  height:auto !important;
+  min-height:0 !important;
+  max-height:none !important;
+  z-index: calc(10 + var(--i, 0)) !important;
+  filter:none !important;
+  opacity:1 !important;
 }
-.battle-root.battle-ff67 .party-stage-spr.row-back{
-  transform:scale(0.92) !important;
-  opacity:.95;
+.battle-root.battle-ff67 .party-stage-spr.row-back,
+.battle-root.battle-ff67.battle-pixel .party-stage-spr.row-back{
+  filter:brightness(0.96) !important;
+  opacity:1 !important;
+  transform:none !important;
+}
+.battle-root.battle-ff67 .party-stage-spr img,
+.battle-root.battle-ff67 .party-stage-spr .pixel-hero-spr,
+.battle-root.battle-ff67 .party-stage-spr .pixel-hero-spr.battler-spr,
+.battle-root.battle-ff67 .party-stage-spr .pixel-hero-spr.pixelated,
+.battle-root.battle-ff67.battle-pixel .party-stage-spr img,
+.battle-root.battle-ff67.battle-pixel .party-stage-spr .pixel-hero-spr,
+.battle-root.battle-ff67.battle-pixel .party-stage-spr .pixel-hero-spr.battler-spr,
+.battle-root.battle-ff67.battle-pixel .party-stage-spr .pixel-hero-spr.pixelated,
+.battle-root.battle-ff67.battle-pixel .pixel-hero-spr.battler-spr,
+.battle-root.battle-pixel.battle-ff67 .party-stage-spr img,
+.battle-root.battle-pixel.battle-ff67 .party-stage-spr .pixel-hero-spr{
+  width:112px !important;
+  height:148px !important;
+  max-width:none !important;
+  max-height:none !important;
+  min-width:100px !important;
+  min-height:120px !important;
+  object-fit:contain !important;
+  object-position:center bottom !important;
+  image-rendering:pixelated !important;
+  filter:drop-shadow(0 10px 0 #0007) !important;
+  transform:none !important;
+}
+@media (min-width:1400px){
+  .battle-root.battle-ff67 .party-stage-spr img,
+  .battle-root.battle-ff67 .party-stage-spr .pixel-hero-spr,
+  .battle-root.battle-ff67.battle-pixel .party-stage-spr img,
+  .battle-root.battle-ff67.battle-pixel .party-stage-spr .pixel-hero-spr,
+  .battle-root.battle-ff67.battle-pixel .party-stage-spr .pixel-hero-spr.battler-spr,
+  .battle-root.battle-ff67.battle-pixel .pixel-hero-spr.battler-spr{
+    width:120px !important; height:158px !important;
+    min-width:110px !important; min-height:140px !important;
+  }
 }
 .battle-root.battle-ff67 .party-stage-spr.atk-step{
   animation: atkStepFwd .42s ease-out;
@@ -7496,7 +7522,7 @@ body.ow-desktop #overworld canvas{
 }
 @keyframes atkStepFwd{
   0%{ transform:translateX(0); }
-  35%{ transform:translateX(-36px); }
+  35%{ transform:translateX(-48px); }
   100%{ transform:translateX(0); }
 }
 @keyframes atkCastPulse{
@@ -7504,7 +7530,7 @@ body.ow-desktop #overworld canvas{
   40%{ filter:brightness(1.35) drop-shadow(0 0 12px #8cf); transform:scale(1.06); }
 }
 .battle-root.battle-ff67 .slash-fx{
-  position:absolute; width:72px; height:72px; z-index:35; pointer-events:none;
+  position:absolute; width:96px; height:96px; z-index:35; pointer-events:none;
   background:
     linear-gradient(135deg, transparent 40%, #fff 45%, #ffe08a 50%, #ff6a3a 55%, transparent 62%),
     radial-gradient(circle at 50% 50%, #fff8 0%, transparent 60%);
@@ -7527,6 +7553,43 @@ body.ow-desktop #overworld canvas{
   100%{ opacity:0; transform:scale(1.6); }
 }
 .battle-root.battle-ff67 .dmg-pop{
-  font-size:34px !important;
+  font-size:36px !important;
   animation: dmgFloat .95s ease-out forwards !important;
+}
+
+/* v71: enemies centred in left half, perspective-sized */
+.battle-root.battle-ff67 .battle-foes{
+  position:absolute !important;
+  left:4% !important;
+  right:auto !important;
+  top:18% !important;
+  bottom:22% !important;
+  width:44% !important;
+  display:flex !important;
+  flex-direction:column !important;
+  align-items:center !important;
+  justify-content:center !important;
+  gap:12px !important;
+  padding:0 !important;
+  pointer-events:auto !important;
+  z-index:7 !important;
+}
+.battle-root.battle-ff67 .foe-art-wrap.pixel-foe,
+.battle-root.battle-ff67 .pixel-foe{
+  min-width:220px !important; min-height:220px !important;
+  width:auto !important; height:auto !important;
+  background:transparent !important; overflow:visible !important;
+}
+.battle-root.battle-ff67 .foe-art.battler-spr,
+.battle-root.battle-ff67 .pixel-foe img,
+.battle-root.battle-ff67 .foe-normal .foe-art{
+  width:240px !important; height:240px !important;
+  max-width:32vw !important; max-height:42vh !important;
+  object-fit:contain !important;
+}
+.battle-root.battle-ff67 .foe-card.foe-boss .foe-art,
+.battle-root.battle-ff67 .foe-boss .foe-art,
+.battle-root.battle-ff67 .battle-setpiece .foe-art{
+  width:300px !important; height:300px !important;
+  max-width:38vw !important; max-height:50vh !important;
 }

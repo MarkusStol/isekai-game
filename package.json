@@ -1,6 +1,6 @@
 {
   "name": "nocturna",
-  "version": "0.70.0",
+  "version": "0.71.0",
   "description": "Nocturna \u2014 classic JRPG (PC)",
   "main": "electron/main.mjs",
   "scripts": {

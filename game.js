@@ -168,7 +168,7 @@ try{ // v63 scrub AI cfg from localStorage
 
  // v41: test-only scripted, fair ATB bosses, boss dialogue talk-down, tilemap minimap, craft XP→T4
 const $=s=>document.querySelector(s);const $$=s=>[...document.querySelectorAll(s)];const R=a=>a[Math.floor(Math.random()*a.length)];const rnd=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
-const VER='70',CACHE_V='v70';
+const VER='71',CACHE_V='v71';
 try{document.body.classList.add('pc-only','ow-desktop');document.body.classList.remove('touch-ui');}catch(_){}
 
 const FREETEXT_ENABLED = false; // v63: classic JRPG only — free-text archived on freetext-archive
@@ -916,6 +916,7 @@ function migrate(raw){if(!raw)return null;const s=typeof raw==='string'?JSON.par
  if(Number(s.ver)<64){ try{ C64.migrateV64(s); }catch(e){console.warn('v64 migrate',e)} }
  if(Number(s.ver)<66){ try{ (S=>{try{C66.migrateV66?.(S)}catch(_){} try{C67.migrateV67?.(S)}catch(_){} try{C70.migrateV70?.(S)}catch(_){} try{s.ver=Math.max(s.ver|0,70);s.flags=s.flags||{};s.flags.visual70=true;}catch(_){} return S;})(s); }catch(e){console.warn('v66 migrate',e)} }
  if(Number(s.ver)<70){ try{ C70.migrateV70(s); }catch(e){console.warn('v70 migrate',e)} }
+ if(Number(s.ver)<71){ try{ s.ver=71; s.flags=s.flags||{}; s.flags.visual71=true; }catch(e){console.warn('v71 migrate',e)} }
  try{ if(s.role==='proc'||s.genre){ const pack=s.worldPack||PACKS.proc||{icon:'🎲',titel:s.world?.titel||'Welt',_genreLabel:s.genre||'Abenteuer',ton:'',genre:s.genre}; PACKS.proc=pack; ROLES.proc=ROLES.proc||{e:pack.icon||'🎲',name:pack._genreLabel||pack.titel||'Welt',d:pack.ton||'',world:pack.titel||'Welt',base:{hp:100,mp:30,str:10,cha:10,ruf:0,gold:20},cls:['Überlebende:r','Scavenger','Anführer:in','Legende'],pack:'',scene:pack.imageStyle||''}; } }catch(_){}
  try{ ensurePlaceCommerceTags(s); }catch(_){}
  // v13.1 continuity+time always (kept in v14)
@@ -1439,6 +1440,16 @@ function applyJrpgPack(pack){
   try{ setPortraitFromSpeaker(sp); }catch(_){}
   if(pack.changes) try{ apply(pack.changes); }catch(_){}
   hud(); renderChoices();
+  // v71: dungeon/town ort changes must rebuild OW (catacombs, follow cam)
+  try{
+    const need = !!(S.flags?.owNeedsRefresh) || S.campaign?.mode==='dungeon' || /Raum\s*\d+/i.test(String(S.world?.scene?.ort||''));
+    if(need){
+      S.flags.owNeedsRefresh=false;
+      Promise.resolve(ensureOW()).then((mod)=>{
+        try{ mod.showOverworld?.(S); }catch(e){ console.warn('ow-refresh',e); }
+      }).catch(()=>{});
+    }
+  }catch(_){}
   try{ save(); }catch(_){}
 }
 function syncFreetextUI(){

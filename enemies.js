@@ -87,6 +87,7 @@ export const BATTLE_BG={
   nocturna_pass:'assets/pixel/bg-battle/nocturna/pass.png',
   nocturna_crypt:'assets/pixel/bg-battle/nocturna/crypt.png',
   nocturna_cathedral:'assets/pixel/bg-battle/nocturna/cathedral.png',
+  nocturna_dungeon:'assets/pixel/bg-battle/nocturna/dungeon.png',
 };
 
 export function enemyById(id){
@@ -142,7 +143,8 @@ export function battleBgFor(S){
   const genre=String(S.genre||S.role||'held').toLowerCase();
   const ort=String(S.world?.scene?.ort||'').toLowerCase();
   // v60 Nocturna per-area battle BGs
-  if(/thron|festung|katakomb/.test(ort)) return BATTLE_BG.nocturna_throne;
+  if(/katakomb|eishöhlen|eishoehlen|reliquien|knochenlabyrinth|wachtürme|wachtuerme|ätherspalte|aetherspalte/.test(ort)) return BATTLE_BG.nocturna_dungeon;
+  if(/thron|festung/.test(ort)) return BATTLE_BG.nocturna_throne;
   if(/pass|grenze|wachturm/.test(ort)) return BATTLE_BG.nocturna_pass;
   if(/solmir|gruft|krypta|ruine/.test(ort)) return BATTLE_BG.nocturna_crypt;
   if(/kathedrale|solari|kirche/.test(ort)) return BATTLE_BG.nocturna_cathedral;
