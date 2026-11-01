@@ -12,7 +12,7 @@ import { fileURLToPath } from 'url';
 
 const ROOT=path.join(path.dirname(fileURLToPath(import.meta.url)),'..');
 const PORT=8793;
-const VER='71';
+const VER='72';
 const LIVE='https://markusstol.github.io/isekai-game/';
 const SKIP_LIVE=process.env.GATE_SKIP_LIVE==='1';
 const ONLY_LIVE=process.env.GATE_ONLY_LIVE==='1';
@@ -494,6 +494,137 @@ async function runLocal(browser){
     else ok('dungeon-camera', dung.cam);
     try{ await page.evaluate(()=>window.__game.OW.hideOverworld?.()); }catch(_){}
   }catch(e){ fail('layout-reuse','exception',{err:String(e)}); }
+
+  // v72: dungeon spawn-view — reject mono-tile voids + overlapping nameplates + townsfolk
+  try{
+    const DUNGEON_ORTS=[
+      'Schatzkatakomben · Raum 1','Schatzkatakomben · Raum 3','Schatzkatakomben · Raum 5',
+      'Eishöhlen · Raum 1','Reliquiengewölbe · Raum 1','Knochenlabyrinth · Raum 1',
+      'Wachtürme am Pass · Raum 1','Gruft von Solmir · Raum 1','Kathedrale Solari · Raum 1'
+    ];
+    const reports=[];
+    for(const ort of DUNGEON_ORTS){
+      const rep = await page.evaluate(async(ort)=>{
+        const g=window.__game; const S=g.S;
+        S.world=S.world||{}; S.world.scene=S.world.scene||{};
+        S.world.scene.ort=ort;
+        S.campaign=S.campaign||{}; S.campaign.mode='dungeon';
+        S.campaign.dungeon={name:ort.split('·')[0].trim(),room:parseInt((/Raum\s*(\d+)/.exec(ort)||[])[1]||'1',10),rooms:5};
+        try{ g.OW.hideOverworld?.(); }catch(_){}
+        try{ g.OW.mountOverworld?.({getS:()=>g.S, toast:()=>{}, save:()=>{}}); }catch(_){}
+        g.OW.showOverworld(S);
+        await new Promise(r=>setTimeout(r,550));
+        const st=g.OW.__debug?.()||{};
+        const npcs=g.OW.__listNpcs?.()||st.npcs||[];
+        const townsfolk=npcs.filter(n=>/passant|edelfrau|villager|händler|wächter/i.test(String(n.name||'')) || /villager|princess|merchant/i.test(String(n.sheet||'')));
+        // authored cast ok: Imp/Grabräuber/Hüter/Rekrut — only flag generic sheets
+        const generic=npcs.filter(n=>/^(villager|princess|merchant)$/i.test(String(n.sheet||'')));
+        const canvas=document.getElementById('owCanvas');
+        const lw=canvas?.width|0, lh=canvas?.height|0;
+        const ctx=canvas.getContext('2d',{willReadFrequently:true});
+        // tile-pattern dominance from map frustum (wang key) — catches mono wall voids
+        // plus pixel block check as secondary (FoW-aware: require both)
+        const m=g.OW.__map;
+        const hero0=st.hero||{x:0,y:0};
+        const vw=(st.renderView||st.view||{}).w||40, vh=(st.renderView||st.view||{}).h||22;
+        const tileCounts=new Map(); let tileBlocks=0;
+        if(m?.tiles){
+          const sx0=hero0.x|0, sy0=hero0.y|0;
+          for(let y=sy0-Math.floor(vh/2); y<=sy0+Math.floor(vh/2); y++){
+            for(let x=sx0-Math.floor(vw/2); x<=sx0+Math.floor(vw/2); x++){
+              const tt=m.tiles[y]?.[x]; if(tt==null) continue;
+              // wang-ish key: type + 4-neighbor same-mask
+              let mask=0;
+              if(m.tiles[y-1]?.[x]===tt) mask|=1;
+              if(m.tiles[y]?.[x+1]===tt) mask|=2;
+              if(m.tiles[y+1]?.[x]===tt) mask|=4;
+              if(m.tiles[y]?.[x-1]===tt) mask|=8;
+              // match overworld.js v72 wang jitter for dungeon floors/walls
+              const jitter = tt==='wall' ? ((x+y)&1) : (tt==='floor'||tt==='stone'||tt==='carpet'||tt==='plaza' ? ((x*3+y*5)&3) : 0);
+              const mod = tt==='wall' ? 2 : 4;
+              const key=tt+'#'+((mask+jitter)%mod);
+              tileCounts.set(key,(tileCounts.get(key)||0)+1); tileBlocks++;
+            }
+          }
+        }
+        let modeT=0, modeKeyT='';
+        for(const [k,v] of tileCounts){ if(v>modeT){ modeT=v; modeKeyT=k; } }
+        const tileDom=tileBlocks? modeT/tileBlocks : 1;
+        // pixel block hash (coarser) — only fail combo when BOTH high
+        const counts=new Map(); let blocks=0;
+        const step=24;
+        for(let y=8;y<lh-8;y+=step){
+          for(let x=8;x<lw-8;x+=step){
+            const d=ctx.getImageData(x,y,8,8).data;
+            let r=0,g2=0,b=0,n=0;
+            for(let i=0;i<d.length;i+=16){ r+=d[i]; g2+=d[i+1]; b+=d[i+2]; n++; }
+            const key=((r/n)|0)>>4<<16 | ((g2/n)|0)>>4<<8 | ((b/n)|0)>>4;
+            counts.set(key,(counts.get(key)||0)+1); blocks++;
+          }
+        }
+        let mode=0, modeKey=0;
+        for(const [k,v] of counts){ if(v>mode){ mode=v; modeKey=k; } }
+        const pixDom=blocks? mode/blocks : 1;
+        // fail when a single wang tile pattern owns >40% of the frustum
+        const dominance=tileDom;
+        // nameplate overlap: project labels for NPCs near hero
+        const hero=st.hero||{x:0,y:0};
+        const near=npcs.filter(n=>Math.hypot((n.x|0)-(hero.x|0),(n.y|0)-(hero.y|0))<3.2);
+        const boxes=[];
+        for(const n of near){
+          const label=String(n.name||'NPC');
+          // approx CSS/canvas box ~ label width
+          const w=Math.min(18,label.length)*7;
+          const hx=n.x, hy=n.y;
+          boxes.push({name:label,x:hx,y:hy,l:hx-w/32,r:hx+w/32,t:hy-1.2,b:hy-0.4});
+        }
+        let overlap=false; const pairs=[];
+        for(let i=0;i<boxes.length;i++) for(let j=i+1;j<boxes.length;j++){
+          const a=boxes[i],b=boxes[j];
+          if(a.l<b.r && a.r>b.l && a.t<b.b && a.b>b.t){ overlap=true; pairs.push([a.name,b.name]); }
+        }
+        // also fail if two NPCs share same tile (stacked tags)
+        for(let i=0;i<npcs.length;i++) for(let j=i+1;j<npcs.length;j++){
+          if((npcs[i].x|0)===(npcs[j].x|0) && (npcs[i].y|0)===(npcs[j].y|0)){
+            overlap=true; pairs.push([npcs[i].name,npcs[j].name,'same-tile']);
+          }
+        }
+        const map=st.map||{};
+        // walkable share of frustum from map tiles around hero
+        let walk=0, cells=0;
+        if(m?.tiles){
+          const sx=hero.x|0, sy=hero.y|0;
+          for(let y=sy-Math.floor(vh/2); y<=sy+Math.floor(vh/2); y++)
+            for(let x=sx-Math.floor(vw/2); x<=sx+Math.floor(vw/2); x++){
+              const tt=m.tiles[y]?.[x]; if(tt==null) continue; cells++;
+              if(tt!=='wall' && tt!=='void') walk++;
+            }
+        }
+        return {
+          ort, preset:map.preset, kind:map.kind,
+          dominance:+dominance.toFixed(3), tileDom:+tileDom.toFixed(3), pixDom:+pixDom.toFixed(3), modeKey:modeKeyT, blocks:tileBlocks, counts:tileCounts.size, pixCounts:counts.size,
+          npcs:npcs.map(n=>({name:n.name,x:n.x,y:n.y,sheet:n.sheet})),
+          generic:generic.map(n=>n.name), townsfolk:townsfolk.map(n=>n.name),
+          overlap, pairs, near:near.map(n=>n.name),
+          walkRatio: cells? +(walk/cells).toFixed(3):0, spawn:[hero.x,hero.y],
+          scale:st.scale|0
+        };
+      }, ort);
+      reports.push(rep);
+    }
+    // v72: fail if any single wang tile pattern owns >40% of spawn frustum
+    const badDom=reports.filter(r=>r.dominance>0.40);
+    const badTag=reports.filter(r=>r.overlap);
+    const badFolk=reports.filter(r=>(r.generic||[]).length);
+    const badWalk=reports.filter(r=>r.walkRatio<0.22);
+    if(badDom.length) fail('dungeon-spawn-view', 'mono-tile dominance >40%', {bad:badDom.map(r=>({ort:r.ort,dominance:r.dominance,tileDom:r.tileDom,pixDom:r.pixDom,modeKey:r.modeKey,counts:r.counts,walk:r.walkRatio}))});
+    else if(badTag.length) fail('dungeon-spawn-view', 'overlapping name tags', {bad:badTag.map(r=>({ort:r.ort,pairs:r.pairs,npcs:r.npcs}))});
+    else if(badFolk.length) fail('dungeon-spawn-view', 'generic townsfolk in dungeon', {bad:badFolk.map(r=>({ort:r.ort,generic:r.generic}))});
+    else if(badWalk.length) fail('dungeon-spawn-view', 'spawn frustum almost solid rock', {bad:badWalk.map(r=>({ort:r.ort,walk:r.walkRatio}))});
+    else ok('dungeon-spawn-view', {n:reports.length, maxDom:Math.max(...reports.map(r=>r.dominance)), minWalk:Math.min(...reports.map(r=>r.walkRatio)), sample:reports.map(r=>({ort:r.ort,dom:r.dominance,walk:r.walkRatio,npcs:r.npcs.length,preset:r.preset}))});
+    try{ await page.evaluate(()=>window.__game.OW.hideOverworld?.()); }catch(_){}
+  }catch(e){ fail('dungeon-spawn-view','exception',{err:String(e)}); }
+
 
 
   try{

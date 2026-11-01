@@ -209,6 +209,13 @@ function wangUrlFor(t,x,y){
   if(dir.includes('/areas/') && (_map.kind==='interior'||_map.kind==='dungeon')){
     if(t==='wall'){
       const mask = wangSameMask(x,y,(xx,yy)=> _map.tiles?.[yy]?.[xx]==='wall');
+      // v72: dungeons use near-black crypt cwall (not brown iwall that reads as floor)
+      if(_map.kind==='dungeon'){
+        // v72: only near-black crypt rock (cwall1–4 are brown and read as floor/void)
+        const opts=[0,5,0,5,0,5];
+        const jitter=(x+y)&1;
+        return dir + 'cwall' + opts[(mask + jitter) % opts.length] + '.png';
+      }
       const opts=[0,1,2,3,4,6];
       return dir + 'iwall' + opts[mask % opts.length] + '.png';
     }
@@ -257,7 +264,15 @@ function wangUrlFor(t,x,y){
   if(t==='carpet' && dir.includes('/areas/')){
     // v65: icarpet sheets are olive/plaza-tinted — use dark cfloor runner instead
     const mask = wangSameMask(x,y,(xx,yy)=> _map.tiles?.[yy]?.[xx]==='carpet');
-    if(_map.kind==='interior'||_map.kind==='dungeon') return dir + 'cfloor' + (1 + (mask % 4)) + '.png';
+    if(_map.kind==='interior'||_map.kind==='dungeon'){
+      if(_map.kind==='dungeon'){
+        // dark stone floors only (cfloor 1,3,5) — skip brown 0/2/4
+        const dark=[1,3,5,1];
+        const jitter=(x*3+y*5)&3;
+        return dir + 'cfloor' + dark[(mask + jitter) % dark.length] + '.png';
+      }
+      return dir + 'cfloor' + (1 + (mask % 4)) + '.png';
+    }
     return dir + 'icarpet' + (mask % 5) + '.png';
   }
   return base;
@@ -520,6 +535,8 @@ export function buildMapForLocation(S, ort){
     chests; // keep closure warm
     (questMark._buf = questMark._buf || []).push({x,y,label,kind});
   };
+  questMark._dungSpawn=null;
+  questMark._buf=null;
 
   // ---- Preset layouts ----
   const cx=Math.floor(w/2), cy=Math.floor(ht/2);
@@ -537,165 +554,179 @@ export function buildMapForLocation(S, ort){
   } else if(preset==='dungeon' || preset==='catacomb' || preset==='ice_cave' || preset==='relic_vault' || preset==='bone_labyrinth' || preset==='watch_dungeon' || preset==='aether_rift'){
     kind='dungeon';
     let variant=preset==='dungeon'?'catacomb':preset;
-    // v71: each Raum N within a dungeon gets a distinct sub-layout (hash-shifted carve)
     const roomMatch=/raum\s*(\d+)/i.exec(name);
     const roomN = roomMatch ? (parseInt(roomMatch[1],10)||1) : (S?.campaign?.dungeon?.room|1);
-    const roomShift = ((roomN*17 + h)%7);
-    // solid rock shell
+    const rs = ((roomN*17 + h)%5);
+    // solid dark rock — corridors carved out
     for(let y=0;y<ht;y++) for(let x=0;x<w;x++) tiles[y][x]='wall';
-    const carve=(x,y,ww,hh,mat='floor')=>{ fill(x,y,ww,hh,mat); };
-    const corridor=(x0,y0,x1,y1)=>{
-      let x=x0,y=y0;
-      while(x!==x1||y!==y1){
-        if(y>1&&y<ht-2&&x>1&&x<w-2){ tiles[y][x]='floor'; if(tiles[y][x+1]) tiles[y][x+1]='floor'; }
+    const carve=(x,y,ww,hh,mat='floor')=>{ fill(Math.max(1,x|0),Math.max(1,y|0),Math.max(1,ww|0),Math.max(1,hh|0),mat); };
+    // 3-tile-wide corridors (2–4 requested)
+    const hall=(x0,y0,x1,y1,width=3)=>{
+      const half=Math.floor(width/2);
+      let x=x0|0, y=y0|0;
+      const steps=Math.abs(x1-x0)+Math.abs(y1-y0)+2;
+      for(let s=0;s<steps;s++){
+        for(let oy=-half;oy<=half;oy++) for(let ox=-half;ox<=half;ox++){
+          const xx=x+ox, yy=y+oy;
+          if(yy>0&&yy<ht-1&&xx>0&&xx<w-1) tiles[yy][xx]='floor';
+        }
+        if(x===x1 && y===y1) break;
         if(x!==x1) x+=x1>x?1:-1;
         else if(y!==y1) y+=y1>y?1:-1;
       }
     };
-    const crackFloor=(x,y,n)=>{
+    const rnd=(n)=>((h*1103515245+n*12345)>>>0)%100;
+    const crack=(x,y,n)=>{
       for(let i=0;i<n;i++){
-        const tx=x+(rnd(i*3+x)%7)-3, ty=y+(rnd(i*5+y)%5)-2;
+        const tx=x+(rnd(i*3+x)%9)-4, ty=y+(rnd(i*5+y)%7)-3;
         if(tiles[ty]?.[tx]==='floor' && rnd(i+tx)%3===0) tiles[ty][tx]='stone';
       }
     };
-    const rnd=(n)=>((h*1103515245+n*12345)>>>0)%100;
+    // v72: spawn in CENTER chamber so frustum sees corridors+rooms, not wall void
+    const sx0=cx, sy0=cy;
+    carve(sx0-4, sy0-3, 9, 7); // spawn chamber
+    questMark._dungSpawn={x:sx0, y:sy0};
 
     if(variant==='catacomb'){
-      // Schatzkatakomben: narrow corridors, coffin niches, treasure vault, puzzle seal — per-room focus
-      const rs=roomShift;
-      carve(3, ht-8, 6, 5); // entry vestibule
-      carve(4, 18, 4, 8); corridor(5,18,5,12);
-      carve(3+ (rs%3), 8, 8, 6); // west hall
-      corridor(10,10,18,10);
-      carve(16, 6+(rs%2), 10, 8); // east vault
-      corridor(20,14,20,22);
-      carve(14, 20, 12, 8); // south gallery
-      corridor(8,22,14,22);
-      carve(6+(rs%2), 3, 10, 5); // puzzle seal chamber (north)
-      carve(28-(rs%3), 10+(rs%2), 10, 8); // treasure vault
-      corridor(25,10,28,12);
-      // room focus markers (unique silhouette per Raum)
-      if(roomN===1){ carve(10, 26, 8, 4); } // antechamber alcove
-      else if(roomN===2){ carve(22, 3, 8, 4); corridor(20,6,24,6); } // upper niche
-      else if(roomN===3){ carve(8, 3, 12, 6); fill(10,4,6,3,'carpet'); } // puzzle room wide
-      else if(roomN===4){ carve(30, 20, 8, 6); corridor(28,18,32,22); } // side vault
-      else { carve(cx-4, 14, 9, 7); } // central ossuary for boss approach
-      // coffin niches along west hall
-      for(const [cx0,cy0] of [[4,9],[4,11],[9,9],[9,11],[17,22],[17,24],[22,22],[22,24]]){
-        if(tiles[cy0]?.[cx0]==='floor'){ prop(cx0,cy0,'coffin'); ov(cx0,cy0,'coffin'); }
+      // v72 dense: rooms fill the 40×22 frustum so rock never reads as a mono void
+      const shift=rs%3; // per-Raum fingerprint
+      const west=sx0-16+shift, east=sx0+7-shift, north=sy0-10, south=sy0+7;
+      carve(sx0-5, sy0-4, 11, 9); // larger spawn hall
+      carve(west, sy0-4, 9, 8);
+      carve(east, sy0-4, 10, 8);
+      carve(sx0-5, north, 11, 7);
+      carve(sx0-6, south, 13, 6);
+      carve(west-1, north+1, 6, 5);
+      carve(east+3, north+1, 6, 5);
+      carve(west-1, south, 6, 5);
+      carve(east+3, south, 6, 5);
+      hall(sx0, sy0, west+4, sy0, 3);
+      hall(sx0, sy0, east+4, sy0, 3);
+      hall(sx0, sy0, sx0, north+3, 3);
+      hall(sx0, sy0, sx0, south+2, 3);
+      hall(west+3, sy0-3, west+3, north+3, 3);
+      hall(east+4, sy0-3, east+4, north+3, 3);
+      hall(west+3, sy0+3, west+3, south+2, 3);
+      hall(east+4, sy0+3, east+4, south+2, 3);
+      if(roomN===1){ carve(sx0+3, sy0+1, 5, 4); fill(sx0-4, sy0-2, 5, 3, 'stone'); }
+      else if(roomN===3){ fill(sx0-4, north+1, 9, 4, 'carpet'); prop(sx0, north+2, 'altar'); ov(sx0,north+2,'altar'); carve(sx0-8, sy0-1, 4, 4); }
+      else if(roomN>=5){ carve(sx0-7, sy0-7, 15, 6); hall(sx0-10, sy0, sx0+10, sy0, 4); }
+      for(const [px,py] of [[west+1,sy0-3],[west+1,sy0+2],[west+6,sy0-3],[west+6,sy0+2],[east+2,sy0-3],[east+7,sy0-3],[east+2,sy0+2],[east+7,sy0+2]]){
+        if(tiles[py]?.[px]==='floor'){ prop(px,py,'coffin'); ov(px,py,'coffin'); }
       }
-      // cracked floors
-      crackFloor(8,10,18); crackFloor(20,12,14); crackFloor(18,24,12);
-      // pillars / cracked stones
-      for(const [px,py] of [[7,10],[12,10],[18,9],[22,9],[18,12],[30,13],[33,13]]){
+      crack(sx0, sy0, 36); crack(east+4, sy0, 16); crack(west+3, sy0, 16);
+      for(const [px,py] of [[sx0-3,sy0],[sx0+3,sy0],[west+4,sy0],[east+4,sy0],[sx0,sy0-3],[sx0,sy0+3]]){
         if(tiles[py]?.[px]==='floor') tiles[py][px]='stone';
       }
-      placeChest(30, 12, {gold:28, item:'Schattenkristall'});
-      placeChest(32, 14, {gold:18, item:'Antidot'});
-      placeChest(8, 5, {gold:12, item:'Siegelbruchstück'});
-      prop(8,4,'altar'); ov(8,4,'altar');
-      questMark(8, 4, 'Siegelsaal', 'puzzle');
-      questMark(31, 12, 'Schatzkammer', 'side');
-      anim(5,9,'torch'); anim(10,9,'torch'); anim(18,7,'torch'); anim(24,7,'torch');
-      anim(30,11,'torch'); anim(34,11,'torch'); anim(7,4,'torch'); anim(12,4,'torch');
-      anim(16,22,'torch'); anim(24,22,'torch');
-      _hubNpcs.push({name:'Imp-Schuldner', x:7, y:11, px:7, py:11, sheet:'daemon', e:'👿'});
-      _hubNpcs.push({name:'Grabräuber Jex', x:19, y:23, px:19, py:23, sheet:'spy', e:'🗝️'});
+      placeChest(east+5, sy0, {gold:28, item:'Schattenkristall'});
+      placeChest(east+7, sy0+1, {gold:18, item:'Antidot'});
+      placeChest(sx0, north+2, {gold:12, item:'Siegelbruchstück'});
+      placeChest(west+2, sy0+1, {gold:10, item:'Schattenkristall'});
+      if(roomN!==3){ prop(sx0, north+2, 'altar'); ov(sx0,north+2,'altar'); }
+      questMark(sx0, north+2, 'Siegelsaal', 'puzzle');
+      questMark(east+5, sy0, 'Schatzkammer', 'side');
+      for(const [tx,ty] of [[sx0-4,sy0-3],[sx0+4,sy0-3],[west+2,sy0-3],[east+2,sy0-3],[sx0,north+1],[sx0,south+1],[west+2,south+1],[east+2,south+1]]){
+        anim(tx,ty,'torch');
+      }
+      _hubNpcs.push({name:'Imp-Schuldner', x:west+4, y:sy0, px:west+4, py:sy0, sheet:'daemon', e:'👿'});
+      _hubNpcs.push({name:'Grabräuber Jex', x:east+4, y:sy0+1, px:east+4, py:sy0+1, sheet:'spy', e:'🗝️'});
     } else if(variant==='ice_cave'){
-      // Eishöhlen: icy tunnels, frozen pools, crystal niches
-      carve(cx-3, ht-7, 7, 5);
-      corridor(cx, ht-7, cx, 20);
-      carve(cx-8, 14, 8, 7); carve(cx+2, 14, 8, 7);
-      corridor(cx-4, 17, cx+4, 17);
-      corridor(cx-6, 14, cx-6, 6); corridor(cx+6, 14, cx+6, 6);
-      carve(cx-10, 3, 9, 6); carve(cx+3, 3, 9, 6);
-      carve(cx-2, 8, 5, 5); // ice nexus
-      for(let y=4;y<ht-4;y++) for(let x=3;x<w-3;x++){
-        if(tiles[y][x]==='floor' && rnd(x*7+y)%11===0) tiles[y][x]='water'; // frozen pools as water tint
+      carve(sx0-5, sy0-4, 11, 9);
+      carve(sx0-14, sy0-4, 10, 8); carve(sx0+5, sy0-4, 10, 8);
+      carve(sx0-5, sy0-12, 11, 7); carve(sx0-5, sy0+6, 11, 6);
+      carve(sx0-16, sy0-11, 7, 6); carve(sx0+10, sy0-11, 7, 6);
+      carve(sx0-16, sy0+5, 7, 5); carve(sx0+10, sy0+5, 7, 5);
+      hall(sx0, sy0, sx0-9, sy0, 3); hall(sx0, sy0, sx0+9, sy0, 3);
+      hall(sx0, sy0, sx0, sy0-9, 3); hall(sx0, sy0, sx0, sy0+7, 3);
+      hall(sx0-9, sy0-3, sx0-13, sy0-8, 3); hall(sx0+9, sy0-3, sx0+13, sy0-8, 3);
+      hall(sx0-9, sy0+3, sx0-13, sy0+6, 3); hall(sx0+9, sy0+3, sx0+13, sy0+6, 3);
+      for(let y=sy0-10;y<sy0+8;y++) for(let x=sx0-10;x<sx0+12;x++){
+        if(tiles[y]?.[x]==='floor' && rnd(x*7+y)%10===0) tiles[y][x]='water';
       }
-      crackFloor(cx,16,20);
-      for(const [px,py] of [[cx-7,5],[cx-5,5],[cx+5,5],[cx+7,5],[cx,10]]){
-        if(tiles[py]?.[px]) { tiles[py][px]='stone'; prop(px,py,'rock'); }
+      crack(sx0, sy0, 20);
+      for(const [px,py] of [[sx0-8,sy0],[sx0+8,sy0],[sx0,sy0-9],[sx0-1,sy0-8]]){
+        if(tiles[py]?.[px]==='floor'){ tiles[py][px]='stone'; prop(px,py,'rock'); }
       }
-      placeChest(cx-8, 5, {gold:22, item:'Frosttrank'});
-      placeChest(cx+7, 5, {gold:20, item:'Eiskristall'});
-      questMark(cx, 9, 'Eiskern', 'story');
-      anim(cx-3,15,'torch'); anim(cx+3,15,'torch'); anim(cx-8,4,'torch'); anim(cx+8,4,'torch');
-      try{ if(S){ S.flags=S.flags||{}; S.flags.weather='schnee'; } }catch(_){}
+      placeChest(sx0-8, sy0-1, {gold:22, item:'Frosttrank'});
+      placeChest(sx0+8, sy0-1, {gold:20, item:'Eiskristall'});
+      questMark(sx0, sy0-9, 'Eiskern', 'story');
+      anim(sx0-3,sy0-1,'torch'); anim(sx0+3,sy0-1,'torch'); anim(sx0,sy0-10,'torch'); anim(sx0,sy0+5,'torch');
     } else if(variant==='relic_vault'){
-      // Reliquiengewölbe: orthogonal halls, altar bays, glass niches
-      carve(cx-2, ht-6, 5, 4);
-      corridor(cx, ht-6, cx, 4);
-      for(const y of [8,14,20,26]){ carve(4, y, w-8, 4); }
-      for(const x of [6,14,22,30]){ corridor(x, 8, x, 28); }
-      carve(cx-4, 3, 9, 5); // high altar
-      prop(cx, 4, 'altar'); ov(cx,4,'altar');
-      for(const [gx,gy,g] of [[8,9,'glass_blue'],[16,9,'glass_red'],[24,9,'glass_gold'],[32,9,'glass_green'],
-                               [8,21,'glass_red'],[16,21,'glass_blue'],[24,21,'glass_green'],[32,21,'glass_gold']]){
+      carve(sx0-5, sy0-4, 11, 9);
+      for(const dy of [-8,0,8]) carve(sx0-14, sy0+dy-2, 29, 5);
+      for(const dx of [-12,-4,4,12]) hall(sx0+dx, sy0-10, sx0+dx, sy0+10, 3);
+      carve(sx0-5, sy0-13, 11, 6);
+      carve(sx0-14, sy0-12, 7, 5); carve(sx0+8, sy0-12, 7, 5);
+      carve(sx0-14, sy0+8, 7, 5); carve(sx0+8, sy0+8, 7, 5);
+      prop(sx0, sy0-10, 'altar'); ov(sx0,sy0-10,'altar');
+      for(const [gx,gy,g] of [[sx0-8,sy0-8,'glass_blue'],[sx0+8,sy0-8,'glass_red'],[sx0-8,sy0+8,'glass_gold'],[sx0+8,sy0+8,'glass_green']]){
         if(tiles[gy]?.[gx]==='floor'){ ov(gx,gy,g); prop(gx,gy,g); }
       }
-      placeChest(cx-2, 5, {gold:30, item:'Heiliges Siegel'});
-      placeChest(10, 15, {gold:16, item:'Weihwasser'});
-      placeChest(28, 15, {gold:18, item:'Reliquiensplitter'});
-      questMark(cx, 4, 'Hochaltar', 'story');
-      anim(cx-3,4,'torch'); anim(cx+3,4,'torch');
-      for(const y of [9,15,21]){ anim(5,y,'torch'); anim(w-6,y,'torch'); }
+      placeChest(sx0-2, sy0-10, {gold:30, item:'Heiliges Siegel'});
+      placeChest(sx0-8, sy0, {gold:16, item:'Weihwasser'});
+      placeChest(sx0+8, sy0, {gold:18, item:'Reliquiensplitter'});
+      questMark(sx0, sy0-10, 'Hochaltar', 'story');
+      for(const [tx,ty] of [[sx0-3,sy0-10],[sx0+3,sy0-10],[sx0-11,sy0],[sx0+11,sy0],[sx0,sy0]]) anim(tx,ty,'torch');
     } else if(variant==='bone_labyrinth'){
-      // Knochenlabyrinth: maze corridors, dead ends, bone piles
-      carve(cx-2, ht-6, 5, 4);
-      // maze grid
-      for(let y=3;y<ht-3;y+=3) for(let x=3;x<w-3;x+=3){
-        carve(x, y, 2, 2);
-        if(rnd(x+y*5)%2===0) corridor(x, y, Math.min(w-4,x+3), y);
-        if(rnd(x*3+y)%2===0) corridor(x, y, x, Math.min(ht-4,y+3));
+      for(let y=sy0-12;y<=sy0+12;y+=4) for(let x=sx0-14;x<=sx0+14;x+=4){
+        if(x<2||y<2||x>=w-2||y>=ht-2) continue;
+        carve(x, y, 3, 3);
+        if(rnd(x+y*3)%3!==0) hall(x+1, y+1, Math.min(w-4,x+5), y+1, 3);
+        if(rnd(x*2+y)%3!==0) hall(x+1, y+1, x+1, Math.min(ht-4,y+5), 3);
       }
-      corridor(cx, ht-6, cx, 4);
-      carve(cx-3, 3, 7, 5); // bone heart
-      for(let i=0;i<28;i++){
-        const tx=4+(rnd(i*9)% (w-8)), ty=4+(rnd(i*11)%(ht-8));
+      carve(sx0-3, sy0-3, 7, 7);
+      hall(sx0, sy0, sx0, sy0-12, 3);
+      carve(sx0-3, sy0-14, 7, 4);
+      for(let i=0;i<18;i++){
+        const tx=sx0-12+(rnd(i*9)%24), ty=sy0-10+(rnd(i*11)%20);
         if(tiles[ty]?.[tx]==='floor' && rnd(i)%2===0){ prop(tx,ty,'coffin'); ov(tx,ty,'coffin'); }
       }
-      crackFloor(cx,12,30);
-      placeChest(cx, 4, {gold:26, item:'Knochenamulett'});
-      placeChest(8, 16, {gold:14, item:'Antidot'});
-      questMark(cx, 5, 'Knochenherz', 'boss');
-      anim(cx-2,4,'torch'); anim(cx+2,4,'torch');
+      crack(sx0, sy0, 28);
+      placeChest(sx0, sy0-13, {gold:26, item:'Knochenamulett'});
+      placeChest(sx0-8, sy0+4, {gold:14, item:'Antidot'});
+      questMark(sx0, sy0-13, 'Knochenherz', 'boss');
+      anim(sx0-2,sy0-12,'torch'); anim(sx0+2,sy0-12,'torch'); anim(sx0-2,sy0,'torch'); anim(sx0+2,sy0,'torch');
+      _hubNpcs.push({name:'Hüter Orun', x:sx0+2, y:sy0-12, px:sx0+2, py:sy0-12, sheet:'guard', e:'🦴'});
     } else if(variant==='watch_dungeon'){
-      // Wachtürme am Pass: vertical shaft rooms + barracks
-      carve(cx-4, ht-7, 9, 5);
-      for(const y of [6,12,18,24]) carve(cx-5, y, 11, 5);
-      corridor(cx, ht-7, cx, 6);
-      carve(4, 12, 8, 8); carve(w-12, 12, 8, 8); // side barracks
-      corridor(cx-5, 15, 11, 15); corridor(cx+5, 15, w-12, 15);
-      for(const [px,py] of [[cx-3,7],[cx+3,7],[cx-3,13],[cx+3,13],[cx-3,19],[cx+3,19]]){
-        if(tiles[py]?.[px]) tiles[py][px]='stone';
-      }
-      prop(6,14,'barrel'); prop(7,16,'crate'); prop(w-8,14,'barrel'); prop(w-7,16,'bench');
-      placeChest(cx, 7, {gold:24, item:'Wachtrank'});
-      placeChest(6, 15, {gold:12, item:'Seil'});
-      questMark(cx, 8, 'Kommandostube', 'story');
-      anim(cx-4,7,'torch'); anim(cx+4,7,'torch'); anim(5,13,'torch'); anim(w-6,13,'torch');
-    } else { // aether_rift / cathedral final
-      carve(cx-3, ht-6, 7, 4);
-      corridor(cx, ht-6, cx, 10);
-      carve(6, 8, w-12, 10); // nave
-      carve(cx-6, 2, 13, 7); // choir / rift
-      fill(cx-3, 4, 7, 3, 'carpet');
-      prop(cx, 3, 'altar'); ov(cx,3,'altar');
-      for(const y of [10,14]) for(const x of [8,14,20,26,32]){
-        if(tiles[y]?.[x]==='floor'){ tiles[y][x]='stone'; anim(x,y-1,'torch'); }
-      }
-      placeChest(cx-4, 5, {gold:40, item:'Äthersplitter'});
-      placeChest(cx+4, 5, {gold:40, item:'Nachtstahl'});
-      questMark(cx, 4, 'Ätherspalt', 'boss');
-      anim(cx-5,4,'torch'); anim(cx+5,4,'torch');
+      carve(sx0-6, sy0-4, 13, 9);
+      for(const dy of [-10,-5,5,10]) carve(sx0-6, sy0+dy, 13, 5);
+      hall(sx0, sy0-10, sx0, sy0+10, 4);
+      carve(sx0-16, sy0-4, 9, 9); carve(sx0+8, sy0-4, 9, 9);
+      carve(sx0-16, sy0-12, 8, 5); carve(sx0+9, sy0-12, 8, 5);
+      hall(sx0-6, sy0, sx0-12, sy0, 3); hall(sx0+6, sy0, sx0+12, sy0, 3);
+      hall(sx0-12, sy0-4, sx0-12, sy0-10, 3); hall(sx0+12, sy0-4, sx0+12, sy0-10, 3);
+      prop(sx0-12, sy0, 'barrel'); prop(sx0-11, sy0+2, 'crate'); prop(sx0+10, sy0, 'barrel'); prop(sx0+11, sy0+1, 'bench');
+      placeChest(sx0, sy0-9, {gold:24, item:'Wachtrank'});
+      placeChest(sx0-12, sy0+1, {gold:12, item:'Seil'});
+      questMark(sx0, sy0-9, 'Kommandostube', 'story');
+      for(const [tx,ty] of [[sx0-4,sy0-9],[sx0+4,sy0-9],[sx0-13,sy0-2],[sx0+12,sy0-2],[sx0,sy0]]) anim(tx,ty,'torch');
+      _hubNpcs.push({name:'Rekrut Venn', x:sx0+3, y:sy0-1, px:sx0+3, py:sy0-1, sheet:'guard', e:'🛡️'});
+    } else { // aether_rift
+      carve(sx0-6, sy0-4, 13, 9);
+      carve(sx0-10, sy0-5, 21, 11);
+      carve(sx0-7, sy0-13, 15, 8);
+      carve(sx0-6, sy0+6, 13, 6);
+      hall(sx0, sy0, sx0, sy0-10, 3); hall(sx0, sy0, sx0, sy0+7, 3);
+      carve(sx0-16, sy0-3, 7, 7); carve(sx0+10, sy0-3, 7, 7);
+      hall(sx0-10, sy0, sx0-13, sy0, 3); hall(sx0+10, sy0, sx0+13, sy0, 3);
+      carve(sx0-14, sy0-11, 6, 6); carve(sx0+9, sy0-11, 6, 6);
+      hall(sx0-13, sy0-3, sx0-11, sy0-8, 3); hall(sx0+13, sy0-3, sx0+11, sy0-8, 3);
+      carve(sx0-14, sy0+6, 6, 5); carve(sx0+9, sy0+6, 6, 5);
+      fill(sx0-3, sy0-10, 7, 3, 'carpet');
+      prop(sx0, sy0-10, 'altar'); ov(sx0,sy0-10,'altar');
+      for(const x of [sx0-6,sx0-2,sx0+2,sx0+6]){ if(tiles[sy0]?.[x]==='floor'){ tiles[sy0][x]='stone'; anim(x,sy0-1,'torch'); } }
+      placeChest(sx0-3, sy0-10, {gold:40, item:'Äthersplitter'});
+      placeChest(sx0+3, sy0-10, {gold:40, item:'Nachtstahl'});
+      questMark(sx0, sy0-10, 'Ätherspalt', 'boss');
+      anim(sx0-4,sy0-10,'torch'); anim(sx0+4,sy0-10,'torch');
     }
-    // shared spawn + exit
-    const spawnY=ht-5, spawnX=cx;
-    if(tiles[spawnY]){ tiles[spawnY][spawnX]='floor'; tiles[spawnY][spawnX-1]='floor'; tiles[spawnY][spawnX+1]='floor'; }
-    tiles[ht-2][cx]='door';
-    prop(cx+2, spawnY, 'sign');
-    anim(cx-2, spawnY, 'torch'); anim(cx+2, spawnY, 'torch');
+    // exit door south of spawn chamber (still on-camera)
+    const doorY=Math.min(ht-2, sy0+10);
+    hall(sx0, sy0, sx0, doorY, 3);
+    tiles[doorY][sx0]='door';
+    prop(sx0+2, sy0+1, 'sign');
+    anim(sx0-2, sy0, 'torch'); anim(sx0+2, sy0, 'torch');
+
   } else if(preset==='summon'){
     // Summoning hall — marble plaza, pillars, central circle
     for(let y=0;y<ht;y++) for(let x=0;x<w;x++) tiles[y][x]='floor';
@@ -1450,8 +1481,13 @@ export function buildMapForLocation(S, ort){
     }
   }
   let sx=Math.floor(w/2), sy=Math.floor(ht/2);
+  // v72: authored dungeon spawn (center chamber) wins over edge vestibule
+  if(typeof questMark._dungSpawn==='object' && questMark._dungSpawn){
+    sx=Math.max(1,Math.min(w-2, questMark._dungSpawn.x|0));
+    sy=Math.max(1,Math.min(ht-2, questMark._dungSpawn.y|0));
+  }
   // Prefer spawn near return door if exiting interior
-  if(S?._owSpawn && typeof S._owSpawn.x==='number'){
+  if(S?._owSpawn && typeof S._owSpawn.x==='number' && kind!=='dungeon'){
     sx=Math.max(1,Math.min(w-2,S._owSpawn.x|0));
     sy=Math.max(1,Math.min(ht-2,S._owSpawn.y|0));
   }
@@ -1485,8 +1521,9 @@ export function buildMapForLocation(S, ort){
     if(handHub && /Sekretärin Velka|General Brok|Spionin Nyx|Heldin Aria/i.test(s)) return false;
     return true;
   });
-  // v66: hand hubs = authored cast only (no Passant/Edelfrau generics)
-  presentFiltered.slice(0, handHub?0:8).forEach((nm,i)=>{
+  // v66/v72: hand hubs + dungeons = authored cast only (no Passant/Edelfrau generics)
+  const skipCrowd = handHub || kind==='dungeon';
+  presentFiltered.slice(0, skipCrowd?0:8).forEach((nm,i)=>{
     const n=S.world?.npcs?.[nm]||{};
     const art=String(n.art||n.stimme||'').toLowerCase()+nm.toLowerCase();
     let sheet='villager';
@@ -2234,18 +2271,26 @@ function draw(){
           }
         }
       }catch(_){}
-      // v63: indoor wall height + pillar shadow
+      // v63/v72: indoor wall height only on edges abutting walkables (not solid rock mass)
       try{
         if((_map.kind==='interior'||_map.kind==='dungeon') && t==='wall'){
-          const him=loadImg(wangUrlFor('wall',x,y));
-          if(him.complete&&him.naturalWidth){
-            ctx.drawImage(him, sx, sy-tw*0.85, tw, tw*0.9);
-          } else {
-            ctx.fillStyle='rgba(40,42,55,0.95)';
-            ctx.fillRect(sx, sy-tw*0.85, tw, tw*0.9);
+          const walk=new Set(['floor','path','carpet','plaza','stone','door','water','sand']);
+          let edge=false;
+          for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){
+            const nt=_map.tiles[y+dy]?.[x+dx];
+            if(walk.has(nt)){ edge=true; break; }
           }
-          ctx.fillStyle='rgba(0,0,0,0.35)';
-          ctx.fillRect(sx, sy+tw*0.15, tw, tw*0.2);
+          if(edge){
+            const him=loadImg(wangUrlFor('wall',x,y));
+            if(him.complete&&him.naturalWidth){
+              ctx.drawImage(him, sx, sy-tw*0.85, tw, tw*0.9);
+            } else {
+              ctx.fillStyle='rgba(20,22,30,0.95)';
+              ctx.fillRect(sx, sy-tw*0.85, tw, tw*0.9);
+            }
+            ctx.fillStyle='rgba(0,0,0,0.35)';
+            ctx.fillRect(sx, sy+tw*0.15, tw, tw*0.2);
+          }
         }
         // pillars: plaza/stone columns beside carpet cast oval shadow
         if((_map.kind==='interior') && (t==='stone'||t==='plaza') && _map.tiles[y]?.[x-1]==='carpet'){
@@ -3020,9 +3065,9 @@ export function showOverworld(S){
     const crypt='./assets/pixel/tiles-nocturna/areas/crypt';
     const ice=/ice_cave/i.test(String(built.preset||''));
     _tileSet={..._tileSet,
-      grass: ice ? './assets/pixel/tiles-nocturna/areas/pass/sand.png' : (crypt+'/ifloor1.png'),
-      path: crypt+'/ifloor0.png',
-      floor: crypt+'/ifloor1.png',
+      grass: ice ? './assets/pixel/tiles-nocturna/areas/pass/sand.png' : (crypt+'/cfloor1.png'),
+      path: crypt+'/cfloor3.png',
+      floor: crypt+'/cfloor1.png',
       wall: crypt+'/cwall0.png',
       tree: './assets/pixel/tiles-dungeon/tree.png',
       void: './assets/pixel/tiles-dungeon/void.png',
