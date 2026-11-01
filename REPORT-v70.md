@@ -37,3 +37,10 @@ Local gate: **PASSED** (`GATE_SKIP_LIVE=1`) — unique-battlers, party-order, ba
 ## Ship
 - `VER` / SW / `package.json` → **70** / **0.70.0**
 - Tag **v0.70.0** → GHA Windows NSIS + Pages from `main`.
+
+## Shipped
+- Commit `cbd8b0c` on `main`, tag **v0.70.0**
+- Installer: https://github.com/MarkusStol/isekai-game/releases/download/v0.70.0/Nocturna-Setup-0.70.0-x64.exe (~92.5 MB)
+- Release: https://github.com/MarkusStol/isekai-game/releases/tag/v0.70.0
+- Playtest c1: puzzle + boss win → reward (`scripts/playtest-nocturna-v70-c1.mjs` ok)
+- Gate: PASSED (SKIP_LIVE)
