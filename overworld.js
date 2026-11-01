@@ -319,6 +319,7 @@ export function buildMapForLocation(S, ort){
   else if(/grenzpass|\bpass\b|wachturm/.test(low)) preset='wall';
   else if(/solmir|gruft|krypta/.test(low)) preset='graveyard';
   else if(/kathedrale|solari/.test(low)) preset='church';
+  else if(/katakomben|eishöhlen|eishoehlen|reliquiengewölbe|reliquiengewoelbe|knochenlabyrinth|ätherspalte|aetherspalte/.test(low)) { preset='dungeon'; kind='dungeon'; }
 
   // Entered buildings always use interior layout
   if(/^in:/.test(low) || /\(innen\)/.test(low)) { preset='interior'; kind='interior'; }
@@ -390,7 +391,7 @@ export function buildMapForLocation(S, ort){
   const handHub=/(wall|graveyard|throne|church)/.test(String(preset||''));
   const w = handHub?30: kind==='dungeon'?26: kind==='camp'?18: kind==='interior'?16:30;
   // v64: throne court is compact (not endless hallway canvas)
-  const ht = preset==='throne'?20: preset==='church'?22: preset==='graveyard'?24: handHub?28: kind==='dungeon'?32: kind==='camp'?16: kind==='interior'?14:34;
+  const ht = preset==='throne'?20: preset==='church'?26: preset==='graveyard'?24: handHub?28: kind==='dungeon'?32: kind==='camp'?16: kind==='interior'?14:34;
   const tiles=Array.from({length:ht},()=>Array(w).fill('grass'));
   const overlay=Array.from({length:ht},()=>Array(w).fill(null));
   const interiors=[];
@@ -493,7 +494,7 @@ export function buildMapForLocation(S, ort){
     kind='dungeon';
     fill(0,0,w,ht,'void');
     fill(1,1,w-2,ht-2,'wall');
-    // v47d: multi-chamber layout scaled for taller/wider dungeon
+    // v47d/v66: multi-chamber + optional boss dais
     [[2,2,10,8],[14,2,10,8],[2,12,10,8],[14,12,10,8],[8,8,10,6],[2,22,10,7],[14,22,10,7]].forEach(([rx,ry,rw,rh])=>{
       if(ry+rh<ht && rx+rw<w) fill(rx,ry,rw,rh,'floor');
     });
@@ -507,6 +508,12 @@ export function buildMapForLocation(S, ort){
     anim(3,3,'torch'); anim(w-4,3,'torch'); anim(3,ht-5,'torch'); anim(w-4,ht-5,'torch');
     anim(12,14,'torch'); anim(14,14,'torch');
     tiles[Math.floor(ht/2)][Math.floor(w/2)]='door';
+    // v66 optional boss chamber (north)
+    fill(9, 2, 8, 5, 'stone'); fill(11, 3, 4, 3, 'carpet');
+    prop(12, 3, 'statue'); prop(14, 3, 'statue');
+    placeChest(13, 4, {gold:40, item:'Nachtstahl-Splitter'});
+    questMark(13, 3, 'Optionaler Boss', 'boss');
+    anim(10, 3, 'torch'); anim(16, 3, 'torch');
   } else if(preset==='summon'){
     // Summoning hall — marble plaza, pillars, central circle
     for(let y=0;y<ht;y++) for(let x=0;x<w;x++) tiles[y][x]='floor';
@@ -567,6 +574,12 @@ export function buildMapForLocation(S, ort){
     _hubNpcs.push({name:'Sekretärin Velka', x:cx+2, y:6, px:cx+2, py:6, sheet:'mage', e:'📜'});
     _hubNpcs.push({name:'General Brok', x:cx-2, y:14, px:cx-2, py:14, sheet:'guard', e:'🪓'});
     _hubNpcs.push({name:'Wächter Toren', x:cx+4, y:17, px:cx+4, py:17, sheet:'guard', e:'🛡️'});
+    _hubNpcs.push({name:'Archivar Quinn', x:4, y:10, px:4, py:10, sheet:'mage', e:'📚'});
+    _hubNpcs.push({name:'Page Sera', x:cx-3, y:16, px:cx-3, py:16, sheet:'villager', e:'📨'});
+    // v66 side dungeon entrance
+    fill(2, ht-5, 3, 3, 'floor'); tiles[ht-4][3]='door';
+    questMark(3, ht-4, 'Schatzkatakomben', 'side');
+    overhead.push({x:3,y:ht-5,src:DECOR.sign||DECOR.statue,tw:1,th:1,label:'Katakomben'});
 
 
   } else if(preset==='market'){
@@ -767,6 +780,10 @@ export function buildMapForLocation(S, ort){
     _hubNpcs.push({name:'Kundschafterin Lira', x:campX+4, y:campY+1, px:campX+4, py:campY+1, sheet:'spy', e:'🕵️', home:{x:campX+4,y:campY+1}});
     _hubNpcs.push({name:'Händler Bram', x:campX+3, y:campY+3, px:campX+3, py:campY+3, sheet:'merchant', e:'🧳', home:{x:campX+3,y:campY+3}});
     _hubNpcs.push({name:'Spionin Nyx', x:campX+5, y:campY+3, px:campX+5, py:campY+3, sheet:'spy', e:'🗡️', home:{x:campX+5,y:campY+3}});
+    _hubNpcs.push({name:'Schmiedin Kael', x:Math.max(8,cx-2), y:Math.min(ht-6,cy+3), px:Math.max(8,cx-2), py:Math.min(ht-6,cy+3), sheet:'merchant', e:'🔨'});
+    _hubNpcs.push({name:'Rekrut Venn', x:campX+6, y:campY+2, px:campX+6, py:campY+2, sheet:'guard', e:'🛡️', home:{x:campX+6,y:campY+2}});
+    questMark(Math.max(4,cx-6), Math.min(ht-4,cy+5), 'Eishöhlen am Pass', 'side');
+    if(tiles[Math.min(ht-4,cy+5)]) tiles[Math.min(ht-4,cy+5)][Math.max(4,cx-6)]='door';
     try{ if(S){ S.flags=S.flags||{}; S.flags.weather='schnee'; } }catch(_){}
   } else if(preset==='garden'){
     for(let y=0;y<ht;y++) for(let x=0;x<w;x++) tiles[y][x]='grass';
@@ -779,53 +796,62 @@ export function buildMapForLocation(S, ort){
     prop(cx-4,cy,'bench'); prop(cx+4,cy,'bench'); prop(cx,cy+3,'statue');
     scatterGrass();
   } else if(preset==='church'){
-    // v65: cathedral — short nave, transept, side chapels (not endless checker)
+    // v66: true nave — pew rows, altar, wide stained glass + light shafts
     kind='interior';
     for(let y=0;y<ht;y++) for(let x=0;x<w;x++) tiles[y][x]='wall';
-    fill(2,2,w-4,ht-4,'floor');
+    fill(2,2,w-4,ht-4,'stone'); // v66: stone nave (avoid wood vertical stripes)
     fill(0,0,w,2,'wall'); fill(0,ht-2,w,2,'wall'); fill(0,0,2,ht,'wall'); fill(w-2,0,2,ht,'wall');
-    // nave carpet (broken segments)
-    fill(cx-1, 6, 3, 4, 'carpet');
-    fill(cx-1, 11, 3, 4, 'carpet');
-    fill(cx-1, 16, 3, 3, 'carpet');
-    // sanctuary / altar dais
-    fill(cx-4, 2, 9, 4, 'stone');
+    // continuous carpet aisle
+    fill(cx-1, 5, 3, ht-8, 'carpet');
+    // sanctuary dais + altar
+    fill(cx-5, 2, 11, 4, 'stone');
     fill(cx-2, 3, 5, 2, 'carpet');
-    overhead.push({x:cx-1,y:2,src:DECOR.altar,tw:2,th:1.5,label:'Altar'});
+    overhead.push({x:cx-1,y:2,src:DECOR.altar,tw:2.4,th:1.8,label:'Altar'});
     prop(cx, 3, 'statue');
-    anim(cx-3, 3, 'torch'); anim(cx+3, 3, 'torch');
-    _pendingLights.push({x:cx-2.5,y:3.5,r:3}); _pendingLights.push({x:cx+3.5,y:3.5,r:3});
-    // transept (cross bar)
-    fill(3, 9, w-6, 3, 'floor');
-    fill(cx-6, 9, 3, 3, 'carpet'); fill(cx+4, 9, 3, 3, 'carpet');
+    anim(cx-4, 3, 'torch'); anim(cx+4, 3, 'torch');
+    _pendingLights.push({x:cx-3.5,y:3.5,r:3.2}); _pendingLights.push({x:cx+4.5,y:3.5,r:3.2});
+    // pews in rows (left/right of aisle)
+    for(let row=0; row<6; row++){
+      const y=7+row*2; if(y>=ht-4) break;
+      prop(cx-4, y, 'bench'); prop(cx-6, y, 'bench');
+      prop(cx+4, y, 'bench'); prop(cx+6, y, 'bench');
+      if(tiles[y]){ tiles[y][cx-4]='wood'; tiles[y][cx-6]='wood'; tiles[y][cx+4]='wood'; tiles[y][cx+6]='wood'; }
+    }
+    // pillar colonnade
+    for(const y of [8,12,16,20]){
+      if(y>=ht-3) continue;
+      tiles[y][cx-7]='stone'; tiles[y][cx+7]='stone';
+      prop(cx-7, y, 'statue'); prop(cx+7, y, 'statue');
+      anim(cx-7, y-1, 'torch'); anim(cx+7, y-1, 'torch');
+    }
+    // wide stained-glass windows (west + east) with shaft lights
+    const glasses=['glass_blue','glass_red','glass_gold','glass_green'];
+    for(let i=0;i<4;i++){
+      const y=6+i*4; if(y>=ht-5) continue;
+      // deeper window bays
+      fill(2, y, 2, 3, 'floor'); fill(w-4, y, 2, 3, 'floor');
+      ov(2, y+1, glasses[i%4]); ov(w-3, y+1, glasses[i%4]);
+      overhead.push({x:2,y:y,src:DECOR[glasses[i%4]]||DECOR.glass_blue,tw:1.2,th:2.2,label:'Fenster'});
+      overhead.push({x:w-3,y:y,src:DECOR[glasses[i%4]]||DECOR.glass_blue,tw:1.2,th:2.2,label:'Fenster'});
+      _pendingLights.push({x:3.2,y:y+1.5,r:4.5,color:'glass',shaft:1,hue:glasses[i%4]});
+      _pendingLights.push({x:w-3.2,y:y+1.5,r:4.5,color:'glass',shaft:1,hue:glasses[i%4]});
+    }
     // side chapels
-    fill(2, 5, 4, 4, 'floor'); fill(w-6, 5, 4, 4, 'floor');
-    if(tiles[7]){ tiles[7][5]='door'; tiles[7][w-6]='door'; }
-    prop(3, 6, 'bench'); prop(w-5, 6, 'bench');
-    // pews + pillars (paired, few)
-    for(const y of [8,12,15]){
-      prop(cx-4, y, 'bench'); prop(cx+4, y, 'bench');
-      tiles[y][cx-5]='stone'; tiles[y][cx+5]='stone';
-      prop(cx-5, y, 'statue'); prop(cx+5, y, 'statue');
-      anim(cx-5, y-1, 'torch'); anim(cx+5, y-1, 'torch');
-    }
-    // stained glass bays (3 only)
-    const glasses=['glass_blue','glass_red','glass_gold'];
-    for(let i=0;i<3;i++){
-      const y=6+i*4; if(y>=ht-4) continue;
-      ov(2, y+1, glasses[i%3]); ov(w-3, y+1, glasses[i%3]);
-      anim(3, y, 'torch'); anim(w-4, y, 'torch');
-      _pendingLights.push({x:2.5,y:y+1.5,r:2.4,color:'glass'});
-      _pendingLights.push({x:w-2.5,y:y+1.5,r:2.4,color:'glass'});
-    }
-    placeChest(cx+2, 5, {gold:22, item:'Heiliges Siegel'});
-    placeChest(3, 8, {gold:14, item:'Weihwasser'});
+    fill(2, 4, 4, 3, 'floor'); fill(w-6, 4, 4, 3, 'floor');
+    prop(3, 5, 'bench'); prop(w-5, 5, 'bench');
+    placeChest(cx+3, 5, {gold:22, item:'Heiliges Siegel'});
+    placeChest(3, 10, {gold:14, item:'Weihwasser'});
     questMark(cx, 4, 'Altar', 'story');
     fill(cx-1, ht-2, 3, 2, 'floor');
     if(tiles[ht-2]) tiles[ht-2][cx]='door';
     _hubNpcs.push({name:'Priesterin Solara', x:cx+2, y:4, px:cx+2, py:4, sheet:'mage', e:'✝️'});
-    _hubNpcs.push({name:'Akolyth Ren', x:cx-3, y:12, px:cx-3, py:12, sheet:'villager', e:'🙏'});
-    _hubNpcs.push({name:'Heldin Aria', x:cx+3, y:12, px:cx+3, py:12, sheet:'princess', e:'⚔️'});
+    _hubNpcs.push({name:'Akolyth Ren', x:cx-3, y:14, px:cx-3, py:14, sheet:'villager', e:'🙏'});
+    _hubNpcs.push({name:'Heldin Aria', x:cx+3, y:14, px:cx+3, py:14, sheet:'princess', e:'⚔️'});
+    _hubNpcs.push({name:'Kantor Elias', x:cx-5, y:8, px:cx-5, py:8, sheet:'mage', e:'🎵'});
+    _hubNpcs.push({name:'Schwester Nira', x:cx+5, y:10, px:cx+5, py:10, sheet:'villager', e:'🕯️'});
+    fill(cx-1, ht-5, 3, 2, 'stone');
+    tiles[ht-4][cx]='door';
+    questMark(cx, ht-4, 'Reliquiengewölbe', 'side');
 
 
   } else if(preset==='guild'){
@@ -1044,6 +1070,9 @@ export function buildMapForLocation(S, ort){
     if(tiles[ht-2]) tiles[ht-2][cx]='door';
     _hubNpcs.push({name:'Grabräuber Jex', x:cx-2, y:cy+2, px:cx-2, py:cy+2, sheet:'spy', e:'💀'});
     _hubNpcs.push({name:'Chronistin Mara', x:4, y:4, px:4, py:4, sheet:'mage', e:'📖'});
+    _hubNpcs.push({name:'Hüter Orun', x:w-6, y:cy, px:w-6, py:cy, sheet:'guard', e:'🦴'});
+    tiles[Math.min(ht-3,cy+6)][cx]='door';
+    questMark(cx, Math.min(ht-3,cy+6), 'Knochenlabyrinth', 'side');
 
 
   } else if(preset==='neon'){
@@ -1245,7 +1274,8 @@ export function buildMapForLocation(S, ort){
     if(handHub && /Sekretärin Velka|General Brok|Spionin Nyx|Heldin Aria/i.test(s)) return false;
     return true;
   });
-  presentFiltered.slice(0, handHub?2:8).forEach((nm,i)=>{
+  // v66: hand hubs = authored cast only (no Passant/Edelfrau generics)
+  presentFiltered.slice(0, handHub?0:8).forEach((nm,i)=>{
     const n=S.world?.npcs?.[nm]||{};
     const art=String(n.art||n.stimme||'').toLowerCase()+nm.toLowerCase();
     let sheet='villager';
@@ -1345,6 +1375,23 @@ export function buildMapForLocation(S, ort){
     }
   }catch(_){}
   const qmarks=(questMark._buf||[]).slice(); questMark._buf=[];
+  // v66: side-dungeon doors from quest marks
+  const SIDE_TO={
+    'Schatzkatakomben':'Schatzkatakomben',
+    'Eishöhlen':'Eishöhlen am Pass',
+    'Eishöhlen am Pass':'Eishöhlen am Pass',
+    'Reliquiengewölbe':'Reliquiengewölbe',
+    'Knochenlabyrinth':'Knochenlabyrinth',
+  };
+  for(const qm of qmarks){
+    const lab=String(qm.label||'');
+    const to=SIDE_TO[lab] || (/katakomben|eishöhlen|reliquien|knochen|ätherspalte/i.test(lab)?lab:null);
+    if(!to && qm.kind!=='side') continue;
+    const dest=to||lab;
+    if(!dest) continue;
+    exits.push({x:qm.x,y:qm.y,to:dest, sideDungeon:true, label:lab||dest});
+    if(tiles[qm.y]){ tiles[qm.y][qm.x]='door'; if(overlay[qm.y]) overlay[qm.y][qm.x]=null; }
+  }
   return {w,h:ht,tiles,overlay,doors:exits,spawn:{x:sx,y:sy},kind,name,npcs,interiors,overhead,animators,preset,chests,lights,questMarks:qmarks};
 }
 
@@ -1494,7 +1541,7 @@ export function showDialogue(name, text, sheet){
     try{
       const C64=window.__game?.C64;
       const turn=(S?.v64?.talkCount?.[trueName]|0);
-      body = C64?.lineForNpc?.(trueName, sh, turn) || '…';
+      body = (window.__game?.C66||window.__game?.C64)?.lineForNpc?.(trueName, sh, turn) || '…';
     }catch(_){ body='Guten Tag.'; }
   }
   body=coerceDlgText(body, 'Guten Tag.');
@@ -1530,7 +1577,7 @@ function talkTo(name){
   let line='Guten Tag.';
   try{
     const C64=window.__game?.C64;
-    line = C64?.lineForNpc?.(label, sh, turn) || line;
+    line = (window.__game?.C66||window.__game?.C64)?.lineForNpc?.(label, sh, turn) || line;
   }catch(_){}
   // first talk: introduce → learn name for story NPCs
   try{
@@ -1773,16 +1820,16 @@ function draw(){
   const cssW=_canvas.width, cssH=_canvas.height;
   ctx.imageSmoothingEnabled=false;
   const _indoorFill=(_map?.kind==='dungeon'||_map?.kind==='interior');
-  ctx.fillStyle=_indoorFill?'#121018':'#1e4a28'; ctx.fillRect(0,0,cssW,cssH);
+  ctx.fillStyle=_indoorFill?'#2a2438':'#1e4a28'; ctx.fillRect(0,0,cssW,cssH);
 
   // v65: map fills canvas — zoom into small interiors so void never letterboxes
   const dlgOpen = !!(typeof document!=='undefined' && document.body?.classList?.contains('ow-dialogue'));
   let viewH = _viewH, viewW = _viewW;
   try{
     if(_map?.w && _map?.h){
-      // never show more tiles than the map (centers & zooms castle/crypt/cathedral)
-      viewW = Math.min(viewW, Math.max(9, _map.w));
-      viewH = Math.min(viewH, Math.max(9, _map.h));
+      // v66: do NOT clamp viewH to map.h — that caused mobile black bars under short interiors
+      // (tw locked by width → viewH*tw << cssH). OOB biome fill covers extra tiles.
+      viewW = Math.min(viewW, Math.max(11, _map.w + (_desktop?0:2)));
     }
   }catch(_){}
   if(dlgOpen && !_desktop){
@@ -1812,7 +1859,8 @@ function draw(){
   const waterIm=loadImg(WATER_ANIM);
   const ox=Math.floor((cssW - viewW*tw)/2);
   // center vertically when a 1–2px remainder remains; biome-fill covers gaps
-  let oy=Math.max(0, Math.floor((cssH - viewH*tw)/2));
+  // v66: mobile pin top (pad overlays bottom); desktop may center 1px remainder
+  let oy=_desktop?Math.max(0, Math.floor((cssH - viewH*tw)/2)):0;
 
   for(let y=y0;y<=y1;y++){
     for(let x=x0;x<=x1;x++){
@@ -1821,7 +1869,7 @@ function draw(){
         // v65: extend biome — indoor castle floor (never flat black band)
         const indoor=_map.kind==='dungeon'||_map.kind==='interior';
         if(indoor){
-          const under=_map.kind==='dungeon'?'floor':'floor';
+          const under=(_map.preset==='church'||_map.preset==='throne')?'stone':(_map.kind==='dungeon'?'floor':'stone');
           const gim=loadImg(tileUrl(under));
           if(gim.complete && gim.naturalWidth) ctx.drawImage(gim, sx, sy, tw, tw);
           else { ctx.fillStyle='#1a1520'; ctx.fillRect(sx,sy,tw,tw); }
@@ -2009,8 +2057,9 @@ function draw(){
     const im=loadImg(NPC_SHEETS[n.sheet]||NPC_SHEETS.default);
     const sx=ox+(n.px-camX)*tw, sy=oy+(n.py-camY)*tw - tw*0.55;
     drawSprite(ctx, im, n.frame|0, n.dir|0, sx+tw*0.0, sy, tw);
-    // v45e: nameplate only when near hero — stops giant ghost labels on desktop scale
-    const near=Math.hypot((n.px||n.x)-_hero.px,(n.py||n.y)-_hero.py)<4.5;
+    // v66: nameplate only near hero; font sized in CSS-px so desktop upscale stays mobile-sized
+    const nearDist=_desktop?3.0:4.2;
+    const near=Math.hypot((n.px||n.x)-_hero.px,(n.py||n.y)-_hero.py)<nearDist;
     if(near){
       let label='';
       try{
@@ -2020,7 +2069,6 @@ function draw(){
         if(Know?.isNameKnown?.(S,n.name)) label=String(n.name||'');
         else label=ROLE[n.sheet]||ROLE[String(n.sheet||'').toLowerCase()]||'Fremde';
       }catch(_){ label='Fremde'; }
-      // v65: full readable tag — no mid-word cut; allow up to 18 chars on word boundary
       label=String(label||'').trim().replace(/[,.;:]+$/,'');
       if(label.length>18){
         const parts=label.split(/\s+/);
@@ -2029,11 +2077,16 @@ function draw(){
         label=acc||parts[0].slice(0,18);
       }
       if(label){
+        const cssH=parseFloat(_canvas.style.height)||_canvas.height;
+        const scaleY=_canvas.height/Math.max(1,cssH);
+        const fontPx=Math.max(7, Math.min(12, Math.round(10*scaleY)));
+        const pad=Math.max(2, Math.round(3*scaleY));
+        const boxH=Math.max(10, Math.round(12*scaleY));
         ctx.fillStyle='rgba(0,0,0,.62)';
-        ctx.font='bold 10px "Noto Sans",system-ui,sans-serif';
+        ctx.font=`bold ${fontPx}px "Noto Sans",system-ui,sans-serif`;
         const twm=ctx.measureText(label).width;
-        ctx.fillRect(sx+tw/2-twm/2-4, sy-13, twm+8, 13);
-        ctx.fillStyle='#ffe8a0'; ctx.fillText(label, sx+tw/2-twm/2, sy-3);
+        ctx.fillRect(sx+tw/2-twm/2-pad, sy-boxH-1, twm+pad*2, boxH);
+        ctx.fillStyle='#ffe8a0'; ctx.fillText(label, sx+tw/2-twm/2, sy-Math.max(2, Math.round(3*scaleY)));
       }
     }
   }
@@ -2140,16 +2193,37 @@ function draw(){
       }
     }
   }
-  // v30 night lights — windows/lamps punch through fog tint
-  if(_dayTint==='night' || _dayTint==='dusk'){
-    for(const L of _lights){
-      const k=fogKey(Math.floor(L.x), Math.floor(L.y));
-      if(!_explored.has(k)) continue;
-      const sx=ox+(L.x-camX)*tw, sy=oy+(L.y-camY)*tw;
+  // v66: glass light shafts (cathedral) always; lamp bloom at dusk/night
+  for(const L of _lights){
+    const k=fogKey(Math.floor(L.x), Math.floor(L.y));
+    if(!_explored.has(k)) continue;
+    const sx=ox+(L.x-camX)*tw, sy=oy+(L.y-camY)*tw;
+    if(L.shaft || L.color==='glass'){
+      const hue=String(L.hue||'glass_gold');
+      const col=hue.includes('blue')?'120,170,255':hue.includes('red')?'255,120,140':hue.includes('green')?'140,220,150':'255,210,120';
+      ctx.globalCompositeOperation='lighter';
+      // angled shaft into the nave
+      const sh=ctx.createLinearGradient(sx, sy-tw, sx+tw*2.2, sy+tw*5);
+      sh.addColorStop(0, `rgba(${col},0.22)`);
+      sh.addColorStop(0.45, `rgba(${col},0.08)`);
+      sh.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle=sh;
+      ctx.beginPath();
+      ctx.moveTo(sx-tw*0.2, sy-tw*0.4);
+      ctx.lineTo(sx+tw*0.9, sy-tw*0.5);
+      ctx.lineTo(sx+tw*2.8, sy+tw*5.5);
+      ctx.lineTo(sx+tw*0.6, sy+tw*5.5);
+      ctx.closePath(); ctx.fill();
+      const rg=ctx.createRadialGradient(sx,sy,0,sx,sy,(L.r||3)*tw);
+      rg.addColorStop(0, `rgba(${col},0.16)`);
+      rg.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle=rg; ctx.beginPath(); ctx.arc(sx,sy,Math.min((L.r||3)*tw*0.55, tw*2.2),0,Math.PI*2); ctx.fill();
+      ctx.globalCompositeOperation='source-over';
+      continue;
+    }
+    if(_dayTint==='night' || _dayTint==='dusk'){
       const r=(L.r||2.5)*tw;
       const g=ctx.createRadialGradient(sx,sy,0,sx,sy,r);
-      // v45d: softer bloom — was washing buildings grey
-      // v45e: tiny window glow only — no room washout
       g.addColorStop(0, 'rgba(255,200,120,0.07)');
       g.addColorStop(0.45, 'rgba(255,160,60,0.02)');
       g.addColorStop(1, 'rgba(0,0,0,0)');
@@ -2477,48 +2551,38 @@ function fitCanvas(){
   _desktop=isDesktop();
   document.body.classList.toggle('ow-desktop', _desktop);
   if(_desktop){
-    // v62: fill FULL desktop width AND height (no black band / no forced 16:9 letterbox)
+    // v66: near 1:1 buffer (mild DPR) — less blocky than integer 320× upscale
     const stage=document.getElementById('stage');
     const topbar=document.querySelector('.topbar');
     const topbarH=(topbar?.getBoundingClientRect?.().height)|0 || 52;
-    const maxW=Math.max(640, (stage?.clientWidth||window.innerWidth) - 2);
-    const maxH=Math.max(400, (stage?.clientHeight ? stage.clientHeight - 4 : (window.innerHeight - topbarH)));
-    const cssW=maxW;
-    const cssH=maxH;
-    let scale=Math.max(2, Math.floor(cssW/320));
-    while(DESKTOP_LOGICAL.w*scale>cssW || DESKTOP_LOGICAL.h*scale>cssH) scale--;
-    scale=Math.max(2, scale);
-    // logical buffer matches aspect of available area
-    let lw=Math.floor(cssW/scale);
-    let lh=Math.floor(cssH/scale);
-    lw=Math.max(320, Math.floor(lw/16)*16);
-    lh=Math.max(180, Math.floor(lh/16)*16);
-    _canvas.width=lw;
-    _canvas.height=lh;
+    const cssW=Math.max(640, (stage?.clientWidth||window.innerWidth) - 2);
+    const cssH=Math.max(400, (stage?.clientHeight ? stage.clientHeight - 4 : (window.innerHeight - topbarH)));
+    const dpr=Math.min(2, Math.max(1, window.devicePixelRatio||1));
     _canvas.style.width=cssW+'px';
     _canvas.style.height=cssH+'px';
-    _intScale=scale;
-    _viewW=Math.max(16, Math.floor(lw/16));
-    _viewH=Math.max(12, Math.floor(lh/16));
-    // bump view to consume leftover pixels inside buffer
-    while(_viewH*Math.floor(Math.min(lw/_viewW, lh/_viewH)) < lh-2 && _viewH<48) _viewH++;
-    while(_viewW*Math.floor(Math.min(lw/_viewW, lh/_viewH)) < lw-2 && _viewW<64) _viewW++;
+    _canvas.width=Math.floor(cssW*dpr);
+    _canvas.height=Math.floor(cssH*dpr);
+    _intScale=dpr;
+    const targetTw=Math.max(22, Math.round(26*dpr)); // ~26 CSS px tiles
+    _viewW=Math.max(18, Math.floor(_canvas.width/targetTw));
+    _viewH=Math.max(14, Math.floor(_canvas.height/targetTw));
+    while(_viewH*Math.floor(Math.min(_canvas.width/_viewW, _canvas.height/_viewH)) < _canvas.height-2 && _viewH<56) _viewH++;
+    while(_viewW*Math.floor(Math.min(_canvas.width/_viewW, _canvas.height/_viewH)) < _canvas.width-2 && _viewW<72) _viewW++;
   } else {
-    // v45d: canvas = full viewport; tile count fills height (no letterbox)
+    // v66 mobile: fill visualViewport; pin map (no letterbox above/below pad)
     const root=_root||document.getElementById('owRoot');
-    const w=Math.max(320, window.innerWidth|0);
-    const h=Math.max(480, window.innerHeight|0);
+    const vv=window.visualViewport;
+    const w=Math.max(320, Math.floor((vv?.width||window.innerWidth)|0));
+    const h=Math.max(480, Math.floor((vv?.height||window.innerHeight)|0));
     _canvas.style.width=w+'px';
     _canvas.style.height=h+'px';
     _canvas.width=w;
     _canvas.height=h;
-    // v47: choose tile size so map fills full viewport height (no black band)
-    const targetTw=28;
+    const targetTw=26;
     _viewW=Math.max(11, Math.floor(w/targetTw));
-    _viewH=Math.max(15, Math.floor(h/targetTw));
-    // bump viewH if remainder would letterbox
-    while(_viewH*Math.floor(Math.min(w/_viewW, h/_viewH)) < h - 4 && _viewH < 40) _viewH++;
-    _intScale=3;
+    _viewH=Math.max(16, Math.floor(h/targetTw));
+    while(_viewH*Math.floor(Math.min(w/_viewW, h/_viewH)) < h - 2 && _viewH < 42) _viewH++;
+    _intScale=1;
     try{ root?.classList.add('ow-fullscreen'); }catch(_){}
   }
 }
@@ -2739,7 +2803,8 @@ export function showOverworld(S){
           if(!document.body.classList.contains('pixel-ow')) return;
           if(document.body.classList.contains('ow-dialogue')) return;
           try{ const t=document.getElementById('toast'); if(t){ t.classList.add('toast-tip'); } }catch(_){}
-          window.__game?.toast?.('↑ Wischen · Steuerkreuz · Tippen');
+          const desk=document.body.classList.contains('ow-desktop')||_desktop;
+          window.__game?.toast?.(desk?'WASD bewegen · Enter reden · Esc Menü':'↑ Wischen · Steuerkreuz · Tippen');
         }catch(_){}
       }, 3200);
     }

@@ -6550,3 +6550,29 @@ body.pixel-ow.ow-dialogue .overworld{
 /* v65: coach never steals the OW dialogue frame */
 body.pixel-ow #onboardCoach:not(.force-show){ display:none !important; }
 #onboardCoach.hidden{ display:none !important; }
+
+
+/* v66 mobile fill — kill black bars above map / below d-pad */
+body.pixel-ow:not(.ow-desktop) .overworld{
+  background:#1a1528 !important;
+}
+body.pixel-ow:not(.ow-desktop) #owCanvas{
+  position:absolute !important;
+  inset:0 !important;
+  width:100% !important;
+  height:100% !important;
+  background:#1a1528 !important;
+  image-rendering:auto;
+}
+body.pixel-ow:not(.ow-desktop) .ow-pad,
+body.pixel-ow:not(.ow-desktop) .ow-pad-float{
+  bottom: calc(12px + env(safe-area-inset-bottom)) !important;
+  background:rgba(8,12,28,0.28) !important;
+}
+body.pixel-ow:not(.ow-desktop) .vn-wrap{
+  /* keep overlay; map continues under pad */
+}
+body.ow-desktop.pixel-ow #owCanvas{
+  image-rendering:auto; /* v66 less blocky with near-1:1 buffer */
+}
+body.ow-desktop .ow-hint{ display:inline !important; }
