@@ -12,7 +12,7 @@ import { fileURLToPath } from 'url';
 
 const ROOT=path.join(path.dirname(fileURLToPath(import.meta.url)),'..');
 const PORT=8793;
-const VER='63';
+const VER='64';
 const LIVE='https://markusstol.github.io/isekai-game/';
 const SKIP_LIVE=process.env.GATE_SKIP_LIVE==='1';
 const ONLY_LIVE=process.env.GATE_ONLY_LIVE==='1';
@@ -68,9 +68,9 @@ async function freshOffline(page){
     g.S.setup={done:true}; g.S.flags=Object.assign(g.S.flags||{},{onboarded:true,introDone:true});
     g.S.cfgBattleDiff='story'; g.S.cfgAtbMode='active';
     g.S.st.hp=g.S.st.maxhp=180; g.S.st.mp=g.S.st.maxmp=80; g.S.st.gold=120; g.S.st.str=20; g.S.st.lvl=4;
-    g.C63?.migrateV63?.(g.S) || g.C62?.migrateV62?.(g.S) || g.C61?.migrateV61?.(g.S) || g.C60.migrateV60(g.S);
+    g.C64?.migrateV64?.(g.S) || g.C63?.migrateV63?.(g.S) || g.C62?.migrateV62?.(g.S) || g.C61?.migrateV61?.(g.S) || g.C60.migrateV60(g.S);
     g.enterPlay();
-    try{ g.syncFreetextUI?.(); document.body.classList.add('visual59','visual62','visual63','no-freetext','jrpg-classic'); }catch(_){}
+    try{ g.syncFreetextUI?.(); document.body.classList.add('visual59','visual62','visual63','visual64','no-freetext','jrpg-classic'); }catch(_){}
     document.getElementById('title')?.classList.add('hidden');
     document.getElementById('stage')?.classList.remove('hidden');
   });
@@ -114,6 +114,71 @@ async function fightATB(page, timeoutMs=90000){
     } else await new Promise(r=>setTimeout(r,50));
   }
   return {ok:false,reason:'timeout',turns};
+}
+
+
+// ---- v64: talk to EVERY hub NPC; fail on bad dialogue strings ----
+async function npcDialogueGate(page){
+  const HUBS = [
+    'Thronsaal der Nacht',
+    'Grenzpass',
+    'Ruinen von Solmir',
+    'Kathedrale des Lichts',
+  ];
+  await page.evaluate(async()=>{
+    const g=window.__game;
+    // reset to OW-capable play state
+    await g.newLife('daemon',{lives:0,soul:0,keptSkills:[]},{skipSetup:true,name:'Noctis'});
+    g.S.setup={done:true};
+    g.S.flags=Object.assign(g.S.flags||{},{onboarded:true,introDone:true,visual45Tip:1,visual64:true,freetext:false});
+    try{ g.C64?.migrateV64?.(g.S); }catch(_){}
+    g.enterPlay();
+    document.getElementById('title')?.classList.add('hidden');
+    document.getElementById('stage')?.classList.remove('hidden');
+    document.getElementById('onboardCoach')?.classList.add('hidden');
+    document.getElementById('battleRoot')?.classList.add('hidden');
+    document.body.classList.remove('in-battle');
+    try{ g.OW.mountOverworld({getS:()=>g.S, toast:(m)=>g.toast?.(m), save:()=>g.save?.()}); }catch(_){}
+  });
+  const all=[];
+  for(const ort of HUBS){
+    const hubRes = await page.evaluate(async (ort)=>{
+      const g=window.__game;
+      const badRe=/(\[object|undefined|null|NaN)/i;
+      g.S.world.scene.ort=ort; g.S.genre='daemon';
+      try{ g.Battle?.endBattle?.({result:'flee'}); }catch(_){}
+      try{ g.OW.hideOverworld?.(); }catch(_){}
+      g.OW.showOverworld(g.S);
+      await new Promise(r=>setTimeout(r,250));
+      const npcs = (g.OW.__listNpcs?.() || g.OW.__debug?.()?.npcs || []).slice();
+      const talks=[];
+      for(const n of npcs){
+        try{ g.OW.hideDialogue?.(); }catch(_){}
+        let shown=null;
+        try{ shown = g.OW.__talkTo?.(n.name); }catch(e){ shown={error:String(e)}; }
+        // wait typewriter
+        await new Promise(r=>setTimeout(r,520));
+        const name=(document.getElementById('owDlgName')?.textContent||'').trim() || String(shown?.name||'');
+        const text=(document.getElementById('owDlgText')?.textContent||'').trim() || String(shown?.text||'');
+        const empty=!text || text==='…' || text==='...' || text.length<2;
+        const badName = !name || badRe.test(name) || /^\[object/i.test(name);
+        const badText = empty || badRe.test(text);
+        talks.push({npc:n.name, sheet:n.sheet, name, text:text.slice(0,140), badName, badText, empty});
+        try{ g.OW.hideDialogue?.(); }catch(_){}
+      }
+      return {ort, npcCount:npcs.length, talks, names:npcs.map(n=>n.name)};
+    }, ort);
+    all.push(hubRes);
+    for(const t of hubRes.talks){
+      if(t.badName || t.badText || t.empty){
+        fail('npc-dialogue', `${hubRes.ort} / ${t.npc}`, t);
+      } else {
+        ok('npc-dialogue', {ort:hubRes.ort, npc:t.npc, name:t.name, text:t.text.slice(0,60)});
+      }
+    }
+    if(hubRes.npcCount<1) fail('npc-dialogue', `${hubRes.ort} has zero NPCs`, hubRes);
+  }
+  return all;
 }
 
 async function runLocal(browser){
@@ -239,7 +304,7 @@ async function runLocal(browser){
     for(const ver of [13,40,50,56,57,58]){
       const s={ver, st:{hp:50,maxhp:100,gold:10}, world:{npcs:{},scene:{}}, flags:{}, romance:{}, pc:{name:'Alt'}};
       try{
-        g.C63?.migrateV63?.(s) || g.C62?.migrateV62?.(s) || g.C61?.migrateV61?.(s) || g.C60.migrateV60(s);
+        g.C64?.migrateV64?.(s) || g.C63?.migrateV63?.(s) || g.C62?.migrateV62?.(s) || g.C61?.migrateV61?.(s) || g.C60.migrateV60(s);
         results.push({ver, out:s.ver, campaign:s.campaign?.id, jrpg59:!!s.flags?.jrpg59, freetext:!!s.flags?.freetext});
       } catch(e){ results.push({ver, err:String(e)});}
     }
@@ -248,6 +313,12 @@ async function runLocal(browser){
   for(const m of mig){
     if(m.err || m.out<59 || m.campaign!=='nocturna' || m.freetext) fail('migrate-saves', m); else ok('migrate-saves', m);
   }
+
+  // v64 NPC dialogue across all hubs
+  try{
+    const dlg = await npcDialogueGate(page);
+    ok('npc-dialogue-hubs', {hubs:dlg.map(h=>({ort:h.ort,n:h.npcCount,names:h.names}))});
+  }catch(e){ fail('npc-dialogue', 'exception', {err:String(e)}); }
 
   // viewport smoke desktop
   await page.setViewport({width:1920,height:1080});
@@ -281,7 +352,7 @@ async function runLive(browser){
     for(const ver of [13,50,57,58]){
       const s={ver, st:{hp:40,maxhp:100,gold:5,str:8}, world:{npcs:{'Sekretärin Velka':{alive:true,art:'Sukkubus'}},scene:{ort:'Test'}}, flags:{onboarded:true}, romance:{}, pc:{name:'Legacy'+ver}, genre:'daemon', role:'daemon'};
       try{
-        if(g.C63?.migrateV63) g.C63.migrateV63(s); else if(g.C62?.migrateV62) g.C62.migrateV62(s);
+        if(g.C64?.migrateV64) g.C64.migrateV64(s); else if(g.C63?.migrateV63) g.C63.migrateV63(s); else if(g.C62?.migrateV62) g.C62.migrateV62(s);
         else if(g.C61?.migrateV61) g.C61.migrateV61(s);
         else if(g.C60?.migrateV60) g.C60.migrateV60(s);
         else if(g.C59?.migrateV59) g.C59.migrateV59(s);
@@ -290,7 +361,7 @@ async function runLive(browser){
         out.push({ver, ok:true, outVer:s.ver, campaign:s.campaign?.id, freetext:s.flags?.freetext});
       }catch(e){ out.push({ver, ok:false, err:String(e)});}
     }
-    return {pageVer:g.VER, saves:out, hasC61:!!g.C61,hasC62:!!g.C62,hasC63:!!g.C63};
+    return {pageVer:g.VER, saves:out, hasC61:!!g.C61,hasC62:!!g.C62,hasC63:!!g.C63,hasC64:!!g.C64};
   });
   for(const s of saveTest.saves){
     if(!s.ok) fail('live-old-saves', s); else ok('live-old-saves', s);

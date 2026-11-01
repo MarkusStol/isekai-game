@@ -371,7 +371,8 @@ export function buildMapForLocation(S, ort){
   // v62: hand hubs need room for pillars/glass/towers
   const handHub=/(wall|graveyard|throne|church)/.test(String(preset||''));
   const w = handHub?30: kind==='dungeon'?26: kind==='camp'?18: kind==='interior'?16:30;
-  const ht = handHub?34: kind==='dungeon'?32: kind==='camp'?16: kind==='interior'?14:34;
+  // v64: throne court is compact (not endless hallway canvas)
+  const ht = preset==='throne'?22: handHub?30: kind==='dungeon'?32: kind==='camp'?16: kind==='interior'?14:34;
   const tiles=Array.from({length:ht},()=>Array(w).fill('grass'));
   const overlay=Array.from({length:ht},()=>Array(w).fill(null));
   const interiors=[];
@@ -503,40 +504,59 @@ export function buildMapForLocation(S, ort){
     prop(cx-3,cy,'statue'); prop(cx+3,cy,'statue');
     scatterProps([[4,cy,'lamp'],[w-5,cy,'lamp'],[cx,4,'sign']]);
   } else if(preset==='throne'){
-    // v62: castle hall — pillars, carpet, real throne, side alcoves
+    // v64b: compact court — dais, broken rugs, pillars, banners, west/east chambers (not endless checker aisle)
     kind='interior';
-    for(let y=0;y<ht;y++) for(let x=0;x<w;x++) tiles[y][x]='floor';
+    for(let y=0;y<ht;y++) for(let x=0;x<w;x++) tiles[y][x]='wall';
+    // court floor (shorter than canvas)
+    const y0=2, y1=ht-2;
+    fill(2,y0,w-4,y1-y0,'wood');
     fill(0,0,w,2,'wall'); fill(0,ht-2,w,2,'wall'); fill(0,0,2,ht,'wall'); fill(w-2,0,2,ht,'wall');
-    // wide carpet aisle with soft edge (plaza border)
-    fill(cx-2, 3, 5, ht-6, 'carpet');
-    for(let y=3;y<ht-3;y++){
-      if(tiles[y]){ tiles[y][cx-3]='plaza'; tiles[y][cx+3]='plaza'; }
+    // dais + throne
+    fill(cx-5, 3, 11, 5, 'stone');
+    fill(cx-3, 4, 7, 3, 'plaza');
+    fill(cx-2, 5, 5, 2, 'carpet');
+    overhead.push({x:cx-1,y:3,src:DECOR.throne_chair,tw:2.2,th:2.8,label:'Thron'});
+    prop(cx-4, 4, 'statue'); prop(cx+4, 4, 'statue');
+    anim(cx-4, 5, 'torch'); anim(cx+4, 5, 'torch');
+    _pendingLights.push({x:cx-3.5,y:5.5,r:3.4}); _pendingLights.push({x:cx+4.5,y:5.5,r:3.4});
+    // broken carpet runners (not one continuous strip)
+    fill(cx-1, 8, 3, 2, 'carpet');
+    fill(cx-2, 11, 5, 2, 'carpet');
+    fill(cx-1, 14, 3, 2, 'carpet');
+    fill(cx-3, 16, 7, 2, 'plaza'); // audience rug
+    // pillar pairs + banner stubs
+    for(const y of [7,10,13]){
+      tiles[y][cx-6]='stone'; tiles[y][cx+6]='stone';
+      prop(cx-6, y, 'statue'); prop(cx+6, y, 'statue');
+      anim(cx-6, y-1, 'torch'); anim(cx+6, y-1, 'torch');
+      _pendingLights.push({x:cx-5.5,y:y-0.5,r:2.8}); _pendingLights.push({x:cx+6.5,y:y-0.5,r:2.8});
+      // banner-colored wall niches
+      if(tiles[y-1]){ tiles[y-1][cx-7]='wall'; tiles[y-1][cx+7]='wall'; }
+      if(overlay[y-1]){ overlay[y-1][cx-7]='lamp'; overlay[y-1][cx+7]='lamp'; }
     }
-    // throne dais
-    fill(cx-4, 2, 9, 5, 'plaza');
-    fill(cx-2, 2, 5, 3, 'carpet');
-    overhead.push({x:cx-1,y:2,src:DECOR.throne_chair,tw:2,th:2.5,label:'Thron'});
-    prop(cx, 3, 'statue');
-    // pillar rows with torch glow
-    for(let y=7;y<ht-5;y+=3){
-      if(tiles[y]){ tiles[y][cx-5]='stone'; tiles[y][cx+5]='stone'; }
-      prop(cx-5, y, 'statue'); prop(cx+5, y, 'statue');
-      anim(cx-5, y-1, 'torch'); anim(cx+5, y-1, 'torch');
-      _pendingLights.push({x:cx-5+0.5,y:y-0.5,r:3}); _pendingLights.push({x:cx+5+0.5,y:y-0.5,r:3});
-    }
-    // side chambers
-    fill(2, 5, 4, 5, 'floor'); fill(w-6, 5, 4, 5, 'floor');
-    if(tiles[7]){ tiles[7][5]='door'; tiles[7][w-6]='door'; }
-    fill(2, 5, 4, 1, 'wall'); fill(w-6, 5, 4, 1, 'wall');
-    prop(3, 7, 'barrel'); prop(w-5, 7, 'crate');
-    placeChest(cx+3, 5, {gold:18, item:'Nachtstahl-Splitter'});
-    placeChest(4, cy, {gold:10, item:'Heiltrank'});
-    placeChest(w-5, cy, {gold:12, item:'Antidot'});
-    prop(cx-3, cy+1, 'bench'); prop(cx+3, cy+1, 'bench');
-    questMark(cx, 4, 'Thron', 'story');
+    // WEST archive chamber
+    fill(2, 7, 6, 7, 'floor');
+    fill(2, 7, 6, 1, 'wall'); fill(2, 13, 6, 1, 'wall'); fill(2, 7, 1, 7, 'wall');
+    if(tiles[10]) tiles[10][7]='door';
+    prop(3, 9, 'barrel'); prop(4, 11, 'crate'); prop(5, 9, 'bench');
+    placeChest(3, 12, {gold:14, item:'Runenstein'});
+    // EAST war room
+    fill(w-8, 7, 6, 7, 'floor');
+    fill(w-8, 7, 6, 1, 'wall'); fill(w-8, 13, 6, 1, 'wall'); fill(w-3, 7, 1, 7, 'wall');
+    if(tiles[10]) tiles[10][w-8]='door';
+    prop(w-6, 9, 'barrel'); prop(w-5, 11, 'bench'); prop(w-4, 9, 'crate');
+    placeChest(w-6, 12, {gold:16, item:'Nachtstahl-Splitter'});
+    // south vestibule / entrance rug
+    fill(cx-4, ht-6, 9, 3, 'path');
+    prop(cx-3, 15, 'bench'); prop(cx+3, 15, 'bench');
+    placeChest(cx+4, 6, {gold:20, item:'Heiltrank'});
+    questMark(cx, 5, 'Thron', 'story');
     fill(cx-1, ht-2, 3, 2, 'path');
-    _hubNpcs.push({name:'Sekretärin Velka', x:cx+2, y:5, px:cx+2, py:5, sheet:'mage', e:'📜'});
-    _hubNpcs.push({name:'General Brok', x:cx-2, y:cy, px:cx-2, py:cy, sheet:'guard', e:'🪓'});
+    if(tiles[ht-2]) tiles[ht-2][cx]='door';
+    _hubNpcs.push({name:'Sekretärin Velka', x:cx+2, y:6, px:cx+2, py:6, sheet:'mage', e:'📜'});
+    _hubNpcs.push({name:'General Brok', x:cx-2, y:14, px:cx-2, py:14, sheet:'guard', e:'🪓'});
+    _hubNpcs.push({name:'Wächter Toren', x:cx+4, y:17, px:cx+4, py:17, sheet:'guard', e:'🛡️'});
+
   } else if(preset==='market'){
     for(let y=0;y<ht;y++) for(let x=0;x<w;x++) tiles[y][x]='grass';
     fill(0, cy-1, w, 3, 'path');
@@ -733,6 +753,7 @@ export function buildMapForLocation(S, ort){
     _hubNpcs.push({name:'Wächter Toren', x:campX+2, y:campY+1, px:campX+2, py:campY+1, sheet:'guard', e:'🛡️', home:{x:campX+2,y:campY+1}});
     _hubNpcs.push({name:'Kundschafterin Lira', x:campX+4, y:campY+1, px:campX+4, py:campY+1, sheet:'spy', e:'🕵️', home:{x:campX+4,y:campY+1}});
     _hubNpcs.push({name:'Händler Bram', x:campX+3, y:campY+3, px:campX+3, py:campY+3, sheet:'merchant', e:'🧳', home:{x:campX+3,y:campY+3}});
+    _hubNpcs.push({name:'Spionin Nyx', x:campX+5, y:campY+3, px:campX+5, py:campY+3, sheet:'spy', e:'🗡️', home:{x:campX+5,y:campY+3}});
     try{ if(S){ S.flags=S.flags||{}; S.flags.weather='schnee'; } }catch(_){}
   } else if(preset==='garden'){
     for(let y=0;y<ht;y++) for(let x=0;x<w;x++) tiles[y][x]='grass';
@@ -785,7 +806,8 @@ export function buildMapForLocation(S, ort){
     questMark(cx, 4, 'Altar', 'story');
     fill(cx-1, ht-2, 3, 2, 'path');
     _hubNpcs.push({name:'Priesterin Solara', x:cx+2, y:4, px:cx+2, py:4, sheet:'mage', e:'✝️'});
-    _hubNpcs.push({name:'Akolyth', x:cx-3, y:cy, px:cx-3, py:cy, sheet:'villager', e:'🙏'});
+    _hubNpcs.push({name:'Akolyth Ren', x:cx-3, y:cy, px:cx-3, py:cy, sheet:'villager', e:'🙏'});
+    _hubNpcs.push({name:'Heldin Aria', x:cx+3, y:cy+1, px:cx+3, py:cy+1, sheet:'princess', e:'⚔️'});
   } else if(preset==='guild'){
     for(let y=0;y<ht;y++) for(let x=0;x<w;x++) tiles[y][x]='grass';
     fill(0,cy,w,2,'path');
@@ -1012,7 +1034,7 @@ export function buildMapForLocation(S, ort){
     questMark(cx, 4, 'Erster Held', 'secret');
     fill(cx-1, ht-3, 3, 2, 'path');
     if(tiles[ht-2]) tiles[ht-2][cx]='door';
-    _hubNpcs.push({name:'Grabräuber', x:cx-2, y:cy+1, px:cx-2, py:cy+1, sheet:'spy', e:'💀'});
+    _hubNpcs.push({name:'Grabräuber Jex', x:cx-2, y:cy+1, px:cx-2, py:cy+1, sheet:'spy', e:'💀'});
     _hubNpcs.push({name:'Chronistin Mara', x:5, y:4, px:5, py:4, sheet:'mage', e:'📖'});
   } else if(preset==='neon'){
     // cyberpunk / neon city — denser urban, Kenney-ish feel via plazas + halls
@@ -1204,7 +1226,16 @@ export function buildMapForLocation(S, ort){
       pace:hn.pace||'idle', wait:0, calendar:null, schedule:[], roleHint:hn.sheet||'villager'
     });
   }
-  present.slice(0,8).forEach((nm,i)=>{
+  const hubNames=new Set(_hubNpcs.map(h=>h.name));
+  // v64: on hand hubs, skip pack crowd fluff + already hand-placed names
+  const presentFiltered = present.filter(nm=>{
+    const s=String(nm||'');
+    if(hubNames.has(s)) return false;
+    if(handHub && /hunderte|kniende|menge|crowd|volk|meute/i.test(s)) return false;
+    if(handHub && /Sekretärin Velka|General Brok|Spionin Nyx|Heldin Aria/i.test(s)) return false;
+    return true;
+  });
+  presentFiltered.slice(0, handHub?2:8).forEach((nm,i)=>{
     const n=S.world?.npcs?.[nm]||{};
     const art=String(n.art||n.stimme||'').toLowerCase()+nm.toLowerCase();
     let sheet='villager';
@@ -1378,39 +1409,87 @@ function ensureDlg(){
   return el;
 }
 let _dlgTw=null;
+function coerceDlgText(v, fallback='…'){
+  if(v==null) return fallback;
+  if(typeof v==='object'){
+    if(typeof v.text==='string') return v.text;
+    if(typeof v.line==='string') return v.line;
+    if(typeof v.name==='string' && typeof v.msg==='string') return v.msg;
+    return fallback;
+  }
+  const s=String(v).trim();
+  if(!s || s==='…' || s==='...' || /^\[object /i.test(s) || /^(undefined|null|NaN)$/i.test(s)) return fallback;
+  return s;
+}
+function coerceDlgName(v, fallback='Unbekannt'){
+  if(v==null) return fallback;
+  if(typeof v==='object'){
+    if(typeof v.name==='string') return v.name;
+    if(typeof v.speaker==='string') return v.speaker;
+    if(typeof v.label==='string') return v.label;
+    return fallback;
+  }
+  const s=String(v).trim();
+  if(!s || /^\[object /i.test(s) || /^(undefined|null|NaN)$/i.test(s)) return fallback;
+  return s;
+}
+
 export function showDialogue(name, text, sheet){
+  // v64: accept (name,text,sheet) OR ({speaker/name, text/line}, sheet)
+  let sheetArg=sheet;
+  if(name && typeof name==='object' && (name.text!=null || name.line!=null || name.speaker!=null || name.name!=null)){
+    const o=name;
+    text = text!=null ? text : (o.text||o.line||o.msg);
+    name = o.speaker||o.name||o.label;
+    sheetArg = sheetArg||o.sheet;
+  }
   const el=ensureDlg();
   el.classList.remove('hidden');
   document.body.classList.add('ow-dialogue');
   const port=el.querySelector('#owDlgPort');
   const nm=el.querySelector('#owDlgName');
   const tx=el.querySelector('#owDlgText');
-  // v45e: real LPC/port bust — never C43 procedural blob
+  const S=_hooks.getS?.();
+  const trueName=coerceDlgName(name, 'Unbekannt');
+  const npcObj=_npcs.find(n=>n.name===trueName) || null;
+  const sh=sheetArg||npcObj?.sheet||'villager';
   let usedPx=false;
   try{
-    const S=_hooks.getS?.();
-    const fullName=String(name||'');
-    const npc=(S?.world?.npcs&&(S.world.npcs[fullName]||Object.entries(S.world.npcs).find(([k])=>k.startsWith(fullName)||fullName.startsWith(k))?.[1]))||null;
+    const npc=(S?.world?.npcs&&(S.world.npcs[trueName]||Object.entries(S.world.npcs).find(([k])=>k.startsWith(trueName)||trueName.startsWith(k))?.[1]))||null;
     const C45=window.__game?.C45;
     const C46=window.__game?.C46;
-    const n=npc||{art:sheet||'villager', sheet};
-    const role=C46?.portraitRole?.(fullName||'NPC', n)||C45?.roleFromNpc?.(fullName,n)||'villager';
+    const n=npc||{art:sh, sheet:sh};
+    const role=C46?.portraitRole?.(trueName, n)||C45?.roleFromNpc?.(trueName,n)||sh||'villager';
     const roleUrl=C45?.ROLE_PORT?.[role]||C45?.ROLE_PORT?.villager;
     if(port && roleUrl){ port.src=roleUrl; usedPx=true; }
     C45?.loadFramedRolePortrait?.(role).then(url=>{ if(url && port) port.src=url; });
   }catch(_){}
-  if(port && !usedPx) port.src=(window.__game?.C45?.ROLE_PORT?.villager)||PORTRAITS[sheet]||PORTRAITS.default;
-  if(nm){
-    let shown=String(name||'…').slice(0,28);
-    try{
-      const S=_hooks.getS?.();
-      const Know=window.__game?.Know;
-      const full=Object.keys(S?.world?.npcs||{}).find(k=>k===name||k.startsWith(name)||name.startsWith(k.split(' ')[0]));
-      if(full && Know) shown=Know.displayName(S,full,S.world.npcs[full]).slice(0,32);
-    }catch(_){}
-    nm.textContent=shown;
+  if(port && !usedPx) port.src=(window.__game?.C45?.ROLE_PORT?.villager)||PORTRAITS[sh]||PORTRAITS.default;
+  let shown=trueName.slice(0,36);
+  try{
+    const C64=window.__game?.C64;
+    const Know=window.__game?.Know;
+    if(C64?.displayLabelFor) shown=String(C64.displayLabelFor(S, trueName, sh)||shown).slice(0,36);
+    else if(Know?.displayName) shown=String(Know.displayName(S, trueName, S?.world?.npcs?.[trueName]||{sheet:sh})||shown).slice(0,36);
+  }catch(_){}
+  shown=coerceDlgName(shown, trueName).slice(0,36);
+  // strangers: never show bare "jemand" — role label until introduced
+  if(/^(jemand|unbekannt|\?\?\?)$/i.test(shown) || shown===trueName && /hunderte|kniende|menge/i.test(trueName)){
+    const ROLE_LABEL={guard:'Ein Wächter',mage:'Eine Gelehrte',merchant:'Ein Händler',spy:'Eine Vermummte',villager:'Ein Passant',daemon:'Eine dunkle Gestalt',princess:'Eine Edelfrau'};
+    shown = ROLE_LABEL[sh] || 'Eine unbekannte Gestalt';
   }
-  const full=String(text||'').trim()||'…';
+  if(nm) nm.textContent=shown;
+  let body=coerceDlgText(text, '');
+  if(!body || body==='…' || body==='...'){
+    try{
+      const C64=window.__game?.C64;
+      const turn=(S?.v64?.talkCount?.[trueName]|0);
+      body = C64?.lineForNpc?.(trueName, sh, turn) || '…';
+    }catch(_){ body='Guten Tag.'; }
+  }
+  body=coerceDlgText(body, 'Guten Tag.');
+  // strip leading "Name: " duplication if label already shows name
+  const full=body;
   if(_dlgTw) clearInterval(_dlgTw);
   let i=0; if(tx) tx.textContent='';
   _dlgTw=setInterval(()=>{
@@ -1418,6 +1497,7 @@ export function showDialogue(name, text, sheet){
     if(tx) tx.textContent=full.slice(0,i);
     if(i>=full.length){ clearInterval(_dlgTw); _dlgTw=null; }
   }, 18);
+  return {name:shown, text:full};
 }
 export function hideDialogue(){
   if(_dlgTw){ clearInterval(_dlgTw); _dlgTw=null; }
@@ -1427,13 +1507,44 @@ export function hideDialogue(){
 export function isDialogueOpen(){ return !!_dlg && !_dlg.classList.contains('hidden'); }
 
 function talkTo(name){
-  if(!_hooks.act) return;
-  const label=String(name||'').trim();
-  if(!label) return;
+  const label=coerceDlgName(name, '');
+  if(!label) return null;
   const npc=_npcs.find(n=>n.name===label);
-  showDialogue(label.split(' ')[0], '…', npc?.sheet||'villager');
+  const sh=npc?.sheet||'villager';
+  const S=_hooks.getS?.();
+  try{
+    S.v64=S.v64||{talkCount:{}};
+    S.v64.talkCount=S.v64.talkCount||{};
+  }catch(_){}
+  const turn=(S?.v64?.talkCount?.[label]|0);
+  let line='Guten Tag.';
+  try{
+    const C64=window.__game?.C64;
+    line = C64?.lineForNpc?.(label, sh, turn) || line;
+  }catch(_){}
+  // first talk: introduce → learn name for story NPCs
+  try{
+    const C64=window.__game?.C64;
+    const Know=window.__game?.Know;
+    if(Know && C64?.SELF_INTRO_NAMES?.has?.(label)){
+      Know.learnName?.(S, label, 'self');
+      Know.markInteracted?.(S, label);
+    } else if(Know){
+      Know.markInteracted?.(S, label);
+      // strangers keep description label until self-intro line contains name
+      if(/^[A-ZÄÖÜ][a-zäöüß]+\:/.test(line) && !C64?.SELF_INTRO_NAMES?.has?.(label)){
+        const maybe=line.split(':')[0].trim();
+        if(maybe && maybe.length<20) Know.learnName?.(S, label, 'heard');
+      }
+    }
+  }catch(_){}
+  try{ if(S?.v64?.talkCount) S.v64.talkCount[label]=(turn+1)|0; }catch(_){}
+  const shown=showDialogue(label, line, sh);
   try{ _audioApi?.playSfx?.('talk'); }catch(_){}
-  _hooks.act('Ich rede mit '+label);
+  // v64: NEVER call free-text act() for talk — JRPG dialogue only
+  try{ _hooks.toast?.(''); }catch(_){}
+  try{ _hooks.save?.(); }catch(_){}
+  return shown;
 }
 
 function facingTile(){
@@ -1459,7 +1570,8 @@ function talkNearest(){
     if(best.sheet==='merchant' && _hooks.openShop){ try{ _hooks.openShop(best.name); return best.name; }catch(_){ } }
     talkTo(best.name); return best.name;
   }
-  if(_hooks.act) _hooks.act('Ich schaue mich um');
+  // v64: no free-text act — short look toast only
+  try{ _hooks.toast?.('Nichts Auffälliges in der Nähe.'); }catch(_){}
   return null;
 }
 
@@ -2660,5 +2772,7 @@ export function __debug(){
 export function __setHero(x,y){ if(!_hero) return false; _hero.x=+x; _hero.y=+y; _hero.px=_hero.x; _hero.py=_hero.y; _hero.moving=false; try{draw();}catch(_){} return true; }
 export function __tryMove(dx,dy){ return tryMove(dx,dy); }
 export function __talkNearest(){ return talkNearest(); }
+export function __talkTo(name){ return talkTo(name); }
+export function __listNpcs(){ return _npcs.map(n=>({name:n.name,x:n.x,y:n.y,sheet:n.sheet})); }
 
-export default { mountOverworld, showOverworld, hideOverworld, refreshOverworld, isOverworldActive, buildMapForLocation, showDialogue, hideDialogue, syncDialogueFromVN, __debug, __setHero, __tryMove, __talkNearest, get __map(){ return __map; } };
+export default { mountOverworld, showOverworld, hideOverworld, refreshOverworld, isOverworldActive, buildMapForLocation, showDialogue, hideDialogue, syncDialogueFromVN, __debug, __setHero, __tryMove, __talkNearest, __talkTo, __listNpcs, get __map(){ return __map; } };

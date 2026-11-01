@@ -6482,3 +6482,27 @@ body:has(#battleRoot:not(.hidden)) #toast{
     display: block !important;
   }
 }
+
+
+
+
+/* === v64b toast: never cover HUD/minimap on OW === */
+body.pixel-ow #toast,
+body.pixel-ow #toast.on,
+body.pixel-ow #toast.toast-top,
+body.pixel-ow #toast.on.toast-top,
+body.pixel-ow #toast.toast-tip,
+body.pixel-ow #toast.on.toast-tip{
+  top: auto !important;
+  bottom: calc(128px + env(safe-area-inset-bottom, 0px)) !important;
+  left: 50% !important;
+  right: auto !important;
+  transform: translateX(-50%) !important;
+  z-index: 22 !important;
+  max-width: min(84vw, 300px) !important;
+  font-size: 12px !important;
+  pointer-events: none !important;
+}
+body.pixel-ow.ow-dialogue #toast,
+body.pixel-ow #toast:empty,
+body.pixel-ow #toast.on:empty{ display:none !important; opacity:0 !important; }

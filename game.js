@@ -39,6 +39,7 @@ import * as C60 from './content60.js';
 import * as C61 from './content61.js';
 import * as C62 from './content62.js';
 import * as C63 from './content63.js';
+import * as C64 from './content64.js';
 import * as Aud from './audio.js';
 
 /* ---- v57 lazy modules: battle / overworld / craft / cutscenes (DCL path) ---- */
@@ -164,7 +165,7 @@ try{ // v63 scrub AI cfg from localStorage
 
  // v41: test-only scripted, fair ATB bosses, boss dialogue talk-down, tilemap minimap, craft XP→T4
 const $=s=>document.querySelector(s);const $$=s=>[...document.querySelectorAll(s)];const R=a=>a[Math.floor(Math.random()*a.length)];const rnd=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
-const VER='63',CACHE_V='v63';
+const VER='64',CACHE_V='v64';
 const FREETEXT_ENABLED = false; // v63: classic JRPG only — free-text archived on freetext-archive
 
 try{ const _tb=document.querySelector('.title-badge'); if(_tb) _tb.textContent='v'+VER; }catch(_e){}
@@ -743,7 +744,7 @@ function parseCrime(a){const t=a.toLowerCase();const who=findNpcTarget(a);
 
 
 /* ---------- save / toast / gate ---------- */
-function save(){if(!S)return;Persist.atomicSave(S,{toast}).then(r=>{if(!r.ok&&r.reason==='stale')toast('⚠ Älterer Stand nicht überschrieben');else if(!r.ok)toast('⚠ Speichern fehlgeschlagen')}).catch(()=>toast('⚠ Speichern fehlgeschlagen'))}
+function save(){if(!S)return;Persist.atomicSave(S,{toast:(m)=>{ /* v64: never surface stale-overwrite toast over OW HUD/minimap */ if(/Stand nicht überschrieben/i.test(String(m||''))) return; toast(m); }}).then(r=>{if(!r.ok&&r.reason==='stale'){/* suppressed */} else if(!r.ok)toast('⚠ Speichern fehlgeschlagen')}).catch(()=>toast('⚠ Speichern fehlgeschlagen'))}
 async function loadSave(){const s=await Persist.loadBest(migrate);return s}
 function applyCatchUp(){if(!S)return null;
  // v13.1 default: skip auto catch-up (preserves ongoing scene). Opt-in via S.cfgCatchupOptIn or confirm.
@@ -752,7 +753,7 @@ function applyCatchUp(){if(!S)return null;
  if(r.hours>=1){const lines=['⏳ Während du weg warst (offscreen, '+r.hours+' Std.) — Szene unverändert:',...(r.summary||[])];
   pushSys(lines[0]);setTimeout(()=>{try{eventToast(lines[0])}catch(_){toast(lines[0])}},300);save()}
  return r}
-function toast(t){const e=$('#toast');if(!e)return;e.textContent=t;e.classList.add('on','toast-top');clearTimeout(e._t);e._t=setTimeout(()=>{e.classList.remove('on');},2800)}
+function toast(t, top){const e=$('#toast');if(!e)return;const msg=String(t??'');if(!msg.trim()){e.classList.remove('on','toast-top');return;}e.textContent=msg;e.classList.add('on');const useTop=!!top && !/Stand nicht|Speichern|Freitext|pausiert/i.test(msg);e.classList.toggle('toast-top', useTop);clearTimeout(e._t);e._t=setTimeout(()=>{e.classList.remove('on','toast-top');},2600)}
 function eventToast(t){const e=$('#eventToast');if(!e)return;e.textContent=t;e.classList.remove('hidden');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.add('hidden'),4200)}
 function hasKey(){return !!(cfg.gkey||'').trim()}
 function wantAI(){ return false; } // v63: no AI narrator
@@ -907,6 +908,7 @@ function migrate(raw){if(!raw)return null;const s=typeof raw==='string'?JSON.par
  if(Number(s.ver)<61){ try{ C61.migrateV61(s); }catch(e){console.warn('v61 migrate',e)} }
  if(Number(s.ver)<62){ try{ C62.migrateV62(s); }catch(e){console.warn('v62 migrate',e)} }
  if(Number(s.ver)<63){ try{ C63.migrateV63(s); }catch(e){console.warn('v63 migrate',e)} }
+ if(Number(s.ver)<64){ try{ C64.migrateV64(s); }catch(e){console.warn('v64 migrate',e)} }
  try{ if(s.role==='proc'||s.genre){ const pack=s.worldPack||PACKS.proc||{icon:'🎲',titel:s.world?.titel||'Welt',_genreLabel:s.genre||'Abenteuer',ton:'',genre:s.genre}; PACKS.proc=pack; ROLES.proc=ROLES.proc||{e:pack.icon||'🎲',name:pack._genreLabel||pack.titel||'Welt',d:pack.ton||'',world:pack.titel||'Welt',base:{hp:100,mp:30,str:10,cha:10,ruf:0,gold:20},cls:['Überlebende:r','Scavenger','Anführer:in','Legende'],pack:'',scene:pack.imageStyle||''}; } }catch(_){}
  try{ ensurePlaceCommerceTags(s); }catch(_){}
  // v13.1 continuity+time always (kept in v14)
@@ -975,7 +977,7 @@ async function newLife(role,meta,opts){meta=meta||{lives:0,soul:0,keptSkills:[]}
   time:{day:1,hour:18,phase:'Abend'},imgCache:{scenes:{},portraits:{},ok:{},fail:{},next:{}}};
  S.world=world;S.heat=0;S.wanted=[];S.dead=[];S.ledger=[];S.needs={hunger:20,fatigue:10,ageYears:18};S.home=Sim.blankHome();S.cal=Sim.blankCalendar(S.time);S.saveSeq=0;
  try{Sim.migrateToV13(S);Econ.ensureEcon(S);try{Econ.ensureMarket?.(S)}catch(_){};Codex.ensureCodex(S);WorldMap.ensureSpawn(S);Level.ensureProgress(S);Know.ensureKnow(S);Know.migrateKnow(S);Jobs.ensureJobs(S);Equip.ensureEquip(S)}catch(_){}
- try{ C39.ensureContent39(S); C39.seedThreads(S); C40.seedAllNpcArcs(S); C40.ensureCraft40(S); C41.ensureCraft41(S); C41.syncCraftProgress41(S); C42.migrateV42(S); C43.migrateV43(S); C44.migrateV44(S); C45.migrateV45(S); C46.migrateV46(S); C47.migrateV47(S); C48.migrateV48(S); C49.migrateV49(S); C50.migrateV50(S); C51.migrateV51(S); C52.migrateV52(S); C53.migrateV53(S); C54.migrateV54(S); C55.migrateV55(S); C56.migrateV56(S); C57.migrateV57(S); C58.migrateV58(S); C59.migrateV59(S); C60.migrateV60(S); C61.migrateV61(S); C62.migrateV62(S); C63.migrateV63(S); C39.midgameUnlocks(S,{toast:false}); }catch(_){}
+ try{ C39.ensureContent39(S); C39.seedThreads(S); C40.seedAllNpcArcs(S); C40.ensureCraft40(S); C41.ensureCraft41(S); C41.syncCraftProgress41(S); C42.migrateV42(S); C43.migrateV43(S); C44.migrateV44(S); C45.migrateV45(S); C46.migrateV46(S); C47.migrateV47(S); C48.migrateV48(S); C49.migrateV49(S); C50.migrateV50(S); C51.migrateV51(S); C52.migrateV52(S); C53.migrateV53(S); C54.migrateV54(S); C55.migrateV55(S); C56.migrateV56(S); C57.migrateV57(S); C58.migrateV58(S); C59.migrateV59(S); C60.migrateV60(S); C61.migrateV61(S); C62.migrateV62(S); C63.migrateV63(S); C64.migrateV64(S); C39.midgameUnlocks(S,{toast:false}); }catch(_){}
  if(opts.skipSetup){finishSetup(pack);gateOrShow();return}
  // If cinematic already covered death, skip first setup beat when it is 'tod'
  if(opts.fromIntro){S.flags.introDeath=true;S.setup.answers.tod={label:'(Intro)',past:opts.trait||''};S.setup.beat=1}
@@ -1358,7 +1360,7 @@ function renderChoices(){const c=$('#choices');if(S._setupChoices)return;c.inner
 
 async function jrpgPick(ch){
   if(!S) return;
-  try{ C59.migrateV59(S); C60.migrateV60(S); C61.migrateV61(S); C62.migrateV62(S); C63.migrateV63(S); }catch(_){ try{ C58.migrateV58(S); }catch(__){} }
+  try{ C59.migrateV59(S); C60.migrateV60(S); C61.migrateV61(S); C62.migrateV62(S); C63.migrateV63(S); C64.migrateV64(S); }catch(_){ try{ C58.migrateV58(S); }catch(__){} }
   const pack = C63.resolveChoice(S, ch, { toast:(m)=>toast(m) });
   let bid = C63.pendingBattleId(S);
   if(bid){
@@ -1417,7 +1419,7 @@ function applyJrpgPack(pack){
 }
 function syncFreetextUI(){
   try{
-    document.body.classList.add('no-freetext','jrpg-classic','visual59','visual62','visual63');
+    document.body.classList.add('no-freetext','jrpg-classic','visual59','visual62','visual63','visual64');
     document.body.classList.remove('freetext-on');
     const row=document.getElementById('inputRow');
     if(row){ row.classList.add('hidden'); row.setAttribute('hidden',''); row.style.display='none'; }
@@ -2330,7 +2332,7 @@ async function startProcedural(genreInput,pcName){const pack=await generateWorld
   cls:0,turn:0,hist:[],log:[],flags:{},setup:{done:true,beat:0,answers:{}},summary:pack.conflict||'',
   time:{day:1,hour:18,phase:'Abend'},imgCache:{scenes:{},portraits:{},ok:{},fail:{},next:{}},heat:0,wanted:[],dead:[],world};
  enrichNpcs(S.world);ensureGraph(S);try{Sim.migrateToV13(S);Econ.ensureEcon(S);try{Econ.ensureMarket?.(S)}catch(_){};Codex.ensureCodex(S);WorldMap.ensureSpawn(S);Level.ensureProgress(S);Know.ensureKnow(S);Know.migrateKnow(S);Jobs.ensureJobs(S);Gems.ensureGems(S);Summons.ensureSummons(S);Equip.ensureEquip(S);S.ver=VER}catch(_){}if(S.world.systems||S.genre==='zombie')ensureSystems();try{enrichPlaceDescs(S)}catch(_){};
- try{ C39.ensureContent39(S); C39.seedThreads(S); C40.seedAllNpcArcs(S); C40.ensureCraft40(S); C41.ensureCraft41(S); C41.syncCraftProgress41(S); C42.migrateV42(S); C43.migrateV43(S); C44.migrateV44(S); C45.migrateV45(S); C46.migrateV46(S); C47.migrateV47(S); C48.migrateV48(S); C49.migrateV49(S); C50.migrateV50(S); C51.migrateV51(S); C52.migrateV52(S); C53.migrateV53(S); C54.migrateV54(S); C55.migrateV55(S); C56.migrateV56(S); C57.migrateV57(S); C58.migrateV58(S); C59.migrateV59(S); C60.migrateV60(S); C61.migrateV61(S); C62.migrateV62(S); C63.migrateV63(S); C39.midgameUnlocks(S,{toast:false});
+ try{ C39.ensureContent39(S); C39.seedThreads(S); C40.seedAllNpcArcs(S); C40.ensureCraft40(S); C41.ensureCraft41(S); C41.syncCraftProgress41(S); C42.migrateV42(S); C43.migrateV43(S); C44.migrateV44(S); C45.migrateV45(S); C46.migrateV46(S); C47.migrateV47(S); C48.migrateV48(S); C49.migrateV49(S); C50.migrateV50(S); C51.migrateV51(S); C52.migrateV52(S); C53.migrateV53(S); C54.migrateV54(S); C55.migrateV55(S); C56.migrateV56(S); C57.migrateV57(S); C58.migrateV58(S); C59.migrateV59(S); C60.migrateV60(S); C61.migrateV61(S); C62.migrateV62(S); C63.migrateV63(S); C64.migrateV64(S); C39.midgameUnlocks(S,{toast:false});
    const rum=(S.content39?.rumours||[])[0]; if(rum){ S.ticks=S.ticks||{rumours:[],log:[]}; S.ticks.rumours=(S.ticks.rumours||[]).concat(rum).slice(-10); }
  }catch(e){console.warn('c39/c40 seed',e)}
  const conflict=(pack.conflict||pack.geschichte||'Die Welt atmet Magie und Gefahr.').slice(0,90);
@@ -3007,29 +3009,8 @@ async function gmProbe(key){const st=await gmFetch(key);const cands=(st.list||G_
  const best=results.filter(r=>r.ok).sort((a,b)=>a.ms-b.ms)[0];
  if(best){s2.chosen=best.m;s2.lat[best.m]=best.ms}gmSave(s2);gmUI();return {best,results}}
 
-async function gemini(a,el){ if(!FREETEXT_ENABLED) throw gErr("KI-Erzählerin entfernt"); const key=(cfg.gkey||'').trim();if(!key)throw gErr(friendlyAIFail());
- const st=await gmFetch(key);const tPrompt0=performance.now();const base=gBody(a);const order=gmOrder(st);let last,tried=0;
- S._promptChars=(JSON.stringify(base).length)|0; S._ttft=null; S._turnTotal=null;
- for(const m of order){if(tried>=2)break;tried++;
-  el.classList.add('typing'); if(!S._keepBeat) el.textContent='…';
-  let think=thinkingCfg(m),attempt=0;
-  while(attempt++<2){const body=JSON.parse(JSON.stringify(base));
-   if(think)body.generationConfig.thinkingConfig=think;else delete body.generationConfig.thinkingConfig;
-   let res;try{res=await fetchWithTimeout(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(m)}:streamGenerateContent?alt=sse`,{method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':key},body:JSON.stringify(body)},G_TIMEOUT)}
-   catch(e){last=gErr(friendlyAIFail());break}
-   if(res.ok){let raw='';const tFetch=performance.now();
-    try{raw=await readSSE(res,r=>{if(S._ttft==null&&r&&r.trim())S._ttft=Math.round(performance.now()-tPrompt0);showNarration(el,r)})}catch(_){last=gErr(friendlyAIFail());break}
-    const packed=parseStream(raw);if(packed&&packed.text&&packed.text!=='…'){const s2=gmStore();s2.chosen=m;if(s2.fail)delete s2.fail[m];gmSave(s2);gmUI();
-     S._turnTotal=Math.round(performance.now()-tPrompt0); setNarratorMode('gemini');
-     return {...packed,model:m,ttft:S._ttft,totalMs:S._turnTotal,promptChars:S._promptChars}}
-    last=gErr(friendlyAIFail());break}
-   let msg='',errObj=null;try{errObj=await res.json();msg=errObj?.error?.message||''}catch(_){}
-   if(res.status===400&&think&&/thinking|Thinking|budget|level/i.test(msg)){const s2=gmStore();s2.noThink=s2.noThink||{};s2.noThink[m]=1;gmSave(s2);think=null;continue}
-   if((res.status===400&&/api.?key/i.test(msg))||res.status===401||(res.status===403&&!/model/i.test(msg))){throw gErr(friendlyAIFail())}
-   let rd=0;try{const d=(errObj?.error?.details||[]).find(x=>x['@type']?.includes('RetryInfo'));rd=parseInt(String(d?.retryDelay||'').replace(/s$/,''),10)||0}catch(_){}
-   const s2=gmStore();s2.fail=s2.fail||{};s2.fail[m]={c:res.status,t:Date.now(),rd:rd||(res.status===429?600:0)};if(s2.chosen===m)delete s2.chosen;gmSave(s2);
-   last=gErr(friendlyAIFail());break}
- }gmUI();throw last||gErr(friendlyAIFail())}
+async function gemini(){ return {ok:false, disabled:true}; } // v64 pruned
+
 
 async function loadWebLLM(){if(engine)return engine;if(!navigator.gpu)throw new Error('WebGPU nicht verfügbar');
  const w=await import('https://esm.run/@mlc-ai/web-llm');$('#wstatus').textContent='Lade Modell…';
@@ -3212,118 +3193,8 @@ function offlineAsStream(a, el){
  * fire secondary (Gemini if key else offline) in parallel; take first usable stream; cancel loser.
  * Never shows a disruptive error — seamless same-turn failover.
  */
-async function freeStream(a, el){ if(!FREETEXT_ENABLED){ throw new Error("free-text archived"); } /* dead */
-  const t0=performance.now();
-  const beat=localBeatLine(a);
-  if(el){ el.textContent=beat; el.classList.add('typing'); }
+async function freeStream(){ return {ok:false, text:'', disabled:true}; } // v64 pruned
 
-  // If gated, skip Pollinations entirely — race Gemini vs offline for sub-2s text
-  if(!freeGateOpen()){
-    return await raceSecondary(a, el, t0, 'gate');
-  }
-
-  const acPrimary=new AbortController();
-  let primaryDone=false, winner=null, primaryErr=null;
-  let firstTokenAt=null;
-
-  const primaryP=pollinationsAttempt(a, el, {
-    model:FREE_MODEL,
-    signal:acPrimary.signal,
-    onFirst:(tt)=>{ firstTokenAt=tt; }
-  }).then(r=>{ primaryDone=true; return r; }).catch(e=>{
-    primaryErr=e;
-    // Abort is expected when secondary wins — never become an unhandled rejection
-    if(e && (e.name==='AbortError' || /abort/i.test(String(e.message||e)))) return null;
-    throw e;
-  });
-
-  // Speculative secondary timer
-  const secondaryAc={current:null};
-  let secondaryP=null;
-  const armSecondary=()=>{
-    if(secondaryP||winner) return;
-    secondaryP=raceSecondary(a, el, t0, 'speculative', secondaryAc).catch(e=>({__err:e}));
-  };
-  const specTimer=setTimeout(armSecondary, FREE_TTFT_MS);
-
-  // Also arm immediately on 402/429 (status arrives ~150–200ms)
-  primaryP.catch(e=>{
-    if(!e) return;
-    if(e.status===402||e.status===429||e.status===503){ clearTimeout(specTimer); armSecondary(); }
-    // swallow — abort/race noise must not surface as pageerror
-  });
-
-  // Wait for first usable result
-  try{
-    // Prefer primary if it delivers first token before secondary wins
-    const raced=await Promise.race([
-      primaryP.then(r=>({src:'primary', r})),
-      (async()=>{
-        // wait until secondary armed and settles, or primary fails hard
-        while(!secondaryP && !primaryErr){ await new Promise(r=>setTimeout(r,40)); if(performance.now()-t0>FREE_TOTAL_MS) break; }
-        if(primaryDone) return null;
-        if(!secondaryP) armSecondary();
-        const s=await secondaryP;
-        if(s&&!s.__err) return {src:'secondary', r:s};
-        return null;
-      })()
-    ]);
-
-    if(raced && raced.src==='primary' && raced.r && raced.r.raw){
-      clearTimeout(specTimer);
-      // cancel secondary if started
-      try{ secondaryAc.current && secondaryAc.current.abort(); }catch(_){}
-      winner=raced.r;
-      // soft obey once — only if still on free and gate open (no second hang)
-      let packed=winner.raw.includes(STREAM_DELIM)?parseStream(winner.raw):parse(winner.raw);
-      if(packed && packed.text && !Cont.addressesPlayer(a, packed.text) && freeGateOpen()){
-        try{
-          el.textContent=beat+' …';
-          const ac2=new AbortController(); const to2=setTimeout(()=>ac2.abort(), Math.min(8000, FREE_TOTAL_MS));
-          const retry=await pollinationsAttempt(a, el, {model:FREE_MODEL, signal:ac2.signal});
-          clearTimeout(to2);
-          if(retry&&retry.raw) winner=retry;
-        }catch(_){ /* keep first */ }
-      }
-      S._turnTotal=Math.round(performance.now()-t0);
-      S._narratorMode='free'; setNarratorMode('free');
-      showNarration(el, winner.raw);
-      return winner.raw;
-    }
-
-    if(raced && raced.src==='secondary' && raced.r){
-      try{ acPrimary.abort(); }catch(_){}
-      clearTimeout(specTimer);
-      winner=raced.r;
-      S._turnTotal=Math.round(performance.now()-t0);
-      if(winner.provider==='gemini'){ setNarratorMode('gemini'); return winner.raw; }
-      setNarratorMode('offline');
-      // offline returns raw with DELIM already
-      return winner.raw;
-    }
-  }catch(e){ primaryErr=primaryErr||e; }
-
-  clearTimeout(specTimer);
-  try{ acPrimary.abort(); }catch(_){}
-
-  // Primary failed (402 etc.) — secondary may already be running
-  if(!secondaryP) armSecondary();
-  try{
-    const s=await secondaryP;
-    if(s && !s.__err){
-      S._turnTotal=Math.round(performance.now()-t0);
-      if(s.provider==='gemini'){ setNarratorMode('gemini'); return s.raw; }
-      setNarratorMode('offline');
-      return s.raw;
-    }
-  }catch(_){}
-
-  // Last resort: sync offline (always <50ms prose)
-  const off=offlineAsStream(a, el);
-  S._turnTotal=Math.round(performance.now()-t0);
-  setNarratorMode('offline');
-  return off.raw;
-}
 
 /** Secondary: Gemini (if key) raced against offline. Offline always finishes <100ms so Gemini only wins if faster first paint — we prefer Gemini quality when key exists by giving it a short head-start window, else take offline. */
 async function raceSecondary(a, el, t0, reason, acHolder){
@@ -3778,7 +3649,7 @@ try{ const bgs=$('#btnGateSave'); if(bgs) bgs.onclick=()=>enterPlay(); }catch(_)
 try{ const bgk=$('#btnGateSkip'); if(bgk) bgk.onclick=()=>{cfg.mode='offline';enterPlay();}; }catch(_){}
 try{ const bms=$('#btnMusicSheet'); if(bms) bms.onclick=()=>{ try{ $('#btnMusic')?.click(); }catch(_){} }; }catch(_){}
 
-window.__setCfg=o=>{cfg=Object.assign(cfg||{},o||{},{mode:'offline',gkey:'',pollenKey:''});try{localStorage.setItem(CFG,JSON.stringify(cfg))}catch(_){}};window.__game={VER,hud,syncOwHud,FREETEXT_ENABLED,jrpgPick,applyJrpgPack,syncFreetextUI,Aud,toast,clearTypewrite,renderChoices,C39,C40,C41,C42,C43,C44,C45,C46,C47,C48,C49,C50,C51,C52,C53,C54,C55,C56,C57,C58,C59,C60,C61,C62,C63,Cut40,updateNarratorDot,narratorStatusText,openSheet,setBusy,forceUnbusy,ACT_HARD_MS,V25,OW,Depth,Battle,Jobs,Gems,Summons,Equip,Jrpg,localBeatLine,parsePlayerIntent,offlineRespondIntent,freeStream,FREE_MODEL,msgsLean,FREE_URLS,openPendingEncounter,Imm,discoverThing,showCodexInline,Level,UI14,UI17,Know,Cont,lastPromptDump,advanceTimeMinutes,applyActionDuration,newGrey,greyDetails,loadGrey,loadPack,get S(){return S},act,newLife,gBody,msgs,gmRank,gmProbe,parseStream,thinkingCfg,gmOrder,readSSE,STREAM_DELIM,migrate,worldTick,bumpRel,openMenu,openPixelShop,openRegionTravelMap,stageName,offline,startIntro,setSceneImage,setPortrait,imgUrl,advanceTime,phaseLabel,typewrite,enterPlay,showTitle,analyzeImage,applySceneTheme,themeFromText,loadValidatedImage,openingNarration,travelTo,parseTravel,killNPC,robNPC,addMemory,memoryHint,startProcedural,offlineGenerateWorld,generateWorldPack,GENRES,travelChoices,ensureGraph,whoHere,parseLifeSim,Sim,Persist,WorldMap,TravelMap,Cut31,Econ,Codex,UI13,save,loadSave,applyCatchUp,findAnyNpc,placeFlavorText,enrichPlaceDescs};
+window.__setCfg=o=>{cfg=Object.assign(cfg||{},o||{},{mode:'offline',gkey:'',pollenKey:''});try{localStorage.setItem(CFG,JSON.stringify(cfg))}catch(_){}};window.__game={VER,hud,syncOwHud,FREETEXT_ENABLED,jrpgPick,applyJrpgPack,syncFreetextUI,Aud,toast,clearTypewrite,renderChoices,C39,C40,C41,C42,C43,C44,C45,C46,C47,C48,C49,C50,C51,C52,C53,C54,C55,C56,C57,C58,C59,C60,C61,C62,C63, C64,Cut40,updateNarratorDot,narratorStatusText,openSheet,setBusy,forceUnbusy,ACT_HARD_MS,V25,OW,Depth,Battle,Jobs,Gems,Summons,Equip,Jrpg,localBeatLine,parsePlayerIntent,offlineRespondIntent,freeStream,FREE_MODEL,msgsLean,FREE_URLS,openPendingEncounter,Imm,discoverThing,showCodexInline,Level,UI14,UI17,Know,Cont,lastPromptDump,advanceTimeMinutes,applyActionDuration,newGrey,greyDetails,loadGrey,loadPack,get S(){return S},act,newLife,gBody,msgs,gmRank,gmProbe,parseStream,thinkingCfg,gmOrder,readSSE,STREAM_DELIM,migrate,worldTick,bumpRel,openMenu,openPixelShop,openRegionTravelMap,stageName,offline,startIntro,setSceneImage,setPortrait,imgUrl,advanceTime,phaseLabel,typewrite,enterPlay,showTitle,analyzeImage,applySceneTheme,themeFromText,loadValidatedImage,openingNarration,travelTo,parseTravel,killNPC,robNPC,addMemory,memoryHint,startProcedural,offlineGenerateWorld,generateWorldPack,GENRES,travelChoices,ensureGraph,whoHere,parseLifeSim,Sim,Persist,WorldMap,TravelMap,Cut31,Econ,Codex,UI13,save,loadSave,applyCatchUp,findAnyNpc,placeFlavorText,enrichPlaceDescs};
 window.__game.askNPC=a=>askNPC(a);window.__game.gemini=gemini;
 try{ syncFreetextUI(); }catch(_){};
 if(cfg.gkey)gmFetch(cfg.gkey.trim()).then(()=>gmProbe(cfg.gkey.trim()).catch(()=>{})).catch(()=>{});
