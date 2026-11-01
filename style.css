@@ -3432,10 +3432,13 @@ body.pixel-jrpg:not(.pixel-ow) .vn-box{
 
 
 /* ========== v48: FF6 / Sea-of-Stars battle stage ========== */
-.battle-root.battle-pixel{
+.battle-root.battle-pixel:not(.hidden){
   display:flex !important;
   flex-direction:column !important;
   background:#070a12 !important;
+}
+.battle-root.battle-pixel.hidden{
+  display:none !important;
 }
 .battle-root.battle-pixel .battle-stage{
   position:relative;
@@ -6864,11 +6867,14 @@ body.ow-desktop #sheet .panel{
 }
 
 /* ========== v67 FF6-style PC battle ========== */
-.battle-root.battle-ff67{
+.battle-root.battle-ff67:not(.hidden){
   display:flex !important;
   flex-direction:column !important;
   background:#05040a !important;
   font-family: "Press Start 2P", "Courier New", monospace;
+}
+.battle-root.battle-ff67.hidden{
+  display:none !important;
 }
 .battle-root.battle-ff67 .battle-stage{
   position:relative !important;
@@ -7120,11 +7126,19 @@ body.pc-only .menu-tabs button::after{ /* keep clean */ }
 }
 
 /* v67 FF SPRITE SCALE HARD OVERRIDE */
-.battle-root.battle-ff67.battle-pixel,
-.battle-root.battle-pixel.battle-ff67{
+.battle-root.battle-ff67.battle-pixel:not(.hidden),
+.battle-root.battle-pixel.battle-ff67:not(.hidden){
   position:fixed !important; inset:0 !important; width:100vw !important; height:100vh !important;
   max-width:none !important; max-height:none !important; margin:0 !important;
   z-index:9000 !important; background:#05040a !important;
+}
+.battle-root.battle-ff67.battle-pixel.hidden,
+.battle-root.battle-pixel.battle-ff67.hidden,
+#battleRoot.hidden{
+  display:none !important;
+  visibility:hidden !important;
+  pointer-events:none !important;
+  z-index:-1 !important;
 }
 .battle-root.battle-ff67.battle-pixel .battle-stage{
   flex:0 0 70% !important; height:70% !important; max-height:70% !important; min-height:0 !important;
@@ -7169,10 +7183,262 @@ body.pc-only .menu-tabs button::after{ /* keep clean */ }
 .battle-root.battle-ff67.battle-pixel .party-stage-spr .pixel-hero-spr.battler-spr,
 .battle-root.battle-ff67.battle-pixel .party-stage-spr .pixel-hero-spr.pixelated,
 .battle-root.battle-ff67.battle-pixel .pixel-hero-spr.battler-spr{
-  width:180px !important; height:180px !important;
-  min-width:140px !important; min-height:140px !important;
-  max-width:20vw !important; max-height:32vh !important;
+  /* v68: fit 4 party members without top clip */
+  width:min(118px, 10.5vw, 15vh) !important;
+  height:min(118px, 10.5vw, 15vh) !important;
+  min-width:72px !important; min-height:72px !important;
+  max-width:10.5vw !important; max-height:15vh !important;
   object-fit:contain !important; transform:none !important;
   image-rendering:pixelated !important;
 }
 
+/* === v68 FF battle + ow fill polish === */
+.battle-root.battle-ff67.battle-pixel .cmd-ff-main,
+.battle-root.battle-ff67 .cmd-ff-main,
+.battle-root.battle-ff67 .ff-cmd-list,
+.battle-root.battle-ff67 #battleCmd .cmd-ff-main{
+  display:flex !important;
+  flex-direction:column !important;
+  grid-template-columns:none !important;
+  gap:0 !important;
+  width:100% !important;
+}
+.battle-root.battle-ff67 #battleCmd,
+.battle-root.battle-ff67 .battle-cmd-pop{
+  width:200px !important;
+  max-width:26vw !important;
+  min-width:180px !important;
+  padding:10px 8px !important;
+  left:54% !important;
+  bottom:10% !important;
+  overflow:visible !important;
+}
+.battle-root.battle-ff67 .ff-cmd-title{
+  display:block !important;
+  margin:0 4px 8px !important;
+  padding:0 !important;
+  font-size:10px !important;
+  line-height:1.2 !important;
+  white-space:nowrap !important;
+}
+.battle-root.battle-ff67 #battleCmd .bcm,
+.battle-root.battle-ff67 #battleCmd .bcm.ff-cmd-row,
+.battle-root.battle-ff67 .cmd-ff-main .bcm{
+  display:flex !important;
+  flex-direction:row !important;
+  flex-wrap:nowrap !important;
+  align-items:center !important;
+  gap:8px !important;
+  width:100% !important;
+  min-height:30px !important;
+  max-height:none !important;
+  margin:0 !important;
+  padding:5px 8px !important;
+  font-size:13px !important;
+  line-height:1.2 !important;
+  white-space:nowrap !important;
+  overflow:hidden !important;
+  text-overflow:ellipsis !important;
+  grid-column:auto !important;
+}
+.battle-root.battle-ff67 #battleCmd .bcm small,
+.battle-root.battle-ff67 .cmd-ff-main .bcm small{
+  display:none !important; /* no stacked small text smashing labels */
+}
+.battle-root.battle-ff67 #battleCmd .bcm .ff-c{
+  flex:0 0 1.1em !important;
+  width:1.1em !important;
+  opacity:0 !important;
+  font-size:12px !important;
+}
+.battle-root.battle-ff67 #battleCmd .bcm:hover .ff-c,
+.battle-root.battle-ff67 #battleCmd .bcm:focus .ff-c,
+.battle-root.battle-ff67 #battleCmd .bcm:focus-visible .ff-c,
+.battle-root.battle-ff67 #battleCmd .bcm.ff-cmd-on .ff-c,
+.battle-root.battle-ff67 #battleCmd .ff-cmd-list .bcm:first-of-type .ff-c{
+  opacity:1 !important;
+}
+.battle-root.battle-ff67 #battleCmd .ff-cmd-lab{
+  flex:1 1 auto !important;
+  text-align:left !important;
+  white-space:nowrap !important;
+}
+
+/* Party stage: keep all 4 inside field (no top clip) */
+.battle-root.battle-ff67 .battle-field{
+  inset:4% 3% 8% 3% !important;
+  align-items:center !important;
+}
+.battle-root.battle-ff67 .battle-party-spr{
+  align-self:stretch !important;
+  justify-content:space-evenly !important;
+  padding:2% 2% 2% 0 !important;
+  height:100% !important;
+  max-height:100% !important;
+  box-sizing:border-box !important;
+  gap:0 !important;
+  overflow:visible !important;
+}
+.battle-root.battle-ff67 .battle-foes{
+  align-self:stretch !important;
+  justify-content:center !important;
+}
+.battle-root.battle-ff67 .party-stage-spr{
+  flex:1 1 0 !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:flex-end !important;
+  max-height:none !important;
+  min-height:0 !important;
+}
+.battle-root.battle-ff67 .party-stage-spr .pixel-hero-spr{
+  width:min(120px, 11vw, 16vh) !important;
+  height:min(120px, 11vw, 16vh) !important;
+  max-width:11vw !important;
+  max-height:16vh !important;
+}
+.battle-root.battle-ff67 .battle-stage{
+  overflow:hidden !important;
+}
+
+/* Party strip: short name column */
+.battle-root.battle-ff67 .ff-party-row,
+.battle-root.battle-ff67 .party-card.ff-party-row{
+  grid-template-columns: 88px minmax(0,1fr) !important;
+  gap:10px !important;
+  align-items:center !important;
+}
+.battle-root.battle-ff67 .ff-pname{
+  font-size:11px !important;
+  white-space:nowrap !important;
+  overflow:hidden !important;
+  text-overflow:ellipsis !important;
+  max-width:88px !important;
+}
+.battle-root.battle-ff67 .ff-gauges{ min-width:0 !important; }
+.battle-root.battle-ff67 .ff-hp,
+.battle-root.battle-ff67 .ff-mp,
+.battle-root.battle-ff67 .ff-atb{
+  grid-template-columns:22px minmax(40px,1fr) 56px !important;
+  gap:4px !important;
+}
+
+/* Enemy strip with HP */
+.battle-root.battle-ff67 .ff-foe-row{
+  display:grid !important;
+  grid-template-columns:14px 1fr !important;
+  gap:6px !important;
+  align-items:center !important;
+  padding:5px 0 !important;
+}
+.battle-root.battle-ff67 .ff-foe-meta{ min-width:0; }
+.battle-root.battle-ff67 .ff-foe-name{
+  display:block; font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.battle-root.battle-ff67 .ff-foe-hp{
+  display:grid; grid-template-columns:22px 1fr 52px; gap:4px; align-items:center;
+  font-size:9px; color:#9eb6ff; margin-top:2px;
+}
+.battle-root.battle-ff67 .ff-foe-hp .bar{
+  height:7px; background:#061028; border:1px solid #4a6ad0; overflow:hidden;
+}
+.battle-root.battle-ff67 .ff-foe-hp .bar i{ display:block; height:100%; background:linear-gradient(90deg,#e85a5a,#ff8a8a); }
+.battle-root.battle-ff67 .ff-foe-hp em{ font-style:normal; color:#e8f0ff; text-align:right; font-size:9px; }
+.battle-root.battle-ff67 .ff-foe-row .ff-cursor{ opacity:0; }
+.battle-root.battle-ff67 .ff-foe-row:first-of-type .ff-cursor,
+.battle-root.battle-ff67 .ff-foe-row.target .ff-cursor{ opacity:1; }
+
+/* KB hint: bottom of stage, clear of top-right icons */
+.battle-root.battle-ff67 .battle-kb-hint{
+  top:auto !important;
+  bottom:10px !important;
+  left:12px !important;
+  right:auto !important;
+  z-index:12 !important;
+  max-width:36% !important;
+  pointer-events:none;
+}
+
+/* Battle BG texture + lighting (not flat blocks) */
+.battle-root.battle-ff67 .battle-bg-tex{
+  position:absolute; inset:0; z-index:2; pointer-events:none;
+  background:
+    radial-gradient(ellipse at 50% 12%, #ffe7a438 0%, transparent 38%),
+    radial-gradient(ellipse at 18% 40%, #6a8ad040 0%, transparent 42%),
+    radial-gradient(ellipse at 82% 38%, #3a206040 0%, transparent 40%),
+    repeating-linear-gradient(0deg, #0000 0 5px, #00000022 5px 6px),
+    repeating-linear-gradient(90deg, #0000 0 9px, #ffffff10 9px 10px),
+    repeating-linear-gradient(135deg, #0000 0 14px, #1a102818 14px 15px);
+  mix-blend-mode:overlay;
+  opacity:1;
+}
+.battle-root.battle-ff67 .battle-bg-live,
+.battle-root.battle-ff67 #battleBg{
+  filter:saturate(1.25) contrast(1.12) brightness(1.05) !important;
+  background-size:cover !important;
+}
+.battle-root.battle-ff67 .battle-layer-far{
+  filter:brightness(.85) saturate(1.1);
+}
+.battle-root.battle-ff67 .battle-layer-mid{
+  filter:brightness(.95) contrast(1.05);
+}
+.battle-root.battle-ff67 .battle-layer-mid,
+.battle-root.battle-ff67 .battle-bg-live{
+  filter:saturate(1.2) contrast(1.08) brightness(1.02) !important;
+}
+.battle-root.battle-ff67 .pixel-battle-floor{
+  background:
+    linear-gradient(180deg, transparent 0%, #0a1028aa 50%, #050814f0 100%),
+    repeating-linear-gradient(90deg, #2a3a5a33 0 3px, transparent 3px 40px),
+    repeating-linear-gradient(0deg, #1a284433 0 2px, transparent 2px 24px) !important;
+}
+.battle-root.battle-ff67 .battle-stage::after{
+  content:""; position:absolute; inset:0; z-index:3; pointer-events:none;
+  box-shadow: inset 0 -80px 100px #050814aa, inset 0 40px 60px #0006;
+}
+
+/* Desktop overworld: no purple page pillars — canvas full-bleed */
+body.pc-only #overworld,
+body.ow-desktop #overworld{
+  background:#0a0814 !important;
+}
+body.pc-only #overworld canvas,
+body.ow-desktop #overworld canvas{
+  margin:0 auto !important;
+}
+
+
+/* v68b party strip: short names never wrap into HP */
+.battle-root.battle-ff67 .ff-pname{
+  white-space:nowrap !important;
+  overflow:hidden !important;
+  text-overflow:ellipsis !important;
+  max-width:88px !important;
+  min-width:64px !important;
+  display:inline-block !important;
+}
+.battle-root.battle-ff67 .party-row,
+.battle-root.battle-ff67 .ff-prow,
+.battle-root.battle-ff67 .battle-party .prow{
+  display:grid !important;
+  grid-template-columns: 88px 1fr !important;
+  column-gap:8px !important;
+  align-items:center !important;
+}
+.battle-root.battle-ff67 .ff-bars,
+.battle-root.battle-ff67 .party-bars{
+  min-width:0 !important;
+}
+
+/* v68: battleRoot.hidden must beat display:flex !important */
+.battle-root.hidden,
+#battleRoot.hidden,
+.battle-root.battle-ff67.hidden,
+.battle-root.battle-pixel.hidden{
+  display:none !important;
+  visibility:hidden !important;
+  opacity:0 !important;
+  pointer-events:none !important;
+  z-index:-1 !important;
+}

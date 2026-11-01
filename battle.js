@@ -1225,6 +1225,19 @@ function pixelEnemyArt(f){
   if(id) return './assets/pixel/battler/'+id+'.png';
   return './assets/pixel/battler/slime.png';
 }
+
+function shortBattleName(n){
+  const s=String(n||'').trim();
+  if(!s) return '???';
+  // drop titles: Sekretärin Velka -> Velka, General Brok -> Brok, Heldin Aria -> Aria
+  const parts=s.split(/\s+/);
+  if(parts.length>=2 && /^(Sekretärin|General|Heldin|Priesterin|Kundschafterin|Spionin|Schmiedin|Chronistin|Hüter|Wächter|Archivar|Page|Händler|Akolyth|Kantor|Schwester|Grabräuber|Rekrut)$/i.test(parts[0])){
+    return parts.slice(1).join(' ');
+  }
+  if(s.length>12) return parts[parts.length-1].slice(0,12);
+  return s;
+}
+
 function foeScaleClass(f){
   try{
     const sc=window.__game?.C48?.battleEnemyScale?.(f);
@@ -1262,7 +1275,7 @@ export function renderBattleUI(){
     <div class="battle-layer battle-layer-near" style="background-image:url('${L.near}')" aria-hidden="true"></div>
     <div class="battle-layer battle-layer-floor" style="background-image:url('${L.floor}')" aria-hidden="true"></div>`; })()}
     <div class="pixel-battle-floor ${battleFloorClass(B.bg)} floor-blend" aria-hidden="true"><div class="battle-floor-grid"></div></div>
-    <div class="battle-veil"></div>
+    <div class="battle-bg-tex" aria-hidden="true"></div><div class="battle-veil"></div>
     <div class="battle-atb-mode">${B.atbMode==='wait'?'Warten':'Aktiv'}</div>
     <div class="battle-timeline" id="battleTL"></div>
     <div class="skill-banner" id="skillBanner"></div>
@@ -1272,7 +1285,7 @@ export function renderBattleUI(){
     </div>
     <div class="battle-fx" id="battleFx" aria-hidden="true"></div>
     <div class="battle-cmd-pop jrpg-window" id="battleCmd"></div>
-    <div class="battle-kb-hint">↑↓ Enter/A · Esc/B · Gamepad</div>
+    <div class="battle-kb-hint" id="battleKbHint">↑↓ wählen · Enter/A · Esc/B</div>
   </div>
   <div class="battle-hud battle-hud-ff">
     <div class="battle-strip-left jrpg-window" id="battleFoePlates" aria-live="polite"></div>
@@ -1304,11 +1317,16 @@ function refreshUI(){
   if(foes){
     const plates=el('battleFoePlates');
     if(plates){
-      plates.innerHTML=`<div class="ff-foe-list-title">Gegner</div>`+B.foes.map(f=>`
-        <div class="ff-foe-row ${f.alive?'':'dead'} ${f.boss?'boss':''}" data-iid="${f._iid}">
+      plates.innerHTML=`<div class="ff-foe-list-title">Gegner · ${B.foes.filter(f=>f.alive).length}/${B.foes.length}</div>`+B.foes.map(f=>{
+        const pct=Math.max(0, Math.min(100, (f.hp/Math.max(1,f.maxhp))*100));
+        return `<div class="ff-foe-row ${f.alive?'':'dead'} ${f.boss?'boss':''}" data-iid="${f._iid}">
           <span class="ff-cursor" aria-hidden="true">▶</span>
-          <span class="ff-foe-name">${f.name}${f.boss?' ★':''}</span>
-        </div>`).join('');
+          <div class="ff-foe-meta">
+            <span class="ff-foe-name">${shortBattleName(f.name)}${f.boss?' ★':''}</span>
+            <div class="ff-foe-hp"><span>HP</span><div class="bar hp"><i style="width:${pct}%"></i></div><em>${f.alive?(f.hp|0):0}/${f.maxhp|0}</em></div>
+          </div>
+        </div>`;
+      }).join('');
     }
     foes.innerHTML=B.foes.map(f=>`
       <button type="button" class="foe-card foe-bare ${foeScaleClass(f)} ${f.alive?'':'dead'} ${B.selecting&&needsTarget()?(_B._hover===f._iid?'target':''):''}" data-iid="${f._iid}" ${f.alive?'':'disabled'}>
@@ -1340,7 +1358,7 @@ function refreshUI(){
   if(party){
     party.innerHTML=B.party.map(p=>`
       <div class="party-card pixel-party jrpg-window ff-party-row ${p.alive?'':'dead'} ${B.selecting?.actor===p?'active':''} row-${p.row||'front'}" data-iid="${p._iid}">
-        <div class="ff-pname"><span class="ff-hand">${B.selecting?.actor===p?'👉':''}</span><b>${p.name}</b></div>
+        <div class="ff-pname"><span class="ff-hand">${B.selecting?.actor===p?'👉':''}</span><b>${shortBattleName(p.name)}</b></div>
         <div class="ff-gauges">
           <div class="ff-hp"><span>HP</span><div class="bar hp"><i style="width:${Math.max(0,p.hp/p.maxhp*100)}%"></i></div><em>${p.hp|0}/${p.maxhp|0}</em></div>
           <div class="ff-mp"><span>MP</span><div class="bar mp"><i style="width:${Math.max(0,p.mp/Math.max(1,p.maxmp)*100)}%"></i></div><em>${p.mp|0}/${p.maxmp|0}</em></div>
@@ -1407,16 +1425,23 @@ function refreshUI(){
     }
     if(sel.mode==='main'){
       cmd.innerHTML=`
-        <div class="cmd-primary cmd-ff-main ff-cmd-pop">
-          <div class="ff-cmd-title">Befehl <small>↑↓ Enter</small></div>
-          <button type="button" class="bcm" data-c="attack"><span class="ff-c">▶</span> Angriff</button>
-          <button type="button" class="bcm" data-c="skills"><span class="ff-c">▶</span> Fähigkeit</button>
-          <button type="button" class="bcm" data-c="items"><span class="ff-c">▶</span> Item</button>
-          <button type="button" class="bcm" data-c="technik"><span class="ff-c">▶</span> Technik</button>
-          <button type="button" class="bcm social" data-c="talk"><span class="ff-c">▶</span> Reden</button>
-          <button type="button" class="bcm ghost bcm-flucht" data-c="flee"><span class="ff-c">▶</span> Flucht</button>
+        <div class="cmd-primary cmd-ff-main ff-cmd-pop ff-cmd-list">
+          <div class="ff-cmd-title">Befehl</div>
+          <button type="button" class="bcm ff-cmd-row" data-c="attack"><span class="ff-c" aria-hidden="true">👉</span><span class="ff-cmd-lab">Angriff</span></button>
+          <button type="button" class="bcm ff-cmd-row" data-c="skills"><span class="ff-c" aria-hidden="true">👉</span><span class="ff-cmd-lab">Fähigkeit</span></button>
+          <button type="button" class="bcm ff-cmd-row" data-c="items"><span class="ff-c" aria-hidden="true">👉</span><span class="ff-cmd-lab">Item</span></button>
+          <button type="button" class="bcm ff-cmd-row" data-c="technik"><span class="ff-c" aria-hidden="true">👉</span><span class="ff-cmd-lab">Technik</span></button>
+          <button type="button" class="bcm ff-cmd-row social" data-c="talk"><span class="ff-c" aria-hidden="true">👉</span><span class="ff-cmd-lab">Reden</span></button>
+          <button type="button" class="bcm ff-cmd-row ghost bcm-flucht" data-c="flee"><span class="ff-c" aria-hidden="true">👉</span><span class="ff-cmd-lab">Flucht</span></button>
         </div>`;
-      cmd.querySelectorAll('.bcm').forEach(b=>b.onclick=()=>{
+      const rows=[...cmd.querySelectorAll('.bcm')];
+      rows.forEach((b,i)=>{
+        b.classList.toggle('ff-cmd-on', i===0);
+        b.onfocus=()=>{ rows.forEach(x=>x.classList.remove('ff-cmd-on')); b.classList.add('ff-cmd-on'); };
+        b.onmouseenter=()=>{ rows.forEach(x=>x.classList.remove('ff-cmd-on')); b.classList.add('ff-cmd-on'); };
+      });
+      rows[0]?.focus?.({preventScroll:true});
+      rows.forEach(b=>b.onclick=()=>{
         const c=b.dataset.c;
         if(c==='technik'){ _B.selecting={actor:sel.actor,mode:'technik'}; refreshUI(); return }
         if(c==='attack'){ _B.selecting={actor:sel.actor,mode:'attack'}; refreshUI(); toastPick() }
@@ -1566,9 +1591,20 @@ function playVictoryFanfare(){
   }catch(_){}
 }
 
-function hideBattleUI(){ clearBattleOpen(); try{ document.querySelector('.battle-root')?.classList.remove('battle-ended'); }catch(_){} try{ document.body.classList.remove('in-battle'); }catch(_){} 
+function hideBattleUI(){ clearBattleOpen(); try{ document.querySelector('.battle-root')?.classList.remove('battle-ended'); }catch(_){} try{ document.body.classList.remove('in-battle','battle-open','battle-ended'); document.documentElement.classList.remove('in-battle','battle-open','battle-ended'); }catch(_){} 
   try{ window.__game?.C43?.screenTransition?.('fade', 300); }catch(_){}
-  const root=el('battleRoot'); if(root) root.classList.add('hidden');
+  const root=el('battleRoot');
+  if(root){
+    root.classList.add('hidden');
+    root.style.setProperty('display','none','important');
+    root.style.setProperty('visibility','hidden','important');
+    root.style.setProperty('opacity','0','important');
+    root.style.setProperty('z-index','-1','important');
+  }
+  document.querySelectorAll('.battle-root').forEach(el=>{
+    el.classList.add('hidden');
+    el.style.setProperty('display','none','important');
+  });
   try{
     const S=_B?.S||window.__game?.S;
     const map=window.__game?.OW?.__map;
@@ -1793,6 +1829,7 @@ export function maybeRandomEncounter(S, opts={}){
 
 /** Pre-battle choice sheet — never auto-starts combat */
 export function offerEncounter(S, opts={}){
+  if(typeof window!=='undefined' && window.__gateNoBattle) return null;
   const foes=opts.enemies?.length?opts.enemies:(opts.kind?designEncounter(S,opts.kind):pickEncounter(S,{count:opts.count,boss:opts.boss,noBoss:opts.noBoss!==false}));
   if(!opts.blurb && foes[0]){ try{ const sb=storyBossBlurb(foes[0]); if(sb) opts={...opts, blurb:sb}; }catch(_){} }
   if(!foes.length) return null;
@@ -1801,7 +1838,7 @@ export function offerEncounter(S, opts={}){
     root.classList.remove('hidden');
     const names=foes.map(f=>f.name+(f.boss?' (Boss)':'')).join(', ');
     root.innerHTML=`<div class="battle-bg" style="background-image:url('${opts.bg||battleBgFor(S)}')"></div>
-      <div class="battle-veil"></div>
+      <div class="battle-bg-tex" aria-hidden="true"></div><div class="battle-veil"></div>
       <div class="encounter-sheet">
         <div class="encounter-badge">Begegnung</div>
         <div class="encounter-foes">${foes.map(f=>`<div class="enc-foe"><img src="${f.art}" alt="" onerror="this.remove()"/><span>${f.icon||''} ${f.name}</span></div>`).join('')}</div>
@@ -1884,7 +1921,7 @@ export default {
   startBattle, isActive, getBattle, __forceLose, getLastSummary, getLastResult, playerCommand, buildParty, renderBattleUI,
   maybeRandomEncounter, offerEncounter, COMBAT_SKILLS,
   isStoryNpcFoe, storyNpcName, mercyNeeded, applyMercyDecision,
-  __playSprite: playSpriteAnim, __testDrive, __forceHide: ()=>{ try{ hideBattleUI(); clearBattleOpen(); setBattleOpen(false); _B=null; }catch(_){ } try{ document.body.classList.remove('in-battle','battle-open','battle-ended'); document.documentElement.classList.remove('in-battle','battle-open','battle-ended'); const r=document.getElementById('battleRoot'); if(r){ r.classList.add('hidden'); r.innerHTML=''; r.style.display='none'; } document.querySelectorAll('.battle-root').forEach(el=>{ el.classList.add('hidden'); el.style.display='none'; }); }catch(_){ } },
+  __playSprite: playSpriteAnim, __testDrive, __forceHide: ()=>{ try{ hideBattleUI(); clearBattleOpen(); setBattleOpen(false); _B=null; try{ if(window.__game?.S?.flags){ delete window.__game.S.flags._offerEncounter; delete window.__game.S.flags.narratorCombat; } window.__gateNoBattle=true; }catch(_){ } }catch(_){ } try{ document.body.classList.remove('in-battle','battle-open','battle-ended'); document.documentElement.classList.remove('in-battle','battle-open','battle-ended'); document.querySelectorAll('#battleRoot, .battle-root').forEach(el=>{ try{ el.classList.add('hidden'); el.innerHTML=''; el.style.setProperty('display','none','important'); el.style.setProperty('visibility','hidden','important'); el.style.setProperty('opacity','0','important'); el.style.setProperty('z-index','-1','important'); el.style.setProperty('pointer-events','none','important'); el.remove(); }catch(_){ } }); }catch(_){ } },
   Jrpg, Jobs, Gems, Summons, Equip
 };
 

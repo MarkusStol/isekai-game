@@ -140,7 +140,7 @@ let _explored=new Set(); let _visible=new Set();
 let _genre='held'; let _tileSet=BASE_TILES;
 let _dlg=null;
 let _dayTint='day'; let _wxParts=[]; let _audioApi=null;
-let _desktop=false; let _intScale=3; let _viewW=13, _viewH=15;
+let _desktop=false; let _intScale=3; let _viewW=13, _viewH=15; let _lastViewW=0,_lastViewH=0;
 let _padAxes={x:0,y:0}; let _padPrev={};
 let _overhead=[]; // {x,y,src,w,h} world-tile anchored big sprites drawn after entities
 export let __map=null; // last built map (gates/shots)
@@ -1824,7 +1824,7 @@ function draw(){
   const _indoorFill=(_map?.kind==='dungeon'||_map?.kind==='interior');
   // v67: rich void fill (no dead black letterbox around small maps)
   const grd=ctx.createRadialGradient(cssW*0.5,cssH*0.45,cssW*0.08,cssW*0.5,cssH*0.5,cssW*0.75);
-  if(_indoorFill){ grd.addColorStop(0,'#3a3250'); grd.addColorStop(0.55,'#1c1830'); grd.addColorStop(1,'#0a0814'); }
+  if(_indoorFill){ grd.addColorStop(0,'#3a3550'); grd.addColorStop(0.45,'#2a2640'); grd.addColorStop(1,'#1a1628'); }
   else { grd.addColorStop(0,'#2a6a3a'); grd.addColorStop(0.55,'#143828'); grd.addColorStop(1,'#081410'); }
   ctx.fillStyle=grd; ctx.fillRect(0,0,cssW,cssH);
   // subtle pixel noise / stone stars
@@ -1838,27 +1838,43 @@ function draw(){
 
   // v65: map fills canvas — zoom into small interiors so void never letterboxes
   const dlgOpen = !!(typeof document!=='undefined' && document.body?.classList?.contains('ow-dialogue'));
-  let viewH = _viewH, viewW = _viewW;
+  let viewH = _viewH, viewW = _viewW; let _rvW=viewW,_rvH=viewH;
   try{
     if(_map?.w && _map?.h){
       // v66: do NOT clamp viewH to map.h — that caused mobile black bars under short interiors
       // (tw locked by width → viewH*tw << cssH). OOB biome fill covers extra tiles.
-      viewW = Math.min(viewW, Math.max(11, _map.w + (_desktop?0:2)));
-      // v67 PC: tall narrow maps — widen frustum so pillars don't dominate
-      if(_desktop && _map.h > _map.w + 4){
-        viewW = Math.max(viewW, Math.min(Math.max(_map.w+6, 28), Math.ceil((_map.h||24)*0.85)));
+      if(!_desktop){
+        viewW = Math.min(viewW, Math.max(11, _map.w + 2));
+      } else {
+        // v68 PC: small interiors/dungeons — zoom so the room fills 16:9 (not a tiny island in void)
+        const indoor = _map.kind==='interior' || _map.kind==='dungeon' || !!_map.preset;
+        if(indoor && _map.w && _map.h && _map.w <= viewW+4 && _map.h <= viewH+4){
+          const aspect = Math.max(1.2, (cssW||960) / Math.max(1, cssH||540));
+          viewH = Math.max(10, _map.h + 2);
+          viewW = Math.max(12, _map.w + 2);
+          if(viewW / viewH < aspect) viewW = Math.max(viewW, Math.ceil(viewH * aspect));
+          else viewH = Math.max(viewH, Math.ceil(viewW / aspect));
+        } else {
+          // large outdoor maps: frustum at least canvas/16 then cover-scale
+          viewW = Math.max(viewW, Math.ceil((_canvas?.width||960)/16));
+          viewH = Math.max(viewH, Math.ceil((_canvas?.height||540)/16));
+        }
       }
     }
   }catch(_){}
+  _lastViewW=viewW; _lastViewH=viewH;
   // v66 PC: dialogue overlays; do not shrink camera
   let tw = Math.floor(Math.min(cssW/viewW, cssH/viewH));
-  {
+  if(_desktop){
+    // cover full canvas (may crop 1 tile of frustum) — no pillarbox
+    tw = Math.max(1, Math.ceil(Math.max(cssW/viewW, cssH/viewH)));
+  } else {
     const twH=Math.floor(cssH/viewH);
     if(twH*viewW <= cssW+8) tw=Math.max(tw, twH);
-  }
-  if(tw*viewH < cssH && tw*viewW <= cssW+12){
-    const bump=Math.ceil(cssH/viewH);
-    if(bump*viewW <= cssW+14) tw=bump;
+    if(tw*viewH < cssH && tw*viewW <= cssW+12){
+      const bump=Math.ceil(cssH/viewH);
+      if(bump*viewW <= cssW+14) tw=bump;
+    }
   }
   let camX=_hero.px - viewW/2 + 0.5;
   let camY=_hero.py - viewH/2 + 0.5;
@@ -1873,10 +1889,9 @@ function draw(){
   const x0=Math.floor(camX)-1, y0=Math.floor(camY)-1;
   const x1=x0+viewW+3, y1=y0+viewH+3;
   const waterIm=loadImg(WATER_ANIM);
-  const ox=Math.floor((cssW - viewW*tw)/2);
-  // center vertically when a 1–2px remainder remains; biome-fill covers gaps
-  // v66: mobile pin top (pad overlays bottom); desktop may center 1px remainder
-  let oy=Math.max(0, Math.floor((cssH - viewH*tw)/2));
+  // v68: desktop cover mode → ox/oy typically 0 (no purple gutters)
+  const ox=_desktop ? Math.min(0, Math.floor((cssW - viewW*tw)/2)) : Math.floor((cssW - viewW*tw)/2);
+  let oy=_desktop ? Math.min(0, Math.floor((cssH - viewH*tw)/2)) : Math.max(0, Math.floor((cssH - viewH*tw)/2));
 
   for(let y=y0;y<=y1;y++){
     for(let x=x0;x<=x1;x++){
@@ -1885,11 +1900,15 @@ function draw(){
         // v65: extend biome — indoor castle floor (never flat black band)
         const indoor=_map.kind==='dungeon'||_map.kind==='interior';
         if(indoor){
+          // v68: extend readable stone/floor to canvas edges (16:9 fill, not black void)
           const under=(_map.preset==='church'||_map.preset==='throne')?'stone':(_map.kind==='dungeon'?'floor':'stone');
           const gim=loadImg(tileUrl(under));
           if(gim.complete && gim.naturalWidth) ctx.drawImage(gim, sx, sy, tw, tw);
-          else { ctx.fillStyle='#1a1520'; ctx.fillRect(sx,sy,tw,tw); }
-          ctx.fillStyle='rgba(5,4,12,.35)'; ctx.fillRect(sx,sy,tw,tw);
+          else { ctx.fillStyle='#2a2438'; ctx.fillRect(sx,sy,tw,tw); }
+          // soft vignette only — keep floor readable
+          const edge=Math.min(1, Math.hypot(x-_hero.x, y-_hero.y)/28);
+          ctx.fillStyle=`rgba(8,6,16,${0.12+edge*0.28})`; ctx.fillRect(sx,sy,tw,tw);
+          if(((x*13+y*7)&7)===0){ ctx.fillStyle='rgba(255,255,255,0.04)'; ctx.fillRect(sx+2,sy+2,2,2); }
         }
         else {
           // v63: beyond map = mountain/forest continuation (not flat gray-green void)
@@ -2869,7 +2888,7 @@ export function syncDialogueFromVN(){
 }
 
 export function __debug(){
-  return {active:_active, desktop:_desktop, scale:_intScale, view:{w:_viewW,h:_viewH}, hero:{..._hero}, map:{w:_map.w,h:_map.h,name:_map.name,kind:_map.kind,preset:_map.preset,overhead:(_overhead||[]).length}, overhead:_overhead.slice(0,8), npcs:_npcs.map(n=>({name:n.name,x:n.x,y:n.y,slot:n._calSlot,cal:!!n.calendar,pace:n.pace})), questMarks:_questMarks.slice(), chests:_chests.slice(0,8), doors:_map.doors, fog:{explored:_explored.size, visible:_visible.size}};
+  return {active:_active, desktop:_desktop, scale:_intScale, view:{w:_viewW,h:_viewH}, renderView:{w:_lastViewW,h:_lastViewH}, hero:{..._hero}, map:{w:_map.w,h:_map.h,name:_map.name,kind:_map.kind,preset:_map.preset,overhead:(_overhead||[]).length}, overhead:_overhead.slice(0,8), npcs:_npcs.map(n=>({name:n.name,x:n.x,y:n.y,slot:n._calSlot,cal:!!n.calendar,pace:n.pace})), questMarks:_questMarks.slice(), chests:_chests.slice(0,8), doors:_map.doors, fog:{explored:_explored.size, visible:_visible.size}};
 }
 export function __setHero(x,y){ if(!_hero) return false; _hero.x=+x; _hero.y=+y; _hero.px=_hero.x; _hero.py=_hero.y; _hero.moving=false; try{draw();}catch(_){} return true; }
 export function __tryMove(dx,dy){ return tryMove(dx,dy); }

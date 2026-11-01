@@ -1,6 +1,6 @@
 {
   "name": "nocturna",
-  "version": "0.67.0",
+  "version": "0.68.0",
   "description": "Nocturna \u2014 classic JRPG (PC)",
   "main": "electron/main.mjs",
   "scripts": {
@@ -8,7 +8,7 @@
     "gate": "node scripts/gate-player-inputs.mjs",
     "release-gate": "node scripts/gate-player-inputs.mjs",
     "start": "electron .",
-    "shot": "node scripts/shot-v67.mjs",
+    "shot": "node scripts/shot-v68.mjs",
     "dist:win": "electron-builder --win nsis --x64",
     "pack": "electron-builder --dir"
   },

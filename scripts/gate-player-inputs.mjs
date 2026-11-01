@@ -12,7 +12,7 @@ import { fileURLToPath } from 'url';
 
 const ROOT=path.join(path.dirname(fileURLToPath(import.meta.url)),'..');
 const PORT=8793;
-const VER='67';
+const VER='68';
 const LIVE='https://markusstol.github.io/isekai-game/';
 const SKIP_LIVE=process.env.GATE_SKIP_LIVE==='1';
 const ONLY_LIVE=process.env.GATE_ONLY_LIVE==='1';
@@ -326,8 +326,131 @@ async function runLocal(browser){
   const desk=await page.evaluate(()=>({w:innerWidth, choices:document.querySelectorAll('#choices button').length}));
   if(desk.w<1000) fail('viewport-smoke','desktop',desk); else ok('viewport-smoke',desk);
 
+  // v68: DOM overlap audit (battle + menu)
+  try{
+    await page.evaluate(async()=>{
+      const g=window.__game; const S=g.S;
+      S.world=S.world||{}; S.world.npcs=S.world.npcs||{}; S.romance=S.romance||{};
+      for(const n of ['Sekretärin Velka','General Brok','Heldin Aria']){
+        S.world.npcs[n]=Object.assign({alive:true,art:n}, S.world.npcs[n]||{});
+        S.romance[n]={affection:40,stage:2};
+      }
+      S.party=['Sekretärin Velka','General Brok','Heldin Aria'];
+      const En=await import('./enemies.js');
+      const f=En.enemyById('hellhound')||Object.values(En.ENEMIES||{})[0];
+      g.Battle.startBattle(S,{enemies:[structuredClone(f)],scripted:true});
+    });
+    await new Promise(r=>setTimeout(r,700));
+    await overlapAudit(page, 'battle-ff68');
+    await page.evaluate(()=>{ try{ window.__game.Battle.__forceHide(); }catch(_){} 
+      try{ window.__game.openMenu('hub'); }catch(_){} });
+    await new Promise(r=>setTimeout(r,500));
+    await overlapAudit(page, 'menu-hub');
+    await page.evaluate(()=>{ try{ window.__game.closeMenu(); window.__game.Battle.__forceHide(); }catch(_){} });
+  }catch(e){ fail('overlap-audit','exception',{err:String(e)}); }
+
+
   await page.close();
 }
+
+
+async function overlapAudit(page, label){
+  const hits=await page.evaluate(()=>{
+    function vis(el){
+      if(!el||el.hasAttribute('hidden')) return false;
+      const st=getComputedStyle(el);
+      if(st.display==='none'||st.visibility==='hidden'||Number(st.opacity)===0) return false;
+      const r=el.getBoundingClientRect();
+      return r.width>2 && r.height>2;
+    }
+    function rect(el){ const r=el.getBoundingClientRect(); return {l:r.left,t:r.top,r:r.right,b:r.bottom,w:r.width,h:r.height}; }
+    function overlap(a,b){
+      const x=Math.max(0, Math.min(a.r,b.r)-Math.max(a.l,b.l));
+      const y=Math.max(0, Math.min(a.b,b.b)-Math.max(a.t,b.t));
+      return x*y;
+    }
+    const root=document.getElementById('battleRoot');
+    const menu=document.getElementById('menu')||document.getElementById('gameMenu');
+    const targets=[];
+    const push=(sel,where)=>{
+      document.querySelectorAll(sel).forEach(el=>{ if(vis(el)) targets.push({el, where, text:(el.innerText||'').slice(0,40)}); });
+    };
+    if(root && !root.classList.contains('hidden') && vis(root)){
+      push('.battle-ff67 #battleCmd .bcm, .battle-ff67 .ff-cmd-row', 'battle-cmd');
+      push('.battle-ff67 .ff-pname, .battle-ff67 .ff-foe-name', 'battle-names');
+      push('.battle-ff67 .battle-kb-hint', 'battle-hint');
+      // icons top-right often .ow-hud buttons / #hud icons
+      push('#hud .icon, #owHud button, .ow-top-icons button, .battle-timeline, .tl-item', 'chrome');
+    }
+    if(menu && !menu.classList.contains('hidden') && vis(menu)){
+      push('#menu .hub button, #menu .menu-tabs button, .menu-panel button', 'menu');
+      push('.menu-panel::after', 'menu-prompt'); // pseudo won't work; check footer text nodes
+    }
+    const bad=[];
+    // 1) cmd buttons: each must be single-line and not overlap siblings
+    const cmds=[...document.querySelectorAll('.battle-ff67 #battleCmd .bcm')].filter(vis);
+    for(let i=0;i<cmds.length;i++){
+      const a=rect(cmds[i]);
+      if(a.h>42) bad.push({kind:'cmd-too-tall', text:cmds[i].innerText, h:a.h});
+      if(/Fähigkeiltem|Technik\\s*Reden|Angriff\\S/i.test(cmds[i].innerText.replace(/\\s+/g,' '))) bad.push({kind:'cmd-jumble', text:cmds[i].innerText});
+      // mashed labels: two words without newline when they should be separate cmds
+      for(let j=i+1;j<cmds.length;j++){
+        const o=overlap(a, rect(cmds[j]));
+        if(o>20) bad.push({kind:'cmd-overlap', a:cmds[i].innerText.slice(0,20), b:cmds[j].innerText.slice(0,20), area:o});
+      }
+    }
+    // 2) party names vs HP labels
+    document.querySelectorAll('.battle-ff67 .ff-party-row').forEach(row=>{
+      const name=row.querySelector('.ff-pname');
+      const hp=row.querySelector('.ff-hp span, .ff-hp');
+      if(name&&hp&&vis(name)&&vis(hp)){
+        const o=overlap(rect(name), rect(hp));
+        if(o>8) bad.push({kind:'name-hp-overlap', name:name.innerText, area:o});
+      }
+      if(name && /\\n|Sekretärin\\s*$/i.test(name.innerText)) bad.push({kind:'name-wrap', name:name.innerText});
+    });
+    // 3) kb hint vs top-right icons
+    const hint=document.querySelector('.battle-ff67 .battle-kb-hint');
+    if(hint&&vis(hint)){
+      const hr=rect(hint);
+      document.querySelectorAll('#hud button, #owHud button, .ow-icon, .battle-atb-mode').forEach(ic=>{
+        if(!vis(ic)) return;
+        const o=overlap(hr, rect(ic));
+        if(o>10) bad.push({kind:'hint-icon-overlap', area:o, hint:hint.innerText, icon:(ic.title||ic.className||'').slice(0,24)});
+      });
+      // hint should not be in top 48px
+      if(hr.t < 48) bad.push({kind:'hint-too-high', top:hr.t});
+    }
+    // 4) party sprites clipped above stage
+    const stage=document.querySelector('.battle-ff67 .battle-stage');
+    if(stage){
+      const sr=rect(stage);
+      document.querySelectorAll('.battle-ff67 .party-stage-spr .pixel-hero-spr').forEach((img,idx)=>{
+        if(!vis(img)) return;
+        const r=rect(img);
+        if(r.t < sr.t - 2) bad.push({kind:'party-clipped-top', idx, top:r.t, stageTop:sr.t});
+      });
+    }
+    // 5) menu prompt vs buttons
+    const panel=document.querySelector('.menu-panel, #menu .panel, #gameMenu');
+    if(panel&&vis(panel)){
+      const footer=panel.innerText||'';
+      // buttons overlapping each other heavily
+      const btns=[...panel.querySelectorAll('button')].filter(vis).slice(0,24);
+      for(let i=0;i<btns.length;i++){
+        for(let j=i+1;j<btns.length;j++){
+          const o=overlap(rect(btns[i]), rect(btns[j]));
+          if(o>80) bad.push({kind:'menu-btn-overlap', a:btns[i].innerText.slice(0,18), b:btns[j].innerText.slice(0,18), area:Math.round(o)});
+        }
+      }
+    }
+    return bad.slice(0,40);
+  });
+  if(hits.length) fail('overlap-audit', label, {n:hits.length, hits});
+  else ok('overlap-audit', {label, clean:true});
+  return hits;
+}
+
 
 async function runLive(browser){
   const page=await browser.newPage();
