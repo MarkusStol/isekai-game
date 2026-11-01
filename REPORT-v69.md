@@ -33,3 +33,9 @@ Local gate: **0 failures** (`GATE_SKIP_LIVE=1`).
 ## Ship
 - `VER` / SW cache / `package.json` → **69** / **0.69.0**
 - Tag **v0.69.0** → GHA Windows NSIS release + Pages deploy from `main`.
+
+## Shipped
+- Commit `00f5b15` on `main`, tag **v0.69.0**
+- Installer: https://github.com/MarkusStol/isekai-game/releases/download/v0.69.0/Nocturna-Setup-0.69.0-x64.exe (~92 MB)
+- Release: https://github.com/MarkusStol/isekai-game/releases/tag/v0.69.0
+- Shots + REPORT: `/workspace/isekai-game-shots/v69-ship-report/`
