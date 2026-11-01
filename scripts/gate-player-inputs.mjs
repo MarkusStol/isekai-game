@@ -12,7 +12,7 @@ import { fileURLToPath } from 'url';
 
 const ROOT=path.join(path.dirname(fileURLToPath(import.meta.url)),'..');
 const PORT=8793;
-const VER='68';
+const VER='69';
 const LIVE='https://markusstol.github.io/isekai-game/';
 const SKIP_LIVE=process.env.GATE_SKIP_LIVE==='1';
 const ONLY_LIVE=process.env.GATE_ONLY_LIVE==='1';
@@ -235,7 +235,7 @@ async function runLocal(browser){
 
   // ally art
   const art=await page.evaluate(async()=>{
-    const roles=['mage','spy','guard','daemon','hero'];
+    const roles=['mage','spy','guard','daemon','hero','velka','brok','aria','princess'];
     const out={};
     for(const r of roles){
       const url=`./assets/pixel/battler/ally_${r}.png`;
@@ -326,6 +326,86 @@ async function runLocal(browser){
   const desk=await page.evaluate(()=>({w:innerWidth, choices:document.querySelectorAll('#choices button').length}));
   if(desk.w<1000) fail('viewport-smoke','desktop',desk); else ok('viewport-smoke',desk);
 
+
+  // v69: unique companion battlers + camera scale + pass tile repetition
+  try{
+    const bat = await page.evaluate(async()=>{
+      const g=window.__game; const S=g.S;
+      S.world=S.world||{}; S.world.npcs=S.world.npcs||{}; S.romance=S.romance||{};
+      for(const n of ['Sekretärin Velka','General Brok','Heldin Aria']){
+        S.world.npcs[n]=Object.assign({alive:true,art:n}, S.world.npcs[n]||{});
+        S.romance[n]={affection:40,stage:2};
+      }
+      S.party=['Sekretärin Velka','General Brok','Heldin Aria'];
+      const En=await import('./enemies.js');
+      const f=En.enemyById('hellhound')||Object.values(En.ENEMIES||{})[0];
+      g.Battle.startBattle(S,{enemies:[structuredClone(f)],scripted:true});
+      await new Promise(r=>setTimeout(r,900));
+      const imgs=[...document.querySelectorAll('.party-stage-spr img.battler-spr, .party-stage-spr img.pixel-hero-spr, #battleRoot img.battler-spr')];
+      const srcs=imgs.map(i=>i.getAttribute('src')||i.src||'');
+      const roles=imgs.map(i=>i.dataset.role||'');
+      const htmlSnippet=(document.getElementById('battleRoot')?.innerHTML||'').slice(0,200);
+      return {srcs, roles, n:imgs.length, htmlSnippet, party:(window.__game?.Battle?._B?.party||[]).map(p=>({name:p.name,kind:p.kind}))};
+    });
+    const bases=(bat.srcs||[]).map(s=> (s.split('/').pop()||'').replace(/\?.*/,''));
+    const uniq=[...new Set(bases.filter(Boolean))];
+    if(uniq.length < 3) fail('unique-battlers', 'companions share sprites', {bases, roles:bat.roles});
+    else ok('unique-battlers', {bases:uniq, roles:bat.roles});
+    await page.evaluate(()=>{ try{ window.__game.Battle.__forceHide(); }catch(_){} });
+  }catch(e){ fail('unique-battlers','exception',{err:String(e)}); }
+
+  try{
+    const cam = await page.evaluate(async()=>{
+      const g=window.__game; const S=g.S;
+      S.world=S.world||{}; S.world.scene=S.world.scene||{};
+      S.world.scene.ort='Grenzpass'; S.genre='daemon';
+      try{ g.OW.hideDialogue?.(); }catch(_){}
+      try{ g.OW.hideOverworld?.(); }catch(_){}
+      try{ g.OW.mountOverworld?.({getS:()=>g.S, toast:()=>{}, save:()=>{}}); }catch(_){}
+      g.OW.showOverworld(S);
+      await new Promise(r=>setTimeout(r,700));
+      const st = g.OW.__debug?.() || {};
+      const canvas=document.getElementById('owCanvas');
+      const cssW=canvas?.clientWidth|0, cssH=canvas?.clientHeight|0;
+      const lw=canvas?.width|0, lh=canvas?.height|0;
+      const scale = st.scale || (cssW && lw ? Math.round(cssW/lw) : 0);
+      const view = st.renderView || st.view || {};
+      const map = st.map||{};
+      let greenish=0, samples=0, snowish=0;
+      try{
+        const ctx=canvas.getContext('2d');
+        const step=48;
+        for(let y=40;y<lh-40;y+=step) for(let x=40;x<lw-40;x+=step){
+          const d=ctx.getImageData(x,y,1,1).data;
+          samples++;
+          if(d[1]>d[0]+20 && d[1]>d[2]+15 && d[1]>80) greenish++;
+          if(d[0]>170 && d[1]>175 && d[2]>180) snowish++;
+        }
+      }catch(_){}
+      const vw = (view.w|0) || (st.view?.w|0) || 0;
+      const vh = (view.h|0) || (st.view?.h|0) || 0;
+      return {
+        scale, cssW, cssH, lw, lh,
+        viewW: vw, viewH: vh,
+        mapW: map.w|0, mapH: map.h|0, preset: map.preset, name: map.name,
+        greenish, snowish, samples,
+        greenRatio: samples? greenish/samples : 0,
+        snowRatio: samples? snowish/samples : 0,
+        tileCss: scale ? scale*16 : (cssW && vw ? cssW/vw : 0),
+        pineOh: (st.overhead||[]).filter(o=>/pine/i.test(String(o.src||o.label||''))).length,
+      };
+    });
+    // expect ~3x scale at 1080p, tileCss ~48, view much smaller than whole map, snow > green
+    if((cam.scale|0) < 2 || (cam.scale|0) > 4) fail('camera-scale', 'scale not near 3', cam);
+    else if(cam.viewW >= (cam.mapW||999) && (cam.mapW|0)>30) fail('camera-scale', 'view shows whole map', cam);
+    else if((cam.tileCss|0) < 36) fail('camera-scale', 'tiles too tiny', cam);
+    else ok('camera-scale', {scale:cam.scale, tileCss:cam.tileCss, view:cam.viewW+'x'+cam.viewH, map:cam.mapW+'x'+cam.mapH});
+
+    if((cam.greenRatio||0) > 0.28 && (cam.snowRatio||0) < 0.12) fail('tile-repetition', 'pass too green / not snow-dominant', cam);
+    else if((cam.pineOh|0) > 40) fail('tile-repetition', 'pine wall filler suspected', cam);
+    else ok('tile-repetition', {greenRatio:cam.greenRatio, snowRatio:cam.snowRatio, samples:cam.samples, pineOh:cam.pineOh});
+  }catch(e){ fail('camera-scale','exception',{err:String(e)}); }
+
   // v68: DOM overlap audit (battle + menu)
   try{
     await page.evaluate(async()=>{
@@ -341,7 +421,7 @@ async function runLocal(browser){
       g.Battle.startBattle(S,{enemies:[structuredClone(f)],scripted:true});
     });
     await new Promise(r=>setTimeout(r,700));
-    await overlapAudit(page, 'battle-ff68');
+    await overlapAudit(page, 'battle-ff69');
     await page.evaluate(()=>{ try{ window.__game.Battle.__forceHide(); }catch(_){} 
       try{ window.__game.openMenu('hub'); }catch(_){} });
     await new Promise(r=>setTimeout(r,500));

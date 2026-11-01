@@ -1643,17 +1643,25 @@ function battlerSheetFor(unit, action){
   return `./assets/pixel/chars/enemy_${anim}.png`;
 }
 
+function companionBattlerKey(p){
+  const n=String(p?.npcRef||p?.name||p?.id||'').toLowerCase();
+  if(/velka|sekretär|sekretaer/.test(n)) return 'velka';
+  if(/brok|general/.test(n)) return 'brok';
+  if(/aria|heldin/.test(n)) return 'aria';
+  return null;
+}
 function partySpriteUrl(p){
-  // v56: prefer HD ally battlers (same pack framing as foes)
-  const role = p.kind==='hero' ? 'hero' : sheetRoleForCompanion(p);
-  const ally = './assets/pixel/battler/ally_'+role+'.png';
-  if(p.kind==='hero') return ally;
-  return ally;
+  // v69: named companions get unique battlers matching portraits (never share one knight)
+  if(p.kind==='hero') return './assets/pixel/battler/ally_hero.png';
+  const named = companionBattlerKey(p);
+  if(named) return './assets/pixel/battler/ally_'+named+'.png';
+  const role = sheetRoleForCompanion(p);
+  return './assets/pixel/battler/ally_'+role+'.png';
 }
 
 const ROLE_LABEL_DE={
   hero:'Held', krieger:'Krieger', spy:'Späher', mage:'Magier', magier:'Magier',
-  guard:'Wache', merchant:'Händler', princess:'Prinzessin', daemon:'Dämon',
+  guard:'Wache', brok:'General', velka:'Sekretärin', aria:'Heldin', merchant:'Händler', princess:'Prinzessin', daemon:'Dämon',
   villager:'Dorfbewohner', neutral:'Gefährte', dieb:'Dieb', heiler:'Heiler',
   paladin:'Paladin', dragoner:'Dragoner', beschwoerer:'Beschwörer', monch:'Mönch',
   jaeger:'Jäger', medic:'Heiler', tech:'Techniker', wait:'Warten', active:'Aktiv'
@@ -1677,14 +1685,14 @@ function companionRoleLabel(p){
 
 function sheetRoleForCompanion(unit){
   const art=String(unit?.npcRef||unit?.name||unit?.job||'').toLowerCase();
-  if(/brok|ork|wache|ritter|guard|soldat|garrick|aria|heldin/.test(art)) return 'guard';
-  if(/velka|magier|hexe|zauber|mage|orren|sukkub/.test(art)) return 'mage';
+  // v69: Velka / Brok / Aria are distinct — never collapse Aria+Brok onto guard
+  if(/velka|sekretär|sekretaer|magier|hexe|zauber|mage|orren|sukkub/.test(art)) return 'mage';
+  if(/brok|ork|wache|ritter|guard|soldat|garrick|general/.test(art)) return 'guard';
+  if(/aria|heldin|prinzess|königin|elise|princess/.test(art)) return 'princess';
   if(/händler|kauf|merchant|wirt|bauer/.test(art)) return 'merchant';
   if(/nyx|spion|späher|dieb|assassin|spy|lyra/.test(art)) return 'spy';
-  if(/prinzess|königin|elise|princess/.test(art)) return 'princess';
   if(/dämon|daemon|teufel/.test(art)) return 'daemon';
   if(/dorf|villager|bauerin|bäuer/.test(art)) return 'villager';
-  // stable unique pick by name hash so clones don't share one silhouette
   const roles=['spy','mage','merchant','guard','princess','daemon','villager','neutral'];
   let h=0; for(const c of art) h=(h*31+c.charCodeAt(0))>>>0;
   return roles[h%roles.length];

@@ -7442,3 +7442,14 @@ body.ow-desktop #overworld canvas{
   pointer-events:none !important;
   z-index:-1 !important;
 }
+
+
+/* v69: skill-tree nodes — no label cramping */
+.skill-tree-card .skill-tree{ min-width:300px; }
+.skill-tree .skill-node{
+  min-width:140px; min-height:68px;
+  font-size:12px !important;
+  line-height:1.25 !important;
+  padding:8px 10px !important;
+}
+.skill-tree .skill-node b{ font-size:12px; letter-spacing:.01em; }

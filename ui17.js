@@ -374,7 +374,7 @@ export function renderV62Progress(body, S, helpers={}){
     const canvas=document.createElement('div'); canvas.className='skill-tree';
     canvas.style.cssText='position:relative;min-height:220px;padding:8px 4px 12px;';
     const nodes=tree.nodes||[];
-    const W=280, rowH=64, nodeW=86, nodeH=52;
+    const W=360, rowH=96, nodeW=200, nodeH=84;
     // connectors
     const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
     svg.setAttribute('width','100%'); svg.setAttribute('height', String(nodes.length*rowH+20));
@@ -408,9 +408,10 @@ export function renderV62Progress(body, S, helpers={}){
         border-radius:12px;border:2px solid ${on?'#c9a227':locked?'#333':'#6a7a9a'};
         background:${on?'linear-gradient(160deg,#3a2a10,#1a1208)':locked?'#12141c':'#1a2438'};
         color:${on?'#f5e6b8':locked?'#666':'#dde'};
-        font-size:11px;line-height:1.15;padding:4px;cursor:${can||on?'pointer':'default'};
-        box-shadow:${on?'0 0 10px rgba(201,162,39,.45)':'none'};opacity:${locked?0.55:1};`;
-      btn.innerHTML=`<div style="font-size:16px">${n.icon||'◆'}</div><div><b>${n.name}</b></div><div style="opacity:.8">${n.cost} FP · ${n.desc}</div>`;
+        font-size:12px;line-height:1.25;padding:8px 10px;cursor:${can||on?'pointer':'default'};
+        box-shadow:${on?'0 0 10px rgba(201,162,39,.45)':'none'};opacity:${locked?0.55:1};
+        display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;overflow:hidden;`;
+      btn.innerHTML=`<div style="font-size:18px;line-height:1">${n.icon||'◆'}</div><div style="font-weight:700;font-size:13px;line-height:1.2">${n.name}</div><div style="opacity:.9;font-size:11px;line-height:1.25;max-width:100%;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${n.cost} FP · ${n.desc||''}</div>`;
       btn.disabled = on || locked || !can;
       if(can){
         btn.onclick=()=>{

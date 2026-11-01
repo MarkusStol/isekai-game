@@ -29,3 +29,9 @@ New checks: `overlap-audit` battle-ff68 + menu-hub **clean**.
 ## Installer
 Tag **v0.68.0** → GitHub Actions `windows-installer.yml` builds `Nocturna-Setup-0.68.0-x64.exe`.
 Expected URL: https://github.com/MarkusStol/isekai-game/releases/download/v0.68.0/Nocturna-Setup-0.68.0-x64.exe
+
+## Shipped
+- Commit `968e22b` on `main`, tag **v0.68.0**
+- Installer: https://github.com/MarkusStol/isekai-game/releases/download/v0.68.0/Nocturna-Setup-0.68.0-x64.exe (~92 MB)
+- Release page: https://github.com/MarkusStol/isekai-game/releases/tag/v0.68.0
+- Shots + REPORT: `/workspace/isekai-game-shots/v68-ship-report/`

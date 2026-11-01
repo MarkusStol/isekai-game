@@ -1,5 +1,5 @@
 /* Isekai Reinkarnation – offline shell. Network-first for shell; self-heal on version mismatch. */
-const VER = 68;
+const VER = 69;
 const CACHE = 'isekai-v' + VER;
 const ASSETS = [
   './',
@@ -95,7 +95,13 @@ const ASSETS = [
   './assets/pixel/battler/ally_hero.png',
   './assets/audio/sfx/hit_sword.ogg',
   './assets/audio/sfx/step_grass.ogg',
-  './assets/pixel/battler/ally_spy.png'
+  './assets/pixel/battler/ally_spy.png',
+  './assets/pixel/battler/ally_velka.png',
+  './assets/pixel/battler/ally_brok.png',
+  './assets/pixel/battler/ally_aria.png',
+  './assets/pixel/battler/ally_mage.png',
+  './assets/pixel/battler/ally_guard.png',
+  './assets/pixel/battler/ally_princess.png'
 ];
 
 self.addEventListener('install', e => {

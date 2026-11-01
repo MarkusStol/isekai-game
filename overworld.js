@@ -218,9 +218,27 @@ function wangUrlFor(t,x,y){
     const below = _map.tiles?.[y+1]?.[x];
     let idx = mask & 7;
     if(walk(below)) idx = ((mask & ~4) | 1) & 7;
+    // v69 pass: cliff4–7 are green grass sheets — keep rock-only faces
+    if(dir.includes('/pass/')){
+      const rockIdx=[0,1,2,3];
+      idx = rockIdx[idx % rockIdx.length];
+    }
     return dir + 'cliff' + idx + '.png';
   }
   if(t==='grass'||t==='path'||t==='water'||t==='tree'){
+    // v69 pass: path0–4 / grass0–2 are green patchwork — snow-dominant base only
+    if(dir.includes('/pass/')){
+      if(t==='grass') return dir + 'sand.png';
+      if(t==='path') return dir + 'path.png';
+      if(t==='tree'){
+        const mask = wangSameMask(x,y,(xx,yy)=> _map.tiles?.[yy]?.[xx]==='tree');
+        return dir + 'tree' + (mask % 6) + '.png';
+      }
+      if(t==='water'){
+        const mask = wangSameMask(x,y,(xx,yy)=> _map.tiles?.[yy]?.[xx]==='water');
+        return dir + 'water' + ((mask % 5)) + '.png';
+      }
+    }
     const n = WANG_COUNTS[t]|0;
     if(n>1){
       const mask = wangSameMask(x,y,(xx,yy)=> _map.tiles?.[yy]?.[xx]===t);
@@ -285,6 +303,13 @@ function applyGenre(S){
     } else {
       set.plaza=`./assets/pixel/tiles-nocturna/plaza.png`;
       set.carpet=`./assets/pixel/tiles-nocturna/carpet.png`;
+      // v69: Grenzpass snow-dominant — never green grass/path wang sheets
+      if(area==='pass'){
+        set.grass=`${base}/sand.png`;
+        set.path=`${base}/path.png`;
+        set.sand=`${base}/sand.png`;
+        set.cliff=`${base}/cliff0.png`;
+      }
     }
   }
   _tileSet=set;
@@ -389,9 +414,10 @@ export function buildMapForLocation(S, ort){
   // v47: taller towns so mobile FOV (viewH~30) stays inside map — no void band
   // v62: hand hubs need room for pillars/glass/towers
   const handHub=/(wall|graveyard|throne|church)/.test(String(preset||''));
-  const w = handHub?30: kind==='dungeon'?26: kind==='camp'?18: kind==='interior'?16:30;
+  // v69: Grenzpass must exceed gameplay frustum (~40×22) so camera follows the player
+  const w = preset==='wall'?52: handHub?30: kind==='dungeon'?26: kind==='camp'?18: kind==='interior'?16:30;
   // v64: throne court is compact (not endless hallway canvas)
-  const ht = preset==='throne'?20: preset==='church'?26: preset==='graveyard'?24: handHub?28: kind==='dungeon'?32: kind==='camp'?16: kind==='interior'?14:34;
+  const ht = preset==='wall'?42: preset==='throne'?20: preset==='church'?26: preset==='graveyard'?24: handHub?28: kind==='dungeon'?32: kind==='camp'?16: kind==='interior'?14:34;
   const tiles=Array.from({length:ht},()=>Array(w).fill('grass'));
   const overlay=Array.from({length:ht},()=>Array(w).fill(null));
   const interiors=[];
@@ -750,12 +776,12 @@ export function buildMapForLocation(S, ort){
         if(k%2===0){ ov(tx+1, ty, 'snowdrift'); prop(tx+1, ty, 'snowdrift'); }
       }
     };
-    plantCluster(8, 9, 5);
-    plantCluster(w-10, 10, 5);
-    plantCluster(7, ht-10, 4);
-    plantCluster(w-9, ht-11, 4);
-    plantCluster(cx-6, cy+3, 3);
-    plantCluster(cx+5, cy-4, 3);
+    plantCluster(8, 9, 3);
+    plantCluster(w-10, 10, 3);
+    plantCluster(7, ht-10, 2);
+    plantCluster(w-9, ht-11, 2);
+    plantCluster(cx-6, cy+3, 2);
+    plantCluster(cx+5, cy-4, 2);
     for(let i=0;i<10;i++){
       const tx=7+(rnd(i*13)*3)%Math.max(1,w-14);
       const ty=8+(rnd(i*17)*5)%Math.max(1,ht-16);
@@ -763,11 +789,14 @@ export function buildMapForLocation(S, ort){
       if(i%2===0) prop(tx, ty, 'rock');
       else { ov(tx, ty, 'snowdrift'); prop(tx, ty, 'snowdrift'); }
     }
-    // thicken left/right mountain band so camera never shows empty void
+    // v69: thicken rock bands only — no repeated pine wall as OOB filler
     for(let y=0;y<ht;y++){
       for(let x=0;x<4;x++){ if(tiles[y]) tiles[y][x]='stone'; }
       for(let x=w-4;x<w;x++){ if(tiles[y]) tiles[y][x]='stone'; }
-      if(y%3===0){ overhead.push({x:1,y:Math.max(0,y-1),src:DECOR.pine,tw:2,th:3}); overhead.push({x:w-3,y:Math.max(0,y-1),src:DECOR.pine,tw:2,th:3}); }
+    }
+    // v69: scrub any leftover grass → snow (sand)
+    for(let y=0;y<ht;y++) for(let x=0;x<w;x++){
+      if(tiles[y][x]==='grass') tiles[y][x]='sand';
     }
     placeChest(cx+2, cy-1, {gold:15, item:'Eisen-Schild'});
     placeChest(8, 11, {gold:10, item:'Antidot'});
@@ -1846,19 +1875,18 @@ function draw(){
       if(!_desktop){
         viewW = Math.min(viewW, Math.max(11, _map.w + 2));
       } else {
-        // v68 PC: small interiors/dungeons — zoom so the room fills 16:9 (not a tiny island in void)
-        const indoor = _map.kind==='interior' || _map.kind==='dungeon' || !!_map.preset;
+        // v69: FIXED gameplay camera — follow player at fitCanvas frustum (~40×22 @3×)
+        // Never expand outdoor/pass to whole-map overview (tiny characters)
+        const isPass = _map.preset==='wall' || /pass|grenze|berg|wild/i.test(String(_map.name||_map.preset||''));
+        const indoor = (_map.kind==='interior' || _map.kind==='dungeon') && !isPass;
         if(indoor && _map.w && _map.h && _map.w <= viewW+4 && _map.h <= viewH+4){
           const aspect = Math.max(1.2, (cssW||960) / Math.max(1, cssH||540));
           viewH = Math.max(10, _map.h + 2);
           viewW = Math.max(12, _map.w + 2);
           if(viewW / viewH < aspect) viewW = Math.max(viewW, Math.ceil(viewH * aspect));
           else viewH = Math.max(viewH, Math.ceil(viewW / aspect));
-        } else {
-          // large outdoor maps: frustum at least canvas/16 then cover-scale
-          viewW = Math.max(viewW, Math.ceil((_canvas?.width||960)/16));
-          viewH = Math.max(viewH, Math.ceil((_canvas?.height||540)/16));
         }
+        // outdoors / pass: keep _viewW/_viewH from fitCanvas (player-follow)
       }
     }
   }catch(_){}
@@ -1866,8 +1894,8 @@ function draw(){
   // v66 PC: dialogue overlays; do not shrink camera
   let tw = Math.floor(Math.min(cssW/viewW, cssH/viewH));
   if(_desktop){
-    // cover full canvas (may crop 1 tile of frustum) — no pillarbox
-    tw = Math.max(1, Math.ceil(Math.max(cssW/viewW, cssH/viewH)));
+    // v69: integer contain (not cover) — keeps ~16px logical tiles; OOB paints gutters
+    tw = Math.max(1, Math.floor(Math.min(cssW/viewW, cssH/viewH)));
   } else {
     const twH=Math.floor(cssH/viewH);
     if(twH*viewW <= cssW+8) tw=Math.max(tw, twH);
@@ -1889,9 +1917,9 @@ function draw(){
   const x0=Math.floor(camX)-1, y0=Math.floor(camY)-1;
   const x1=x0+viewW+3, y1=y0+viewH+3;
   const waterIm=loadImg(WATER_ANIM);
-  // v68: desktop cover mode → ox/oy typically 0 (no purple gutters)
-  const ox=_desktop ? Math.min(0, Math.floor((cssW - viewW*tw)/2)) : Math.floor((cssW - viewW*tw)/2);
-  let oy=_desktop ? Math.min(0, Math.floor((cssH - viewH*tw)/2)) : Math.max(0, Math.floor((cssH - viewH*tw)/2));
+  // v69: contain centering — gutters get mountain/fog OOB, not negative crop
+  const ox=Math.floor((cssW - viewW*tw)/2);
+  let oy=Math.max(0, Math.floor((cssH - viewH*tw)/2));
 
   for(let y=y0;y<=y1;y++){
     for(let x=x0;x<=x1;x++){
@@ -1911,15 +1939,31 @@ function draw(){
           if(((x*13+y*7)&7)===0){ ctx.fillStyle='rgba(255,255,255,0.04)'; ctx.fillRect(sx+2,sy+2,2,2); }
         }
         else {
-          // v63: beyond map = mountain/forest continuation (not flat gray-green void)
+          // v69: pass OOB = snow + rock faces + dark fog vignette (NO pine wall filler)
           const useCliff = (_map.preset==='wall' || /pass|grenze|berg/i.test(String(_map.name||'')));
-          const url = useCliff ? wangUrlFor('stone', Math.max(0,x), Math.max(0,y)) : tileUrl('grass');
-          const gim=loadImg(url);
-          if(gim.complete && gim.naturalWidth) ctx.drawImage(gim, sx, sy, tw, tw);
-          else { ctx.fillStyle=useCliff?'#3a4250':'#2a6a34'; ctx.fillRect(sx,sy,tw,tw); }
-          if(useCliff && ((x+y)&3)===0){
-            const pine=loadImg(DECOR.pine);
-            if(pine.complete&&pine.naturalWidth) ctx.drawImage(pine, sx, sy-tw*0.8, tw*1.4, tw*2.2);
+          if(useCliff){
+            const n = ((x*17)^(y*31)) & 7;
+            const rocky = n < 3; // mostly snow continuation, rock faces as accents
+            let url;
+            if(rocky){
+              const rockIdx=[0,1,2,3];
+              const base = tileUrl('stone') || './assets/pixel/tiles-nocturna/areas/pass/stone.png';
+              const dir = base.slice(0, base.lastIndexOf('/')+1);
+              url = dir + 'cliff' + rockIdx[n%4] + '.png';
+            } else {
+              url = tileUrl('sand') || './assets/pixel/tiles-nocturna/areas/pass/sand.png';
+            }
+            const gim=loadImg(url);
+            if(gim.complete && gim.naturalWidth) ctx.drawImage(gim, sx, sy, tw, tw);
+            else { ctx.fillStyle = rocky?'#2a3038':'#d8e4f0'; ctx.fillRect(sx,sy,tw,tw); }
+            // dark mountain fog vignette (never pine wall)
+            const edge=Math.min(1, Math.hypot(x-_hero.x, y-_hero.y)/16);
+            ctx.fillStyle=`rgba(4,8,18,${0.28+edge*0.62})`; ctx.fillRect(sx,sy,tw,tw);
+          } else {
+            const url = tileUrl('grass');
+            const gim=loadImg(url);
+            if(gim.complete && gim.naturalWidth) ctx.drawImage(gim, sx, sy, tw, tw);
+            else { ctx.fillStyle='#2a6a34'; ctx.fillRect(sx,sy,tw,tw); }
           }
         }
         continue;
@@ -2589,9 +2633,10 @@ function fitCanvas(){
   const availH=Math.max(360, window.innerHeight|0);
   // Choose largest 16:9 logical that still integer-scales into the window
   // Prefer ~24–32 CSS px tiles → logical tile 16 × scale ≈ 32–48 CSS at scale 2–3
+  // v69: prefer ~3× of 16px tiles at 1080p (gameplay camera, not map overview)
   const candidates=[
-    {lw:960, lh:540}, // scale 2 @ 1920×1080
-    {lw:640, lh:360}, // scale 3 @ 1920×1080 / scale 2 @ 1280×720
+    {lw:640, lh:360}, // scale 3 @ 1920×1080 — preferred
+    {lw:960, lh:540}, // scale 2
     {lw:480, lh:270}, // scale 4 fallback
     {lw:320, lh:180}, // last resort
   ];
@@ -2601,9 +2646,10 @@ function fitCanvas(){
     if(s<1) continue;
     const outArea=c.lw*c.lh*s*s;
     const logical=c.lw*c.lh;
-    // Fill window, then maximize logical resolution (avoid 6× blocky 320p)
-    if(!best || outArea>best.outArea || (outArea===best.outArea && logical>best.logical) || (outArea===best.outArea && logical===best.logical && s<best.scale)){
-      best={...c, scale:s, outArea, logical};
+    // Prefer scale closest to 3 when fill is comparable; then maximize fill
+    const pref = outArea - Math.abs(s-3)*5e8 - (s===3?0:1e7);
+    if(!best || pref>best.pref){
+      best={...c, scale:s, outArea, logical, pref};
     }
   }
   if(!best) best={lw:640, lh:360, scale:1, area:640*360};
