@@ -5,31 +5,34 @@ const MOBILE_VIEW = { w: 13, h: 27 }; /* v45d: fill 390x844 — was 11x13 letter
 const DESKTOP_LOGICAL = { w: 320, h: 180 }; // 16:9 pixel canvas before integer scale
 
 const BASE_TILES = {
-  grass: './assets/pixel/tiles/grass.png',
-  path: './assets/pixel/tiles/path.png',
-  water: './assets/pixel/tiles/water.png',
-  floor: './assets/pixel/tiles/floor.png',
-  wall: './assets/pixel/tiles/wall.png',
-  tree: './assets/pixel/tiles/tree.png',
-  sand: './assets/pixel/tiles/sand.png',
-  stone: './assets/pixel/tiles/stone.png',
-  carpet: './assets/pixel/tiles/plaza.png',
-  plaza: './assets/pixel/tiles/plaza.png',
-  void: './assets/pixel/tiles/void.png',
-  door: './assets/pixel/tiles/door.png',
-  camp: './assets/pixel/tiles/camp.png',
-  camp_burnt: './assets/pixel/tiles/camp_burnt.png',
-  burnt: './assets/pixel/tiles/burnt.png',
-  ash: './assets/pixel/tiles/ash.png',
-  ember: './assets/pixel/tiles/ember.png',
-  fence_broken: './assets/pixel/tiles/fence_broken.png',
-  house: './assets/pixel/tiles/house.png',
-  ruin: './assets/pixel/tiles/ruin.png',
-  fence: './assets/pixel/tiles/fence.png',
-  well: './assets/pixel/tiles/well.png',
-  flower: './assets/pixel/tiles/flower.png',
-  stall: './assets/pixel/tiles/stall.png',
-  wood: './assets/pixel/tiles/wood.png',
+  // v74: single family — Ninja Adventure CC0 cuts (see ART-BIBLE.md)
+  grass: './assets/pixel/tiles-na/cut/grass.png',
+  path: './assets/pixel/tiles-na/cut/path.png',
+  water: './assets/pixel/tiles-na/cut/water.png',
+  floor: './assets/pixel/tiles-na/cut/floor.png',
+  wall: './assets/pixel/tiles-na/cut/wall.png',
+  tree: './assets/pixel/tiles-na/cut/tree.png',
+  sand: './assets/pixel/tiles-na/cut/sand.png',
+  stone: './assets/pixel/tiles-na/cut/stone.png',
+  carpet: './assets/pixel/tiles-na/cut/carpet.png',
+  plaza: './assets/pixel/tiles-na/cut/plaza.png',
+  void: './assets/pixel/tiles-na/cut/void.png',
+  door: './assets/pixel/tiles-na/cut/door.png',
+  camp: './assets/pixel/tiles-na/cut/camp.png',
+  camp_burnt: './assets/pixel/tiles-na/cut/camp_burnt.png',
+  burnt: './assets/pixel/tiles-na/cut/burnt.png',
+  ash: './assets/pixel/tiles-na/cut/ash.png',
+  ember: './assets/pixel/tiles-na/cut/ember.png',
+  fence_broken: './assets/pixel/tiles-na/cut/fence_broken.png',
+  house: './assets/pixel/tiles-na/cut/house.png',
+  ruin: './assets/pixel/tiles-na/cut/ruin.png',
+  fence: './assets/pixel/tiles-na/cut/fence.png',
+  well: './assets/pixel/tiles-na/cut/well.png',
+  flower: './assets/pixel/tiles-na/cut/flower.png',
+  stall: './assets/pixel/tiles-na/cut/stall.png',
+  wood: './assets/pixel/tiles-na/cut/wood.png',
+  stairs: './assets/pixel/tiles-na/cut/stairs.png',
+  cliff: './assets/pixel/tiles-na/cut/cliff.png',
 };
 const WATER_ANIM = './assets/pixel/tiles/water-anim.png';
 const WATER_ANIM_NOCTURNA = './assets/pixel/tiles-nocturna/water-anim.png';
@@ -44,7 +47,7 @@ const DECOR = {
   lamp: './assets/pixel/decor/lamp.png',
   sign: './assets/pixel/decor/sign.png',
   bench: './assets/pixel/decor/bench.png',
-  chest: './assets/pixel/decor/chest.png',
+  chest: './assets/pixel/tiles-na/cut/chest.png',
   statue: './assets/pixel/decor/statue.png',
   cart: './assets/pixel/decor/cart.png',
   shadow: './assets/pixel/decor/shadow.png',
@@ -202,79 +205,52 @@ function isCliffMat(t){ return t==='stone'||t==='wall'||t==='cliff'; }
 function wangUrlFor(t,x,y){
   const base = tileUrl(t);
   if(!base || !_map) return base;
-  const slash = base.lastIndexOf('/');
-  const dir = slash>=0 ? base.slice(0,slash+1) : '';
-  const walk = (tt)=> tt==='sand'||tt==='path'||tt==='grass'||tt==='water'||tt==='floor'||tt==='carpet'||tt==='plaza'||tt==='wood';
-  // v65: indoor wall/stone BEFORE outdoor cliff wang (cliff2/4/5/6 are green grass)
-  if(dir.includes('/areas/') && (_map.kind==='interior'||_map.kind==='dungeon')){
-    if(t==='wall'){
-      const mask = wangSameMask(x,y,(xx,yy)=> _map.tiles?.[yy]?.[xx]==='wall');
-      // v72: dungeons use near-black crypt cwall (not brown iwall that reads as floor)
-      if(_map.kind==='dungeon'){
-        // v72: only near-black crypt rock (cwall1–4 are brown and read as floor/void)
-        const opts=[0,5,0,5,0,5];
-        const jitter=(x+y)&1;
-        return dir + 'cwall' + opts[(mask + jitter) % opts.length] + '.png';
-      }
-      const opts=[0,1,2,3,4,6];
-      return dir + 'iwall' + opts[mask % opts.length] + '.png';
+  const NA='./assets/pixel/tiles-na/cut/';
+  // v74: all wang variants stay inside NA cuts (ART-BIBLE — no tiles-nocturna mix)
+  const jitter=(x*3+y*5)&7;
+  const passy=/wall|pass|grenze/i.test(String(_map.preset||_map.name||''));
+  if(_map.kind==='dungeon'){
+    if(t==='wall'||t==='void') return NA + 'wall_top' + (jitter&3) + '.png';
+    if(t==='floor'||t==='stone'||t==='carpet'||t==='plaza'||t==='path'||t==='grass'||t==='wood'){
+      const opts=['dfloor_lit','dfloor_mid','dfloor_dark','dfloor_lit','dfloor_mid','ifloor_slate'];
+      return NA + opts[(jitter + ((x+y)&1)) % opts.length] + '.png';
     }
-    if(t==='stone'){
-      const mask = wangSameMask(x,y,(xx,yy)=>{ const nt=_map.tiles?.[yy]?.[xx]; return nt==='stone'||nt==='floor'||nt==='carpet'; });
-      return dir + 'cfloor' + (mask % 6) + '.png';
-    }
+    if(t==='door') return NA + 'door.png';
+    if(t==='stairs') return NA + 'stairs.png';
+    if(t==='sand') return NA + 'biome_snow.png';
+    if(t==='water') return NA + 'biome_ice.png';
   }
-  // Cliff/rock Wang for outdoor stone & wall only
-  if(t==='stone'||t==='wall'||t==='cliff'){
-    const mask = wangSameMask(x,y,(xx,yy)=> isCliffMat(_map.tiles?.[yy]?.[xx]));
-    const below = _map.tiles?.[y+1]?.[x];
-    let idx = mask & 7;
-    if(walk(below)) idx = ((mask & ~4) | 1) & 7;
-    // v69 pass: cliff4–7 are green grass sheets — keep rock-only faces
-    if(dir.includes('/pass/')){
-      const rockIdx=[0,1,2,3];
-      idx = rockIdx[idx % rockIdx.length];
+  if(_map.kind==='interior'){
+    if(t==='wall') return NA + 'wall_top' + (jitter&3) + '.png';
+    if(t==='floor'||t==='stone'||t==='plaza'||t==='path'||t==='grass'){
+      const opts=['ifloor_stone','ifloor_slate','ifloor_tile','ifloor_wood','ifloor_check','ifloor_stone'];
+      return NA + opts[jitter % opts.length] + '.png';
     }
-    return dir + 'cliff' + idx + '.png';
+    if(t==='carpet') return NA + 'ifloor_carpet.png';
+    if(t==='wood') return NA + 'ifloor_wood.png';
+    if(t==='door') return NA + 'door.png';
   }
-  if(t==='grass'||t==='path'||t==='water'||t==='tree'){
-    // v69 pass: path0–4 / grass0–2 are green patchwork — snow-dominant base only
-    if(dir.includes('/pass/')){
-      if(t==='grass') return dir + 'sand.png';
-      if(t==='path') return dir + 'path.png';
-      if(t==='tree'){
-        const mask = wangSameMask(x,y,(xx,yy)=> _map.tiles?.[yy]?.[xx]==='tree');
-        return dir + 'tree' + (mask % 6) + '.png';
-      }
-      if(t==='water'){
-        const mask = wangSameMask(x,y,(xx,yy)=> _map.tiles?.[yy]?.[xx]==='water');
-        return dir + 'water' + ((mask % 5)) + '.png';
-      }
-    }
-    const n = WANG_COUNTS[t]|0;
-    if(n>1){
-      const mask = wangSameMask(x,y,(xx,yy)=> _map.tiles?.[yy]?.[xx]===t);
-      return dir + t + (mask % n) + '.png';
-    }
+  if(t==='grass'){
+    if(passy) return NA + ((jitter&1)?'biome_snow':'snow') + '.png';
+    const opts=['grass','grass1','grass2','grass3','biome_grass_bright','biome_grass_dark'];
+    return NA + opts[jitter % opts.length] + '.png';
   }
-  if(t==='floor' && dir.includes('/areas/')){
-    const mask = wangSameMask(x,y,(xx,yy)=> { const nt=_map.tiles?.[yy]?.[xx]; return nt==='floor'||nt==='carpet'||nt==='plaza'||nt==='wood'; });
-    return dir + 'ifloor' + (mask % 6) + '.png';
+  if(t==='path'){
+    const opts=['path','path1','path2','path3'];
+    return NA + opts[jitter % opts.length] + '.png';
   }
-  if(t==='carpet' && dir.includes('/areas/')){
-    // v65: icarpet sheets are olive/plaza-tinted — use dark cfloor runner instead
-    const mask = wangSameMask(x,y,(xx,yy)=> _map.tiles?.[yy]?.[xx]==='carpet');
-    if(_map.kind==='interior'||_map.kind==='dungeon'){
-      if(_map.kind==='dungeon'){
-        // dark stone floors only (cfloor 1,3,5) — skip brown 0/2/4
-        const dark=[1,3,5,1];
-        const jitter=(x*3+y*5)&3;
-        return dir + 'cfloor' + dark[(mask + jitter) % dark.length] + '.png';
-      }
-      return dir + 'cfloor' + (1 + (mask % 4)) + '.png';
-    }
-    return dir + 'icarpet' + (mask % 5) + '.png';
+  if(t==='water'){
+    const opts=['water','water1','water2','biome_ice'];
+    return NA + opts[jitter % opts.length] + '.png';
   }
+  if(t==='sand') return NA + ((jitter&1)?'biome_sand':'sand') + '.png';
+  if(t==='stone'||t==='cliff'||t==='wall'){
+    if(passy) return NA + 'cliff_snow.png';
+    return NA + 'cliff_mountain.png';
+  }
+  if(t==='tree') return NA + 'tree.png';
+  if(t==='door') return NA + 'door.png';
+  if(t==='stairs') return NA + 'stairs.png';
   return base;
 }
 
@@ -297,40 +273,43 @@ function applyGenre(S){
       tree:`./assets/pixel/tiles-dungeon/tree.png`,
     });
   }
-  // v60: Nocturna area grades (hand-tinted packs under tiles-nocturna/areas/)
-  if(g==='daemon' || pack==='tiles-nocturna'){
+  // v74: Nocturna hubs — Ninja Adventure biomes only (ART-BIBLE)
+  if(g==='daemon' || pack==='tiles-nocturna' || true){
     const ort=String(S?.world?.scene?.ort||'').toLowerCase();
+    const NA='./assets/pixel/tiles-na/cut';
     let area='throne';
     if(/pass|grenze|wachturm/.test(ort)) area='pass';
     else if(/solmir|gruft|krypta|ruine/.test(ort)) area='crypt';
     else if(/kathedrale|solari|kirche|licht/.test(ort)) area='cathedral';
     else if(/katakomb|eishöhlen|eishoehlen|reliquien|knochenlabyrinth|ätherspalte|aetherspalte|wachtürme|wachtuerme/.test(ort)) area='crypt';
     else if(/thron|festung/.test(ort)) area='throne';
-    const base=`./assets/pixel/tiles-nocturna/areas/${area}`;
-    for(const k of ['grass','path','water','stone','floor','wall','tree','sand','cliff']){
-      set[k]=`${base}/${k}.png`;
-    }
-    set.cliff=`${base}/cliff.png`;
-    set.wood=`./assets/pixel/tiles-nocturna/wood.png`;
-    // v65: castle hubs — carpet/plaza/path never resolve to outdoor plaza or green cliff
-    if(area==='throne' || area==='cathedral' || area==='crypt'){
-      set.floor=`${base}/ifloor1.png`;
-      set.stone=`${base}/cfloor0.png`;
-      set.carpet=`${base}/cfloor1.png`;
-      set.plaza=`${base}/ifloor0.png`;
-      set.path=`${base}/ifloor0.png`;
-      set.grass=`${base}/ifloor1.png`; // leak-guard: never bright outdoor grass indoors
-      set.wood=`${base}/cfloor1.png`;
-    } else {
-      set.plaza=`./assets/pixel/tiles-nocturna/plaza.png`;
-      set.carpet=`./assets/pixel/tiles-nocturna/carpet.png`;
-      // v69: Grenzpass snow-dominant — never green grass/path wang sheets
-      if(area==='pass'){
-        set.grass=`${base}/sand.png`;
-        set.path=`${base}/path.png`;
-        set.sand=`${base}/sand.png`;
-        set.cliff=`${base}/cliff0.png`;
-      }
+    if(area==='pass'){
+      Object.assign(set,{
+        grass:`${NA}/biome_snow.png`, path:`${NA}/path.png`, sand:`${NA}/biome_snow.png`,
+        stone:`${NA}/biome_mountain.png`, cliff:`${NA}/cliff_snow.png`, water:`${NA}/biome_ice.png`,
+        floor:`${NA}/biome_snow.png`, wall:`${NA}/cliff_mountain.png`, tree:`${NA}/tree.png`,
+        plaza:`${NA}/snow.png`, carpet:`${NA}/snow.png`, wood:`${NA}/path.png`, void:`${NA}/void.png`,
+      });
+    } else if(area==='crypt'){
+      Object.assign(set,{
+        grass:`${NA}/dfloor_mid.png`, path:`${NA}/dfloor_lit.png`, floor:`${NA}/dfloor_lit.png`,
+        wall:`${NA}/wall_top0.png`, stone:`${NA}/dfloor_dark.png`, carpet:`${NA}/dfloor_mid.png`,
+        plaza:`${NA}/dfloor_lit.png`, void:`${NA}/dvoid.png`, door:`${NA}/door.png`,
+        wood:`${NA}/dfloor_dark.png`, sand:`${NA}/dfloor_mid.png`, tree:`${NA}/ruin_wall.png`,
+      });
+    } else if(area==='cathedral'){
+      Object.assign(set,{
+        grass:`${NA}/ifloor_tile.png`, path:`${NA}/ifloor_check.png`, floor:`${NA}/ifloor_tile.png`,
+        wall:`${NA}/wall_top1.png`, stone:`${NA}/ifloor_slate.png`, carpet:`${NA}/ifloor_carpet.png`,
+        plaza:`${NA}/ifloor_stone.png`, wood:`${NA}/ifloor_wood.png`, void:`${NA}/void.png`,
+      });
+    } else { // throne / default hub
+      Object.assign(set,{
+        grass:`${NA}/ifloor_stone.png`, path:`${NA}/ifloor_wood.png`, floor:`${NA}/ifloor_stone.png`,
+        wall:`${NA}/wall_top2.png`, stone:`${NA}/ifloor_slate.png`, carpet:`${NA}/ifloor_carpet.png`,
+        plaza:`${NA}/ifloor_stone.png`, wood:`${NA}/ifloor_wood.png`, void:`${NA}/void.png`,
+        door:`${NA}/door.png`, tree:`${NA}/tree.png`,
+      });
     }
   }
   _tileSet=set;
@@ -720,10 +699,11 @@ export function buildMapForLocation(S, ort){
       questMark(sx0, sy0-10, 'Ätherspalt', 'boss');
       anim(sx0-4,sy0-10,'torch'); anim(sx0+4,sy0-10,'torch');
     }
-    // exit door south of spawn chamber (still on-camera)
+    // exit door + stairs south of spawn chamber (still on-camera)
     const doorY=Math.min(ht-2, sy0+10);
     hall(sx0, sy0, sx0, doorY, 3);
     tiles[doorY][sx0]='door';
+    if(doorY>2){ tiles[doorY-1][sx0]='stairs'; }
     prop(sx0+2, sy0+1, 'sign');
     anim(sx0-2, sy0, 'torch'); anim(sx0+2, sy0, 'torch');
 
@@ -1889,6 +1869,14 @@ function tryMove(dx,dy){
   if(dx<0)_hero.dir=1; else if(dx>0)_hero.dir=2; else if(dy<0)_hero.dir=3; else if(dy>0)_hero.dir=0;
   const bump=_npcs.find(n=>Math.round(n.x)===nx && Math.round(n.y)===ny);
   if(bump){
+    if(bump._mapEncounter){
+      try{
+        const S=_hooks.getS?.();
+        _npcs=_npcs.filter(n=>n!==bump);
+        _hooks.startEncounter?.(S, {fromMap:true, blurb:'Ein Gegner stellt sich dir in den Weg!'});
+      }catch(_){}
+      return false;
+    }
     // merchant shop shortcut
     if(bump.sheet==='merchant' && _hooks.openShop){ try{ _hooks.openShop(bump.name); return false; }catch(_){ } }
     talkTo(bump.name); return false;
@@ -1964,7 +1952,8 @@ function tryMove(dx,dy){
 
 function stepHero(dt){
   if(!_hero.moving) return;
-  const speed=6;
+  const running=!!(_keys.Shift||_keys.ShiftLeft||_keys.ShiftRight);
+  const speed=running?11:6;
   const dx=_hero.x-_hero.px, dy=_hero.y-_hero.py;
   const dist=Math.hypot(dx,dy);
   if(dist<0.05){ _hero.px=_hero.x; _hero.py=_hero.y; _hero.moving=false; _hero.frame=0; return; }
@@ -2069,20 +2058,24 @@ function draw(){
   const ctx=_ctx;
   const cssW=_canvas.width, cssH=_canvas.height;
   ctx.imageSmoothingEnabled=false;
-  const _indoorFill=(_map?.kind==='dungeon'||_map?.kind==='interior');
-  // v67: rich void fill (no dead black letterbox around small maps)
-  const grd=ctx.createRadialGradient(cssW*0.5,cssH*0.45,cssW*0.08,cssW*0.5,cssH*0.5,cssW*0.75);
-  if(_indoorFill){ grd.addColorStop(0,'#3a3550'); grd.addColorStop(0.45,'#2a2640'); grd.addColorStop(1,'#1a1628'); }
-  else { grd.addColorStop(0,'#2a6a3a'); grd.addColorStop(0.55,'#143828'); grd.addColorStop(1,'#081410'); }
-  ctx.fillStyle=grd; ctx.fillRect(0,0,cssW,cssH);
-  // subtle pixel noise / stone stars
-  ctx.globalAlpha=0.22;
-  for(let i=0;i<120;i++){
-    const x=((i*97)%cssW)|0, y=((i*57+13)%cssH)|0;
-    ctx.fillStyle=_indoorFill?((i%3)?'#6a6088':'#a898c0'):((i%3)?'#4a8858':'#c8e0a0');
-    ctx.fillRect(x,y,1+(i%2),1+(i%2));
+  const _isDungeon=_map?.kind==='dungeon';
+  const _indoorFill=(_isDungeon||_map?.kind==='interior');
+  // v73: dungeons = solid near-black void (not purple cobble carpet)
+  if(_isDungeon){
+    ctx.fillStyle='#05060a'; ctx.fillRect(0,0,cssW,cssH);
+  } else {
+    const grd=ctx.createRadialGradient(cssW*0.5,cssH*0.45,cssW*0.08,cssW*0.5,cssH*0.5,cssW*0.75);
+    if(_indoorFill){ grd.addColorStop(0,'#3a3550'); grd.addColorStop(0.45,'#2a2640'); grd.addColorStop(1,'#1a1628'); }
+    else { grd.addColorStop(0,'#2a6a3a'); grd.addColorStop(0.55,'#143828'); grd.addColorStop(1,'#081410'); }
+    ctx.fillStyle=grd; ctx.fillRect(0,0,cssW,cssH);
+    ctx.globalAlpha=0.22;
+    for(let i=0;i<120;i++){
+      const x=((i*97)%cssW)|0, y=((i*57+13)%cssH)|0;
+      ctx.fillStyle=_indoorFill?((i%3)?'#6a6088':'#a898c0'):((i%3)?'#4a8858':'#c8e0a0');
+      ctx.fillRect(x,y,1+(i%2),1+(i%2));
+    }
+    ctx.globalAlpha=1;
   }
-  ctx.globalAlpha=1;
 
   // v65: map fills canvas — zoom into small interiors so void never letterboxes
   const dlgOpen = !!(typeof document!=='undefined' && document.body?.classList?.contains('ow-dialogue'));
@@ -2149,15 +2142,17 @@ function draw(){
         // v65: extend biome — indoor castle floor (never flat black band)
         const indoor=_map.kind==='dungeon'||_map.kind==='interior';
         if(indoor){
-          // v68: extend readable stone/floor to canvas edges (16:9 fill, not black void)
-          const under=(_map.preset==='church'||_map.preset==='throne')?'stone':(_map.kind==='dungeon'?'floor':'stone');
-          const gim=loadImg(tileUrl(under));
-          if(gim.complete && gim.naturalWidth) ctx.drawImage(gim, sx, sy, tw, tw);
-          else { ctx.fillStyle='#2a2438'; ctx.fillRect(sx,sy,tw,tw); }
-          // soft vignette only — keep floor readable
-          const edge=Math.min(1, Math.hypot(x-_hero.x, y-_hero.y)/28);
-          ctx.fillStyle=`rgba(8,6,16,${0.12+edge*0.28})`; ctx.fillRect(sx,sy,tw,tw);
-          if(((x*13+y*7)&7)===0){ ctx.fillStyle='rgba(255,255,255,0.04)'; ctx.fillRect(sx+2,sy+2,2,2); }
+          if(_map.kind==='dungeon'){
+            // v73: OOB = solid dark void (not tiled purple rock carpet)
+            ctx.fillStyle='#05060a'; ctx.fillRect(sx,sy,tw,tw);
+          } else {
+            const under=(_map.preset==='church'||_map.preset==='throne')?'stone':'stone';
+            const gim=loadImg(tileUrl(under));
+            if(gim.complete && gim.naturalWidth) ctx.drawImage(gim, sx, sy, tw, tw);
+            else { ctx.fillStyle='#2a2438'; ctx.fillRect(sx,sy,tw,tw); }
+            const edge=Math.min(1, Math.hypot(x-_hero.x, y-_hero.y)/28);
+            ctx.fillStyle=`rgba(8,6,16,${0.12+edge*0.28})`; ctx.fillRect(sx,sy,tw,tw);
+          }
         }
         else {
           // v69: pass OOB = snow + rock faces + dark fog vignette (NO pine wall filler)
@@ -2168,11 +2163,11 @@ function draw(){
             let url;
             if(rocky){
               const rockIdx=[0,1,2,3];
-              const base = tileUrl('stone') || './assets/pixel/tiles-nocturna/areas/pass/stone.png';
+              const base = tileUrl('stone') || './assets/pixel/tiles-na/cut/biome_mountain.png';
               const dir = base.slice(0, base.lastIndexOf('/')+1);
               url = dir + 'cliff' + rockIdx[n%4] + '.png';
             } else {
-              url = tileUrl('sand') || './assets/pixel/tiles-nocturna/areas/pass/sand.png';
+              url = tileUrl('sand') || './assets/pixel/tiles-na/cut/biome_snow.png';
             }
             const gim=loadImg(url);
             if(gim.complete && gim.naturalWidth) ctx.drawImage(gim, sx, sy, tw, tw);
@@ -2192,9 +2187,11 @@ function draw(){
       const k=fogKey(x,y);
       const seen=_explored.has(k), vis=_visible.has(k);
       if(!seen){
-        // v47c: unexplored ground matches biome — grass outdoors, dark stone in dungeon/interior
+        // v47c/v73: unexplored — solid black in dungeons (not purple rock carpet)
         const indoor=_map.kind==='dungeon'||_map.kind==='interior';
-        if(indoor){
+        if(_map.kind==='dungeon'){
+          ctx.fillStyle='#05060a'; ctx.fillRect(sx,sy,tw,tw);
+        } else if(indoor){
           const gim=loadImg(tileUrl('floor'));
           if(gim.complete && gim.naturalWidth) ctx.drawImage(gim, sx, sy, tw, tw);
           else { ctx.fillStyle='#1a1520'; ctx.fillRect(sx,sy,tw,tw); }
@@ -2225,6 +2222,39 @@ function draw(){
         if(t==='stall'){
           const pim=loadImg(tileUrl('path'));
           if(pim.complete && pim.naturalWidth) ctx.drawImage(pim, sx, sy, tw, tw);
+        }
+      } else if(_map.kind==='dungeon' && (t==='wall'||t==='void')){
+        // v73: solid rock = pure dark void; edge walls get lit top face (FF 3/4)
+        const walk=new Set(['floor','path','carpet','plaza','stone','door','water','sand','stairs']);
+        let edge=false;
+        for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){
+          if(walk.has(_map.tiles[y+dy]?.[x+dx])){ edge=true; break; }
+        }
+        if(!edge || t==='void'){
+          ctx.fillStyle='#05060a'; ctx.fillRect(sx,sy,tw,tw);
+        } else {
+          const crypt='./assets/pixel/tiles-na/cut/';
+          const top=loadImg(crypt + 'wall_top' + ((x+y)&3) + '.png');
+          if(top.complete && top.naturalWidth) ctx.drawImage(top, sx, sy, tw, tw);
+          else { ctx.fillStyle='#7a7468'; ctx.fillRect(sx,sy,tw,tw); }
+          // lit north lip
+          ctx.fillStyle='rgba(220,210,185,0.35)'; ctx.fillRect(sx, sy, tw, Math.max(2, tw*0.12));
+        }
+      } else if(_map.kind==='dungeon' && t==='door'){
+        const crypt='./assets/pixel/tiles-na/cut/';
+        const fl=loadImg(wangUrlFor('floor',x,y));
+        if(fl.complete&&fl.naturalWidth) ctx.drawImage(fl,sx,sy,tw,tw);
+        const dim=loadImg(crypt+'door.png');
+        if(dim.complete&&dim.naturalWidth) ctx.drawImage(dim,sx,sy-tw*0.35,tw,tw*1.35);
+        else { ctx.fillStyle='#c4a060'; ctx.fillRect(sx+tw*0.15,sy-tw*0.2,tw*0.7,tw*1.1); }
+      } else if(_map.kind==='dungeon' && t==='stairs'){
+        const crypt='./assets/pixel/tiles-na/cut/';
+        const st=loadImg(crypt+'stairs.png');
+        if(st.complete&&st.naturalWidth) ctx.drawImage(st,sx,sy,tw,tw);
+        else {
+          ctx.fillStyle='#9a9488'; ctx.fillRect(sx,sy,tw,tw);
+          ctx.fillStyle='#5a564c';
+          for(let i=0;i<4;i++) ctx.fillRect(sx+2, sy+2+i*(tw/4), tw-4, tw/6);
         }
       } else {
         const im=loadImg(wangUrlFor(t,x,y));
@@ -2271,25 +2301,44 @@ function draw(){
           }
         }
       }catch(_){}
-      // v63/v72: indoor wall height only on edges abutting walkables (not solid rock mass)
+      // v73: FF/CT 3/4 wall — lit top (already drawn) + tall dark front + shadow on floor
       try{
-        if((_map.kind==='interior'||_map.kind==='dungeon') && t==='wall'){
+        if(_map.kind==='dungeon' && t==='wall'){
+          const walk=new Set(['floor','path','carpet','plaza','stone','door','water','sand','stairs']);
+          const southWalk=walk.has(_map.tiles[y+1]?.[x]);
+          const anyWalk=[[1,0],[-1,0],[0,1],[0,-1]].some(([dx,dy])=>walk.has(_map.tiles[y+dy]?.[x+dx]));
+          if(anyWalk){
+            const crypt='./assets/pixel/tiles-na/cut/';
+            if(southWalk){
+              const front=loadImg(crypt + 'wall_front' + ((x+y)&3) + '.png');
+              const fh=tw*1.15;
+              if(front.complete&&front.naturalWidth){
+                ctx.drawImage(front, sx, sy+tw*0.15, tw, fh);
+              } else {
+                ctx.fillStyle='#2a2830'; ctx.fillRect(sx, sy+tw*0.15, tw, fh);
+                ctx.fillStyle='rgba(200,190,160,0.45)'; ctx.fillRect(sx, sy+tw*0.15, tw, Math.max(2,tw*0.1));
+              }
+              // shadow cast onto floor south of wall
+              ctx.fillStyle='rgba(0,0,0,0.45)';
+              ctx.fillRect(sx, sy+tw*0.15+fh*0.85, tw, tw*0.45);
+              ctx.fillStyle='rgba(0,0,0,0.22)';
+              ctx.fillRect(sx-tw*0.05, sy+tw*0.15+fh, tw*1.1, tw*0.25);
+            } else {
+              // side/north edges: short drop shadow only
+              ctx.fillStyle='rgba(0,0,0,0.35)';
+              ctx.fillRect(sx, sy+tw*0.75, tw, tw*0.35);
+            }
+          }
+        } else if(_map.kind==='interior' && t==='wall'){
           const walk=new Set(['floor','path','carpet','plaza','stone','door','water','sand']);
           let edge=false;
           for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){
-            const nt=_map.tiles[y+dy]?.[x+dx];
-            if(walk.has(nt)){ edge=true; break; }
+            if(walk.has(_map.tiles[y+dy]?.[x+dx])){ edge=true; break; }
           }
           if(edge){
             const him=loadImg(wangUrlFor('wall',x,y));
-            if(him.complete&&him.naturalWidth){
-              ctx.drawImage(him, sx, sy-tw*0.85, tw, tw*0.9);
-            } else {
-              ctx.fillStyle='rgba(20,22,30,0.95)';
-              ctx.fillRect(sx, sy-tw*0.85, tw, tw*0.9);
-            }
-            ctx.fillStyle='rgba(0,0,0,0.35)';
-            ctx.fillRect(sx, sy+tw*0.15, tw, tw*0.2);
+            if(him.complete&&him.naturalWidth) ctx.drawImage(him, sx, sy-tw*0.85, tw, tw*0.9);
+            ctx.fillStyle='rgba(0,0,0,0.35)'; ctx.fillRect(sx, sy+tw*0.15, tw, tw*0.2);
           }
         }
         // pillars: plaza/stone columns beside carpet cast oval shadow
@@ -2362,12 +2411,12 @@ function draw(){
         // v50: softer dungeon FoW edges — wider band, gentler peak, biome-tinted
         const dist=Math.hypot(x-_hero.x, y-_hero.y);
         const isDungeon=/dungeon|kerker|höhle|interior|gruft|bunker|katakomb/.test(String(_map?.kind||_map?.preset||_map?.name||''));
-        const R=_desktop?(isDungeon?16:15):Math.max(17, Math.ceil(Math.max(_viewW||13,_viewH||15)*0.58));
-        const band=isDungeon?7.5:5.5;
+        const R=_desktop?(isDungeon?18:15):Math.max(17, Math.ceil(Math.max(_viewW||13,_viewH||15)*0.58));
+        const band=isDungeon?6:5.5;
         if(dist > R-band){
           const t=Math.min(1, (dist-(R-band))/band);
           const ease=t*t*(3-2*t); // smoothstep
-          const a=ease*(isDungeon?0.18:0.24);
+          const a=ease*(isDungeon?0.12:0.24);
           ctx.fillStyle=`rgba(6,8,14,${a.toFixed(3)})`;
           ctx.fillRect(sx,sy,tw,tw);
         }
@@ -2378,9 +2427,18 @@ function draw(){
   for(const n of _npcs){
     const k=fogKey(Math.round(n.x), Math.round(n.y));
     if(!_visible.has(k)) continue;
-    const im=loadImg(NPC_SHEETS[n.sheet]||NPC_SHEETS.default);
     const sx=ox+(n.px-camX)*tw, sy=oy+(n.py-camY)*tw - tw*0.55;
-    drawSprite(ctx, im, n.frame|0, n.dir|0, sx+tw*0.0, sy, tw);
+    if(n._mapEncounter && n._encImg){
+      const mim=loadImg(n._encImg);
+      if(mim.complete&&mim.naturalWidth){
+        ctx.drawImage(mim, 0, 0, Math.min(32,mim.naturalWidth), Math.min(32,mim.naturalHeight), sx, sy+tw*0.15, tw, tw);
+      } else {
+        ctx.fillStyle='#c44'; ctx.fillRect(sx+tw*0.2, sy+tw*0.3, tw*0.6, tw*0.6);
+      }
+    } else {
+      const im=loadImg(NPC_SHEETS[n.sheet]||NPC_SHEETS.default);
+      drawSprite(ctx, im, n.frame|0, n.dir|0, sx+tw*0.0, sy, tw);
+    }
     // v66: nameplate only near hero; font sized in CSS-px so desktop upscale stays mobile-sized
     const nearDist=3.2;
     const near=Math.hypot((n.px||n.x)-_hero.px,(n.py||n.y)-_hero.py)<nearDist;
@@ -2429,6 +2487,28 @@ function draw(){
   }
   drawSprite(ctx, him, _hero.frame, _hero.dir, hx, hy, tw);
 
+  // v74: interaction prompt (NPC / chest / door under face tile)
+  try{
+    const f=facingTile();
+    let label='';
+    const npc=_npcs.find(n=>Math.round(n.x)===f.x&&Math.round(n.y)===f.y);
+    if(npc) label='E · Sprechen';
+    else if(_chests.some(c=>!c.open&&c.x===f.x&&c.y===f.y)) label='E · Truhe öffnen';
+    else if((_map.doors||[]).some(d=>d.x===f.x&&d.y===f.y)) label='E · Durchgang';
+    else if(_map.tiles?.[f.y]?.[f.x]==='stairs') label='E · Treppe';
+    if(label){
+      const px=ox+(f.x-camX)*tw+tw*0.5, py=oy+(f.y-camY)*tw-6;
+      ctx.font='bold '+Math.max(11, Math.floor(tw*0.55))+'px monospace';
+      ctx.textAlign='center';
+      ctx.fillStyle='rgba(10,8,18,0.75)';
+      const w=ctx.measureText(label).width+12;
+      ctx.fillRect(px-w/2, py-16, w, 18);
+      ctx.strokeStyle='#e8c86a'; ctx.strokeRect(px-w/2, py-16, w, 18);
+      ctx.fillStyle='#ffe9a8'; ctx.fillText(label, px, py-3);
+      ctx.textAlign='left';
+    }
+  }catch(_){}
+
   // animated overlays (torches, flowers, smoke, fountain)
   for(const a of _animators){
     const k=fogKey(a.x,a.y);
@@ -2447,6 +2527,22 @@ function draw(){
     ctx.globalAlpha=alpha;
     ctx.drawImage(im, fr*fw, 0, fw, fw, sx, sy, tw, tw);
     ctx.globalAlpha=1;
+  }
+
+  // v73: warm light pools around dungeon torches (FF crypt readability)
+  if(_map?.kind==='dungeon'){
+    for(const a of _animators){
+      if(a.kind!=='torch') continue;
+      const k=fogKey(a.x,a.y);
+      if(!_explored.has(k)) continue;
+      const cx=ox+(a.x-camX+0.5)*tw, cy=oy+(a.y-camY+0.35)*tw;
+      const R=tw*3.2;
+      const g=ctx.createRadialGradient(cx,cy,tw*0.15, cx,cy,R);
+      g.addColorStop(0,'rgba(255,200,110,0.42)');
+      g.addColorStop(0.35,'rgba(255,140,60,0.18)');
+      g.addColorStop(1,'rgba(0,0,0,0)');
+      ctx.fillStyle=g; ctx.beginPath(); ctx.arc(cx,cy,R,0,Math.PI*2); ctx.fill();
+    }
   }
 
   // overhead big buildings (drawn above ground, soft depth)
@@ -2483,7 +2579,7 @@ function draw(){
   // v45d: no canvas location plaque (HUD chip covers ort — was duplicate/clip banner)
   // day/night tint + weather (tint only lit tiles; keep unexplored pure dark)
   syncDayNight();
-  const tc=tintColor();
+  const tc=(_map?.kind==='dungeon')?null:tintColor();
   if(tc && !tc.endsWith(',0)')){
     for(let y=y0;y<=y1;y++){
       for(let x=x0;x<=x1;x++){
@@ -2501,18 +2597,20 @@ function draw(){
       const sx=ox+(x-camX)*tw, sy=oy+(y-camY)*tw;
       const indoor=_map.kind==='dungeon'||_map.kind==='interior';
       if(y<0||x<0||y>=_map.h||x>=_map.w){
-        if(indoor){ ctx.fillStyle='#0a0c12'; ctx.fillRect(sx,sy,tw,tw); }
+        if(_map.kind==='dungeon'){ ctx.fillStyle='#05060a'; ctx.fillRect(sx,sy,tw,tw); }
+        else if(indoor){ ctx.fillStyle='#0a0c12'; ctx.fillRect(sx,sy,tw,tw); }
         else { ctx.fillStyle='rgba(5,4,10,.28)'; ctx.fillRect(sx,sy,tw,tw); }
         continue;
       }
       if(!_explored.has(fogKey(x,y))){
-        if(indoor){ ctx.fillStyle='#12141c'; ctx.fillRect(sx,sy,tw,tw); }
+        if(_map.kind==='dungeon'){ ctx.fillStyle='#05060a'; ctx.fillRect(sx,sy,tw,tw); }
+        else if(indoor){ ctx.fillStyle='#12141c'; ctx.fillRect(sx,sy,tw,tw); ctx.fillStyle='rgba(5,4,10,.72)'; ctx.fillRect(sx,sy,tw,tw); }
         else {
           const gim=loadImg(tileUrl('grass'));
           if(gim.complete && gim.naturalWidth) ctx.drawImage(gim, sx, sy, tw, tw);
           else { ctx.fillStyle='#1a3a22'; ctx.fillRect(sx,sy,tw,tw); }
+          ctx.fillStyle='rgba(5,4,10,.72)'; ctx.fillRect(sx,sy,tw,tw);
         }
-        ctx.fillStyle='rgba(5,4,10,.72)'; ctx.fillRect(sx,sy,tw,tw);
       }
     }
   }
@@ -2738,7 +2836,17 @@ function openChestAt(x,y){
       const msg='Truhe: '+(loot.gold?('+'+loot.gold+' Gold'):'')+(loot.item?((loot.gold?', ':'')+loot.item):'');
       pushLog(msg);
       try{ _hooks.toast?.(msg); }catch(_){}
-      try{ _audioApi?.playSfx?.('ok'); }catch(_){}
+      try{ _audioApi?.playSfx?.('fanfare') || _audioApi?.playSfx?.('ok'); }catch(_){}
+      try{
+        // v74: short chest fanfare toast
+        _hooks.toast?.('✦ '+msg);
+        const el=document.createElement('div');
+        el.className='ow-chest-fanfare';
+        el.textContent='✦ '+msg;
+        el.style.cssText='position:fixed;left:50%;top:28%;transform:translate(-50%,-50%);z-index:80;padding:10px 18px;background:#1a1428ee;border:2px solid #e8c86a;color:#ffe9a8;font:700 16px/1.3 monospace;border-radius:8px;pointer-events:none';
+        document.body.appendChild(el);
+        setTimeout(()=>el.remove(),1600);
+      }catch(_){}
       try{ _hooks.save?.(); }catch(_){}
     }
   }catch(_){}
@@ -3061,22 +3169,23 @@ export function showOverworld(S){
   _map=built;
   applyGenre(S);
   if(built.kind==='dungeon'){
-    // v71: nocturna crypt grade for catacombs (not throne hall tiles)
-    const crypt='./assets/pixel/tiles-nocturna/areas/crypt';
+    // v74: NA dungeon family only
+    const NA='./assets/pixel/tiles-na/cut';
     const ice=/ice_cave/i.test(String(built.preset||''));
     _tileSet={..._tileSet,
-      grass: ice ? './assets/pixel/tiles-nocturna/areas/pass/sand.png' : (crypt+'/cfloor1.png'),
-      path: crypt+'/cfloor3.png',
-      floor: crypt+'/cfloor1.png',
-      wall: crypt+'/cwall0.png',
-      tree: './assets/pixel/tiles-dungeon/tree.png',
-      void: './assets/pixel/tiles-dungeon/void.png',
-      door: './assets/pixel/tiles-dungeon/door.png',
-      stone: crypt+'/cfloor0.png',
-      carpet: crypt+'/cfloor1.png',
-      plaza: crypt+'/ifloor0.png',
-      sand: ice ? './assets/pixel/tiles-nocturna/areas/pass/sand.png' : (crypt+'/ifloor1.png'),
-      water: ice ? './assets/pixel/tiles-nocturna/areas/pass/water0.png' : './assets/pixel/tiles-dungeon/water.png',
+      grass: ice ? `${NA}/biome_ice.png` : `${NA}/dfloor_mid.png`,
+      path: `${NA}/dfloor_lit.png`,
+      floor: `${NA}/dfloor_lit.png`,
+      wall: `${NA}/wall_top0.png`,
+      tree: `${NA}/ruin_wall.png`,
+      void: `${NA}/dvoid.png`,
+      door: `${NA}/door.png`,
+      stone: `${NA}/dfloor_dark.png`,
+      carpet: `${NA}/dfloor_mid.png`,
+      plaza: `${NA}/dfloor_lit.png`,
+      sand: ice ? `${NA}/biome_snow.png` : `${NA}/dfloor_mid.png`,
+      water: ice ? `${NA}/biome_ice.png` : `${NA}/water.png`,
+      stairs: `${NA}/stairs.png`,
     };
   }
   _npcs=(built.npcs||[]).map(n=>({...n, dir:0, frame:0}));
@@ -3093,6 +3202,28 @@ export function showOverworld(S){
   try{ rebuildQuestMarks(S); }catch(_){}
   _hero.x=built.spawn.x; _hero.y=built.spawn.y;
   _hero.px=_hero.x; _hero.py=_hero.y; _hero.moving=false; _hero.frame=0;
+  // v74: visible map encounters (NA monster sheets) — outdoor/dungeon only
+  try{
+    if(built.kind==='dungeon' || built.kind==='wild' || built.preset==='wall'){
+      const mons=['1','2','3','4','5','6'];
+      let nEnc=built.kind==='dungeon'?4:3;
+      for(let i=0;i<nEnc;i++){
+        const ang=(i/nEnc)*Math.PI*2;
+        const ex=Math.round(_hero.x+Math.cos(ang)*6+(i%2));
+        const ey=Math.round(_hero.y+Math.sin(ang)*5+((i*3)%2));
+        if(!walkable(ex,ey)) continue;
+        if(_npcs.some(n=>Math.round(n.x)===ex&&Math.round(n.y)===ey)) continue;
+        const mid=mons[i%mons.length];
+        _npcs.push({
+          x:ex,y:ey,px:ex,py:ey,dir:0,frame:0,
+          name:'Wildnis · '+mid, sheet:'monster', pace:0.4,
+          _mapEncounter:true,
+          _encImg:`./assets/pixel/tiles-na/monsters/${mid}.png`,
+          calendar:false,
+        });
+      }
+    }
+  }catch(_){}
   loadFog(S);
   _root.classList.remove('hidden');
   document.body.classList.add('pixel-ow','ow-fs-active');

@@ -168,7 +168,7 @@ try{ // v63 scrub AI cfg from localStorage
 
  // v41: test-only scripted, fair ATB bosses, boss dialogue talk-down, tilemap minimap, craft XP→T4
 const $=s=>document.querySelector(s);const $$=s=>[...document.querySelectorAll(s)];const R=a=>a[Math.floor(Math.random()*a.length)];const rnd=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
-const VER='72',CACHE_V='v72';
+const VER='74',CACHE_V='v74';
 try{document.body.classList.add('pc-only','ow-desktop');document.body.classList.remove('touch-ui');}catch(_){}
 
 const FREETEXT_ENABLED = false; // v63: classic JRPG only — free-text archived on freetext-archive
@@ -1523,7 +1523,7 @@ try{syncFreetextUI()}catch(_){} try{ensurePlaceCommerceTags(S)}catch(_){}$('#key
        // keep overworld available as side view but story is choice-driven
        Promise.resolve(ensureOW()).then((mod)=>{
          try{
-           mod.mountOverworld({ audio:Aud, act:(t)=>{ if(FREETEXT_ENABLED) act(t); else toast('Menüwahl nutzen'); }, getS:()=>S, toast, save, openShop:(who)=>openPixelShop(who), openTravel:()=>openRegionTravelMap(), openMenu:(tab)=>openMenu(tab||'quests'), openInn:()=>openInn(), onLocation:(dest)=>{ try{ toast('Reise: '+dest+' (Menü)'); }catch(_){ } } });
+           mod.mountOverworld({ audio:Aud, act:(t)=>{ if(FREETEXT_ENABLED) act(t); else toast('Menüwahl nutzen'); }, getS:()=>S, toast, save, openShop:(who)=>openPixelShop(who), openTravel:()=>openRegionTravelMap(), openMenu:(tab)=>openMenu(tab||'quests'), openInn:()=>openInn(), startEncounter:(Ss,opts)=>{ try{ const st=Ss||S; const foes=pickEncounter?.(st,{noBoss:true,count:1})||[enemyById?.('goblin')].filter(Boolean); st.flags=st.flags||{}; st.flags._offerEncounter={foes:Array.isArray(foes)?foes:[foes].filter(Boolean), blurb:opts?.blurb||'Ein Gegner stellt sich dir in den Weg!', forceAttack:true}; openPendingEncounter({}); }catch(e){ console.warn('startEncounter',e);} }, onLocation:(dest)=>{ try{ toast('Reise: '+dest+' (Menü)'); }catch(_){ } } });
            mod.showOverworld(S);
            document.body.classList.add('pixel-jrpg');
          }catch(e){ console.warn('overworld',e); }
@@ -1559,7 +1559,7 @@ try{syncFreetextUI()}catch(_){} try{ensurePlaceCommerceTags(S)}catch(_){}$('#key
          save:()=>save(),
          openShop:(who)=>openPixelShop(who),
          openTravel:()=>openRegionTravelMap(),
-         openMenu:(tab)=>openMenu(tab||'quests'), openInn:()=>openInn(),
+         openMenu:(tab)=>openMenu(tab||'quests'), openInn:()=>openInn(), startEncounter:(Ss,opts)=>{ try{ const st=Ss||S; const foes=pickEncounter?.(st,{noBoss:true,count:1})||[enemyById?.('goblin')].filter(Boolean); st.flags=st.flags||{}; st.flags._offerEncounter={foes:Array.isArray(foes)?foes:[foes].filter(Boolean), blurb:opts?.blurb||'Ein Gegner stellt sich dir in den Weg!', forceAttack:true}; openPendingEncounter({}); }catch(e){ console.warn('startEncounter',e);} },
          onLocation:(dest)=>{ try{ const r=travelTo(dest); if(r?.text){ add('n',r.text); apply(r.changes||{}); if(r.changes?.world)applyWorld(r.changes.world); hud(); renderChoices(); OW.refreshOverworld(S); typewrite(isG()?'Nebel':'Erzähler', r.text, ()=>{}); save(); } }catch(e){ console.warn('ow-travel',e);} }
        });
        mod.showOverworld(S);

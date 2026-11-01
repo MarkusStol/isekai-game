@@ -1,0 +1,6 @@
+Ninja Adventure Asset Pack by Pixel-Boy and AAA
+License: Creative Commons Zero (CC0 1.0 Universal)
+Source: https://pixel-boy.itch.io/ninja-adventure-asset-pack
+Also: https://github.com/pixel-boy/NinjaAdventure
+         https://github.com/sparklinlabs/superpowers-asset-packs (ninja-adventure/)
+Attribution not required; link appreciated.

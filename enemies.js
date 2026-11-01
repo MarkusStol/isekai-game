@@ -73,16 +73,16 @@ export const ENEMIES={
 };
 
 export const BATTLE_BG={
-  held:'assets/bg/battle/arena-fantasy.webp',
-  fantasy:'assets/bg/battle/arena-fantasy.webp',
+  held:'assets/pixel/bg-battle/nocturna/field.png',
+  fantasy:'assets/pixel/bg-battle/nocturna/field.png',
   darkfantasy:'assets/bg/battle/arena-dark.webp',
   daemon:'assets/pixel/bg-battle/nocturna/throne.png',
   zombie:'assets/bg/battle/arena-zombie.svg',
   postapoc:'assets/bg/battle/arena-zombie.svg',
   cyberpunk:'assets/bg/battle/arena-cyber.webp',
   grey:'assets/bg/battle/arena-grey.webp',
-  forest:'assets/bg/battle/arena-forest.webp',
-  dungeon:'assets/bg/battle/arena-dungeon.webp',
+  forest:'assets/pixel/bg-battle/nocturna/field.png',
+  dungeon:'assets/pixel/bg-battle/nocturna/dungeon.png',
   nocturna_throne:'assets/pixel/bg-battle/nocturna/throne.png',
   nocturna_pass:'assets/pixel/bg-battle/nocturna/pass.png',
   nocturna_crypt:'assets/pixel/bg-battle/nocturna/crypt.png',

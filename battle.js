@@ -589,7 +589,7 @@ function advanceUntilPlayer(){
     for(const u of allUnits()){
       if(!u.alive)continue;
       const spd=(u.spd||8)*Jrpg.statusSpdMult(u);
-      u.atb=(u.atb||0)+Math.max(2.5, spd*0.85);
+      u.atb=(u.atb||0)+Math.max(3.8, spd*1.15); // v74: snappier ATB
     }
   }
 }

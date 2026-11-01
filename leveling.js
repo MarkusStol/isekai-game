@@ -111,8 +111,25 @@ export function grantXp(S, amount, reason=''){
     leveled.push(S.st.lvl);
     checkTitles(S);
   }
+  if(leveled.length){
+    try{ showLevelUpScreen(S, leveled); }catch(_){}
+  }
   if(amount)S.progress.acquireLog=(S.progress.acquireLog||[]).concat({t:Date.now(),xp:amount,reason:reason||'XP'}).slice(-40);
   return {leveled, lvl:S.st.lvl, xp:S.st.xp, next:xpToNext(S.st.lvl)};
+}
+
+/** v74: modal level-up beat */
+export function showLevelUpScreen(S, levels){
+  if(typeof document==='undefined') return;
+  const last=levels[levels.length-1];
+  const el=document.createElement('div');
+  el.id='levelUpModal';
+  el.innerHTML=`<div class="lu-card"><div class="lu-title">LEVEL UP</div><div class="lu-lvl">Lv ${last}</div><div class="lu-stats">HP ${S.st.maxhp} · MP ${S.st.maxmp} · STR ${S.st.str}</div><div class="lu-hint">Attributspunkte: ${S.progress?.attrPoints|0}</div></div>`;
+  el.style.cssText='position:fixed;inset:0;z-index:120;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.55);pointer-events:none';
+  const style=document.createElement('style');
+  style.textContent='.lu-card{background:#161022;border:3px solid #e8c86a;padding:22px 36px;border-radius:12px;text-align:center;color:#ffe9a8;font-family:monospace;box-shadow:0 0 40px #e8c86a66}.lu-title{font-size:14px;letter-spacing:.3em;color:#e8c86a}.lu-lvl{font-size:42px;font-weight:800;margin:8px 0;color:#fff}.lu-stats{font-size:14px;opacity:.9}.lu-hint{margin-top:8px;font-size:12px;opacity:.7}';
+  document.body.appendChild(style); document.body.appendChild(el);
+  setTimeout(()=>{ try{ el.remove(); style.remove(); }catch(_){} }, 2200);
 }
 
 export function spendAttr(S, attr, n=1){
