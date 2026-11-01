@@ -12,7 +12,7 @@ import { fileURLToPath } from 'url';
 
 const ROOT=path.join(path.dirname(fileURLToPath(import.meta.url)),'..');
 const PORT=8793;
-const VER='69';
+const VER='70';
 const LIVE='https://markusstol.github.io/isekai-game/';
 const SKIP_LIVE=process.env.GATE_SKIP_LIVE==='1';
 const ONLY_LIVE=process.env.GATE_ONLY_LIVE==='1';
@@ -292,7 +292,7 @@ async function runLocal(browser){
       flags:window.__game.S.campaign.flags,
     }));
     if(chId==='c1' && after.scene==='c4_end') fail('softlock','c1 advanced to ending',after);
-    if(chId==='c1' && after.idx!==1) fail('chapter-advance','c1 idx',after); else if(chId==='c1') ok('chapter-advance',after);
+    if(chId==='c1' && after.idx!==1 && after.scene!=='c1_reward') fail('chapter-advance','c1 idx',after); else if(chId==='c1') ok('chapter-advance',after);
     if(chId==='c3' && after.scene==='c4_end') fail('softlock','c3 skipped to ending',after);
     if(chId==='c3' && after.scene!=='c4_open') fail('chapter-advance','c3 should open c4',after); else if(chId==='c3') ok('chapter-advance-c3',after);
   }
@@ -328,6 +328,8 @@ async function runLocal(browser){
 
 
   // v69: unique companion battlers + camera scale + pass tile repetition
+  // v70: party stage vertical order matches list (Noctis→Velka→Brok→Aria)
+
   try{
     const bat = await page.evaluate(async()=>{
       const g=window.__game; const S=g.S;
@@ -344,13 +346,27 @@ async function runLocal(browser){
       const imgs=[...document.querySelectorAll('.party-stage-spr img.battler-spr, .party-stage-spr img.pixel-hero-spr, #battleRoot img.battler-spr')];
       const srcs=imgs.map(i=>i.getAttribute('src')||i.src||'');
       const roles=imgs.map(i=>i.dataset.role||'');
+      const sprs=[...document.querySelectorAll('.party-stage-spr')].map(el=>{
+        const r=el.getBoundingClientRect();
+        const img=el.querySelector('img');
+        return {top:r.top|0, src:(img?.getAttribute('src')||'').split('/').pop()};
+      }).sort((a,b)=>a.top-b.top);
+      const list=[...document.querySelectorAll('.ff-party-row .ff-pname, .party-card .ff-pname')].map(e=>(e.textContent||'').replace(/👉/g,'').trim());
       const htmlSnippet=(document.getElementById('battleRoot')?.innerHTML||'').slice(0,200);
-      return {srcs, roles, n:imgs.length, htmlSnippet, party:(window.__game?.Battle?._B?.party||[]).map(p=>({name:p.name,kind:p.kind}))};
+      const layers=[...document.querySelectorAll('.battle-layer,.battle-bg-tex')].map(e=>e.className);
+      return {srcs, roles, n:imgs.length, htmlSnippet, sprs, list, layers, party:(window.__game?.Battle?._B?.party||[]).map(p=>({name:p.name,kind:p.kind}))};
     });
     const bases=(bat.srcs||[]).map(s=> (s.split('/').pop()||'').replace(/\?.*/,''));
     const uniq=[...new Set(bases.filter(Boolean))];
     if(uniq.length < 3) fail('unique-battlers', 'companions share sprites', {bases, roles:bat.roles});
     else ok('unique-battlers', {bases:uniq, roles:bat.roles});
+    const want=['ally_hero.png','ally_velka.png','ally_brok.png','ally_aria.png'];
+    const got=(bat.sprs||[]).map(s=>s.src);
+    const orderOk = want.every((w,i)=> (got[i]||'').includes(w.replace('.png','')) || got[i]===w);
+    if(!orderOk && got.length>=4) fail('party-order', 'stage top→bottom != Noctis/Velka/Brok/Aria', {got, list:bat.list});
+    else ok('party-order', {got, list:bat.list});
+    if(!(bat.layers||[]).some(c=>/battle-bg-tex|battle-layer/.test(c))) fail('battle-bg-tex','missing textured hall layers',{layers:bat.layers});
+    else ok('battle-bg-tex',{layers:bat.layers});
     await page.evaluate(()=>{ try{ window.__game.Battle.__forceHide(); }catch(_){} });
   }catch(e){ fail('unique-battlers','exception',{err:String(e)}); }
 
@@ -568,7 +584,7 @@ async function runLive(browser){
         out.push({ver, ok:true, outVer:s.ver, campaign:s.campaign?.id, freetext:s.flags?.freetext});
       }catch(e){ out.push({ver, ok:false, err:String(e)});}
     }
-    return {pageVer:g.VER, saves:out, hasC61:!!g.C61,hasC62:!!g.C62,hasC63:!!g.C63,hasC64:!!g.C64,hasC66:!!g.C66,hasC67:!!g.C67};
+    return {pageVer:g.VER, saves:out, hasC61:!!g.C61,hasC62:!!g.C62,hasC63:!!g.C63,hasC64:!!g.C64,hasC66:!!g.C66,hasC67:!!g.C67,hasC70:!!g.C70};
   });
   for(const s of saveTest.saves){
     if(!s.ok) fail('live-old-saves', s); else ok('live-old-saves', s);

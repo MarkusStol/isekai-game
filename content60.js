@@ -21,9 +21,14 @@ export const CHAPTERS = [
     titel: 'Thron ohne Gold',
     actId: 'a1',
     hub: 'Thronsaal der Nacht',
-    dungeon: { name: 'Schatzkatakomben', rooms: 4, boss: 'lesser_fiend', bossName: 'Niederer Fiend' },
+    dungeon: { name: 'Schatzkatakomben', rooms: 5, boss: 'lesser_fiend', bossName: 'Niederer Fiend', puzzleRoom: 3, puzzleId: 'c1_ledger_seal' },
     recruit: { id: 'Sekretärin Velka', role: 'mage', blurb: 'Velka legt das Klemmbrett beiseite — nur für dich.' },
+    estimatedMin: 55,
     scenes: [
+      { id: 'c1_intro', speaker: 'Erzähler', text: 'Nacht über Nocturna. Der alte König ist Staub. Du — Noctis — erwachst auf dem Knochenthron, die Krone noch warm von fremdem Blut. Unter dir: leere Kassen. Über dir: ein Himmel ohne Sterne. Velka steht bereit, Klemmbrett wie ein Schild. Die Festung atmet. Dein erstes Kapitel beginnt.',
+        choices: [
+          { id: 'wake', label: 'Augen öffnen — Thronsaal', next: 'c1_open' },
+        ]},
       { id: 'c1_open', speaker: 'Velka', text: 'Der Knochenthron knackt, wenn man sich setzt — als erinnerte er sich an jeden Vorgänger. Die Kasse ist leer. Brok will Krieg wie ein Kind Feuer. Aria steht schon am Pass. Und irgendwo unter uns tickt etwas, das Gold frisst. Was zuerst, Fürst?',
         choices: [
           { id: 'budget', label: 'Finanzen — die Wahrheit der Zahlen', next: 'c1_budget' },
@@ -72,6 +77,11 @@ export const CHAPTERS = [
         choices: [
           { id: 'enter', label: 'Dungeon betreten', effect: 'dungeon:c1', next: 'dungeon' },
           { id: 'back', label: 'Zurück zum Thron', next: 'c1_open' },
+        ]},
+      { id: 'c1_reward', speaker: 'Velka', text: 'Der Fiend zerfällt zu Zahlen. Gold rieselt — und ein Siegel: „Schuld getilgt, vorerst.“ Die Katakomben sind ruhig. Die Festung atmet leichter. Du hast ein Kapitel gewonnen, Fürst. Nicht den Krieg. Aber den Morgen.',
+        choices: [
+          { id: 'keep', label: 'Siegel einstecken (+Loot)', effect: 'gold+80|aff:Sekretärin Velka:+15|recruit:Sekretärin Velka', next: 'c2_open' },
+          { id: 'town', label: 'Festung feiern', effect: 'gold+40', next: 'town' },
         ]},
     ],
   },
@@ -202,7 +212,7 @@ export const CHAPTERS = [
       { id: 'c4_end', speaker: 'Erzähler', text: 'Nocturna atmet. Schulden bleiben — aber sie haben jetzt einen Namen, den du gewählt hast. Die Nacht ist nicht leer. Sie ist ein Vertrag. Ende des Kampagnen-Bogens. Side-Leben geht weiter im Menü.',
         choices: [
           { id: 'town', label: 'Festung verwalten', next: 'town' },
-          { id: 'newgame', label: 'Von vorn (neues Spiel)', effect: 'newgame', next: 'c1_open' },
+          { id: 'newgame', label: 'Von vorn (neues Spiel)', effect: 'newgame', next: 'c1_intro' },
         ]},
     ],
   },
@@ -212,7 +222,7 @@ export function blankCampaign(){
   return {
     id: 'nocturna',
     chapterIdx: 0,
-    sceneId: 'c1_open',
+    sceneId: 'c1_intro',
     mode: 'scene', // scene | town | dungeon | battle
     dungeon: null, // { chapterId, room, rooms, boss, cleared[] }
     party: [], // NPC names recruited
@@ -481,9 +491,24 @@ export function dungeonMenu(S){
     };
   }
   const chestOpen = !!d.chests[d.room];
+  const ch = currentChapter(S);
+  const puzzleRoom = ch?.dungeon?.puzzleRoom|0;
+  const puzzleDone = !!(S.campaign.flags||{})['puzzle_'+ (ch?.dungeon?.puzzleId||'')];
+  if(puzzleRoom && d.room===puzzleRoom && !puzzleDone){
+    return {
+      speaker: d.name,
+      text: `Raum ${d.room}/${d.rooms}. Ein Siegelkreis aus Knochen und Tinte. Velkas Handschrift am Rand: „Drei Zahlen. Die Summe der Schulden. Nur die richtige öffnet.“`,
+      choices: [
+        { id: 'pz_a', label: 'Siegel: 3-7-12 (Summe 22)', next: 'dung_puzzle_wrong' },
+        { id: 'pz_b', label: 'Siegel: 9-9-9 (Summe 27)', next: 'dung_puzzle_ok' },
+        { id: 'pz_c', label: 'Siegel: 1-1-1 (Summe 3)', next: 'dung_puzzle_wrong' },
+        { id: 'leave', label: 'Später', next: 'town' },
+      ],
+    };
+  }
   return {
     speaker: d.name,
-    text: `Raum ${d.room}/${d.rooms}. Fackeln. ${chestOpen?'Truhe bereits geleert.':'Eine Truhe glänzt in der Ecke.'} Etwas bewegt sich.`,
+    text: `Raum ${d.room}/${d.rooms}. Fackeln. ${chestOpen?'Truhe bereits geleert.':'Eine Truhe glänzt in der Ecke.'} ${puzzleDone&&d.room===puzzleRoom?'Das Siegel schläft. ':''}Etwas bewegt sich.`,
     choices: [
       { id: 'chest', label: chestOpen?'Truhe (leer)':'Truhe öffnen', next: 'dung_chest' },
       { id: 'fight', label: 'Gegner stellen', effect: 'battle:demon_imp', next: 'dung_after_fight' },
@@ -586,6 +611,18 @@ export function resolveChoice(S, choice, hooks={}){
   if(next==='dung_after_fight'){
     return showPack(S, dungeonMenu(S), note);
   }
+  if(next==='dung_puzzle_ok'){
+    S.campaign.flags=S.campaign.flags||{};
+    const pid=currentChapter(S)?.dungeon?.puzzleId||'c1_ledger_seal';
+    S.campaign.flags['puzzle_'+pid]=true;
+    S.st=S.st||{}; S.st.gold=(S.st.gold|0)+35; S.st.xp=(S.st.xp|0)+40;
+    advanceDungeonRoom(S);
+    return showPack(S, { speaker:'Siegel', text:'Die Knochen klappen. Tinte wird Gold. +35 Gold, +40 XP. Der Weg ist frei.', choices:[{id:'c',label:'Weiter',next:'dungeon'}] }, note);
+  }
+  if(next==='dung_puzzle_wrong'){
+    S.st=S.st||{}; S.st.hp=Math.max(1,(S.st.hp|0)-12);
+    return showPack(S, { speaker:'Siegel', text:'Falsch. Das Siegel beißt — 12 Schaden. Die Zahlen warten.', choices:[{id:'c',label:'Erneut versuchen',next:'dungeon'}] }, note);
+  }
   if(next==='boss_pending' || next==='boss_win'){
     // Battle starts via pendingBattle; onEnd calls onBossVictory. Never advance pre-fight
     // (boss_win was the v58 label — kept as alias so old choice objs cannot softlock).
@@ -629,6 +666,13 @@ export function onBossVictory(S, hooks={}){
   S.campaign.dungeon=null;
   S.st=S.st||{}; S.st.gold=(S.st.gold|0)+50; S.st.xp=(S.st.xp|0)+80;
   if(ch.recruit?.id){ recruitMember(S, ch.recruit.id, hooks); }
+  // v70: chapter-1 reward beat before advancing
+  if(ch?.id==='c1'){
+    const reward=ch.scenes.find(s=>s.id==='c1_reward')||ch.scenes[0];
+    S.campaign.sceneId=reward.id;
+    hooks.toast?.('Kapitel 1 — Fiend besiegt!');
+    return showPack(S, reward, `Boss besiegt. +50 Gold. ${ch.recruit?.blurb||''}`);
+  }
   if((S.campaign.chapterIdx|0) < CHAPTERS.length-1){
     S.campaign.chapterIdx = (S.campaign.chapterIdx|0)+1;
     const nch=currentChapter(S);

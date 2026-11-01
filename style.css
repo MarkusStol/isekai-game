@@ -7359,18 +7359,25 @@ body.pc-only .menu-tabs button::after{ /* keep clean */ }
   pointer-events:none;
 }
 
-/* Battle BG texture + lighting (not flat blocks) */
+/* v70: textured hall lighting — torch bloom + stone grain (not flat blocks) */
 .battle-root.battle-ff67 .battle-bg-tex{
   position:absolute; inset:0; z-index:2; pointer-events:none;
   background:
-    radial-gradient(ellipse at 50% 12%, #ffe7a438 0%, transparent 38%),
-    radial-gradient(ellipse at 18% 40%, #6a8ad040 0%, transparent 42%),
-    radial-gradient(ellipse at 82% 38%, #3a206040 0%, transparent 40%),
-    repeating-linear-gradient(0deg, #0000 0 5px, #00000022 5px 6px),
-    repeating-linear-gradient(90deg, #0000 0 9px, #ffffff10 9px 10px),
-    repeating-linear-gradient(135deg, #0000 0 14px, #1a102818 14px 15px);
-  mix-blend-mode:overlay;
+    radial-gradient(circle at 18% 42%, #ffb04066 0%, transparent 16%),
+    radial-gradient(circle at 32% 40%, #ffb04055 0%, transparent 14%),
+    radial-gradient(circle at 68% 40%, #ffb04055 0%, transparent 14%),
+    radial-gradient(circle at 82% 42%, #ffb04066 0%, transparent 16%),
+    radial-gradient(ellipse at 50% 10%, #ffe7a445 0%, transparent 36%),
+    repeating-linear-gradient(0deg, #0000 0 4px, #00000028 4px 5px),
+    repeating-linear-gradient(90deg, #0000 0 7px, #ffffff14 7px 8px),
+    repeating-linear-gradient(135deg, #0000 0 11px, #1a102822 11px 12px);
+  mix-blend-mode:soft-light;
   opacity:1;
+  animation: torchFlicker 2.8s ease-in-out infinite alternate;
+}
+@keyframes torchFlicker{
+  0%{ filter:brightness(1); }
+  100%{ filter:brightness(1.12); }
 }
 .battle-root.battle-ff67 .battle-bg-live,
 .battle-root.battle-ff67 #battleBg{
@@ -7453,3 +7460,73 @@ body.ow-desktop #overworld canvas{
   padding:8px 10px !important;
 }
 .skill-tree .skill-node b{ font-size:12px; letter-spacing:.01em; }
+
+/* v70: party stage vertical order matches HUD list (Noctis→… top to bottom) */
+.battle-root.battle-ff67 .battle-party-spr,
+.battle-root.battle-pixel .battle-party-spr{
+  display:flex !important;
+  flex-direction:column !important;
+  flex-wrap:nowrap !important;
+  align-items:flex-end !important;
+  justify-content:flex-start !important;
+  gap:10px !important;
+  right:3% !important;
+  top:12% !important;
+  bottom:auto !important;
+  width:auto !important;
+  height:auto !important;
+  max-height:58% !important;
+}
+.battle-root.battle-ff67 .party-stage-spr,
+.battle-root.battle-pixel .party-stage-spr{
+  position:relative !important;
+  transform:none !important;
+  right:auto !important;
+  --i:0;
+}
+.battle-root.battle-ff67 .party-stage-spr.row-back{
+  transform:scale(0.92) !important;
+  opacity:.95;
+}
+.battle-root.battle-ff67 .party-stage-spr.atk-step{
+  animation: atkStepFwd .42s ease-out;
+}
+.battle-root.battle-ff67 .party-stage-spr.atk-cast{
+  animation: atkCastPulse .42s ease-out;
+}
+@keyframes atkStepFwd{
+  0%{ transform:translateX(0); }
+  35%{ transform:translateX(-36px); }
+  100%{ transform:translateX(0); }
+}
+@keyframes atkCastPulse{
+  0%,100%{ filter:brightness(1); transform:scale(1); }
+  40%{ filter:brightness(1.35) drop-shadow(0 0 12px #8cf); transform:scale(1.06); }
+}
+.battle-root.battle-ff67 .slash-fx{
+  position:absolute; width:72px; height:72px; z-index:35; pointer-events:none;
+  background:
+    linear-gradient(135deg, transparent 40%, #fff 45%, #ffe08a 50%, #ff6a3a 55%, transparent 62%),
+    radial-gradient(circle at 50% 50%, #fff8 0%, transparent 60%);
+  mix-blend-mode:screen;
+  animation: slashArc .45s ease-out forwards;
+  transform:rotate(-20deg);
+}
+.battle-root.battle-ff67 .slash-fx.cast{
+  background:radial-gradient(circle, #9cf 0%, #48f8 40%, transparent 70%);
+  animation: castBurst .5s ease-out forwards;
+}
+@keyframes slashArc{
+  0%{ opacity:0; transform:rotate(-40deg) scale(.4); }
+  30%{ opacity:1; transform:rotate(-10deg) scale(1.1); }
+  100%{ opacity:0; transform:rotate(25deg) scale(1.3) translate(20px,-10px); }
+}
+@keyframes castBurst{
+  0%{ opacity:0; transform:scale(.3); }
+  40%{ opacity:1; transform:scale(1.2); }
+  100%{ opacity:0; transform:scale(1.6); }
+}
+.battle-root.battle-ff67 .dmg-pop{
+  font-size:34px !important;
+  animation: dmgFloat .95s ease-out forwards !important;
+}

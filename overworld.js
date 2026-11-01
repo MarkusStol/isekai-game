@@ -50,8 +50,13 @@ const DECOR = {
   shadow: './assets/pixel/decor/shadow.png',
   watchtower: './assets/pixel/decor/watchtower.png',
   pine: './assets/pixel/decor/pine.png',
+  pine2: './assets/pixel/decor/pine2.png',
+  pine3: './assets/pixel/decor/pine3.png',
+  pine_tall: './assets/pixel/decor/pine_tall.png',
   rock: './assets/pixel/decor/rock.png',
   snowdrift: './assets/pixel/decor/snowdrift.png',
+  dead_bush: './assets/pixel/decor/dead_bush.png',
+  footprints: './assets/pixel/decor/footprints.png',
   campfire: './assets/pixel/decor/campfire.png',
   coffin: './assets/pixel/decor/coffin.png',
   throne_chair: './assets/pixel/decor/throne_chair.png',
@@ -765,39 +770,65 @@ export function buildMapForLocation(S, ort){
     prop(campX+2, campY+3, 'bench');
     prop(campX+4, campY+3, 'bench');
     // v63: pine clusters (not lonely singles) + rocks/snow
+    const pineSrc=(k)=>{
+      const pick=[DECOR.pine, DECOR.pine2, DECOR.pine3, DECOR.pine_tall];
+      return pick[k % pick.length];
+    };
     const plantCluster=(cx0,cy0,n)=>{
       for(let k=0;k<n;k++){
         const tx=cx0+(rnd(cx0*11+k*3)%5)-2;
         const ty=cy0+(rnd(cy0*13+k*7)%4)-1;
-        if(!tiles[ty]?.[tx] || (tiles[ty][tx]!=='sand'&&tiles[ty][tx]!=='stone')) continue;
-        if(tiles[ty][tx]==='path'||tiles[ty][tx]==='water') continue;
-        overhead.push({x:tx,y:ty-1,src:DECOR.pine,tw:2,th:3});
-        tiles[ty][tx]='tree';
-        if(k%2===0){ ov(tx+1, ty, 'snowdrift'); prop(tx+1, ty, 'snowdrift'); }
+        if(!tiles[ty]?.[tx]) continue;
+        if(tiles[ty][tx]==='path'||tiles[ty][tx]==='water'||tiles[ty][tx]==='wall') continue;
+        // v70: never stamp stump wang — keep snow under pine sprites
+        if(tiles[ty][tx]==='tree'||tiles[ty][tx]==='stone') tiles[ty][tx]='sand';
+        if(tiles[ty][tx]!=='sand') continue;
+        const src=pineSrc(k+cx0);
+        const th = src===DECOR.pine_tall?4:3;
+        overhead.push({x:tx,y:ty-1,src,tw:2,th,label:'pine'});
+        if(k%2===0){ ov(tx+1, ty, 'snowdrift'); }
+        if(k%3===0){ ov(tx-1, ty+1, 'dead_bush'); }
+        if(k%4===0){ ov(tx, ty+1, 'rock'); }
       }
     };
-    plantCluster(8, 9, 3);
-    plantCluster(w-10, 10, 3);
-    plantCluster(7, ht-10, 2);
-    plantCluster(w-9, ht-11, 2);
-    plantCluster(cx-6, cy+3, 2);
-    plantCluster(cx+5, cy-4, 2);
-    for(let i=0;i<10;i++){
-      const tx=7+(rnd(i*13)*3)%Math.max(1,w-14);
-      const ty=8+(rnd(i*17)*5)%Math.max(1,ht-16);
+    // denser pine belts (left + right) — varied sprites, no stump floor
+    plantCluster(7, 8, 7);
+    plantCluster(8, 14, 6);
+    plantCluster(6, ht-12, 6);
+    plantCluster(w-10, 9, 6);
+    plantCluster(w-9, 15, 5);
+    plantCluster(w-10, ht-12, 5);
+    plantCluster(cx-6, cy+3, 4);
+    plantCluster(cx+5, cy-4, 4);
+    plantCluster(cx-8, cy-6, 4);
+    // scatter snowdrifts / rocks / dead bushes / footprints on open snow
+    for(let i=0;i<72;i++){
+      const tx=5+(rnd(i*13+3)*7)%Math.max(1,w-10);
+      const ty=3+(rnd(i*17+9)*9)%Math.max(1,ht-6);
       if(!tiles[ty]?.[tx] || tiles[ty][tx]!=='sand') continue;
-      if(i%2===0) prop(tx, ty, 'rock');
-      else { ov(tx, ty, 'snowdrift'); prop(tx, ty, 'snowdrift'); }
+      const roll=rnd(i*19)%6;
+      if(roll===0){ ov(tx, ty, 'rock'); }
+      else if(roll===1){ ov(tx, ty, 'dead_bush'); }
+      else if(roll<=3){ ov(tx, ty, 'footprints'); }
+      else { ov(tx, ty, 'snowdrift'); }
     }
-    // v69: thicken rock bands only — no repeated pine wall as OOB filler
+    // path + near-path footprints
+    for(let y=2;y<ht-2;y++){
+      for(let x=0;x<w;x++){
+        if(tiles[y][x]==='path' && rnd(x+y*9)%3===0) ov(x,y,'footprints');
+        if(tiles[y][x]==='sand' && (tiles[y][x-1]==='path'||tiles[y][x+1]==='path') && rnd(x*5+y)%2===0) ov(x,y,'footprints');
+      }
+    }
+    // v69/v70: rock bands OOB — no pine wall filler
     for(let y=0;y<ht;y++){
       for(let x=0;x<4;x++){ if(tiles[y]) tiles[y][x]='stone'; }
       for(let x=w-4;x<w;x++){ if(tiles[y]) tiles[y][x]='stone'; }
     }
-    // v69: scrub any leftover grass → snow (sand)
+    // scrub grass/tree leftovers → snow (no green plateaus)
     for(let y=0;y<ht;y++) for(let x=0;x<w;x++){
-      if(tiles[y][x]==='grass') tiles[y][x]='sand';
+      if(tiles[y][x]==='grass' || tiles[y][x]==='tree') tiles[y][x]='sand';
     }
+
     placeChest(cx+2, cy-1, {gold:15, item:'Eisen-Schild'});
     placeChest(8, 11, {gold:10, item:'Antidot'});
     placeChest(w-9, cy+2, {gold:18, item:'Nyx-Bericht'});
@@ -2074,23 +2105,36 @@ function draw(){
           ctx.fillRect(sx+tw*0.25, sy-tw*1.65, tw*0.5, tw*0.12);
         }
       }catch(_){}
-      // v62: cliff vertical face — stone/wall above sand/path gets a dark drop + snow lip
+      // v70: tall height-shaded cliff faces (replace thin dark wang lips)
       try{
-        if((t==='stone'||t==='wall') && y+1<_map.h){
+        if((t==='stone'||t==='wall'||t==='cliff') && y+1<_map.h){
           const below=_map.tiles[y+1][x];
-          if(below==='sand'||below==='path'||below==='grass'||below==='water'){
-            // vertical face spilling into the tile below
-            ctx.fillStyle='rgba(28,30,40,0.92)';
-            ctx.fillRect(sx, sy+tw*0.35, tw, tw*0.65);
-            ctx.fillStyle='rgba(12,14,20,0.75)';
-            ctx.fillRect(sx, sy+tw*0.7, tw, tw*0.3);
-            ctx.fillStyle='rgba(8,8,12,0.35)';
-            ctx.fillRect(sx, sy+tw, tw, tw*0.35); // shadow on tile below
-            ctx.fillStyle='rgba(235,242,250,0.95)';
-            ctx.fillRect(sx, sy+tw*0.32, tw, Math.max(2,tw*0.1));
-            // jagged edge
-            ctx.fillStyle='rgba(60,65,80,0.8)';
-            for(let i=0;i<4;i++) ctx.fillRect(sx+i*(tw/4), sy+tw*0.35, tw/8, tw*0.15);
+          if(below==='sand'||below==='path'||below==='grass'||below==='water'||below==='tree'){
+            const faceH=tw*1.85;
+            // snow cap
+            ctx.fillStyle='rgba(236,242,252,0.98)';
+            ctx.fillRect(sx, sy+tw*0.15, tw, Math.max(4,tw*0.18));
+            // rock strata
+            ctx.fillStyle='rgba(110,118,132,0.98)';
+            ctx.fillRect(sx, sy+tw*0.32, tw, faceH*0.22);
+            ctx.fillStyle='rgba(72,78,92,0.98)';
+            ctx.fillRect(sx, sy+tw*0.32+faceH*0.22, tw, faceH*0.28);
+            ctx.fillStyle='rgba(42,46,58,0.98)';
+            ctx.fillRect(sx, sy+tw*0.32+faceH*0.50, tw, faceH*0.28);
+            ctx.fillStyle='rgba(16,18,26,0.98)';
+            ctx.fillRect(sx, sy+tw*0.32+faceH*0.78, tw, faceH*0.28);
+            // snow drips
+            ctx.fillStyle='rgba(210,220,235,0.7)';
+            for(let i=0;i<4;i++) ctx.fillRect(sx+(i+0.2)*(tw/4), sy+tw*0.32, Math.max(2,tw*0.1), tw*(0.2+((x+i)&1)*0.12));
+            // shadow on snow below
+            ctx.fillStyle='rgba(4,6,12,0.48)';
+            ctx.fillRect(sx, sy+tw, tw, tw*0.55);
+            // jagged toe
+            ctx.fillStyle='rgba(28,30,40,0.9)';
+            for(let i=0;i<6;i++){
+              const jh = tw*(0.12 + ((x*5+i*3+y)&3)*0.05);
+              ctx.fillRect(sx+i*(tw/6), sy+tw*0.32+faceH-jh, tw/6+1, jh);
+            }
           }
         }
       }catch(_){}
@@ -2100,7 +2144,10 @@ function draw(){
         if(dim.complete && dim.naturalWidth){
           let dw=tw*0.85, dh=tw*0.85, ox=0, oy=0;
           if(ov==='bush'||ov==='tree'){ dw=tw; dh=tw; }
-          else if(ov==='pine'){ dw=tw*1.6; dh=tw*2.4; oy=-tw*1.2; }
+          else if(ov==='pine'||ov==='pine2'||ov==='pine3'){ dw=tw*1.6; dh=tw*2.4; oy=-tw*1.2; }
+          else if(ov==='pine_tall'){ dw=tw*1.7; dh=tw*3.0; oy=-tw*1.7; }
+          else if(ov==='dead_bush'){ dw=tw*1.1; dh=tw*1.0; oy=-tw*0.15; }
+          else if(ov==='footprints'){ dw=tw*0.9; dh=tw*0.5; oy=tw*0.35; }
           else if(ov==='campfire'){ dw=tw*1.1; dh=tw*1.1; }
           else if(ov==='coffin'){ dw=tw*1.5; dh=tw*0.9; }
           else if(ov==='rock'){ dw=tw*1.2; dh=tw*0.9; }
@@ -2222,7 +2269,7 @@ function draw(){
     ctx.globalAlpha=vis?(night?0.95:1):(night?0.7:0.5);
     let dw=(oh.tw||3)*tw, dh=(oh.th||3)*tw;
     // v62: tall landmarks keep sprite aspect (watchtower/pine)
-    if(/watchtower|pine|throne_chair|altar/.test(String(oh.src||oh.label||''))){
+    if(/watchtower|pine|throne_chair|altar|pine_tall/.test(String(oh.src||oh.label||''))){
       const aspect=im.naturalHeight/Math.max(1,im.naturalWidth);
       dw=(oh.tw||3)*tw;
       dh=dw*aspect;

@@ -42,6 +42,7 @@ import * as C63 from './content63.js';
 import * as C64 from './content64.js';
 import * as C66 from './content66.js';
 import * as C67 from './content67.js';
+import * as C70 from './content70.js';
 import * as Aud from './audio.js';
 
 /* ---- v57 lazy modules: battle / overworld / craft / cutscenes (DCL path) ---- */
@@ -167,7 +168,7 @@ try{ // v63 scrub AI cfg from localStorage
 
  // v41: test-only scripted, fair ATB bosses, boss dialogue talk-down, tilemap minimap, craft XP→T4
 const $=s=>document.querySelector(s);const $$=s=>[...document.querySelectorAll(s)];const R=a=>a[Math.floor(Math.random()*a.length)];const rnd=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
-const VER='69',CACHE_V='v69';
+const VER='70',CACHE_V='v70';
 try{document.body.classList.add('pc-only','ow-desktop');document.body.classList.remove('touch-ui');}catch(_){}
 
 const FREETEXT_ENABLED = false; // v63: classic JRPG only — free-text archived on freetext-archive
@@ -913,7 +914,8 @@ function migrate(raw){if(!raw)return null;const s=typeof raw==='string'?JSON.par
  if(Number(s.ver)<62){ try{ C62.migrateV62(s); }catch(e){console.warn('v62 migrate',e)} }
  if(Number(s.ver)<63){ try{ C63.migrateV63(s); }catch(e){console.warn('v63 migrate',e)} }
  if(Number(s.ver)<64){ try{ C64.migrateV64(s); }catch(e){console.warn('v64 migrate',e)} }
- if(Number(s.ver)<66){ try{ (S=>{try{C66.migrateV66?.(S)}catch(_){} try{C67.migrateV67?.(S)}catch(_){} try{s.ver=Math.max(s.ver|0,69);s.flags=s.flags||{};s.flags.visual69=true;}catch(_){} return S;})(s); }catch(e){console.warn('v66 migrate',e)} }
+ if(Number(s.ver)<66){ try{ (S=>{try{C66.migrateV66?.(S)}catch(_){} try{C67.migrateV67?.(S)}catch(_){} try{C70.migrateV70?.(S)}catch(_){} try{s.ver=Math.max(s.ver|0,70);s.flags=s.flags||{};s.flags.visual70=true;}catch(_){} return S;})(s); }catch(e){console.warn('v66 migrate',e)} }
+ if(Number(s.ver)<70){ try{ C70.migrateV70(s); }catch(e){console.warn('v70 migrate',e)} }
  try{ if(s.role==='proc'||s.genre){ const pack=s.worldPack||PACKS.proc||{icon:'🎲',titel:s.world?.titel||'Welt',_genreLabel:s.genre||'Abenteuer',ton:'',genre:s.genre}; PACKS.proc=pack; ROLES.proc=ROLES.proc||{e:pack.icon||'🎲',name:pack._genreLabel||pack.titel||'Welt',d:pack.ton||'',world:pack.titel||'Welt',base:{hp:100,mp:30,str:10,cha:10,ruf:0,gold:20},cls:['Überlebende:r','Scavenger','Anführer:in','Legende'],pack:'',scene:pack.imageStyle||''}; } }catch(_){}
  try{ ensurePlaceCommerceTags(s); }catch(_){}
  // v13.1 continuity+time always (kept in v14)
@@ -982,7 +984,7 @@ async function newLife(role,meta,opts){meta=meta||{lives:0,soul:0,keptSkills:[]}
   time:{day:1,hour:18,phase:'Abend'},imgCache:{scenes:{},portraits:{},ok:{},fail:{},next:{}}};
  S.world=world;S.heat=0;S.wanted=[];S.dead=[];S.ledger=[];S.needs={hunger:20,fatigue:10,ageYears:18};S.home=Sim.blankHome();S.cal=Sim.blankCalendar(S.time);S.saveSeq=0;
  try{Sim.migrateToV13(S);Econ.ensureEcon(S);try{Econ.ensureMarket?.(S)}catch(_){};Codex.ensureCodex(S);WorldMap.ensureSpawn(S);Level.ensureProgress(S);Know.ensureKnow(S);Know.migrateKnow(S);Jobs.ensureJobs(S);Equip.ensureEquip(S)}catch(_){}
- try{ C39.ensureContent39(S); C39.seedThreads(S); C40.seedAllNpcArcs(S); C40.ensureCraft40(S); C41.ensureCraft41(S); C41.syncCraftProgress41(S); C42.migrateV42(S); C43.migrateV43(S); C44.migrateV44(S); C45.migrateV45(S); C46.migrateV46(S); C47.migrateV47(S); C48.migrateV48(S); C49.migrateV49(S); C50.migrateV50(S); C51.migrateV51(S); C52.migrateV52(S); C53.migrateV53(S); C54.migrateV54(S); C55.migrateV55(S); C56.migrateV56(S); C57.migrateV57(S); C58.migrateV58(S); C59.migrateV59(S); C60.migrateV60(S); C61.migrateV61(S); C62.migrateV62(S); C63.migrateV63(S); C64.migrateV64(S); C66.migrateV66(S); try{C67.migrateV67(S);}catch(_c67){} C39.midgameUnlocks(S,{toast:false}); }catch(_){}
+ try{ C39.ensureContent39(S); C39.seedThreads(S); C40.seedAllNpcArcs(S); C40.ensureCraft40(S); C41.ensureCraft41(S); C41.syncCraftProgress41(S); C42.migrateV42(S); C43.migrateV43(S); C44.migrateV44(S); C45.migrateV45(S); C46.migrateV46(S); C47.migrateV47(S); C48.migrateV48(S); C49.migrateV49(S); C50.migrateV50(S); C51.migrateV51(S); C52.migrateV52(S); C53.migrateV53(S); C54.migrateV54(S); C55.migrateV55(S); C56.migrateV56(S); C57.migrateV57(S); C58.migrateV58(S); C59.migrateV59(S); C60.migrateV60(S); C61.migrateV61(S); C62.migrateV62(S); C63.migrateV63(S); C64.migrateV64(S); C66.migrateV66(S); try{C67.migrateV67(S);}catch(_c67){} try{C70.migrateV70(S);}catch(_c70){} C39.midgameUnlocks(S,{toast:false}); }catch(_){}
  if(opts.skipSetup){finishSetup(pack);gateOrShow();return}
  // If cinematic already covered death, skip first setup beat when it is 'tod'
  if(opts.fromIntro){S.flags.introDeath=true;S.setup.answers.tod={label:'(Intro)',past:opts.trait||''};S.setup.beat=1}
@@ -1365,7 +1367,7 @@ function renderChoices(){const c=$('#choices');if(S._setupChoices)return;c.inner
 
 async function jrpgPick(ch){
   if(!S) return;
-  try{ C59.migrateV59(S); C60.migrateV60(S); C61.migrateV61(S); C62.migrateV62(S); C63.migrateV63(S); C64.migrateV64(S); C66.migrateV66(S); try{C67.migrateV67(S);}catch(_c67){} }catch(_){ try{ C58.migrateV58(S); }catch(__){} }
+  try{ C59.migrateV59(S); C60.migrateV60(S); C61.migrateV61(S); C62.migrateV62(S); C63.migrateV63(S); C64.migrateV64(S); C66.migrateV66(S); try{C67.migrateV67(S);}catch(_c67){} try{C70.migrateV70(S);}catch(_c70){} }catch(_){ try{ C58.migrateV58(S); }catch(__){} }
   const pack = C63.resolveChoice(S, ch, { toast:(m)=>toast(m) });
   let bid = C63.pendingBattleId(S);
   if(bid){
@@ -2407,7 +2409,7 @@ async function startProcedural(genreInput,pcName){const pack=await generateWorld
   cls:0,turn:0,hist:[],log:[],flags:{},setup:{done:true,beat:0,answers:{}},summary:pack.conflict||'',
   time:{day:1,hour:18,phase:'Abend'},imgCache:{scenes:{},portraits:{},ok:{},fail:{},next:{}},heat:0,wanted:[],dead:[],world};
  enrichNpcs(S.world);ensureGraph(S);try{Sim.migrateToV13(S);Econ.ensureEcon(S);try{Econ.ensureMarket?.(S)}catch(_){};Codex.ensureCodex(S);WorldMap.ensureSpawn(S);Level.ensureProgress(S);Know.ensureKnow(S);Know.migrateKnow(S);Jobs.ensureJobs(S);Gems.ensureGems(S);Summons.ensureSummons(S);Equip.ensureEquip(S);S.ver=VER}catch(_){}if(S.world.systems||S.genre==='zombie')ensureSystems();try{enrichPlaceDescs(S)}catch(_){};
- try{ C39.ensureContent39(S); C39.seedThreads(S); C40.seedAllNpcArcs(S); C40.ensureCraft40(S); C41.ensureCraft41(S); C41.syncCraftProgress41(S); C42.migrateV42(S); C43.migrateV43(S); C44.migrateV44(S); C45.migrateV45(S); C46.migrateV46(S); C47.migrateV47(S); C48.migrateV48(S); C49.migrateV49(S); C50.migrateV50(S); C51.migrateV51(S); C52.migrateV52(S); C53.migrateV53(S); C54.migrateV54(S); C55.migrateV55(S); C56.migrateV56(S); C57.migrateV57(S); C58.migrateV58(S); C59.migrateV59(S); C60.migrateV60(S); C61.migrateV61(S); C62.migrateV62(S); C63.migrateV63(S); C64.migrateV64(S); C66.migrateV66(S); try{C67.migrateV67(S);}catch(_c67){} C39.midgameUnlocks(S,{toast:false});
+ try{ C39.ensureContent39(S); C39.seedThreads(S); C40.seedAllNpcArcs(S); C40.ensureCraft40(S); C41.ensureCraft41(S); C41.syncCraftProgress41(S); C42.migrateV42(S); C43.migrateV43(S); C44.migrateV44(S); C45.migrateV45(S); C46.migrateV46(S); C47.migrateV47(S); C48.migrateV48(S); C49.migrateV49(S); C50.migrateV50(S); C51.migrateV51(S); C52.migrateV52(S); C53.migrateV53(S); C54.migrateV54(S); C55.migrateV55(S); C56.migrateV56(S); C57.migrateV57(S); C58.migrateV58(S); C59.migrateV59(S); C60.migrateV60(S); C61.migrateV61(S); C62.migrateV62(S); C63.migrateV63(S); C64.migrateV64(S); C66.migrateV66(S); try{C67.migrateV67(S);}catch(_c67){} try{C70.migrateV70(S);}catch(_c70){} C39.midgameUnlocks(S,{toast:false});
    const rum=(S.content39?.rumours||[])[0]; if(rum){ S.ticks=S.ticks||{rumours:[],log:[]}; S.ticks.rumours=(S.ticks.rumours||[]).concat(rum).slice(-10); }
  }catch(e){console.warn('c39/c40 seed',e)}
  const conflict=(pack.conflict||pack.geschichte||'Die Welt atmet Magie und Gefahr.').slice(0,90);
@@ -3724,7 +3726,7 @@ try{ const bgs=$('#btnGateSave'); if(bgs) bgs.onclick=()=>enterPlay(); }catch(_)
 try{ const bgk=$('#btnGateSkip'); if(bgk) bgk.onclick=()=>{cfg.mode='offline';enterPlay();}; }catch(_){}
 try{ const bms=$('#btnMusicSheet'); if(bms) bms.onclick=()=>{ try{ $('#btnMusic')?.click(); }catch(_){} }; }catch(_){}
 
-window.__setCfg=o=>{cfg=Object.assign(cfg||{},o||{},{mode:'offline',gkey:'',pollenKey:''});try{localStorage.setItem(CFG,JSON.stringify(cfg))}catch(_){}};window.__game={VER,hud,syncOwHud,FREETEXT_ENABLED,jrpgPick,applyJrpgPack,syncFreetextUI,Aud,toast,clearTypewrite,renderChoices,C39,C40,C41,C42,C43,C44,C45,C46,C47,C48,C49,C50,C51,C52,C53,C54,C55,C56,C57,C58,C59,C60,C61,C62,C63, C64, C66, C67,Cut40,updateNarratorDot,narratorStatusText,openSheet,setBusy,forceUnbusy,ACT_HARD_MS,V25,OW,Depth,Battle,Jobs,Gems,Summons,Equip,Jrpg,localBeatLine,parsePlayerIntent,offlineRespondIntent,freeStream,FREE_MODEL,msgsLean,FREE_URLS,openPendingEncounter,Imm,discoverThing,showCodexInline,Level,UI14,UI17,Know,Cont,lastPromptDump,advanceTimeMinutes,applyActionDuration,newGrey,greyDetails,loadGrey,loadPack,get S(){return S},act,newLife,gBody,msgs,gmRank,gmProbe,parseStream,thinkingCfg,gmOrder,readSSE,STREAM_DELIM,migrate,worldTick,bumpRel,openMenu,closeMenu,openInn,closeInn,openPixelShop,openRegionTravelMap,stageName,offline,startIntro,setSceneImage,setPortrait,imgUrl,advanceTime,phaseLabel,typewrite,enterPlay,showTitle,analyzeImage,applySceneTheme,themeFromText,loadValidatedImage,openingNarration,travelTo,parseTravel,killNPC,robNPC,addMemory,memoryHint,startProcedural,offlineGenerateWorld,generateWorldPack,GENRES,travelChoices,ensureGraph,whoHere,parseLifeSim,Sim,Persist,WorldMap,TravelMap,Cut31,Econ,Codex,UI13,save,loadSave,applyCatchUp,findAnyNpc,placeFlavorText,enrichPlaceDescs};
+window.__setCfg=o=>{cfg=Object.assign(cfg||{},o||{},{mode:'offline',gkey:'',pollenKey:''});try{localStorage.setItem(CFG,JSON.stringify(cfg))}catch(_){}};window.__game={VER,hud,syncOwHud,FREETEXT_ENABLED,jrpgPick,applyJrpgPack,syncFreetextUI,Aud,toast,clearTypewrite,renderChoices,C39,C40,C41,C42,C43,C44,C45,C46,C47,C48,C49,C50,C51,C52,C53,C54,C55,C56,C57,C58,C59,C60,C61,C62,C63, C64, C66, C67, C70,Cut40,updateNarratorDot,narratorStatusText,openSheet,setBusy,forceUnbusy,ACT_HARD_MS,V25,OW,Depth,Battle,Jobs,Gems,Summons,Equip,Jrpg,localBeatLine,parsePlayerIntent,offlineRespondIntent,freeStream,FREE_MODEL,msgsLean,FREE_URLS,openPendingEncounter,Imm,discoverThing,showCodexInline,Level,UI14,UI17,Know,Cont,lastPromptDump,advanceTimeMinutes,applyActionDuration,newGrey,greyDetails,loadGrey,loadPack,get S(){return S},act,newLife,gBody,msgs,gmRank,gmProbe,parseStream,thinkingCfg,gmOrder,readSSE,STREAM_DELIM,migrate,worldTick,bumpRel,openMenu,closeMenu,openInn,closeInn,openPixelShop,openRegionTravelMap,stageName,offline,startIntro,setSceneImage,setPortrait,imgUrl,advanceTime,phaseLabel,typewrite,enterPlay,showTitle,analyzeImage,applySceneTheme,themeFromText,loadValidatedImage,openingNarration,travelTo,parseTravel,killNPC,robNPC,addMemory,memoryHint,startProcedural,offlineGenerateWorld,generateWorldPack,GENRES,travelChoices,ensureGraph,whoHere,parseLifeSim,Sim,Persist,WorldMap,TravelMap,Cut31,Econ,Codex,UI13,save,loadSave,applyCatchUp,findAnyNpc,placeFlavorText,enrichPlaceDescs};
 window.__game.askNPC=a=>askNPC(a);window.__game.gemini=gemini;
 try{ syncFreetextUI(); }catch(_){};
 if(cfg.gkey)gmFetch(cfg.gkey.trim()).then(()=>gmProbe(cfg.gkey.trim()).catch(()=>{})).catch(()=>{});

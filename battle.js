@@ -109,7 +109,9 @@ export function buildParty(S){
     });
     if(comps.length>=3)break;
   }
-  return [hero,...comps];
+  const all=[hero,...comps];
+  all.forEach((u,i)=>{ if(!u._iid) u._iid=(u.id||u.kind||'u')+'_'+i; });
+  return all;
 }
 
 
@@ -942,7 +944,8 @@ function resolveHit(attacker, target, skill){
   if(need && (attacker.limitAcc|0)>=need && (attacker.limitTier||1)<3){ attacker.limitTier=(attacker.limitTier||1)+1; _B.log.push(`${attacker.name}: Grenzwoge Stufe ${attacker.limitTier}!`) }
   let note=`${attacker.name} (${skill.name||'Angriff'}) → ${target.name}: ${dmg}${crit?' KRIT!':''}${weak?' (Schwach!)':''}${target.staggered?' BRUCH×2':''}`;
   _B.log.push(note);
-  popNumber(target, String(dmg), crit?'crit':(weak?'weak':'dmg')); try{ const Aud=window.__game?.Aud; const k=Aud?.sfxForHit?.({elem:skill?.elem, skill:skill?.name, weapon:attacker?.weapon||attacker?.job, crit, heal:!!skill?.heal})||'hit'; Aud?.playSfx?.(k, crit?0.55:0.4); }catch(_){}
+  try{ playAttackLunge(attacker); }catch(_){}
+popNumber(target, String(dmg), crit?'crit':(weak?'weak':'dmg')); try{ const Aud=window.__game?.Aud; const k=Aud?.sfxForHit?.({elem:skill?.elem, skill:skill?.name, weapon:attacker?.weapon||attacker?.job, crit, heal:!!skill?.heal})||'hit'; Aud?.playSfx?.(k, crit?0.55:0.4); }catch(_){}
   try{
     const isMagic = skill?.elem && skill.elem!=='phys';
     if(isMagic) playSpriteAnim(attacker,'cast',{ms:65});
@@ -1195,8 +1198,18 @@ function aiCompanion(c){
 
 function battleTerrainLayers(S, bg){
   try{
-    // v61: nocturna hand BGs stay sharp — no daemon silhouette layers on top
-    if(/nocturna\/(pass|crypt|throne|cathedral)/.test(String(bg||''))) return null;
+    const u=String(bg||'');
+    // v70: nocturna hall/crypt use dungeon layers under the hand BG for stone texture + depth
+    if(/nocturna\/(throne|cathedral)/.test(u)){
+      return {
+        key:'dungeon',
+        far:'./assets/pixel/bg-battle/layers/dungeon-far.webp',
+        mid:'./assets/pixel/bg-battle/layers/dungeon-mid.webp',
+        near:'./assets/pixel/bg-battle/layers/dungeon-near.webp',
+        floor:'./assets/pixel/bg-battle/layers/dungeon-floor.webp',
+      };
+    }
+    if(/nocturna\/(pass|crypt)/.test(u)) return null; // keep snow/crypt hand art clean
     const C49=window.__game?.C49;
     if(C49?.battleLayerUrls){
       const key=C49.battleLayerKey?.(S, bg) || 'fantasy';
@@ -1781,10 +1794,29 @@ function spawnSpellFx(unit, kind){
   setTimeout(()=>d.remove(),700);
 }
 function playAttackLunge(attacker){
-  // Sprite-frame attack (slash); magic-ish names use spellcast
+  // v70: step-forward on stage sprite + slash FX + sheet anim
   const last = (_B?.log||[]).slice(-1)[0]||'';
   const isCast=/magie|zauber|feuer|eis|blitz|heil|kristall|spell|cast/i.test(last);
   try{ playSpriteAnim(attacker, isCast?'cast':'attack', {ms:65}); }catch(_){}
+  try{
+    const spr=document.querySelector(`.party-stage-spr[data-iid="${attacker._iid}"], .foe-card[data-iid="${attacker._iid}"]`);
+    if(spr){
+      spr.classList.remove('atk-step','atk-slash');
+      void spr.offsetWidth;
+      spr.classList.add(isCast?'atk-cast':'atk-step');
+      setTimeout(()=>spr.classList.remove('atk-step','atk-cast'),420);
+    }
+  }catch(_){}
+  try{
+    const fx=el('battleFx'); if(fx){
+      const slash=document.createElement('div');
+      slash.className='slash-fx'+(isCast?' cast':'');
+      // place near foe/attacker mid-field
+      slash.style.left='42%'; slash.style.top='38%';
+      fx.appendChild(slash);
+      setTimeout(()=>slash.remove(),480);
+    }
+  }catch(_){}
 }
 function playDeathFade(unit){
   const card=[...document.querySelectorAll('.foe-card')].find(c=>c.dataset.iid===unit._iid);
