@@ -42,3 +42,10 @@ Local gate: **PASSED** (`GATE_SKIP_LIVE=1`) — battler-size, foe-size, atk-fx, 
 - Playtest c1: puzzle + boss win → `c2_open` (`scripts/playtest-nocturna-v71-c1.mjs` ok)
 - Battle metrics: party ≥120px tall staggered; foe 240px left-half
 - Dungeon meta: catacomb 56×48 @ scale 3
+
+## Shipped
+- Commit `5cb9db0` on `main`, tag **v0.71.0**
+- Installer: https://github.com/MarkusStol/isekai-game/releases/download/v0.71.0/Nocturna-Setup-0.71.0-x64.exe (~92.5 MB)
+- Release: https://github.com/MarkusStol/isekai-game/releases/tag/v0.71.0
+- Playtest c1: puzzle + boss win → reward (`scripts/playtest-nocturna-v71-c1.mjs` ok)
+- Gate: PASSED (SKIP_LIVE) — battler-size, foe-size, layout-reuse, dungeon-camera
