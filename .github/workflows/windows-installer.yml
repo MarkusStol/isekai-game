@@ -20,10 +20,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: npm
 
       - name: Install
-        run: npm ci || npm install
+        run: npm install
 
       - name: Build Windows NSIS
         run: npm run dist:win
