@@ -60,7 +60,10 @@ Kept from v72 review: **battle layout** + **clerk Velka** battler.
 ## Ship
 
 - `VER` / SW / package → **74** / **0.74.0**
-- Tag **v0.74.0** → GHA Windows NSIS + Pages from `main`
+- Commit `b0b57e8` · tag **v0.74.0** · GHA [Windows installer](https://github.com/MarkusStol/isekai-game/actions/runs/41311920475) **success** (Europe/Berlin ~14:37)
+- Release: https://github.com/MarkusStol/isekai-game/releases/tag/v0.74.0
+- Installer: https://github.com/MarkusStol/isekai-game/releases/download/v0.74.0/Nocturna-Setup-0.74.0-x64.exe (~92.6 MB)
+- Pages: builds from `main` (same commit)
 
 ## Verify
 
