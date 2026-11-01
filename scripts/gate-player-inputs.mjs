@@ -183,7 +183,7 @@ async function npcDialogueGate(page){
 
 async function runLocal(browser){
   const page=await browser.newPage();
-  await page.setViewport({width:390,height:844,isMobile:true,hasTouch:true});
+  await page.setViewport({width:1280,height:720,isMobile:false,hasTouch:false}); // v66 PC-only
   const ver=await boot(page);
   if(String(ver)!==VER) fail('ver', 'local VER mismatch', {ver}); else ok('ver',{ver});
 
@@ -331,7 +331,7 @@ async function runLocal(browser){
 
 async function runLive(browser){
   const page=await browser.newPage();
-  await page.setViewport({width:390,height:844,isMobile:true,hasTouch:true});
+  await page.setViewport({width:1280,height:720,isMobile:false,hasTouch:false}); // v66 PC-only
   const ver=await boot(page,{live:true});
   const liveOk = String(ver)===VER || (ONLY_LIVE && Number(ver)>=58);
   // When ONLY_LIVE waiting for 58 after push of 58, accept 58; for v59 ship expect 59 after deploy.

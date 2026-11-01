@@ -78,7 +78,7 @@ export function renderEquip(body, S, helpers){
   }
 
   const gems=card(`<h3>◆ Aetherkristalle</h3>
-    <p class="meta">Tippe einen Kristall, dann einen Sockel. Tippe einen gefüllten Sockel zum Entfernen.</p>
+    <p class="meta">Wähle einen Kristall, dann einen Sockel. Erneut wählen entfernt ihn.</p>
     <div class="gem-grid" id="gemGrid"></div>`);
   const grid=gems.querySelector('#gemGrid');
   (S.gems.inventory||[]).forEach(g=>{
@@ -364,7 +364,7 @@ export function renderV62Progress(body, S, helpers={}){
   const trees = C.CHAR_SKILL_TREES || {};
 
   const head=document.createElement('div'); head.className='card';
-  head.innerHTML=`<h3>Fertigkeitspunkte: ${v.skillPts|0}</h3><p class="meta">Tippe einen Knoten zum Freischalten. Voraussetzungen: Linie von unten nach oben.</p>`;
+  head.innerHTML=`<h3>Fertigkeitspunkte: ${v.skillPts|0}</h3><p class="meta">Wähle einen Knoten zum Freischalten (Enter/A). Voraussetzungen: Linie von unten nach oben.</p>`;
   body.appendChild(head);
 
   Object.entries(trees).forEach(([who,tree])=>{

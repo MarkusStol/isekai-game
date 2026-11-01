@@ -6510,13 +6510,15 @@ body.pixel-ow #toast.on:empty{ display:none !important; opacity:0 !important; }
 
 /* ===== v65: Herberge screen (rest + save) ===== */
 .inn-screen{
-  position:fixed; inset:0; z-index:120;
+  position:fixed; inset:0; z-index:5000 !important;
   display:flex; align-items:center; justify-content:center;
-  background:rgba(4,6,14,.72);
+  background:rgba(4,6,14,.82);
   padding:16px;
+  pointer-events:auto;
 }
+body.pc-only .inn-screen .inn-card,
 .inn-card{
-  width:min(420px, 94vw);
+  width:min(520px, 92vw);
   background:linear-gradient(180deg,#1a1528,#0e1018) !important;
   border:2px solid #d4b45a !important;
   border-radius:14px;
@@ -6576,3 +6578,287 @@ body.ow-desktop.pixel-ow #owCanvas{
   image-rendering:auto; /* v66 less blocky with near-1:1 buffer */
 }
 body.ow-desktop .ow-hint{ display:inline !important; }
+
+
+/* v66 PC-only — no touch d-pad / mobile letterbox */
+body.pc-only .ow-pad,
+body.pc-only .ow-pad-float,
+body.ow-desktop .ow-pad,
+body.ow-desktop .ow-pad-float,
+body.pixel-ow .ow-pad,
+body.pixel-ow .ow-pad-float,
+#owPad{ display:none !important; visibility:hidden !important; pointer-events:none !important; }
+body.pc-only .ow-keyboard,
+#owKeyboard{ display:none !important; }
+body.pc-only .ow-hint,
+body.ow-desktop .ow-hint,
+body.pixel-ow.ow-desktop .ow-hint,
+body.pixel-ow .ow-hint{
+  display:inline !important;
+  font-size:12px !important;
+  opacity:0.9 !important;
+  color:#e8d9a8 !important;
+  margin-left:8px;
+}
+body.pc-only.pixel-ow #stage,
+body.ow-desktop.pixel-ow #stage{
+  display:flex !important;
+  flex-direction:column !important;
+  align-items:center !important;
+  justify-content:center !important;
+  background:#05040a !important;
+}
+body.pc-only.pixel-ow #owCanvas,
+body.ow-desktop.pixel-ow #owCanvas{
+  image-rendering:pixelated !important;
+  image-rendering:crisp-edges !important;
+  margin:0 auto !important;
+  border:1px solid #2a2438 !important;
+  box-shadow:0 8px 40px #000a !important;
+}
+body.pc-only.pixel-ow .overworld{
+  position:relative !important;
+  inset:auto !important;
+  width:100% !important;
+  height:100% !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  background:#05040a !important;
+}
+
+
+/* v66 PC fullbleed — canvas integer-scales into full window */
+html, body.pc-only, body.ow-desktop{
+  width:100% !important;
+  height:100% !important;
+  overflow:hidden !important;
+  background:#05040a !important;
+}
+body.pc-only #app,
+body.ow-desktop #app{
+  max-width:none !important;
+  width:100% !important;
+  height:100% !important;
+  margin:0 !important;
+}
+body.pc-only.pixel-ow #stage,
+body.ow-desktop.pixel-ow #stage{
+  position:fixed !important;
+  inset:0 !important;
+  width:100vw !important;
+  height:100vh !important;
+  max-width:none !important;
+  max-height:none !important;
+  margin:0 !important;
+  padding:0 !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  background:#05040a !important;
+}
+body.pc-only.pixel-ow .topbar{
+  position:fixed !important;
+  top:8px; left:8px;
+  z-index:40 !important;
+  max-width:min(420px, 40vw) !important;
+  pointer-events:none;
+}
+body.pc-only.pixel-ow .topbar .hud,
+body.pc-only.pixel-ow .topbar .top-actions{ pointer-events:auto; }
+body.pc-only.pixel-ow .overworld{
+  position:fixed !important;
+  inset:0 !important;
+  width:100vw !important;
+  height:100vh !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  background:#05040a !important;
+  z-index:2 !important;
+}
+body.pc-only.pixel-ow .ow-shell,
+body.pc-only.pixel-ow .ow-main{
+  width:auto !important;
+  height:auto !important;
+  max-width:none !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  position:relative !important;
+}
+body.pc-only.pixel-ow #owCanvas{
+  display:block !important;
+  /* do NOT set width/height !important — inline integer scale must win */
+  max-width:none !important;
+  max-height:none !important;
+  image-rendering:pixelated !important;
+  image-rendering:crisp-edges !important;
+}
+body.pc-only.pixel-ow .ow-toolbar{
+  position:fixed !important;
+  bottom:10px; left:50%;
+  transform:translateX(-50%);
+  z-index:35 !important;
+  background:rgba(8,10,20,.72) !important;
+  border:1px solid #d4b45a66 !important;
+  border-radius:10px !important;
+  padding:6px 12px !important;
+}
+body.pc-only #title{
+  /* PC: full 16:9 title, not mobile portrait column */
+  position:fixed !important;
+  inset:0 !important;
+  width:100vw !important;
+  height:100vh !important;
+  max-width:none !important;
+  margin:0 !important;
+  display:flex !important;
+  flex-direction:column !important;
+  justify-content:flex-end !important;
+  align-items:center !important;
+  background-size:cover !important;
+  background-position:center top !important;
+}
+body.pc-only #title .title-inner{
+  width:min(720px, 92vw) !important;
+  max-width:720px !important;
+  padding:32px 28px 40px !important;
+}
+body.pc-only #title .logo{
+  font-size:clamp(42px, 6vw, 72px) !important;
+  text-align:center !important;
+}
+body.pc-only #title .tagline{
+  text-align:center !important;
+  font-size:15px !important;
+}
+body.pc-only #title .big.glow{
+  min-height:52px !important;
+  font-size:16px !important;
+}
+body.pc-only #title .title-foot{
+  width:100% !important;
+}
+body.pc-only #title::after{
+  content:"WASD/Pfeile · Enter · Esc · Gamepad";
+  position:absolute;
+  bottom:12px; left:50%;
+  transform:translateX(-50%);
+  font-size:12px;
+  color:#e8d9a8cc;
+  letter-spacing:.04em;
+  z-index:5;
+  pointer-events:none;
+}
+
+
+/* v66 pc canvas size from JS — override mobile 100% fill */
+body.pc-only.pixel-ow #owCanvas,
+body.ow-desktop.pixel-ow #owCanvas{
+  /* width/height intentionally omitted so inline !important from fitCanvas applies */
+  border:1px solid #1a1528 !important;
+  box-shadow:0 12px 48px #000c !important;
+}
+
+
+/* v66 PC FINAL — kill absolute fill / 100% stretch that halves the canvas */
+body.pc-only.pixel-ow #owCanvas,
+body.ow-desktop.pixel-ow #owCanvas,
+body.pc-only.ow-desktop.pixel-ow #owCanvas{
+  position: relative !important;
+  inset: auto !important;
+  left: auto !important;
+  right: auto !important;
+  top: auto !important;
+  bottom: auto !important;
+  margin: 0 auto !important;
+  max-width: none !important;
+  max-height: none !important;
+  /* width/height set by fitCanvas via element.style !important */
+  object-fit: fill !important;
+  flex: 0 0 auto !important;
+}
+body.pc-only.pixel-ow .ow-shell,
+body.pc-only.pixel-ow .ow-main,
+body.ow-desktop.pixel-ow .ow-shell,
+body.ow-desktop.pixel-ow .ow-main{
+  position: relative !important;
+  inset: auto !important;
+  width: 100% !important;
+  height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  max-width: none !important;
+  max-height: none !important;
+}
+body.pc-only.pixel-ow .ow-side,
+body.pc-only.pixel-ow .ow-side-left,
+body.pc-only.pixel-ow .ow-side-right,
+body.ow-desktop.pixel-ow .ow-side{
+  display: none !important;
+  width: 0 !important;
+  min-width: 0 !important;
+}
+/* Override v61 media width:100% on canvas when PC integer scale is active */
+@media (min-width: 900px){
+  body.pc-only.pixel-ow #owCanvas,
+  body.ow-desktop.pixel-ow #owCanvas{
+    width: revert-layer !important; /* allow inline !important from JS — fallback below */
+  }
+}
+
+
+/* v66 PC menu / sheets — desktop dialog, not phone bottom sheet */
+body.pc-only .menu,
+body.ow-desktop .menu{
+  align-items:center !important;
+  justify-content:center !important;
+  background:#000a !important;
+}
+body.pc-only .menu-panel,
+body.ow-desktop .menu-panel{
+  width:min(720px, 92vw) !important;
+  max-width:720px !important;
+  max-height:min(860px, 92vh) !important;
+  border-radius:16px !important;
+  border-bottom:1.5px solid var(--gold, #d4b45a) !important;
+  margin:0 !important;
+}
+body.pc-only #sheet,
+body.ow-desktop #sheet{
+  align-items:center !important;
+  justify-content:center !important;
+}
+body.pc-only #sheet .sheet,
+body.pc-only #sheet .panel,
+body.ow-desktop #sheet .sheet,
+body.ow-desktop #sheet .panel{
+  width:min(640px, 90vw) !important;
+  max-width:640px !important;
+  border-radius:16px !important;
+  margin:0 auto !important;
+}
+
+
+/* v66 TITLE DESKTOP MEDIA — works before OW adds pc-only */
+@media (min-width: 900px){
+  #app{ max-width:none !important; width:100% !important; height:100% !important; }
+  #title{
+    position:fixed !important; inset:0 !important;
+    width:100vw !important; height:100vh !important; max-width:none !important;
+    display:flex !important; flex-direction:column !important;
+    justify-content:flex-end !important; align-items:center !important;
+    background-size:cover !important; background-position:center top !important;
+  }
+  #title .title-inner{ width:min(720px,92vw) !important; max-width:720px !important; }
+  #title .logo{ font-size:clamp(42px,6vw,72px) !important; text-align:center !important; }
+  #title .tagline{ text-align:center !important; }
+  #title::after{
+    content:"WASD/Pfeile · Enter · Esc · Gamepad";
+    position:absolute; bottom:14px; left:50%; transform:translateX(-50%);
+    font-size:12px; color:#e8d9a8cc; z-index:5; pointer-events:none;
+  }
+}

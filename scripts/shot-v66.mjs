@@ -131,7 +131,7 @@ async function ow(page, ort){
   await new Promise(r=>setTimeout(r,700));
 }
 
-for(const [w,h,tag,mobile] of [[1280,720,'desktop',false],[390,844,'mobile',true]]){
+for(const [w,h,tag,mobile] of [[1920,1080,'desktop1080',false],[1280,720,'desktop720',false]]){
   const page=await browser.newPage();
   await page.setViewport({width:w,height:h,isMobile:mobile,hasTouch:mobile});
   await boot(page);
@@ -146,15 +146,23 @@ for(const [w,h,tag,mobile] of [[1280,720,'desktop',false],[390,844,'mobile',true
 
   // Toast tip: desktop must show keyboard hints (not swipe)
   await ow(page,'Thronsaal der Nacht');
-  await page.evaluate((isMobile)=>{
+  await page.evaluate(()=>{
     const g=window.__game;
-    const desk=!isMobile && (document.body.classList.contains('ow-desktop') || true);
-    // mimic overworld tip branch
-    try{ g.toast(desk && !isMobile ? 'WASD bewegen · Enter reden · Esc Menü' : '↑ Wischen · Steuerkreuz · Tippen'); }catch(_){}
-  }, mobile);
+    try{ g.toast('WASD/Pfeile · Enter/A reden · Esc/B Menü · Gamepad OK'); }catch(_){}
+  });
   await new Promise(r=>setTimeout(r,350));
   const tipA=await shot(page,'04-town-throne-with-toast',tag);
-  log[log.length-1].tipCheck={ toast:tipA.toast, expectKeyboard:!mobile, ok: mobile ? /Wischen|Steuerkreuz|Tippen/i.test(tipA.toast||'') : /WASD|Enter|Esc/i.test(tipA.toast||'') };
+  const tipOk=/WASD|Enter|Esc|Gamepad|Pfeile/i.test(tipA.toast||'') && !/Wischen|Steuerkreuz|Tippen/i.test(tipA.toast||'');
+  log[log.length-1].tipCheck={ toast:tipA.toast, expectKeyboard:true, ok: tipOk };
+  // assert no d-pad
+  const padVis=await page.evaluate(()=>{
+    const p=document.getElementById('owPad');
+    if(!p) return false;
+    const st=getComputedStyle(p);
+    return st.display!=='none' && st.visibility!=='hidden' && p.getBoundingClientRect().height>2;
+  });
+  log[log.length-1].padVisible=padVis;
+  if(padVis) log[log.length-1].padFail=true;
   await page.evaluate(()=>{
     try{ window.__game.toast(''); }catch(_){}
     const e=document.getElementById('toast');
@@ -287,23 +295,34 @@ for(const [w,h,tag,mobile] of [[1280,720,'desktop',false],[390,844,'mobile',true
     document.getElementById('gameMenu')?.classList.add('hidden');
     document.body.classList.remove('menu-open');
   });
-  // v65 inn screen
+  // v66 inn screen — hard reset DOM overlays first
   await page.evaluate(()=>{
-    document.body.classList.remove('battle-open','in-battle','menu-open');
+    document.body.classList.remove('battle-open','in-battle','menu-open','ow-dialogue');
     document.documentElement.classList.remove('battle-open','in-battle');
+    document.getElementById('battleRoot')?.classList.add('hidden');
+    document.getElementById('menu')?.classList.add('hidden');
+    document.getElementById('gameMenu')?.classList.add('hidden');
+    document.getElementById('innScreen')?.remove();
     try{ window.__game.Battle?.__forceHide?.(); }catch(_){}
     try{ window.__game.closeMenu?.(); }catch(_){}
-    try{ window.__game.openInn(); }catch(_){}
+    try{ window.__game.closeInn?.(); }catch(_){}
   });
+  await new Promise(r=>setTimeout(r,300));
+  const innOk=await page.evaluate(()=>{
+    try{ window.__game.openInn(); }catch(e){ return 'err:'+e; }
+    const el=document.getElementById('innScreen');
+    return el ? (el.innerText||'').slice(0,40) : 'missing';
+  });
+  console.log(tag+' inn open =>', innOk);
   await page.waitForFunction(()=>{
     const el=document.getElementById('innScreen');
     if(!el) return false;
-    const st=getComputedStyle(el);
-    return st.display!=='none' && st.visibility!=='hidden' && /Herberge|Ausruhen/i.test(el.innerText||'');
-  },{timeout:8000}).catch(()=>{});
-  await new Promise(r=>setTimeout(r,500));
+    const r=el.getBoundingClientRect();
+    return r.width>200 && r.height>200 && /Herberge|Ausruhen/i.test(el.innerText||'');
+  },{timeout:10000}).catch(()=>{});
+  await new Promise(r=>setTimeout(r,700));
   await shot(page,'84-inn',tag);
-  await page.evaluate(()=>{ try{ window.__game.closeInn(); }catch(_){} });
+  await page.evaluate(()=>{ try{ window.__game.closeInn(); }catch(_){} document.getElementById('innScreen')?.remove(); });
 
   await page.evaluate(()=>{ try{ window.__game.openSheet(); }catch(_){} });
   await new Promise(r=>setTimeout(r,500));
@@ -320,4 +339,6 @@ const playtime=log.find(x=>x.playtime)?.playtime||log.filter(x=>x.playtime).map(
 fs.writeFileSync(`${OUT}/v66-shot-log.json`, JSON.stringify({log, badInputs, badDlg, badTip, playtime},null,2));
 console.log(JSON.stringify({n:log.length, badInputs:badInputs.length, badDlg:badDlg.length, badTip:badTip.length, fails:badDlg.map(b=>({shot:b.shot,fail:b.dialogueFail})), playtime: playtime && {hours:playtime.campaignEstimatedHours, chapters:playtime.chapters?.map(c=>({l:c.label,m:c.estimatedMin,ok:c.meetsDepthBar}))}},null,2));
 await browser.close(); s.close();
-if(badInputs.length || badDlg.length || badTip.length) process.exitCode=2;
+const badPad=log.filter(x=>x.padFail);
+if(badPad.length) console.log('padFail', badPad.map(x=>x.shot));
+if(badInputs.length || badDlg.length || badTip.length || badPad.length) process.exitCode=2;

@@ -152,8 +152,8 @@ let _lights=[]; // {x,y,r,color} night readability
 
 
 function isDesktop(){
-  return window.matchMedia('(min-width: 900px) and (min-aspect-ratio: 4/3)').matches
-    || window.innerWidth >= 1000;
+  // v66 PC-only: always desktop layout (keyboard / mouse / gamepad)
+  return true;
 }
 
 function loadImg(src){
@@ -1832,9 +1832,7 @@ function draw(){
       viewW = Math.min(viewW, Math.max(11, _map.w + (_desktop?0:2)));
     }
   }catch(_){}
-  if(dlgOpen && !_desktop){
-    viewH = Math.max(8, viewH - 2);
-  }
+  // v66 PC: dialogue overlays; do not shrink camera
   let tw = Math.floor(Math.min(cssW/viewW, cssH/viewH));
   {
     const twH=Math.floor(cssH/viewH);
@@ -1860,7 +1858,7 @@ function draw(){
   const ox=Math.floor((cssW - viewW*tw)/2);
   // center vertically when a 1–2px remainder remains; biome-fill covers gaps
   // v66: mobile pin top (pad overlays bottom); desktop may center 1px remainder
-  let oy=_desktop?Math.max(0, Math.floor((cssH - viewH*tw)/2)):0;
+  let oy=Math.max(0, Math.floor((cssH - viewH*tw)/2));
 
   for(let y=y0;y<=y1;y++){
     for(let x=x0;x<=x1;x++){
@@ -2058,7 +2056,7 @@ function draw(){
     const sx=ox+(n.px-camX)*tw, sy=oy+(n.py-camY)*tw - tw*0.55;
     drawSprite(ctx, im, n.frame|0, n.dir|0, sx+tw*0.0, sy, tw);
     // v66: nameplate only near hero; font sized in CSS-px so desktop upscale stays mobile-sized
-    const nearDist=_desktop?3.0:4.2;
+    const nearDist=3.2;
     const near=Math.hypot((n.px||n.x)-_hero.px,(n.py||n.y)-_hero.py)<nearDist;
     if(near){
       let label='';
@@ -2077,16 +2075,15 @@ function draw(){
         label=acc||parts[0].slice(0,18);
       }
       if(label){
-        const cssH=parseFloat(_canvas.style.height)||_canvas.height;
-        const scaleY=_canvas.height/Math.max(1,cssH);
-        const fontPx=Math.max(7, Math.min(12, Math.round(10*scaleY)));
-        const pad=Math.max(2, Math.round(3*scaleY));
-        const boxH=Math.max(10, Math.round(12*scaleY));
+        const sc=Math.max(1, _intScale||1);
+        const fontPx=Math.max(5, Math.round(12/sc)); // ~12 CSS px after integer upscale
+        const pad=Math.max(1, Math.round(3/sc));
+        const boxH=Math.max(7, Math.round(14/sc));
         ctx.fillStyle='rgba(0,0,0,.62)';
         ctx.font=`bold ${fontPx}px "Noto Sans",system-ui,sans-serif`;
         const twm=ctx.measureText(label).width;
         ctx.fillRect(sx+tw/2-twm/2-pad, sy-boxH-1, twm+pad*2, boxH);
-        ctx.fillStyle='#ffe8a0'; ctx.fillText(label, sx+tw/2-twm/2, sy-Math.max(2, Math.round(3*scaleY)));
+        ctx.fillStyle='#ffe8a0'; ctx.fillText(label, sx+tw/2-twm/2, sy-Math.max(2, Math.round(3/sc)));
       }
     }
   }
@@ -2310,9 +2307,8 @@ function pollGamepad(){
       try{ _hooks.openMenu?.(); }catch(_){}
       try{ document.getElementById('btnMenu')?.click(); }catch(_){}
     }
-    if(edge('y',3)){ // Y → freitext
-      document.body.classList.add('ow-dialogue');
-      document.getElementById('txt')?.focus();
+    if(edge('y',3)){ // Y → Reisekarte (PC, kein Freitext)
+      try{ _hooks.openTravel?.(); }catch(_){}
     }
   }catch(_){}
 }
@@ -2548,43 +2544,55 @@ function loop(ts){
 
 function fitCanvas(){
   if(!_canvas) return;
-  _desktop=isDesktop();
-  document.body.classList.toggle('ow-desktop', _desktop);
-  if(_desktop){
-    // v66: near 1:1 buffer (mild DPR) — less blocky than integer 320× upscale
-    const stage=document.getElementById('stage');
-    const topbar=document.querySelector('.topbar');
-    const topbarH=(topbar?.getBoundingClientRect?.().height)|0 || 52;
-    const cssW=Math.max(640, (stage?.clientWidth||window.innerWidth) - 2);
-    const cssH=Math.max(400, (stage?.clientHeight ? stage.clientHeight - 4 : (window.innerHeight - topbarH)));
-    const dpr=Math.min(2, Math.max(1, window.devicePixelRatio||1));
-    _canvas.style.width=cssW+'px';
-    _canvas.style.height=cssH+'px';
-    _canvas.width=Math.floor(cssW*dpr);
-    _canvas.height=Math.floor(cssH*dpr);
-    _intScale=dpr;
-    const targetTw=Math.max(22, Math.round(26*dpr)); // ~26 CSS px tiles
-    _viewW=Math.max(18, Math.floor(_canvas.width/targetTw));
-    _viewH=Math.max(14, Math.floor(_canvas.height/targetTw));
-    while(_viewH*Math.floor(Math.min(_canvas.width/_viewW, _canvas.height/_viewH)) < _canvas.height-2 && _viewH<56) _viewH++;
-    while(_viewW*Math.floor(Math.min(_canvas.width/_viewW, _canvas.height/_viewH)) < _canvas.width-2 && _viewW<72) _viewW++;
-  } else {
-    // v66 mobile: fill visualViewport; pin map (no letterbox above/below pad)
-    const root=_root||document.getElementById('owRoot');
-    const vv=window.visualViewport;
-    const w=Math.max(320, Math.floor((vv?.width||window.innerWidth)|0));
-    const h=Math.max(480, Math.floor((vv?.height||window.innerHeight)|0));
-    _canvas.style.width=w+'px';
-    _canvas.style.height=h+'px';
-    _canvas.width=w;
-    _canvas.height=h;
-    const targetTw=26;
-    _viewW=Math.max(11, Math.floor(w/targetTw));
-    _viewH=Math.max(16, Math.floor(h/targetTw));
-    while(_viewH*Math.floor(Math.min(w/_viewW, h/_viewH)) < h - 2 && _viewH < 42) _viewH++;
-    _intScale=1;
-    try{ root?.classList.add('ow-fullscreen'); }catch(_){}
+  _desktop=true;
+  document.body.classList.add('ow-desktop','pc-only');
+  document.body.classList.remove('touch-ui');
+  // v66 PC: fill the WINDOW with integer-scaled 16:9 (ignore cramped stage box)
+  const availW=Math.max(640, window.innerWidth|0);
+  const availH=Math.max(360, window.innerHeight|0);
+  // Choose largest 16:9 logical that still integer-scales into the window
+  // Prefer ~24–32 CSS px tiles → logical tile 16 × scale ≈ 32–48 CSS at scale 2–3
+  const candidates=[
+    {lw:960, lh:540}, // scale 2 @ 1920×1080
+    {lw:640, lh:360}, // scale 3 @ 1920×1080 / scale 2 @ 1280×720
+    {lw:480, lh:270}, // scale 4 fallback
+    {lw:320, lh:180}, // last resort
+  ];
+  let best=null;
+  for(const c of candidates){
+    const s=Math.floor(Math.min(availW/c.lw, availH/c.lh));
+    if(s<1) continue;
+    const outArea=c.lw*c.lh*s*s;
+    const logical=c.lw*c.lh;
+    // Fill window, then maximize logical resolution (avoid 6× blocky 320p)
+    if(!best || outArea>best.outArea || (outArea===best.outArea && logical>best.logical) || (outArea===best.outArea && logical===best.logical && s<best.scale)){
+      best={...c, scale:s, outArea, logical};
+    }
   }
+  if(!best) best={lw:640, lh:360, scale:1, area:640*360};
+  const {lw, lh, scale}=best;
+  const outW=lw*scale, outH=lh*scale;
+  _canvas.width=lw;
+  _canvas.height=lh;
+  _canvas.style.setProperty('position', 'relative', 'important');
+  _canvas.style.setProperty('inset', 'auto', 'important');
+  _canvas.style.setProperty('left', 'auto', 'important');
+  _canvas.style.setProperty('right', 'auto', 'important');
+  _canvas.style.setProperty('top', 'auto', 'important');
+  _canvas.style.setProperty('bottom', 'auto', 'important');
+  _canvas.style.setProperty('width', outW+'px', 'important');
+  _canvas.style.setProperty('height', outH+'px', 'important');
+  _canvas.style.setProperty('image-rendering', 'pixelated');
+  _canvas.style.setProperty('max-width', 'none', 'important');
+  _canvas.style.setProperty('max-height', 'none', 'important');
+  _canvas.style.setProperty('margin', '0 auto', 'important');
+  _canvas.style.setProperty('flex', '0 0 auto', 'important');
+  _intScale=scale;
+  const tile=16;
+  _viewW=Math.max(20, Math.floor(lw/tile));
+  _viewH=Math.max(14, Math.floor(lh/tile));
+  while(_viewW*tile > lw && _viewW>16) _viewW--;
+  while(_viewH*tile > lh && _viewH>12) _viewH--;
 }
 
 function toggleFullscreen(){
@@ -2612,18 +2620,8 @@ function ensureDOM(){
           <div class="ow-toolbar">
             <button type="button" class="ow-fs" id="owFullscreen" title="Vollbild" aria-label="Vollbild">⛶</button>
             <button type="button" class="ow-fs" id="owTravel" title="Reisekarte" aria-label="Reisekarte">🗺</button>
-            <span class="ow-hint" id="owHint">WASD · Enter reden · Esc Menü · T Text · 🗺 Reise</span>
+            <span class="ow-hint" id="owHint">WASD/Pfeile bewegen · Enter/A reden · Esc/B Menü · T Log · Reise · Gamepad OK</span>
           </div>
-          <div class="ow-pad ow-pad-float" id="owPad">
-            <button type="button" data-dx="0" data-dy="-1" aria-label="Hoch">▲</button>
-            <div class="ow-pad-mid">
-              <button type="button" data-dx="-1" data-dy="0" aria-label="Links">◀</button>
-              <button type="button" data-dx="0" data-dy="0" class="ow-action" id="owTalk" aria-label="Sprechen">💬</button>
-              <button type="button" data-dx="1" data-dy="0" aria-label="Rechts">▶</button>
-            </div>
-            <button type="button" data-dx="0" data-dy="1" aria-label="Runter">▼</button>
-          </div>
-          <button type="button" class="ow-keyboard" id="owKeyboard" aria-label="Freitext">⌨ Freitext</button>
         </div>
         <aside class="ow-side ow-side-right" id="owLog" aria-label="Log"></aside>
       </div>
@@ -2639,37 +2637,7 @@ function ensureDOM(){
   try{ loadImg('./assets/pixel/hero/walk.png'); Object.values(NPC_SHEETS||{}).forEach(loadImg); }catch(_){}
   ensureDlg();
   if(_bound){ fitCanvas(); return; }
-  // v45 swipe / tap-to-move on canvas
-  try{
-    let sx=0,sy=0,st=0;
-    _canvas.addEventListener('touchstart',(e)=>{
-      const t=e.changedTouches?.[0]; if(!t) return;
-      sx=t.clientX; sy=t.clientY; st=performance.now();
-    },{passive:true});
-    _canvas.addEventListener('touchend',(e)=>{
-      const t=e.changedTouches?.[0]; if(!t) return;
-      const dx=t.clientX-sx, dy=t.clientY-sy, dt=performance.now()-st;
-      if(dt>500) return;
-      if(Math.hypot(dx,dy)<24){
-        // tap — try talk if near NPC else step toward tap relative to center
-        const rect=_canvas.getBoundingClientRect();
-        const cx=rect.left+rect.width/2, cy=rect.top+rect.height/2;
-        const tx=t.clientX-cx, ty=t.clientY-cy;
-        if(Math.hypot(tx,ty)<28){ try{ talkNearest(); }catch(_){} return; }
-        const ax=Math.abs(tx)>Math.abs(ty)?Math.sign(tx):0;
-        const ay=Math.abs(ty)>=Math.abs(tx)?Math.sign(ty):0;
-        try{ queueMove?.(ax,ay) || (_padAxes={x:ax,y:ay}); }catch(_){ _padAxes={x:ax,y:ay}; }
-        setTimeout(()=>{ _padAxes={x:0,y:0}; }, 180);
-        return;
-      }
-      if(Math.abs(dx)<30 && Math.abs(dy)<30) return;
-      const ax=Math.abs(dx)>Math.abs(dy)?Math.sign(dx):0;
-      const ay=Math.abs(dy)>=Math.abs(dx)?Math.sign(dy):0;
-      _padAxes={x:ax,y:ay};
-      setTimeout(()=>{ _padAxes={x:0,y:0}; }, 220);
-    },{passive:true});
-  }catch(_){}
-
+  // v66 PC-only: no touch swipe/tap
   _bound=true;
   fitCanvas();
   window.addEventListener('resize', ()=>{ fitCanvas(); draw(); });
@@ -2681,6 +2649,7 @@ function ensureDOM(){
   const hold={};
   const start=(dx,dy,id)=>{ hold[id]=setInterval(()=>{ if(dx||dy) tryMove(dx,dy); }, 140); if(dx||dy) tryMove(dx,dy); };
   const end=(id)=>{ clearInterval(hold[id]); delete hold[id]; };
+  // v66 PC-only: on-screen d-pad removed; keep bind no-op if DOM leftover
   pad?.querySelectorAll('button[data-dx]').forEach(btn=>{
     if(btn.id==='owTalk') return;
     const dx=+btn.dataset.dx, dy=+btn.dataset.dy;
@@ -2803,8 +2772,7 @@ export function showOverworld(S){
           if(!document.body.classList.contains('pixel-ow')) return;
           if(document.body.classList.contains('ow-dialogue')) return;
           try{ const t=document.getElementById('toast'); if(t){ t.classList.add('toast-tip'); } }catch(_){}
-          const desk=document.body.classList.contains('ow-desktop')||_desktop;
-          window.__game?.toast?.(desk?'WASD bewegen · Enter reden · Esc Menü':'↑ Wischen · Steuerkreuz · Tippen');
+          window.__game?.toast?.('WASD/Pfeile · Enter/A reden · Esc/B Menü · Gamepad OK');
         }catch(_){}
       }, 3200);
     }

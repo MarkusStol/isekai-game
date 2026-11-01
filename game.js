@@ -167,6 +167,8 @@ try{ // v63 scrub AI cfg from localStorage
  // v41: test-only scripted, fair ATB bosses, boss dialogue talk-down, tilemap minimap, craft XP→T4
 const $=s=>document.querySelector(s);const $$=s=>[...document.querySelectorAll(s)];const R=a=>a[Math.floor(Math.random()*a.length)];const rnd=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
 const VER='66',CACHE_V='v66';
+try{document.body.classList.add('pc-only','ow-desktop');document.body.classList.remove('touch-ui');}catch(_){}
+
 const FREETEXT_ENABLED = false; // v63: classic JRPG only — free-text archived on freetext-archive
 
 try{ const _tb=document.querySelector('.title-badge'); if(_tb) _tb.textContent='v'+VER; }catch(_e){}
@@ -1827,7 +1829,7 @@ function renderMenu(){const body=$('#menuBody');if(!body||!S)return;body.innerHT
  (S.inv||[]).forEach((it,idx)=>{const item=itemFromStr(it);const cell=document.createElement('button');cell.type='button';cell.className='inv-cell r-'+rarityOf(item);
   cell.innerHTML=`<div class="ico">${svgIcon(itemIconId(item),'r-'+rarityOf(item))}</div><div class="nm">${item.name}</div>`;
   cell.onclick=()=>openItemDetail(idx);grid.appendChild(cell)});
- if(!(S.inv||[]).length){body.innerHTML=`<div class="card inv-empty"><div class="inv-empty-ico" aria-hidden="true">🎒</div><h3>Rucksack leer</h3><p class="meta">Noch keine Beute. Kaufe am Markt, plündere Truhen oder stelle in der Werkstatt her.</p><div class="row inv-empty-actions"><button type="button" class="bcm" id="invGoCraft">Werkstatt</button><button type="button" class="bcm ghost" id="invGoMap">Weltkarte</button></div></div>`; body.querySelector('#invGoCraft')?.addEventListener('click',()=>{_menuTab='craft';$$('#menuTabs button').forEach(x=>x.classList.toggle('on',x.dataset.tab==='craft'));renderMenu()}); body.querySelector('#invGoMap')?.addEventListener('click',()=>{_menuTab='atlas';$$('#menuTabs button').forEach(x=>x.classList.toggle('on',x.dataset.tab==='atlas'));renderMenu()});}else{body.appendChild(grid);body.innerHTML+=`<div class="card"><p class="meta">Tippe ein Item für Details. Farben = Seltenheit.</p></div>`}}
+ if(!(S.inv||[]).length){body.innerHTML=`<div class="card inv-empty"><div class="inv-empty-ico" aria-hidden="true">🎒</div><h3>Rucksack leer</h3><p class="meta">Noch keine Beute. Kaufe am Markt, plündere Truhen oder stelle in der Werkstatt her.</p><div class="row inv-empty-actions"><button type="button" class="bcm" id="invGoCraft">Werkstatt</button><button type="button" class="bcm ghost" id="invGoMap">Weltkarte</button></div></div>`; body.querySelector('#invGoCraft')?.addEventListener('click',()=>{_menuTab='craft';$$('#menuTabs button').forEach(x=>x.classList.toggle('on',x.dataset.tab==='craft'));renderMenu()}); body.querySelector('#invGoMap')?.addEventListener('click',()=>{_menuTab='atlas';$$('#menuTabs button').forEach(x=>x.classList.toggle('on',x.dataset.tab==='atlas'));renderMenu()});}else{body.appendChild(grid);body.innerHTML+=`<div class="card"><p class="meta">Wähle ein Item für Details (Enter/A). Farben = Seltenheit.</p></div>`}}
  else if(_menuTab==='skills'){(S.skills||[]).forEach((sk,idx)=>{const s=skillFromStr(sk);const card=document.createElement('div');card.className='card';
   card.innerHTML=`<div class="skill-card"><div class="skill-ico">${svgIcon(skillIconId(s))}</div><div style="flex:1"><h3>${s.name} ${(s._cd|0)>0?`<span class="cd-pill">CD ${s._cd}</span>`:''}</h3>
   <p>${s.desc||''}</p><p class="meta">Stufe ${s.level||1} · ${s.cost||0} MP · CD ${s.cd||0}</p><div class="row"></div></div></div>`;
@@ -3625,7 +3627,7 @@ function stopMusic(){if(!_musicNodes)return;try{_musicNodes.oscs.forEach(o=>{try
 
 function openGenrePicker(){const el=$('#genrePick');if(!el)return;el.classList.remove('hidden');const sel=$('#genreSelect');if(sel&&!sel.options.length){Object.values(GENRES).forEach(g=>{const o=document.createElement('option');o.value=g.id;o.textContent=g.icon+' '+g.label;sel.appendChild(o)})}}
 function closeGenrePicker(){$('#genrePick')?.classList.add('hidden')}
-function showTitle(){_mode='title';$('#stage').classList.add('hidden');$('#keyGate').classList.add('hidden');$('#title').classList.remove('hidden');
+function showTitle(){_mode='title';try{document.body.classList.add('pc-only','ow-desktop');document.body.classList.remove('touch-ui');}catch(_){} $('#stage').classList.add('hidden');$('#keyGate').classList.add('hidden');$('#title').classList.remove('hidden');
  document.body.classList.remove('greyw','pixel-jrpg','pixel-ow','ow-dialogue');
  try{OW.hideOverworld()}catch(_){};
  const sv=localStorage.getItem(KEY);if(sv)$('#btnContinue').classList.remove('hidden');else $('#btnContinue').classList.add('hidden');
