@@ -42,3 +42,10 @@ Local gate: **PASSED** (`GATE_SKIP_LIVE=1`) — battler-size, foe-size, atk-fx, 
 - Playtest c1: puzzle + boss win → `c2_open` (`scripts/playtest-nocturna-v72-c1.mjs` ok)
 - Battle: party staggered; foe 240px left-half; `ally_velka.png` in party stage
 - Dungeon meta: 56×48 @ scale 3; center spawn; authored NPCs only
+
+## Shipped
+- Commit `4c9ec2a` on `main`, tag **v0.72.0**
+- Installer: https://github.com/MarkusStol/isekai-game/releases/download/v0.72.0/Nocturna-Setup-0.72.0-x64.exe (~92.5 MB)
+- Release: https://github.com/MarkusStol/isekai-game/releases/tag/v0.72.0
+- Playtest c1: puzzle + boss win → `c2_open` (`scripts/playtest-nocturna-v72-c1.mjs` ok)
+- Gate: PASSED (SKIP_LIVE) — battler-size, foe-size, layout-reuse, dungeon-camera, dungeon-spawn-view
