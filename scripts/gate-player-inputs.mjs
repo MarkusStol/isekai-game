@@ -12,7 +12,7 @@ import { fileURLToPath } from 'url';
 
 const ROOT=path.join(path.dirname(fileURLToPath(import.meta.url)),'..');
 const PORT=8793;
-const VER='62';
+const VER='63';
 const LIVE='https://markusstol.github.io/isekai-game/';
 const SKIP_LIVE=process.env.GATE_SKIP_LIVE==='1';
 const ONLY_LIVE=process.env.GATE_ONLY_LIVE==='1';
@@ -68,8 +68,9 @@ async function freshOffline(page){
     g.S.setup={done:true}; g.S.flags=Object.assign(g.S.flags||{},{onboarded:true,introDone:true});
     g.S.cfgBattleDiff='story'; g.S.cfgAtbMode='active';
     g.S.st.hp=g.S.st.maxhp=180; g.S.st.mp=g.S.st.maxmp=80; g.S.st.gold=120; g.S.st.str=20; g.S.st.lvl=4;
-    g.C62?.migrateV62?.(g.S) || g.C61?.migrateV61?.(g.S) || g.C60.migrateV60(g.S);
+    g.C63?.migrateV63?.(g.S) || g.C62?.migrateV62?.(g.S) || g.C61?.migrateV61?.(g.S) || g.C60.migrateV60(g.S);
     g.enterPlay();
+    try{ g.syncFreetextUI?.(); document.body.classList.add('visual59','visual62','visual63','no-freetext','jrpg-classic'); }catch(_){}
     document.getElementById('title')?.classList.add('hidden');
     document.getElementById('stage')?.classList.remove('hidden');
   });
@@ -133,6 +134,29 @@ async function runLocal(browser){
   }));
   if(bootInfo.freetext) fail('jrpg-boot','freetext still on'); else ok('jrpg-boot', bootInfo);
   if(!bootInfo.inputHidden) fail('jrpg-boot','input visible');
+  // v63: DOM must not expose free-text / AI key UI
+  const domAudit=await page.evaluate(()=>{
+    const vis=el=>{
+      if(!el) return false;
+      const st=getComputedStyle(el);
+      if(st.display==='none'||st.visibility==='hidden'||st.opacity==='0') return false;
+      if(el.hasAttribute('hidden')) return false;
+      const r=el.getBoundingClientRect();
+      return r.width>2 && r.height>2;
+    };
+    const inputs=[...document.querySelectorAll('input[type="text"],input:not([type]),textarea')].filter(vis);
+    const ai=[...document.querySelectorAll('#gkey,#pollenKey,#gateKey,#geminiBox,#keyGate,#inputRow,#txt')].filter(vis);
+    const tip=[...document.querySelectorAll('#toast,.toast')].map(e=>e.textContent||'').join(' ');
+    return {
+      visibleTextInputs: inputs.map(e=>({id:e.id,ph:e.placeholder||'',type:e.type})),
+      visibleAi: ai.map(e=>e.id||e.className),
+      tipHasFreetext: /Was tust|Schreibe|Freitext|Erzählerin|Gemini|Tipp: Wähle/i.test(tip),
+      bodyClass: document.body.className,
+    };
+  });
+  if((domAudit.visibleTextInputs||[]).length) fail('jrpg-boot','visible text inputs '+JSON.stringify(domAudit.visibleTextInputs));
+  else if((domAudit.visibleAi||[]).length) fail('jrpg-boot','visible AI UI '+JSON.stringify(domAudit.visibleAi));
+  else ok('input-dom-audit', domAudit);
   if(!bootInfo.visual59) fail('ff-ui','missing visual59 class'); else ok('ff-ui',{visual59:true});
 
   // chapter / town
@@ -214,13 +238,15 @@ async function runLocal(browser){
     const results=[];
     for(const ver of [13,40,50,56,57,58]){
       const s={ver, st:{hp:50,maxhp:100,gold:10}, world:{npcs:{},scene:{}}, flags:{}, romance:{}, pc:{name:'Alt'}};
-      try{ g.C60.migrateV60(s); results.push({ver, out:s.ver, campaign:s.campaign?.id, jrpg59:!!s.flags?.jrpg59}); }
-      catch(e){ results.push({ver, err:String(e)});}
+      try{
+        g.C63?.migrateV63?.(s) || g.C62?.migrateV62?.(s) || g.C61?.migrateV61?.(s) || g.C60.migrateV60(s);
+        results.push({ver, out:s.ver, campaign:s.campaign?.id, jrpg59:!!s.flags?.jrpg59, freetext:!!s.flags?.freetext});
+      } catch(e){ results.push({ver, err:String(e)});}
     }
     return results;
   });
   for(const m of mig){
-    if(m.err || m.out<59 || m.campaign!=='nocturna') fail('migrate-saves', m); else ok('migrate-saves', m);
+    if(m.err || m.out<59 || m.campaign!=='nocturna' || m.freetext) fail('migrate-saves', m); else ok('migrate-saves', m);
   }
 
   // viewport smoke desktop
@@ -255,7 +281,7 @@ async function runLive(browser){
     for(const ver of [13,50,57,58]){
       const s={ver, st:{hp:40,maxhp:100,gold:5,str:8}, world:{npcs:{'Sekretärin Velka':{alive:true,art:'Sukkubus'}},scene:{ort:'Test'}}, flags:{onboarded:true}, romance:{}, pc:{name:'Legacy'+ver}, genre:'daemon', role:'daemon'};
       try{
-        if(g.C62?.migrateV62) g.C62.migrateV62(s);
+        if(g.C63?.migrateV63) g.C63.migrateV63(s); else if(g.C62?.migrateV62) g.C62.migrateV62(s);
         else if(g.C61?.migrateV61) g.C61.migrateV61(s);
         else if(g.C60?.migrateV60) g.C60.migrateV60(s);
         else if(g.C59?.migrateV59) g.C59.migrateV59(s);
@@ -264,7 +290,7 @@ async function runLive(browser){
         out.push({ver, ok:true, outVer:s.ver, campaign:s.campaign?.id, freetext:s.flags?.freetext});
       }catch(e){ out.push({ver, ok:false, err:String(e)});}
     }
-    return {pageVer:g.VER, saves:out, hasC61:!!g.C61,hasC62:!!g.C62};
+    return {pageVer:g.VER, saves:out, hasC61:!!g.C61,hasC62:!!g.C62,hasC63:!!g.C63};
   });
   for(const s of saveTest.saves){
     if(!s.ok) fail('live-old-saves', s); else ok('live-old-saves', s);

@@ -182,6 +182,57 @@ function preload(){
     }
   }
 }
+
+/** v63: 4-neighbor same-mask (N=1 E=2 S=4 W=8) for Wang/blob variants */
+function wangSameMask(x,y,isSame){
+  let m=0;
+  if(isSame(x,y-1)) m|=1;
+  if(isSame(x+1,y)) m|=2;
+  if(isSame(x,y+1)) m|=4;
+  if(isSame(x-1,y)) m|=8;
+  return m;
+}
+const WANG_COUNTS = { cliff:8, grass:6, path:5, water:5, tree:6, floor:6, wall:6 };
+function isCliffMat(t){ return t==='stone'||t==='wall'||t==='cliff'; }
+function wangUrlFor(t,x,y){
+  const base = tileUrl(t);
+  if(!base || !_map) return base;
+  const slash = base.lastIndexOf('/');
+  const dir = slash>=0 ? base.slice(0,slash+1) : '';
+  const walk = (tt)=> tt==='sand'||tt==='path'||tt==='grass'||tt==='water'||tt==='floor'||tt==='carpet'||tt==='plaza'||tt==='wood';
+  // Cliff/rock Wang for stone & wall
+  if(t==='stone'||t==='wall'||t==='cliff'){
+    const mask = wangSameMask(x,y,(xx,yy)=> isCliffMat(_map.tiles?.[yy]?.[xx]));
+    const below = _map.tiles?.[y+1]?.[x];
+    let idx = mask & 7;
+    if(walk(below)) idx = ((mask & ~4) | 1) & 7; // open south → face-ish
+    return dir + 'cliff' + idx + '.png';
+  }
+  // Blob variants for grass/path/water/tree when numbered sheets exist
+  if(t==='grass'||t==='path'||t==='water'||t==='tree'){
+    const n = WANG_COUNTS[t]|0;
+    if(n>1){
+      const mask = wangSameMask(x,y,(xx,yy)=> _map.tiles?.[yy]?.[xx]===t);
+      return dir + t + (mask % n) + '.png';
+    }
+  }
+  // Indoor floor/wall variants
+  if(t==='floor' && dir.includes('/areas/')){
+    const mask = wangSameMask(x,y,(xx,yy)=> { const nt=_map.tiles?.[yy]?.[xx]; return nt==='floor'||nt==='carpet'||nt==='plaza'||nt==='wood'; });
+    return dir + 'ifloor' + (mask % 6) + '.png';
+  }
+  if(t==='wall' && dir.includes('/areas/') && (_map.kind==='interior'||_map.kind==='dungeon')){
+    const mask = wangSameMask(x,y,(xx,yy)=> _map.tiles?.[yy]?.[xx]==='wall');
+    const opts=[0,1,2,3,4,6];
+    return dir + 'iwall' + opts[mask % opts.length] + '.png';
+  }
+  if(t==='carpet' && dir.includes('/areas/')){
+    const mask = wangSameMask(x,y,(xx,yy)=> _map.tiles?.[yy]?.[xx]==='carpet');
+    return dir + 'icarpet' + (mask % 5) + '.png';
+  }
+  return base;
+}
+
 function applyGenre(S){
   const g=String(S?.genre||S?.role||'held').toLowerCase();
   _genre=g;
@@ -210,9 +261,10 @@ function applyGenre(S){
     else if(/kathedrale|solari|kirche|licht/.test(ort)) area='cathedral';
     else if(/thron|festung|katakomb/.test(ort)) area='throne';
     const base=`./assets/pixel/tiles-nocturna/areas/${area}`;
-    for(const k of ['grass','path','water','stone','floor','wall','tree','sand']){
+    for(const k of ['grass','path','water','stone','floor','wall','tree','sand','cliff']){
       set[k]=`${base}/${k}.png`;
     }
+    set.cliff=`${base}/cliff.png`;
     set.plaza=`./assets/pixel/tiles-nocturna/plaza.png`;
     set.carpet=set.plaza;
     set.wood=`./assets/pixel/tiles-nocturna/wood.png`;
@@ -596,12 +648,28 @@ export function buildMapForLocation(S, ort){
       sx = mid;
       sy++;
     }
-    // cliff shelves (irregular choke)
-    for(let x=6;x<w-6;x++){
-      if(Math.abs(x-cx)>2 && rnd(x+50)%3!==0){ tiles[6][x]='stone'; if(rnd(x)%4===0) tiles[6][x]='wall'; }
-      if(Math.abs(x-cx)>2 && rnd(x+90)%3!==0){ tiles[ht-8][x]='stone'; }
-    }
-    fill(cx-1,6,3,1,'path'); fill(cx-1,ht-8,3,1,'path');
+    // v63: curved cliff bands (noise ridge, not diagonal brick stairs)
+    const ridge=(y0)=>{
+      let rx=cx;
+      for(let x=4;x<w-4;x++){
+        const wave=Math.sin(x*0.45+(h%5))*1.7 + Math.sin(x*0.19)*1.1;
+        const yy=Math.round(y0+wave);
+        if(yy<2||yy>=ht-2) continue;
+        if(Math.abs(x-cx)<=2) continue;
+        for(let dy=-1;dy<=1;dy++){
+          const y=yy+dy;
+          if(tiles[y]?.[x] && tiles[y][x]!=='path' && tiles[y][x]!=='water'){
+            tiles[y][x]=(dy===0?'stone':'stone');
+          }
+        }
+        // soft curve fill north of ridge
+        for(let y=Math.max(1,yy-2); y<yy; y++){
+          if(tiles[y]?.[x]==='sand' && rnd(x+y*3)%2===0) tiles[y][x]='stone';
+        }
+      }
+      fill(cx-1,y0,3,1,'path');
+    };
+    ridge(6); ridge(ht-8);
     // pass camp with fire (near spawn so towers+NPCs are on camera)
     const campX=cx-3, campY=Math.max(8, cy-1);
     fill(campX, campY, 7, 5, 'path');
@@ -625,14 +693,36 @@ export function buildMapForLocation(S, ort){
     prop(campX+5, campY+2, 'crate');
     prop(campX+2, campY+3, 'bench');
     prop(campX+4, campY+3, 'bench');
-    // pines, rocks, snowdrifts (irregular scatter)
-    for(let i=0;i<14;i++){
+    // v63: pine clusters (not lonely singles) + rocks/snow
+    const plantCluster=(cx0,cy0,n)=>{
+      for(let k=0;k<n;k++){
+        const tx=cx0+(rnd(cx0*11+k*3)%5)-2;
+        const ty=cy0+(rnd(cy0*13+k*7)%4)-1;
+        if(!tiles[ty]?.[tx] || (tiles[ty][tx]!=='sand'&&tiles[ty][tx]!=='stone')) continue;
+        if(tiles[ty][tx]==='path'||tiles[ty][tx]==='water') continue;
+        overhead.push({x:tx,y:ty-1,src:DECOR.pine,tw:2,th:3});
+        tiles[ty][tx]='tree';
+        if(k%2===0){ ov(tx+1, ty, 'snowdrift'); prop(tx+1, ty, 'snowdrift'); }
+      }
+    };
+    plantCluster(8, 9, 5);
+    plantCluster(w-10, 10, 5);
+    plantCluster(7, ht-10, 4);
+    plantCluster(w-9, ht-11, 4);
+    plantCluster(cx-6, cy+3, 3);
+    plantCluster(cx+5, cy-4, 3);
+    for(let i=0;i<10;i++){
       const tx=7+(rnd(i*13)*3)%Math.max(1,w-14);
       const ty=8+(rnd(i*17)*5)%Math.max(1,ht-16);
       if(!tiles[ty]?.[tx] || tiles[ty][tx]!=='sand') continue;
-      if(i%3===0){ overhead.push({x:tx,y:ty-1,src:DECOR.pine,tw:2,th:3}); tiles[ty][tx]='tree'; }
-      else if(i%3===1){ prop(tx, ty, 'rock'); }
+      if(i%2===0) prop(tx, ty, 'rock');
       else { ov(tx, ty, 'snowdrift'); prop(tx, ty, 'snowdrift'); }
+    }
+    // thicken left/right mountain band so camera never shows empty void
+    for(let y=0;y<ht;y++){
+      for(let x=0;x<4;x++){ if(tiles[y]) tiles[y][x]='stone'; }
+      for(let x=w-4;x<w;x++){ if(tiles[y]) tiles[y][x]='stone'; }
+      if(y%3===0){ overhead.push({x:1,y:Math.max(0,y-1),src:DECOR.pine,tw:2,th:3}); overhead.push({x:w-3,y:Math.max(0,y-1),src:DECOR.pine,tw:2,th:3}); }
     }
     placeChest(cx+2, cy-1, {gold:15, item:'Eisen-Schild'});
     placeChest(8, 11, {gold:10, item:'Antidot'});
@@ -1563,8 +1653,17 @@ function draw(){
     const twH=Math.floor(cssH/_viewH);
     if(twH*_viewW <= cssW+2) tw=Math.max(tw, twH);
   }
-  const camX=_hero.px - _viewW/2 + 0.5;
-  const camY=_hero.py - _viewH/2 + 0.5;
+  let camX=_hero.px - _viewW/2 + 0.5;
+  let camY=_hero.py - _viewH/2 + 0.5;
+  // v63: clamp camera so map edge / gray void never fills the left side
+  try{
+    if(_map?.w && _map?.h){
+      if(_map.w > _viewW) camX=Math.max(0, Math.min(_map.w - _viewW, camX));
+      else camX=(_map.w - _viewW)/2; // center smaller maps
+      if(_map.h > _viewH) camY=Math.max(0, Math.min(_map.h - _viewH, camY));
+      else camY=Math.max(0, (_map.h - _viewH)/2);
+    }
+  }catch(_){}
   const x0=Math.floor(camX)-1, y0=Math.floor(camY)-1;
   const x1=x0+_viewW+3, y1=y0+_viewH+3;
   const waterIm=loadImg(WATER_ANIM);
@@ -1581,9 +1680,16 @@ function draw(){
         const indoor=_map.kind==='dungeon'||_map.kind==='interior';
         if(indoor){ ctx.fillStyle='#0a0c12'; ctx.fillRect(sx,sy,tw,tw); }
         else {
-          const gim=loadImg(tileUrl('grass'));
+          // v63: beyond map = mountain/forest continuation (not flat gray-green void)
+          const useCliff = (_map.preset==='wall' || /pass|grenze|berg/i.test(String(_map.name||'')));
+          const url = useCliff ? wangUrlFor('stone', Math.max(0,x), Math.max(0,y)) : tileUrl('grass');
+          const gim=loadImg(url);
           if(gim.complete && gim.naturalWidth) ctx.drawImage(gim, sx, sy, tw, tw);
-          else { ctx.fillStyle='#2a6a34'; ctx.fillRect(sx,sy,tw,tw); }
+          else { ctx.fillStyle=useCliff?'#3a4250':'#2a6a34'; ctx.fillRect(sx,sy,tw,tw); }
+          if(useCliff && ((x+y)&3)===0){
+            const pine=loadImg(DECOR.pine);
+            if(pine.complete&&pine.naturalWidth) ctx.drawImage(pine, sx, sy-tw*0.8, tw*1.4, tw*2.2);
+          }
         }
         continue;
       }
@@ -1621,11 +1727,15 @@ function draw(){
           if(pim.complete && pim.naturalWidth) ctx.drawImage(pim, sx, sy, tw, tw);
         }
       } else {
-        const im=loadImg(tileUrl(t));
+        const im=loadImg(wangUrlFor(t,x,y));
         if(im.complete && im.naturalWidth) ctx.drawImage(im, sx, sy, tw, tw);
         else {
-          ctx.fillStyle=t==='water'?'#3a7a9a':t==='void'?'#0a0c12':t==='wall'?'#444':t==='floor'?'#3a3a48':t==='path'?'#a88c5a':t==='house'||t==='stone'?'#6a5a4a':'#2a5a28';
-          ctx.fillRect(sx,sy,tw,tw);
+          const im2=loadImg(tileUrl(t));
+          if(im2.complete && im2.naturalWidth) ctx.drawImage(im2, sx, sy, tw, tw);
+          else {
+            ctx.fillStyle=t==='water'?'#3a7a9a':t==='void'?'#0a0c12':t==='wall'?'#444':t==='floor'?'#3a3a48':t==='path'?'#a88c5a':t==='house'||t==='stone'?'#6a5a4a':'#2a5a28';
+            ctx.fillRect(sx,sy,tw,tw);
+          }
         }
       }
       // flower overlay: ensure green underlay if somehow missing
@@ -1657,6 +1767,30 @@ function draw(){
               if(dy===-1) ctx.fillRect(sx, sy, tw, 2);
             }
           }
+        }
+      }catch(_){}
+      // v63: indoor wall height + pillar shadow
+      try{
+        if((_map.kind==='interior'||_map.kind==='dungeon') && t==='wall'){
+          const him=loadImg(wangUrlFor('wall',x,y));
+          if(him.complete&&him.naturalWidth){
+            ctx.drawImage(him, sx, sy-tw*0.85, tw, tw*0.9);
+          } else {
+            ctx.fillStyle='rgba(40,42,55,0.95)';
+            ctx.fillRect(sx, sy-tw*0.85, tw, tw*0.9);
+          }
+          ctx.fillStyle='rgba(0,0,0,0.35)';
+          ctx.fillRect(sx, sy+tw*0.15, tw, tw*0.2);
+        }
+        // pillars: plaza/stone columns beside carpet cast oval shadow
+        if((_map.kind==='interior') && (t==='stone'||t==='plaza') && _map.tiles[y]?.[x-1]==='carpet'){
+          ctx.fillStyle='rgba(0,0,0,0.28)';
+          ctx.beginPath(); ctx.ellipse(sx+tw*0.5, sy+tw*0.85, tw*0.55, tw*0.22, 0, 0, Math.PI*2); ctx.fill();
+          // tall pillar shaft
+          ctx.fillStyle='rgba(90,92,110,0.95)';
+          ctx.fillRect(sx+tw*0.25, sy-tw*1.6, tw*0.5, tw*1.7);
+          ctx.fillStyle='rgba(200,190,160,0.5)';
+          ctx.fillRect(sx+tw*0.25, sy-tw*1.65, tw*0.5, tw*0.12);
         }
       }catch(_){}
       // v62: cliff vertical face — stone/wall above sand/path gets a dark drop + snow lip

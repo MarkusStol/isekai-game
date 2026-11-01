@@ -352,74 +352,120 @@ export const JRPG_HUB_TILES=[
 ];
 
 
-/** v62: per-character skills, craft tiers, sidequests, puzzles, superboss */
+/** v63: visual German skill trees + craft / sides / puzzles / superboss */
 export function renderV62Progress(body, S, helpers={}){
   const {toast, save, Battle}=helpers;
-  const C62=window.__game?.C62;
-  if(!C62){ body.innerHTML='<p class="meta">v62 Modul fehlt</p>'; return; }
-  C62.ensureV62(S);
+  const C = window.__game?.C63 || window.__game?.C62;
+  if(!C){ body.innerHTML='<p class="meta">Fortschritt-Modul fehlt</p>'; return; }
+  body.innerHTML=''; // clear stuck «Lade…»
+  try{ delete body.dataset.loading; }catch(_){}
+  C.ensureV62?.(S); C.ensureV63?.(S);
   const v=S.v62;
-  const wrap=document.createElement('div');
-  wrap.innerHTML=`<div class="card"><h3>Skillpunkte: ${v.skillPts|0}</h3><p class="meta">Pro Charakter freischalten. Bosse und Sidequests geben Punkte.</p></div>`;
-  body.appendChild(wrap.firstChild);
-  Object.entries(C62.CHAR_SKILL_TREES).forEach(([who,tree])=>{
+  const trees = C.CHAR_SKILL_TREES || {};
+
+  const head=document.createElement('div'); head.className='card';
+  head.innerHTML=`<h3>Fertigkeitspunkte: ${v.skillPts|0}</h3><p class="meta">Tippe einen Knoten zum Freischalten. Voraussetzungen: Linie von unten nach oben.</p>`;
+  body.appendChild(head);
+
+  Object.entries(trees).forEach(([who,tree])=>{
     const st=v.charSkills[who]||{unlocked:[]};
-    const card=document.createElement('div'); card.className='card';
-    card.innerHTML=`<h3>${tree.name}</h3>`;
-    tree.nodes.forEach(n=>{
-      const on=st.unlocked.includes(n.id);
-      const b=document.createElement('button'); b.type='button'; b.className='bcm'+(on?' on':'');
-      b.textContent=(on?'✓ ':'')+n.name+' ('+n.cost+' SP) — '+n.desc;
-      b.disabled=on;
-      b.onclick=()=>{ const r=C62.unlockSkillNode(S,who,n.id); toast?.(r.text); save?.(); body.innerHTML=''; renderV62Progress(body,S,helpers); };
-      card.appendChild(b);
+    const card=document.createElement('div'); card.className='card skill-tree-card';
+    card.innerHTML=`<h3>${tree.icon||''} ${tree.name}</h3>`;
+    const canvas=document.createElement('div'); canvas.className='skill-tree';
+    canvas.style.cssText='position:relative;min-height:220px;padding:8px 4px 12px;';
+    const nodes=tree.nodes||[];
+    const W=280, rowH=64, nodeW=86, nodeH=52;
+    // connectors
+    const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+    svg.setAttribute('width','100%'); svg.setAttribute('height', String(nodes.length*rowH+20));
+    svg.style.cssText='position:absolute;left:0;top:0;pointer-events:none;';
+    nodes.forEach((n,i)=>{
+      const req=(n.requires||[])[0];
+      if(!req) return;
+      const pi=nodes.findIndex(x=>x.id===req);
+      if(pi<0) return;
+      const x1=W/2, y1=pi*rowH+nodeH;
+      const x2=W/2, y2=i*rowH;
+      const unlocked=st.unlocked.includes(n.id) && st.unlocked.includes(req);
+      const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+      line.setAttribute('x1',x1); line.setAttribute('y1',y1);
+      line.setAttribute('x2',x2); line.setAttribute('y2',y2);
+      line.setAttribute('stroke', unlocked?'#c9a227':'#4a5568');
+      line.setAttribute('stroke-width', unlocked?'3':'2');
+      line.setAttribute('stroke-dasharray', unlocked?'0':'4 3');
+      svg.appendChild(line);
     });
+    canvas.appendChild(svg);
+    nodes.forEach((n,i)=>{
+      const on=st.unlocked.includes(n.id);
+      const reqsOk=(n.requires||[]).every(r=>st.unlocked.includes(r));
+      const can= !on && reqsOk && (v.skillPts|0)>=(n.cost|0);
+      const locked= !on && !reqsOk;
+      const btn=document.createElement('button');
+      btn.type='button';
+      btn.className='skill-node'+(on?' unlocked':'')+(locked?' locked':'')+(can?' can':'');
+      btn.style.cssText=`position:absolute;left:50%;transform:translateX(-50%);top:${i*rowH}px;width:${nodeW}px;height:${nodeH}px;
+        border-radius:12px;border:2px solid ${on?'#c9a227':locked?'#333':'#6a7a9a'};
+        background:${on?'linear-gradient(160deg,#3a2a10,#1a1208)':locked?'#12141c':'#1a2438'};
+        color:${on?'#f5e6b8':locked?'#666':'#dde'};
+        font-size:11px;line-height:1.15;padding:4px;cursor:${can||on?'pointer':'default'};
+        box-shadow:${on?'0 0 10px rgba(201,162,39,.45)':'none'};opacity:${locked?0.55:1};`;
+      btn.innerHTML=`<div style="font-size:16px">${n.icon||'◆'}</div><div><b>${n.name}</b></div><div style="opacity:.8">${n.cost} FP · ${n.desc}</div>`;
+      btn.disabled = on || locked || !can;
+      if(can){
+        btn.onclick=()=>{
+          const r=C.unlockSkillNode(S,who,n.id);
+          toast?.(r.text); save?.();
+          body.innerHTML=''; renderV62Progress(body,S,helpers);
+        };
+      }
+      canvas.appendChild(btn);
+    });
+    card.appendChild(canvas);
     body.appendChild(card);
   });
+
   // Craft
   const craft=document.createElement('div'); craft.className='card';
   craft.innerHTML=`<h3>Werkstatt (Stufe ${v.craftTier|0})</h3><p class="meta">Material: ${Object.entries(v.mats||{}).map(([k,n])=>k+'×'+n).join(', ')||'—'}</p>`;
-  C62.craftTierOf(S).forEach(t=>{
-    t.recipes.forEach(rid=>{
-      const rec=C62.CRAFT_RECIPES[rid]; if(!rec) return;
+  (C.craftTierOf?.(S)||[]).forEach(t=>{
+    (t.recipes||[]).forEach(rid=>{
+      const rec=C.CRAFT_RECIPES?.[rid]; if(!rec) return;
       const b=document.createElement('button'); b.type='button'; b.className='bcm';
-      b.textContent=`Herstellen: ${rec.name} (${rec.cost.gold}G)`;
-      b.onclick=()=>{ const r=C62.tryCraft(S,rid); toast?.(r.text); save?.(); body.innerHTML=''; renderV62Progress(body,S,helpers); };
+      b.textContent=`Herstellen: ${rec.name} (${rec.cost.gold} Gold)`;
+      b.onclick=()=>{ const r=C.tryCraft(S,rid); toast?.(r.text); save?.(); body.innerHTML=''; renderV62Progress(body,S,helpers); };
       craft.appendChild(b);
     });
   });
   body.appendChild(craft);
-  // Side + puzzle
-  const sq=C62.sidequestForChapter(S);
-  const pz=C62.puzzleForChapter(S);
+
+  const sq=C.sidequestForChapter?.(S);
+  const pz=C.puzzleForChapter?.(S);
   const q=document.createElement('div'); q.className='card';
   q.innerHTML=`<h3>Kapitel-Aufträge</h3>
-    <p><b>Side:</b> ${sq?sq.title+' — '+sq.desc:('—')} ${sq&&v.sideDone.includes(sq.id)?'✓':''}</p>
-    <p><b>Rätsel:</b> ${pz?pz.title+' — '+pz.prompt:('—')} ${pz&&v.puzzlesDone.includes(pz.id)?'✓':''}</p>`;
+    <p><b>Nebenquest:</b> ${sq?sq.title+' — '+sq.desc:'—'} ${sq&&v.sideDone.includes(sq.id)?'✓':''}</p>
+    <p><b>Rätsel:</b> ${pz?pz.title+' — '+pz.prompt:'—'} ${pz&&v.puzzlesDone.includes(pz.id)?'✓':''}</p>`;
   if(pz && !v.puzzlesDone.includes(pz.id)){
     const b=document.createElement('button'); b.type='button'; b.className='bcm';
-    b.textContent='Rätsel lösen (Auto: richtige Reihenfolge)';
-    b.onclick=()=>{ const r=C62.solvePuzzle(S,pz.id,pz.solution); toast?.(r.text); save?.(); body.innerHTML=''; renderV62Progress(body,S,helpers); };
+    b.textContent='Rätsel lösen (richtige Reihenfolge)';
+    b.onclick=()=>{ const r=C.solvePuzzle(S,pz.id,pz.solution); toast?.(r.text); save?.(); body.innerHTML=''; renderV62Progress(body,S,helpers); };
     q.appendChild(b);
   }
   if(sq && !v.sideDone.includes(sq.id)){
     const b=document.createElement('button'); b.type='button'; b.className='bcm';
-    b.textContent='Sidequest abschließen (Story-Szene empfohlen)';
-    b.onclick=()=>{ const r=C62.completeSidequest(S,sq.id); toast?.(r.text); save?.(); body.innerHTML=''; renderV62Progress(body,S,helpers); };
+    b.textContent='Nebenquest abschließen (Story empfohlen)';
+    b.onclick=()=>{ const r=C.completeSidequest(S,sq.id); toast?.(r.text); save?.(); body.innerHTML=''; renderV62Progress(body,S,helpers); };
     q.appendChild(b);
   }
   body.appendChild(q);
-  // Superboss
+
   const sb=document.createElement('div'); sb.className='card';
   const unlocked=!!v.superbossUnlocked || !!S.flags?.superboss_aether;
-  sb.innerHTML=`<h3>Optionaler Superboss</h3><p class="meta">${C62.OPTIONAL_SUPERBOSS.blurb}</p>`;
+  sb.innerHTML=`<h3>Optionaler Superboss</h3><p class="meta">${C.OPTIONAL_SUPERBOSS?.blurb||''}</p>`;
   const b=document.createElement('button'); b.type='button'; b.className='bcm';
-  b.textContent=unlocked?'Herausforderung: Ätherwyrm':'Noch gesperrt (Sides + Rätsel + Ende)';
+  b.textContent=unlocked?'Herausforderung: Ätherwyrm':'Noch gesperrt (Nebenquests + Rätsel + Ende)';
   b.disabled=!unlocked;
-  b.onclick=()=>{
-    if(!unlocked) return;
-    startSuperbossSetpiece(S, Battle||window.__game?.Battle, helpers);
-  };
+  b.onclick=()=>{ if(!unlocked) return; startSuperbossSetpiece(S, Battle||window.__game?.Battle, helpers); };
   sb.appendChild(b);
   body.appendChild(sb);
 }

@@ -130,8 +130,8 @@ label{font-size:13px;opacity:.8}
 .panel.hidden,.sheet.hidden,#title.hidden,#stage.hidden,#keyGate.hidden,.menu.hidden{display:none!important}
 .row{display:flex;gap:8px;flex-wrap:wrap}
 body.busy{cursor:progress}</style>
-<link rel="stylesheet" href="style.css?v=57" media="print" onload="this.media='all'">
-<noscript><link rel="stylesheet" href="style.css?v=57"></noscript></head><body class="pixel-jrpg">
+<link rel="stylesheet" href="style.css?v=63" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="style.css?v=63"></noscript></head><body class="pixel-jrpg">
 <svg xmlns="http://www.w3.org/2000/svg" style="display:none">
   <symbol id="i-status" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c1.5-3.5 4-5 7-5s5.5 1.5 7 5"/></symbol>
   <symbol id="i-level" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 4v16M8 8l4-4 4 4M8 16h8"/></symbol>
@@ -181,25 +181,18 @@ body.busy{cursor:progress}</style>
  <canvas id="particles" aria-hidden="true"></canvas>
  <div class="title-veil"></div>
  <div class="title-inner">
-  <div class="title-badge">v49</div>
-  <h1 class="logo">Isekai<br><span>Reinkarnation</span></h1>
-  <p class="tagline">Stirb. Erwache. Lebe die Geschichte.</p>
-  <button id="btnNew" class="big glow" type="button">✦ Neues Leben</button>
+  <div class="title-badge">v63 · JRPG</div>
+  <h1 class="logo">Nocturna</h1>
+  <p class="tagline">Klassisches JRPG — Menüwahl, Overworld, Kämpfe.</p>
+  <button id="btnNew" class="big glow" type="button">✦ Neues Spiel</button>
   <button id="btnContinue" class="big alt hidden" type="button">▶ Weiterspielen</button>
-  <button id="btnGreyBook" class="big book" type="button">📖 Greymourne öffnen</button>
-  <button id="btnGenre" class="big alt" type="button">🎲 Eigene Welt / Genre</button>
- <div id="genrePick" class="genre-pick hidden">
-  <h2>Welt erschaffen</h2>
-  <p class="meta">Wähle ein Genre oder beschreibe deine Premise. Die Welt wird einmal generiert und bleibt bestehen.</p>
-  <label>Genre</label>
-  <select id="genreSelect"></select>
-  <label>Oder freie Premise</label>
-  <input id="genreCustom" placeholder="z.B. Zombie-Apokalypse in Berlin, nur Nachts…" autocomplete="off">
-  <label>Dein Name</label>
-  <input id="genreName" placeholder="Alex" autocomplete="off">
-  <div class="row"><button type="button" id="btnGenreGo" class="big glow">✦ Welt starten</button>
-  <button type="button" class="ghost" onclick="document.getElementById('genrePick').classList.add('hidden')">Abbrechen</button></div>
- </div>
+  <!-- Greymourne / free-genre AI removed from runtime (see freetext-archive) -->
+  <div id="genrePick" class="genre-pick hidden" hidden aria-hidden="true"></div>
+  <button id="btnGreyBook" type="button" class="hidden" hidden aria-hidden="true" tabindex="-1"></button>
+  <button id="btnGenre" type="button" class="hidden" hidden aria-hidden="true" tabindex="-1"></button>
+  <input id="genreCustom" type="hidden" value="">
+  <input id="genreName" type="hidden" value="">
+  <select id="genreSelect" class="hidden" hidden aria-hidden="true"></select>
   <div class="title-foot">
    <button id="btnMusic" class="ghost tiny" type="button" title="Musik">🔇 Musik aus</button>
    <button id="btnTitleSettings" class="ghost tiny" type="button">⚙︎</button>
@@ -235,10 +228,9 @@ body.busy{cursor:progress}</style>
   </div>
  </div>
  <div id="choices" class="choices"></div>
- <form id="inputRow" class="input-row">
-  <input id="txt" placeholder="Was tust oder sagst du?" autocomplete="off" enterkeyhint="send" autocapitalize="sentences">
-  <button type="submit" aria-label="Senden">➤</button>
- </form>
+ <!-- inputRow removed: classic JRPG only (freetext-archive) -->
+ <input id="txt" type="hidden" value="" tabindex="-1" aria-hidden="true">
+ <div id="inputRow" class="input-row hidden" hidden aria-hidden="true"></div>
  <button id="btnAudio" type="button" title="Ambient-Sound" aria-label="Sound">🔇</button>
 </section>
 
@@ -261,8 +253,7 @@ body.busy{cursor:progress}</style>
     <button type="button" data-tab="rels">Beziehungen</button>
     <button type="button" data-tab="quests">Quests</button>
     <button type="button" data-tab="home">Zuhause</button>
-    <button type="button" data-tab="journal">Chronik</button>
-    <button type="button" data-tab="finance">Finanzen</button>
+        <button type="button" data-tab="finance">Finanzen</button>
     <button type="button" data-tab="kingdom">Reich</button>
     <button type="button" data-tab="codex">Codex</button>
     <button type="button" data-tab="atlas">Karte+</button>
@@ -273,57 +264,38 @@ body.busy{cursor:progress}</style>
   <div id="menuBody" class="menu-body"></div>
  </div>
 </div>
+<!-- keyGate removed: no AI narrator (freetext-archive) -->
+<section id="keyGate" class="screen hidden" hidden aria-hidden="true"><button id="btnGateSave" type="button" class="hidden" hidden></button><button id="btnGateSkip" type="button" class="hidden" hidden></button></section>
 
-<!-- KEY GATE -->
-<section id="keyGate" class="screen hidden">
- <div class="gate-card">
-  <h1>Noch ein Schritt</h1>
-  <p class="sub">Optional: kostenloser KI-Schlüssel für eine Online-Erzählerin. Ohne Schlüssel spielt du sofort mit der reichen Offline-Erzählerin. Schlüssel bleiben nur auf diesem Gerät — nie auf dem Server.</p>
-  <label>Gemini-Schlüssel (kostenlos)</label>
-  <input id="gateKey" type="password" placeholder="AIza…" autocomplete="off" enterkeyhint="go">
-  <p class="small">1. Öffne <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener">aistudio.google.com/app/apikey</a><br>2. „API-Schlüssel erstellen“ · 3. Hier einfügen.</p>
-  <button id="btnGateSave" class="big" type="button">Mit Gemini starten</button>
-  <button id="btnGateSkip" class="big alt" type="button">Offline-Erzählerin (ohne Schlüssel)</button>
-  <p class="small">Pollinations-Schlüssel (Pollen) kannst du später unter Einstellungen eintragen.</p>
- </div>
-</section>
-
-<!-- SETTINGS SHEET -->
+<!-- SETTINGS SHEET — audio / controls / display only (no AI keys) -->
 <div id="sheet" class="hidden"><div class="panel">
  <h2>Einstellungen</h2>
- <div id="narratorStatus" class="narr-status" aria-live="polite">
-  <span id="narrDot" class="narr-dot" data-mode="offline" title="Narrator"></span>
-  <span id="narrLabel">Erzählerin: Offline (lokal)</span>
+ <p class="small meta">Nur Audio, Steuerung und Anzeige. Keine KI-Erzählerin.</p>
+ <label>Musik / Ambient</label>
+ <div class="row">
+  <button id="btnMusicSheet" type="button" class="bcm">Musik umschalten</button>
  </div>
- <div id="geminiBox" class="key-box">
-  <p class="small narr-help">Die Online-Erzählerin braucht einen kostenlosen Schlüssel. Ohne Schlüssel bleibt die Offline-Erzählerin aktiv — sie ist lokal, privat und braucht kein Netz. Schlüssel werden nur in diesem Browser gespeichert und nie hochgeladen.</p>
-  <label>Gemini-Schlüssel (kostenlos)</label>
-  <input id="gkey" type="password" placeholder="AIza…" autocomplete="off" spellcheck="false">
-  <div class="small">Hol einen unter <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener">Google AI Studio → API-Schlüssel</a> (ein Klick „Create API key“).</div>
-  <label>Pollinations-Schlüssel / Pollen (optional)</label>
-  <input id="pollenKey" type="password" placeholder="pollen_… oder API-Key" autocomplete="off" spellcheck="false">
-  <div class="small">Falls du Pollinations nutzt: Key unter <a href="https://enter.pollinations.ai/" target="_blank" rel="noopener">enter.pollinations.ai</a> — aktiviert den gen.pollinations-Pfad. Ohne Key ist Gratis-Pollinations derzeit oft nicht erreichbar.</div>
+ <label>Kampfstärke</label>
+ <select id="battleDiff"><option value="story">Geschichte</option><option value="normal" selected>Normal</option><option value="hard">Hart</option><option value="nightmare">Albtraum</option></select>
+ <label>ATB-Modus</label>
+ <select id="atbMode"><option value="active">Aktiv</option><option value="wait">Warten</option></select>
+ <label>Anzeige</label>
+ <label class="row"><input type="checkbox" id="dbgToggle"> Debug-Zeiten anzeigen</label>
+ <!-- Stubs so legacy JS openSheet does not throw -->
+ <div id="narratorStatus" class="hidden" hidden aria-hidden="true"><span id="narrDot"></span><span id="narrLabel"></span></div>
+ <div id="geminiBox" class="hidden" hidden aria-hidden="true"></div>
+ <input id="gkey" type="hidden" value="">
+ <input id="pollenKey" type="hidden" value="">
+ <input id="gateKey" type="hidden" value="">
+ <select id="mode" class="hidden" hidden aria-hidden="true"><option value="offline" selected>offline</option></select>
+ <select id="gmodel" class="hidden" hidden aria-hidden="true"></select>
+ <div id="gmstatus" class="hidden" hidden></div>
+ <div id="advBox" class="hidden" hidden aria-hidden="true">
+  <div id="webllmBox" class="hidden"><select id="wmodel"></select><button id="btnLoad" type="button" class="hidden"></button><div id="wstatus"></div></div>
+  <div id="apiBox" class="hidden"><input id="aurl" type="hidden"><input id="akey" type="hidden"><input id="amodel" type="hidden"></div>
  </div>
  <button id="btnSave" type="button">Speichern</button>
- <button id="btnAdv" type="button" class="ghost">Erweitert ▸</button>
- <div id="advBox" class="hidden">
-  <label>Erzähler</label>
-  <select id="mode"><option value="offline">Offline (empfohlen ohne Key)</option><option value="gemini">Google Gemini</option><option value="free">Pollinations (braucht oft Pollen-Key)</option><option value="webllm">On-Device (WebLLM)</option><option value="api">Eigener API-Endpunkt</option></select>
-  <label>Gemini-Modell</label><select id="gmodel"></select><div class="small" id="gmstatus"></div>
-  <label><input type="checkbox" id="dbgToggle"> Zugzeit anzeigen</label>
-  <label>Kampfstärke</label>
-  <select id="battleDiff"><option value="story">Geschichte</option><option value="normal" selected>Normal</option><option value="hard">Hart</option><option value="nightmare">Albtraum</option></select>
-  <label>ATB-Modus</label>
-  <select id="atbMode"><option value="active">Aktiv</option><option value="wait">Warten</option></select>
-  <div class="small">Kampfstärke und ATB gelten für JRPG-Kämpfe. Finish/Verschonen/KO bleiben.</div>
-  <div id="webllmBox"><label>WebLLM-Modell</label><select id="wmodel">
-   <option value="Qwen2.5-1.5B-Instruct-q4f16_1-MLC">Qwen2.5 1.5B (~1 GB)</option>
-   <option value="Qwen2.5-0.5B-Instruct-q4f16_1-MLC">Qwen2.5 0.5B (~400 MB)</option>
-   <option value="Llama-3.2-1B-Instruct-q4f16_1-MLC">Llama 3.2 1B (~0.9 GB)</option></select>
-   <button id="btnLoad" type="button">Modell laden</button><div id="wstatus" class="small"></div></div>
-  <div id="apiBox"><label>Base-URL</label><input id="aurl" placeholder="https://api.groq.com/openai/v1">
-   <label>API-Key</label><input id="akey" type="password" placeholder="sk-…"><label>Modell</label><input id="amodel" placeholder="llama-3.1-8b-instant"></div>
- </div>
+ <button id="btnAdv" type="button" class="ghost hidden" hidden aria-hidden="true">Erweitert</button>
  <button id="btnReset" type="button" class="danger">Neues Spiel (alles löschen)</button>
  <button id="btnClose" type="button" class="ghost">Schließen</button>
 </div></div>
@@ -331,7 +303,7 @@ body.busy{cursor:progress}</style>
 <div id="onboardCoach" class="hidden" role="dialog" aria-label="Erste Schritte">
   <h3>Willkommen, Reisende/r</h3>
   <ol>
-    <li><b>Tippe eine Wahl</b> unter dem Text — oder schreibe frei, was du tust.</li>
+    <li><b>Tippe eine Wahl</b> unter dem Dialogfenster (keine Freitext-Eingabe).</li>
     <li><b>Overworld:</b> D-Pad / Wischen bewegen, A sprechen, B Menü.</li>
     <li><b>Kampf:</b> große Befehle unten tippen (Angriff, Magie, Item…).</li>
   </ol>
@@ -342,4 +314,4 @@ body.busy{cursor:progress}</style>
 <div id="toast"></div>
 <div id="dbg" class="dbg hidden"></div>
 </div>
-<script type="module" src="game.js?v=62"></script></body></html>
+<script type="module" src="game.js?v=63"></script></body></html>

@@ -38,6 +38,7 @@ import * as C59 from './content59.js';
 import * as C60 from './content60.js';
 import * as C61 from './content61.js';
 import * as C62 from './content62.js';
+import * as C63 from './content63.js';
 import * as Aud from './audio.js';
 
 /* ---- v57 lazy modules: battle / overworld / craft / cutscenes (DCL path) ---- */
@@ -154,10 +155,17 @@ const TravelMap = lazyProxy(()=>_travelMod, ensureTravelMap, {});
 
 import { hasBg } from './bg-manifest.js';
 try{ Aud.unlockOnGesture?.(); }catch(_){} // v28 first-tap music
+try{ // v63 scrub AI cfg from localStorage
+  if(cfg && typeof cfg==='object'){
+    cfg.mode='offline'; cfg.gkey=''; cfg.pollenKey='';
+    try{ localStorage.setItem(CFG, JSON.stringify(cfg)); }catch(_){}
+  }
+}catch(_){}
+
  // v41: test-only scripted, fair ATB bosses, boss dialogue talk-down, tilemap minimap, craft XP→T4
 const $=s=>document.querySelector(s);const $$=s=>[...document.querySelectorAll(s)];const R=a=>a[Math.floor(Math.random()*a.length)];const rnd=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
-const VER='62',CACHE_V='v62';
-const FREETEXT_ENABLED = !!(C62?.FREETEXT_ENABLED ?? C61?.FREETEXT_ENABLED ?? C60?.FREETEXT_ENABLED ?? C59?.FREETEXT_ENABLED ?? C58?.FREETEXT_ENABLED);
+const VER='63',CACHE_V='v63';
+const FREETEXT_ENABLED = false; // v63: classic JRPG only — free-text archived on freetext-archive
 
 try{ const _tb=document.querySelector('.title-badge'); if(_tb) _tb.textContent='v'+VER; }catch(_e){}
 
@@ -747,11 +755,11 @@ function applyCatchUp(){if(!S)return null;
 function toast(t){const e=$('#toast');if(!e)return;e.textContent=t;e.classList.add('on','toast-top');clearTimeout(e._t);e._t=setTimeout(()=>{e.classList.remove('on');},2800)}
 function eventToast(t){const e=$('#eventToast');if(!e)return;e.textContent=t;e.classList.remove('hidden');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.add('hidden'),4200)}
 function hasKey(){return !!(cfg.gkey||'').trim()}
-function wantAI(){return cfg.mode!=='offline'}
-function gateOrShow(){if(S&&S.setup&&!S.setup.done){enterPlay();return}
- if(!hasKey()&&(cfg.mode==='gemini'||!cfg.mode)){cfg.mode=(cfg.pollenKey||'').trim()?'free':'offline';try{localStorage.setItem(CFG,JSON.stringify(cfg))}catch(_){}}
- if(wantAI()&&!hasKey()&&cfg.mode!=='webllm'&&cfg.mode!=='api'&&cfg.mode!=='free'&&cfg.mode!=='offline'){showKeyGate();return}enterPlay()}
-function showKeyGate(){$('#title').classList.add('hidden');$('#stage').classList.add('hidden');const g=$('#keyGate');if(g){g.classList.remove('hidden');$('#gateKey').value='';setTimeout(()=>$('#gateKey').focus(),50)}}
+function wantAI(){ return false; } // v63: no AI narrator
+function gateOrShow(){ try{ cfg.mode='offline'; cfg.gkey=''; cfg.pollenKey=''; }catch(_){}
+ if(S&&S.setup&&!S.setup.done){enterPlay();return}
+ enterPlay()}
+function showKeyGate(){ /* v63 removed AI key gate */ try{cfg.mode='offline';}catch(_){} enterPlay(); }
 function dbgLine(){const el=$('#dbg');if(!el)return;if(!cfg.debug){el.classList.add('hidden');return}el.classList.remove('hidden');el.textContent=_dbgMs?('Zug '+_dbgMs+' ms'+(S?._ttft!=null?(' · TTFT '+S._ttft+' ms'):'')+(S?._promptChars?(' · ~'+Math.round(S._promptChars/3.5)+' tok'):'')):'–'}
 
 /* ---------- items / skills helpers ---------- */
@@ -898,6 +906,7 @@ function migrate(raw){if(!raw)return null;const s=typeof raw==='string'?JSON.par
  if(Number(s.ver)<60){ try{ C60.migrateV60(s); }catch(e){console.warn('v60 migrate',e)} }
  if(Number(s.ver)<61){ try{ C61.migrateV61(s); }catch(e){console.warn('v61 migrate',e)} }
  if(Number(s.ver)<62){ try{ C62.migrateV62(s); }catch(e){console.warn('v62 migrate',e)} }
+ if(Number(s.ver)<63){ try{ C63.migrateV63(s); }catch(e){console.warn('v63 migrate',e)} }
  try{ if(s.role==='proc'||s.genre){ const pack=s.worldPack||PACKS.proc||{icon:'🎲',titel:s.world?.titel||'Welt',_genreLabel:s.genre||'Abenteuer',ton:'',genre:s.genre}; PACKS.proc=pack; ROLES.proc=ROLES.proc||{e:pack.icon||'🎲',name:pack._genreLabel||pack.titel||'Welt',d:pack.ton||'',world:pack.titel||'Welt',base:{hp:100,mp:30,str:10,cha:10,ruf:0,gold:20},cls:['Überlebende:r','Scavenger','Anführer:in','Legende'],pack:'',scene:pack.imageStyle||''}; } }catch(_){}
  try{ ensurePlaceCommerceTags(s); }catch(_){}
  // v13.1 continuity+time always (kept in v14)
@@ -966,7 +975,7 @@ async function newLife(role,meta,opts){meta=meta||{lives:0,soul:0,keptSkills:[]}
   time:{day:1,hour:18,phase:'Abend'},imgCache:{scenes:{},portraits:{},ok:{},fail:{},next:{}}};
  S.world=world;S.heat=0;S.wanted=[];S.dead=[];S.ledger=[];S.needs={hunger:20,fatigue:10,ageYears:18};S.home=Sim.blankHome();S.cal=Sim.blankCalendar(S.time);S.saveSeq=0;
  try{Sim.migrateToV13(S);Econ.ensureEcon(S);try{Econ.ensureMarket?.(S)}catch(_){};Codex.ensureCodex(S);WorldMap.ensureSpawn(S);Level.ensureProgress(S);Know.ensureKnow(S);Know.migrateKnow(S);Jobs.ensureJobs(S);Equip.ensureEquip(S)}catch(_){}
- try{ C39.ensureContent39(S); C39.seedThreads(S); C40.seedAllNpcArcs(S); C40.ensureCraft40(S); C41.ensureCraft41(S); C41.syncCraftProgress41(S); C42.migrateV42(S); C43.migrateV43(S); C44.migrateV44(S); C45.migrateV45(S); C46.migrateV46(S); C47.migrateV47(S); C48.migrateV48(S); C49.migrateV49(S); C50.migrateV50(S); C51.migrateV51(S); C52.migrateV52(S); C53.migrateV53(S); C54.migrateV54(S); C55.migrateV55(S); C56.migrateV56(S); C57.migrateV57(S); C58.migrateV58(S); C59.migrateV59(S); C60.migrateV60(S); C61.migrateV61(S); C62.migrateV62(S); C39.midgameUnlocks(S,{toast:false}); }catch(_){}
+ try{ C39.ensureContent39(S); C39.seedThreads(S); C40.seedAllNpcArcs(S); C40.ensureCraft40(S); C41.ensureCraft41(S); C41.syncCraftProgress41(S); C42.migrateV42(S); C43.migrateV43(S); C44.migrateV44(S); C45.migrateV45(S); C46.migrateV46(S); C47.migrateV47(S); C48.migrateV48(S); C49.migrateV49(S); C50.migrateV50(S); C51.migrateV51(S); C52.migrateV52(S); C53.migrateV53(S); C54.migrateV54(S); C55.migrateV55(S); C56.migrateV56(S); C57.migrateV57(S); C58.migrateV58(S); C59.migrateV59(S); C60.migrateV60(S); C61.migrateV61(S); C62.migrateV62(S); C63.migrateV63(S); C39.midgameUnlocks(S,{toast:false}); }catch(_){}
  if(opts.skipSetup){finishSetup(pack);gateOrShow();return}
  // If cinematic already covered death, skip first setup beat when it is 'tod'
  if(opts.fromIntro){S.flags.introDeath=true;S.setup.answers.tod={label:'(Intro)',past:opts.trait||''};S.setup.beat=1}
@@ -1038,12 +1047,12 @@ let _intro={beat:0,answers:{},role:null,name:'',bg:'',look:'',trait:''};
 function startIntro(){_mode='intro';_intro={beat:0,answers:{},role:null,name:'',bg:'',look:'',trait:''};
  $('#title').classList.add('hidden');$('#keyGate').classList.add('hidden');$('#stage').classList.remove('hidden');
  document.body.classList.remove('greyw');$('.top-actions').style.visibility='hidden';$('#hud').style.visibility='hidden';
- $('#inputRow').classList.add('hidden');
+ try{$('#inputRow')?.classList.add('hidden');}catch(_){};
  // v31 pixel cutscene, then classic beats
  ensureCut31().then(c=>c.playIntroCutscene({})).then(()=>{
-   $('#inputRow').classList.remove('hidden');
+   /* inputRow stays gone */;
    showIntroBeat();
- }).catch(()=>{ $('#inputRow').classList.remove('hidden'); showIntroBeat(); });
+ }).catch(()=>{ /* inputRow stays gone */; showIntroBeat(); });
 }
 
 function showIntroBeat(){const i=_intro.beat;if(i>=INTRO_BEATS.length){return finishIntro()}
@@ -1327,7 +1336,7 @@ function renderChoices(){const c=$('#choices');if(S._setupChoices)return;c.inner
  // v58 classic JRPG: menu choices from campaign (no free-text act)
  if(!FREETEXT_ENABLED && S?.campaign?._choiceObjs?.length){
    try{
-     C62.renderJrpgChoices(S,{
+     C63.renderJrpgChoices(S,{
        choicesEl:c,
        onChoice:(ch)=>Promise.resolve(jrpgPick(ch)).catch(e=>console.warn('jrpg',e)),
      });
@@ -1349,9 +1358,9 @@ function renderChoices(){const c=$('#choices');if(S._setupChoices)return;c.inner
 
 async function jrpgPick(ch){
   if(!S) return;
-  try{ C59.migrateV59(S); C60.migrateV60(S); C61.migrateV61(S); C62.migrateV62(S); }catch(_){ try{ C58.migrateV58(S); }catch(__){} }
-  const pack = C62.resolveChoice(S, ch, { toast:(m)=>toast(m) });
-  let bid = C62.pendingBattleId(S);
+  try{ C59.migrateV59(S); C60.migrateV60(S); C61.migrateV61(S); C62.migrateV62(S); C63.migrateV63(S); }catch(_){ try{ C58.migrateV58(S); }catch(__){} }
+  const pack = C63.resolveChoice(S, ch, { toast:(m)=>toast(m) });
+  let bid = C63.pendingBattleId(S);
   if(bid){
     try{
       await ensureBattle();
@@ -1362,7 +1371,7 @@ async function jrpgPick(ch){
       }
       foe = foe || {id:bid,name:bid,hp:60,maxhp:60,atk:10,def:5,mag:6,spd:9,icon:'👹'};
       const isBoss = !!(foe.boss) || (S.campaign?.dungeon && (S.campaign.dungeon.room|0)>(S.campaign.dungeon.rooms|0) && S.campaign.dungeon.boss===bid);
-      if(isBoss){ try{ foe = C62.scaleBossFoe(foe, bid) || foe; }catch(_){ } }
+      if(isBoss){ try{ foe = C63.scaleBossFoe(foe, bid) || foe; }catch(_){ } }
       const foes=[{...foe, boss:isBoss||foe.boss}];
       Battle.startBattle(S, {
         enemies: foes,
@@ -1372,7 +1381,7 @@ async function jrpgPick(ch){
             const win = sum && sum.result==='win';
             const lost = sum && sum.result==='lose';
             if(win && isBoss){
-              applyJrpgPack(C62.onBossVictory(S,{toast}));
+              applyJrpgPack(C63.onBossVictory(S,{toast}));
             } else if(win && S.campaign?.mode==='dungeon'){
               applyJrpgPack(C61.resolveChoice(S,{next:'dungeon'},{toast}));
             } else if(lost && isBoss){
@@ -1408,22 +1417,16 @@ function applyJrpgPack(pack){
 }
 function syncFreetextUI(){
   try{
-    const row=$('#inputRow');
-    if(!row) return;
-    if(!FREETEXT_ENABLED){
-      row.classList.add('hidden');
-      row.style.display='none';
-      document.body.classList.add('jrpg-classic');
-      document.body.classList.add('no-freetext');
-      document.body.classList.add('visual59');
-    } else {
-      row.classList.remove('hidden');
-      row.style.display='';
-      document.body.classList.remove('no-freetext');
-    }
+    document.body.classList.add('no-freetext','jrpg-classic','visual59','visual62','visual63');
+    document.body.classList.remove('freetext-on');
+    const row=document.getElementById('inputRow');
+    if(row){ row.classList.add('hidden'); row.setAttribute('hidden',''); row.style.display='none'; }
+    const txt=document.getElementById('txt');
+    if(txt){ txt.value=''; txt.setAttribute('readonly',''); txt.tabIndex=-1; }
+    const kg=document.getElementById('keyGate');
+    if(kg){ kg.classList.add('hidden'); kg.setAttribute('hidden',''); }
   }catch(_){}
 }
-
 
 function pushSys(t){if(!S.log)S.log=[];S.log.push({k:'s',t});if(S.log.length>80)S.log.shift();eventToast(t)}
 function add(k,t){
@@ -1451,11 +1454,11 @@ function showOnboardCoach(){
       S.flags.onboarded=true;
       el.classList.add('hidden');
       try{save()}catch(_){}
-      try{ if(!document.body.classList.contains('in-battle') && !document.getElementById('battleRoot')?.classList.contains('hidden')===false){ /* skip */ } if(!document.body.classList.contains('in-battle')){ const br=document.getElementById('battleRoot'); if(!br || br.classList.contains('hidden')) toast(FREETEXT_ENABLED?'Tipp: Schreibe z.B. „hallo“ oder tippe eine Wahl.':'Tipp: Wähle eine Option — klassisches JRPG.'); } }catch(_){}
+      try{ if(!document.body.classList.contains('in-battle') && !document.getElementById('battleRoot')?.classList.contains('hidden')===false){ /* skip */ } if(!document.body.classList.contains('in-battle')){ const br=document.getElementById('battleRoot'); if(!br || br.classList.contains('hidden')) /* v63: no tip toast */; } }catch(_){}
     };
   }
 }
-function enterPlay(){try{ensurePlaceCommerceTags(S)}catch(_){}$('#keyGate')&&$('#keyGate').classList.add('hidden');$('#title').classList.add('hidden');
+function enterPlay(){try{syncFreetextUI()}catch(_){} try{ensurePlaceCommerceTags(S)}catch(_){}$('#keyGate')&&$('#keyGate').classList.add('hidden');$('#title').classList.add('hidden');
  document.body.classList.toggle('greyw',isG());$('#stage').classList.remove('hidden');
  $('.top-actions').style.visibility='';$('#hud').style.visibility='';
  if(S.setup&&!S.setup.done){_mode='setup';loadPack(S.role).then(p=>{S._setupPack=p;showBeat(p)});return}
@@ -1473,7 +1476,7 @@ function enterPlay(){try{ensurePlaceCommerceTags(S)}catch(_){}$('#keyGate')&&$('
    try{
      // Prefer daemon pack world if role is daemon; else still start Nocturna shell
      if(S.role==='daemon' || !S.campaign || S.flags.jrpg58){
-       const pack=C62.startCampaign(S,{toast});
+       const pack=C63.startCampaign(S,{toast});
        applyJrpgPack(pack);
        try{showOnboardCoach()}catch(_){}
        try{const w=Imm.weatherFor(S);S.flags.weather=w;Imm.setWeather(w==='klar'?'none':w);Imm.applyDayNightTint(S);applyGenreTheme(S.genre||S.role)}catch(_){}
@@ -1744,7 +1747,7 @@ function renderMenu(){const body=$('#menuBody');if(!body||!S)return;body.innerHT
  const helpers={act,closeMenu,toast,phaseLabel,setSceneImage,imgUrl,save,openTab:(id)=>{_menuTab=id;$$('#menuTabs button').forEach(x=>x.classList.toggle('on',x.dataset.tab===id));renderMenu()},startSuperboss:(st)=>ensureUI17().then(u=>ensureBattle().then(B=>u.startSuperbossSetpiece(st,B,{toast}))).then(r=>{if(r)afterEncounterResolved(r)}).catch(()=>{})};
  if(_menuTab==='hub'||!_menuTab){UI14.openHub(body,S,helpers);return}
  if(_menuTab==='level'){UI14.renderLevel(body,S,helpers);return}
- if(_menuTab==='equip'||_menuTab==='gems'||_menuTab==='jobs'||_menuTab==='gambits'||_menuTab==='craft'||_menuTab==='summons'||_menuTab==='v62'||_menuTab==='skills'){
+ if(_menuTab==='equip'||_menuTab==='gems'||_menuTab==='jobs'||_menuTab==='gambits'||_menuTab==='craft'||_menuTab==='summons'||_menuTab==='v62'||_menuTab==='v63'||_menuTab==='skills'){
    const tab=_menuTab;
    ensureUI17().then(u=>{
      if(_menuTab!==tab) return;
@@ -1752,10 +1755,10 @@ function renderMenu(){const body=$('#menuBody');if(!body||!S)return;body.innerHT
      else if(tab==='jobs') u.renderJobs(body,S,helpers);
      else if(tab==='gambits') u.renderGambits(body,S,helpers);
      else if(tab==='craft') u.renderCraft(body,S,helpers);
-     else if(tab==='v62'||tab==='skills') u.renderV62Progress?.(body,S,helpers);
+     else if(tab==='v62'||tab==='v63'||tab==='skills') u.renderV62Progress?.(body,S,helpers);
      else if(tab==='summons') u.renderSummons(body,S,helpers);
    }).catch(e=>console.warn('ui17',e));
-   body.innerHTML='<p class="meta">Lade…</p>';
+   body.innerHTML=''; body.dataset.loading='1';
    return;
  }
  if(_menuTab==='status'){const s=S.st;const _rr=ROLES[S.role]||{e:'🎲',name:'Abenteuer',cls:['Abenteurer']};body.innerHTML=`<div class="card"><h3>${_rr.e} ${S.pc?.name||_rr.name}</h3>
@@ -1817,7 +1820,7 @@ function renderMenu(){const body=$('#menuBody');if(!body||!S)return;body.innerHT
   const lore=document.createElement('div');lore.className='card';lore.innerHTML=`<h3>📚 Lore</h3><p class="meta">${(S.world?.lore?.geschichte||PACKS[S.role]?.geschichte||'').slice(0,280)}</p>`;body.appendChild(lore);
   if(S.ticks?.rumours?.length){body.innerHTML+=`<div class="card"><h3>🗣 Gerüchte</h3>${S.ticks.rumours.slice(-5).map(r=>`<div class="lex-item">${r}</div>`).join('')}</div>`}}
  else if(_menuTab==='home'){UI13.renderHome(body,S,{act,closeMenu,phaseLabel})}
- else if(_menuTab==='journal'){UI13.renderJournal(body,S)}
+ else if(_menuTab==='journal'){_menuTab='quests'; /* Chronik/story feed removed v63 */ try{renderMenu()}catch(_){} return;}
  else if(_menuTab==='finance'){UI13.renderFinance(body,S,{act,closeMenu})}
  else if(_menuTab==='kingdom'){UI13.renderKingdom(body,S,{act,closeMenu})}
  else if(_menuTab==='codex'){UI13.renderCodex(body,S,{setSceneImage,imgUrl})}
@@ -2327,7 +2330,7 @@ async function startProcedural(genreInput,pcName){const pack=await generateWorld
   cls:0,turn:0,hist:[],log:[],flags:{},setup:{done:true,beat:0,answers:{}},summary:pack.conflict||'',
   time:{day:1,hour:18,phase:'Abend'},imgCache:{scenes:{},portraits:{},ok:{},fail:{},next:{}},heat:0,wanted:[],dead:[],world};
  enrichNpcs(S.world);ensureGraph(S);try{Sim.migrateToV13(S);Econ.ensureEcon(S);try{Econ.ensureMarket?.(S)}catch(_){};Codex.ensureCodex(S);WorldMap.ensureSpawn(S);Level.ensureProgress(S);Know.ensureKnow(S);Know.migrateKnow(S);Jobs.ensureJobs(S);Gems.ensureGems(S);Summons.ensureSummons(S);Equip.ensureEquip(S);S.ver=VER}catch(_){}if(S.world.systems||S.genre==='zombie')ensureSystems();try{enrichPlaceDescs(S)}catch(_){};
- try{ C39.ensureContent39(S); C39.seedThreads(S); C40.seedAllNpcArcs(S); C40.ensureCraft40(S); C41.ensureCraft41(S); C41.syncCraftProgress41(S); C42.migrateV42(S); C43.migrateV43(S); C44.migrateV44(S); C45.migrateV45(S); C46.migrateV46(S); C47.migrateV47(S); C48.migrateV48(S); C49.migrateV49(S); C50.migrateV50(S); C51.migrateV51(S); C52.migrateV52(S); C53.migrateV53(S); C54.migrateV54(S); C55.migrateV55(S); C56.migrateV56(S); C57.migrateV57(S); C58.migrateV58(S); C59.migrateV59(S); C60.migrateV60(S); C61.migrateV61(S); C62.migrateV62(S); C39.midgameUnlocks(S,{toast:false});
+ try{ C39.ensureContent39(S); C39.seedThreads(S); C40.seedAllNpcArcs(S); C40.ensureCraft40(S); C41.ensureCraft41(S); C41.syncCraftProgress41(S); C42.migrateV42(S); C43.migrateV43(S); C44.migrateV44(S); C45.migrateV45(S); C46.migrateV46(S); C47.migrateV47(S); C48.migrateV48(S); C49.migrateV49(S); C50.migrateV50(S); C51.migrateV51(S); C52.migrateV52(S); C53.migrateV53(S); C54.migrateV54(S); C55.migrateV55(S); C56.migrateV56(S); C57.migrateV57(S); C58.migrateV58(S); C59.migrateV59(S); C60.migrateV60(S); C61.migrateV61(S); C62.migrateV62(S); C63.migrateV63(S); C39.midgameUnlocks(S,{toast:false});
    const rum=(S.content39?.rumours||[])[0]; if(rum){ S.ticks=S.ticks||{rumours:[],log:[]}; S.ticks.rumours=(S.ticks.rumours||[]).concat(rum).slice(-10); }
  }catch(e){console.warn('c39/c40 seed',e)}
  const conflict=(pack.conflict||pack.geschichte||'Die Welt atmet Magie und Gefahr.').slice(0,90);
@@ -3004,7 +3007,7 @@ async function gmProbe(key){const st=await gmFetch(key);const cands=(st.list||G_
  const best=results.filter(r=>r.ok).sort((a,b)=>a.ms-b.ms)[0];
  if(best){s2.chosen=best.m;s2.lat[best.m]=best.ms}gmSave(s2);gmUI();return {best,results}}
 
-async function gemini(a,el){const key=(cfg.gkey||'').trim();if(!key)throw gErr(friendlyAIFail());
+async function gemini(a,el){ if(!FREETEXT_ENABLED) throw gErr("KI-Erzählerin entfernt"); const key=(cfg.gkey||'').trim();if(!key)throw gErr(friendlyAIFail());
  const st=await gmFetch(key);const tPrompt0=performance.now();const base=gBody(a);const order=gmOrder(st);let last,tried=0;
  S._promptChars=(JSON.stringify(base).length)|0; S._ttft=null; S._turnTotal=null;
  for(const m of order){if(tried>=2)break;tried++;
@@ -3209,7 +3212,7 @@ function offlineAsStream(a, el){
  * fire secondary (Gemini if key else offline) in parallel; take first usable stream; cancel loser.
  * Never shows a disruptive error — seamless same-turn failover.
  */
-async function freeStream(a, el){
+async function freeStream(a, el){ if(!FREETEXT_ENABLED){ throw new Error("free-text archived"); } /* dead */
   const t0=performance.now();
   const beat=localBeatLine(a);
   if(el){ el.textContent=beat; el.classList.add('typing'); }
@@ -3702,11 +3705,17 @@ function showTitle(){_mode='title';$('#stage').classList.add('hidden');$('#keyGa
  const sv=localStorage.getItem(KEY);if(sv)$('#btnContinue').classList.remove('hidden');else $('#btnContinue').classList.add('hidden');
  runParticles(); try{ if(Aud.isEnabled()) Aud.playMusic('title'); }catch(_){} }
 
-$('#btnNew').onclick=()=>startIntro();
- if($('#btnGenre'))$('#btnGenre').onclick=()=>openGenrePicker();
+$('#btnNew').onclick=()=>{
+  // v63: jump straight into Nocturna JRPG — no free-text intro / AI premise
+  try{ cfg.mode='offline'; cfg.gkey=''; cfg.pollenKey=''; localStorage.setItem(CFG,JSON.stringify(cfg)); }catch(_){}
+  Promise.resolve(newLife('daemon',{lives:0,soul:0,keptSkills:[]},{skipSetup:true,name:'Noctis',fromIntro:false}))
+    .then(()=>{ try{ enterPlay(); }catch(_){} })
+    .catch(e=>{ console.warn('new',e); try{ startIntro(); }catch(_){} });
+};
+ try{ const b=$('#btnGenre'); if(b) b.onclick=(e)=>{e?.preventDefault?.(); toast('Nur Nocturna-JRPG');}; }catch(_){}
  if($('#btnGenreGo'))$('#btnGenreGo').onclick=()=>{const v=($('#genreCustom')?.value||'').trim()||$('#genreSelect')?.value||'zombie';const name=($('#genreName')?.value||'Alex').trim()||'Alex';closeGenrePicker();startProcedural(v,name)};
 
-$('#btnGreyBook').onclick=()=>startGreyBook();
+try{ const b=$('#btnGreyBook'); if(b) b.onclick=(e)=>{e?.preventDefault?.(); toast('Nur Nocturna-JRPG');}; }catch(_){}
 $('#btnContinue').onclick=async()=>{
   try{S=await loadSave()}catch(_){const sv=localStorage.getItem(KEY);if(!sv)return;S=migrate(sv)}
   if(!S){toast('Kein Spielstand');return}
@@ -3736,47 +3745,40 @@ $('#btnMenuClose').onclick=closeMenu;
 $('#menu').addEventListener('click',e=>{if(e.target.id==='menu')closeMenu()});
 $$('#menuTabs button').forEach(b=>b.onclick=()=>{_menuTab=b.dataset.tab;$$('#menuTabs button').forEach(x=>x.classList.toggle('on',x.dataset.tab===_menuTab));renderMenu()});
 
-$('#inputRow').onsubmit=e=>{e.preventDefault();if(!FREETEXT_ENABLED){try{toast('Freitext pausiert — Menü nutzen')}catch(_){} return;}const v=$('#txt').value;$('#txt').value='';
- if(_mode==='intro'){Promise.resolve(actIntro(v)).catch(err=>console.warn(err));return}
- if(_mode==='intro'||!S){/* grey own name via text */ const t=v.trim();if(t&&document.body.classList.contains('greyw')&&!S){newGrey('own',t,'');return}}
- // busy steal / toast handled inside act()
- Promise.resolve(act(v)).catch(err=>{ console.warn('act',err); try{forceUnbusy('Antwort fehlgeschlagen — tippe erneut.')}catch(_){ try{setBusy(false)}catch(__){} } });
+/* v63: free-text submit removed — classic JRPG only */
+try{ const ir=document.getElementById('inputRow'); if(ir){ ir.onsubmit=(e)=>{e.preventDefault();}; ir.classList.add('hidden'); ir.setAttribute('hidden',''); } }catch(_){}
+
+const sync=()=>{ try{ const w=$('#webllmBox'),a=$('#apiBox'),m=$('#mode'); if(w&&m) w.style.display=m.value==='webllm'?'':'none'; if(a&&m) a.style.display=m.value==='api'?'':'none'; }catch(_){} };
+function openSheet(){
+  try{document.body.classList.add('sheet-open');document.documentElement.classList.add('sheet-open')}catch(_){};
+  try{ cfg.mode='offline'; if($('#mode')) $('#mode').value='offline'; }catch(_){}
+  try{ if($('#dbgToggle')) $('#dbgToggle').checked=!!cfg.debug; }catch(_){}
+  try{ if($('#battleDiff')) $('#battleDiff').value=cfg.battleDiff||'normal'; }catch(_){}
+  try{ if($('#atbMode')) $('#atbMode').value=cfg.atbMode||'active'; }catch(_){}
+  try{ $('#sheet').classList.remove('hidden'); }catch(_){}
+}
+try{ const m=$('#mode'); if(m) m.onchange=()=>{ cfg.mode='offline'; m.value='offline'; }; }catch(_){}
+$('#btnClose').onclick=()=>{$('#sheet').classList.add('hidden'); try{document.body.classList.remove('sheet-open');document.documentElement.classList.remove('sheet-open')}catch(_){};};
+function saveCfgFromUI(){
+  cfg={v2:1,gkey:'',pollenKey:'',mode:'offline',wmodel:cfg.wmodel||'',aurl:'',akey:'',amodel:'',debug:!!($('#dbgToggle')&&$('#dbgToggle').checked),battleDiff:$('#battleDiff')?.value||'normal',atbMode:$('#atbMode')?.value||'active'};
+  localStorage.setItem(CFG,JSON.stringify(cfg));
+  return cfg;
+}
+$('#btnSave').onclick=()=>{
+  saveCfgFromUI();
+  if(S){S.cfgBattleDiff=cfg.battleDiff||'normal';S.cfgAtbMode=cfg.atbMode||'active'}
+  toast('Einstellungen gespeichert');
+  $('#sheet').classList.add('hidden');
+  try{document.body.classList.remove('sheet-open');document.documentElement.classList.remove('sheet-open')}catch(_){};
 };
-
-const sync=()=>{$('#webllmBox').style.display=$('#mode').value==='webllm'?'':'none';$('#apiBox').style.display=$('#mode').value==='api'?'':'none'};
-function openSheet(){ try{document.body.classList.add('sheet-open');document.documentElement.classList.add('sheet-open')}catch(_){};$('#mode').value=cfg.mode||'offline';$('#wmodel').value=cfg.wmodel||$('#wmodel').value;$('#aurl').value=cfg.aurl||'';$('#akey').value=cfg.akey||'';$('#amodel').value=cfg.amodel||'';$('#gkey').value=cfg.gkey||'';
- if($('#pollenKey'))$('#pollenKey').value=cfg.pollenKey||'';
- if($('#dbgToggle'))$('#dbgToggle').checked=!!cfg.debug;if($('#battleDiff'))$('#battleDiff').value=cfg.battleDiff||'normal';if($('#atbMode'))$('#atbMode').value=cfg.atbMode||'active';
- try{ if(S&&!S._narratorMode) S._narratorMode=cfg.mode||'offline'; updateNarratorDot(); }catch(_){}
- gmUI();sync();$('#sheet').classList.remove('hidden')}
-$('#mode').onchange=()=>{sync(); try{ if(S) S._narratorMode=$('#mode').value; updateNarratorDot(); }catch(_){}};
-$('#btnClose').onclick=()=>{$('#sheet').classList.add('hidden'); try{document.body.classList.remove('sheet-open');document.documentElement.classList.remove('sheet-open')}catch(_){}; try{updateNarratorDot()}catch(_){}};
-$('#gkey').oninput=()=>{if($('#gkey').value.trim()){$('#mode').value='gemini'; try{if(S)S._narratorMode='gemini'}catch(_){}} sync(); try{updateNarratorDot()}catch(_){}};
-if($('#pollenKey'))$('#pollenKey').oninput=()=>{const pk=$('#pollenKey').value.trim(); if(pk&&!($('#gkey').value||'').trim()){$('#mode').value='free'; try{if(S)S._narratorMode='free'}catch(_){}} sync(); try{updateNarratorDot()}catch(_){}};
-function saveCfgFromUI(gk){const pk=($('#pollenKey')?.value||'').trim();
- let mode=$('#mode')?$('#mode').value:(gk?'gemini':'offline');
- if(gk&&(!cfg.gkey||cfg.gkey!==gk)) mode='gemini';
- else if(!gk&&pk&&mode==='offline') mode='free';
- else if(!gk&&!pk&&mode==='gemini') mode='offline';
- cfg={v2:1,gkey:gk,pollenKey:pk,mode,wmodel:$('#wmodel')?.value,aurl:$('#aurl')?.value,akey:$('#akey')?.value,amodel:$('#amodel')?.value,debug:!!($('#dbgToggle')&&$('#dbgToggle').checked),battleDiff:$('#battleDiff')?.value||'normal',atbMode:$('#atbMode')?.value||'active'};
- localStorage.setItem(CFG,JSON.stringify(cfg));
- const st=gmStore();if($('#gmodel'))st.manual=$('#gmodel').value||'';gmSave(st);
- if(gk)gmFetch(gk,true).then(()=>gmProbe(gk).catch(()=>{}));
- try{ if(S) S._narratorMode=mode; updateNarratorDot(); }catch(_){}
- dbgLine();return cfg}
-$('#btnSave').onclick=()=>{const gk=$('#gkey').value.trim();saveCfgFromUI(gk);
- if(S){S.cfgBattleDiff=cfg.battleDiff||'normal';S.cfgAtbMode=cfg.atbMode||'active'}
- const msg=gk?'Gespeichert – Gemini aktiv.':(cfg.pollenKey?'Gespeichert – Pollinations-Key lokal.':(cfg.mode==='offline'?'Offline-Erzählerin gespeichert':'Gespeichert'));
- toast(msg); $('#sheet').classList.add('hidden'); try{document.body.classList.remove('sheet-open');document.documentElement.classList.remove('sheet-open')}catch(_){}};
-$('#btnLoad').onclick=()=>{cfg.wmodel=$('#wmodel').value;engine=null;loadWebLLM().catch(e=>$('#wstatus').textContent='❌ '+e.message)};
+try{ const bl=$('#btnLoad'); if(bl) bl.onclick=()=>{}; }catch(_){}
 $('#btnReset').onclick=()=>{if(confirm('Wirklich alles löschen?')){localStorage.removeItem(KEY);location.reload()}};
-$('#btnAdv').onclick=()=>{$('#advBox').classList.toggle('hidden');$('#btnAdv').textContent=$('#advBox').classList.contains('hidden')?'Erweitert ▸':'Erweitert ▾'};
-$('#btnGateSave').onclick=()=>{const gk=$('#gateKey').value.trim();if(!gk){toast('Bitte Schlüssel einfügen');return}
- cfg.gkey=gk;cfg.mode='gemini';cfg.v2=1;localStorage.setItem(CFG,JSON.stringify(cfg));
- toast('Alles bereit.');gmFetch(gk,true).then(()=>gmProbe(gk).catch(()=>{}));enterPlay()};
-$('#btnGateSkip').onclick=()=>{cfg.mode='offline';cfg.v2=1;localStorage.setItem(CFG,JSON.stringify(cfg));try{if(S)S._narratorMode='offline';updateNarratorDot()}catch(_){} toast('Erzählerin: Offline (lokal, ohne Schlüssel)');enterPlay()};
+try{ const ba=$('#btnAdv'); if(ba) ba.onclick=()=>{}; }catch(_){}
+try{ const bgs=$('#btnGateSave'); if(bgs) bgs.onclick=()=>enterPlay(); }catch(_){}
+try{ const bgk=$('#btnGateSkip'); if(bgk) bgk.onclick=()=>{cfg.mode='offline';enterPlay();}; }catch(_){}
+try{ const bms=$('#btnMusicSheet'); if(bms) bms.onclick=()=>{ try{ $('#btnMusic')?.click(); }catch(_){} }; }catch(_){}
 
-window.__setCfg=o=>{cfg=Object.assign(cfg||{},o||{});try{localStorage.setItem(CFG,JSON.stringify(cfg))}catch(_){}};window.__game={VER,hud,syncOwHud,FREETEXT_ENABLED,jrpgPick,applyJrpgPack,syncFreetextUI,Aud,toast,clearTypewrite,renderChoices,C39,C40,C41,C42,C43,C44,C45,C46,C47,C48,C49,C50,C51,C52,C53,C54,C55,C56,C57,C58,C59,C60,C61,C62,Cut40,updateNarratorDot,narratorStatusText,openSheet,setBusy,forceUnbusy,ACT_HARD_MS,V25,OW,Depth,Battle,Jobs,Gems,Summons,Equip,Jrpg,localBeatLine,parsePlayerIntent,offlineRespondIntent,freeStream,FREE_MODEL,msgsLean,FREE_URLS,openPendingEncounter,Imm,discoverThing,showCodexInline,Level,UI14,UI17,Know,Cont,lastPromptDump,advanceTimeMinutes,applyActionDuration,newGrey,greyDetails,loadGrey,loadPack,get S(){return S},act,newLife,gBody,msgs,gmRank,gmProbe,parseStream,thinkingCfg,gmOrder,readSSE,STREAM_DELIM,migrate,worldTick,bumpRel,openMenu,openPixelShop,openRegionTravelMap,stageName,offline,startIntro,setSceneImage,setPortrait,imgUrl,advanceTime,phaseLabel,typewrite,enterPlay,showTitle,analyzeImage,applySceneTheme,themeFromText,loadValidatedImage,openingNarration,travelTo,parseTravel,killNPC,robNPC,addMemory,memoryHint,startProcedural,offlineGenerateWorld,generateWorldPack,GENRES,travelChoices,ensureGraph,whoHere,parseLifeSim,Sim,Persist,WorldMap,TravelMap,Cut31,Econ,Codex,UI13,save,loadSave,applyCatchUp,findAnyNpc,placeFlavorText,enrichPlaceDescs};
+window.__setCfg=o=>{cfg=Object.assign(cfg||{},o||{},{mode:'offline',gkey:'',pollenKey:''});try{localStorage.setItem(CFG,JSON.stringify(cfg))}catch(_){}};window.__game={VER,hud,syncOwHud,FREETEXT_ENABLED,jrpgPick,applyJrpgPack,syncFreetextUI,Aud,toast,clearTypewrite,renderChoices,C39,C40,C41,C42,C43,C44,C45,C46,C47,C48,C49,C50,C51,C52,C53,C54,C55,C56,C57,C58,C59,C60,C61,C62,C63,Cut40,updateNarratorDot,narratorStatusText,openSheet,setBusy,forceUnbusy,ACT_HARD_MS,V25,OW,Depth,Battle,Jobs,Gems,Summons,Equip,Jrpg,localBeatLine,parsePlayerIntent,offlineRespondIntent,freeStream,FREE_MODEL,msgsLean,FREE_URLS,openPendingEncounter,Imm,discoverThing,showCodexInline,Level,UI14,UI17,Know,Cont,lastPromptDump,advanceTimeMinutes,applyActionDuration,newGrey,greyDetails,loadGrey,loadPack,get S(){return S},act,newLife,gBody,msgs,gmRank,gmProbe,parseStream,thinkingCfg,gmOrder,readSSE,STREAM_DELIM,migrate,worldTick,bumpRel,openMenu,openPixelShop,openRegionTravelMap,stageName,offline,startIntro,setSceneImage,setPortrait,imgUrl,advanceTime,phaseLabel,typewrite,enterPlay,showTitle,analyzeImage,applySceneTheme,themeFromText,loadValidatedImage,openingNarration,travelTo,parseTravel,killNPC,robNPC,addMemory,memoryHint,startProcedural,offlineGenerateWorld,generateWorldPack,GENRES,travelChoices,ensureGraph,whoHere,parseLifeSim,Sim,Persist,WorldMap,TravelMap,Cut31,Econ,Codex,UI13,save,loadSave,applyCatchUp,findAnyNpc,placeFlavorText,enrichPlaceDescs};
 window.__game.askNPC=a=>askNPC(a);window.__game.gemini=gemini;
 try{ syncFreetextUI(); }catch(_){};
 if(cfg.gkey)gmFetch(cfg.gkey.trim()).then(()=>gmProbe(cfg.gkey.trim()).catch(()=>{})).catch(()=>{});

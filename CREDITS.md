@@ -156,3 +156,9 @@ Genre packs `arch_fan*`, `arch_zom*`, `arch_cyb*`, `arch_des*`, `arch_dark*` plu
 ## v62 Natural hubs + progression
 - Irregular cliffs, frozen stream, tall watchtowers, pines, camp NPCs
 - Per-character skill trees, craft tiers, chapter sidequests & puzzles, optional superboss
+
+
+## v63 Wang autotiles + indoor verticality
+- Real 4-neighbor blob/Wang variants (cliff0–7, grass/path/water/tree, indoor ifloor/iwall)
+- Camera clamp + mountain/forest edge fill; pine clusters
+- Visual German skill tree; Höllenhund balance
