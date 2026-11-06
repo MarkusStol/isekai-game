@@ -303,6 +303,56 @@ function naSpec(t, x, y){
   const cell=pack[1][j%pack[1].length];
   return {src:NA_SHEET[pack[0]], sx:cell[0], sy:cell[1]};
 }
+const PASS_SNOW=[
+  './assets/pixel/tiles-na/cut/snow1.png',
+  './assets/pixel/tiles-na/cut/snow.png',
+  './assets/pixel/tiles-na/cut/snow3.png',
+];
+function paintPassTile(ctx, t, x, y, sx, sy, tw){
+  if(_map?.preset!=='wall') return false;
+  const cliff=t==='stone'||t==='wall'||t==='cliff';
+  if(cliff){
+    const walk=new Set(['sand','path','grass','floor','water','door','plaza']);
+    let edge=false;
+    for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){
+      if(walk.has(_map.tiles?.[y+dy]?.[x+dx])) edge=true;
+    }
+    if(edge){
+      const lip=loadImg('./assets/pixel/tiles-na/cut/cliff_snow.png');
+      if(lip.complete && lip.naturalWidth) ctx.drawImage(lip, 0, 0, lip.naturalWidth, lip.naturalHeight, sx, sy, tw, tw);
+      else { ctx.fillStyle='#d7e0e8'; ctx.fillRect(sx,sy,tw,tw); }
+      ctx.fillStyle='#4a5258';
+      ctx.fillRect(sx, sy+tw*0.58, tw, tw*0.42);
+      return true;
+    }
+    ctx.fillStyle='#5c656c';
+    ctx.fillRect(sx,sy,tw,tw);
+    ctx.fillStyle='#8d969e';
+    ctx.fillRect(sx, sy, tw, Math.max(2, tw*0.16));
+    return true;
+  }
+  const ground=t==='sand'||t==='grass'||t==='floor'||t==='plaza'||t==='path'||t==='water'||t==='snow';
+  if(!ground) return false;
+  const src=PASS_SNOW[Math.abs((x*5+y*3)|0)%PASS_SNOW.length];
+  const im=loadImg(src);
+  if(im.complete && im.naturalWidth) ctx.drawImage(im, 0, 0, im.naturalWidth, im.naturalHeight, sx, sy, tw, tw);
+  else { ctx.fillStyle='#e7eef6'; ctx.fillRect(sx,sy,tw,tw); }
+  if(((x*7+y*3)%11)===0){
+    ctx.fillStyle='rgba(198,214,228,0.40)';
+    ctx.beginPath();
+    ctx.ellipse(sx+tw*0.46, sy+tw*0.6, tw*0.22, tw*0.08, 0, 0, Math.PI*2);
+    ctx.fill();
+  }
+  if(t==='path'){
+    ctx.fillStyle='rgba(110,124,136,0.30)';
+    ctx.fillRect(sx+tw*0.08, sy+tw*0.4, tw*0.84, tw*0.22);
+  }
+  if(t==='water'){
+    ctx.fillStyle='rgba(146,186,216,0.42)';
+    ctx.fillRect(sx, sy, tw, tw);
+  }
+  return true;
+}
 function paintNa(ctx, t, x, y, dx, dy, dw, dh){
   try{
     const spec=naSpec(t,x,y);
@@ -367,18 +417,6 @@ function shadeField(ctx, t, x, y, sx, sy, tw){
     ctx.fillRect(sx, sy, tw, tw);
     ctx.fillStyle='rgba(170,178,190,0.35)';
     ctx.fillRect(sx, sy, tw, Math.max(2, tw*0.12));
-  }
-  if(/wall/.test(preset)){
-    if(t==='path'){
-      ctx.fillStyle='rgba(70,78,88,0.28)';
-      ctx.fillRect(sx, sy+tw*0.72, tw, tw*0.28);
-    } else if(t==='water'){
-      ctx.fillStyle='rgba(150,186,214,0.45)';
-      ctx.fillRect(sx, sy, tw, tw);
-    } else if(t==='sand'||t==='grass'||t==='floor'||t==='plaza'){
-      ctx.fillStyle='rgba(255,255,255,0.08)';
-      ctx.fillRect(sx, sy, tw, tw);
-    }
   }
 }
 
@@ -1128,13 +1166,30 @@ export function buildMapForLocation(S, ort){
     questMark(cx, 7, 'Grenzpass', 'story');
     // camp NPCs with context
         placeHouse(Math.max(8,cx-3), Math.min(ht-8, cy+4), 'Herberge', {variant:3});
-    _hubNpcs.push({name:'Wächter Toren', x:campX+2, y:campY+1, px:campX+2, py:campY+1, sheet:'guard', e:'🛡️', home:{x:campX+2,y:campY+1}});
-    _hubNpcs.push({name:'Kundschafterin Lira', x:campX+4, y:campY+1, px:campX+4, py:campY+1, sheet:'spy', e:'🕵️', home:{x:campX+4,y:campY+1}});
-    _hubNpcs.push({name:'Händler Bram', x:campX+3, y:campY+3, px:campX+3, py:campY+3, sheet:'merchant', e:'🧳', home:{x:campX+3,y:campY+3}});
-    _hubNpcs.push({name:'Spionin Nyx', x:campX+5, y:campY+3, px:campX+5, py:campY+3, sheet:'spy', e:'🗡️', home:{x:campX+5,y:campY+3}});
-    _hubNpcs.push({name:'Schmiedin Kael', x:Math.max(8,cx-2), y:Math.min(ht-6,cy+3), px:Math.max(8,cx-2), py:Math.min(ht-6,cy+3), sheet:'merchant', e:'🔨'});
-    _hubNpcs.push({name:'Rekrut Venn', x:campX+6, y:campY+2, px:campX+6, py:campY+2, sheet:'guard', e:'🛡️', home:{x:campX+6,y:campY+2}});
-    _hubNpcs.push({name:'Heldin Aria', x:campX-1, y:campY+2, px:campX-1, py:campY+2, sheet:'princess', e:'⚔', home:{x:campX-1,y:campY+2}});
+    const seat=(dx,dy)=>{
+      let x=Math.max(6, Math.min(w-7, cx+dx));
+      let y=Math.max(4, Math.min(ht-5, cy+dy));
+      const solid=new Set(['wall','water','tree','void','house','ruin','fence','well','stall']);
+      for(let r=0;r<6;r++){
+        for(let oy=-r;oy<=r;oy++) for(let ox=-r;ox<=r;ox++){
+          const xx=Math.max(6, Math.min(w-7, x+ox));
+          const yy=Math.max(4, Math.min(ht-5, y+oy));
+          const t=tiles[yy]?.[xx];
+          if(t && !solid.has(t)) return {x:xx,y:yy};
+        }
+      }
+      if(tiles[y]) tiles[y][x]='sand';
+      return {x,y};
+    };
+    const toren=seat(0,-6), lira=seat(6,-2), kael=seat(-6,-2);
+    const bram=seat(-6,3), nyx=seat(6,3), venn=seat(-8,1), aria=seat(8,1);
+    _hubNpcs.push({name:'Wächter Toren', x:toren.x, y:toren.y, px:toren.x, py:toren.y, sheet:'guard', e:'🛡️', home:toren});
+    _hubNpcs.push({name:'Kundschafterin Lira', x:lira.x, y:lira.y, px:lira.x, py:lira.y, sheet:'spy', e:'🕵️', home:lira});
+    _hubNpcs.push({name:'Schmiedin Kael', x:kael.x, y:kael.y, px:kael.x, py:kael.y, sheet:'merchant', e:'🔨', home:kael});
+    _hubNpcs.push({name:'Händler Bram', x:bram.x, y:bram.y, px:bram.x, py:bram.y, sheet:'merchant', e:'🧳', home:bram});
+    _hubNpcs.push({name:'Spionin Nyx', x:nyx.x, y:nyx.y, px:nyx.x, py:nyx.y, sheet:'spy', e:'🗡️', home:nyx});
+    _hubNpcs.push({name:'Rekrut Venn', x:venn.x, y:venn.y, px:venn.x, py:venn.y, sheet:'villager', e:'🛡️', home:venn});
+    _hubNpcs.push({name:'Heldin Aria', x:aria.x, y:aria.y, px:aria.x, py:aria.y, sheet:'princess', e:'⚔', home:aria});
     questMark(Math.max(4,cx-6), Math.min(ht-4,cy+5), 'Eishöhlen am Pass', 'side');
     if(tiles[Math.min(ht-4,cy+5)]) tiles[Math.min(ht-4,cy+5)][Math.max(4,cx-6)]='door';
     try{ if(S){ S.flags=S.flags||{}; S.flags.weather='schnee'; } }catch(_){}
@@ -1876,6 +1931,8 @@ function renderDlgChoices(choices){
     };
     box.appendChild(b);
   });
+  const first=box.querySelector('button');
+  if(first) first.focus();
 }
 export function queueBeats(lines){
   _beatQueue=(lines||[]).filter(Boolean);
@@ -1910,7 +1967,10 @@ function enterFieldDungeon(name){
   else showDialogue('Velka','Stufen. Das Siegel ist im Norden. Neun, neun, neun. Fass nichts an, bevor ich\'s gelesen hab.','mage');
 }
 function fieldChapter(S){
-  return (S?.campaign?.chapterIdx|0)<=1 && S?.campaign?.id==='nocturna';
+  if(S?.campaign?.id!=='nocturna') return false;
+  const idx=S?.campaign?.chapterIdx|0;
+  if(idx<=1) return true;
+  return idx===2 && !!S.campaign?.flags?.solmirField;
 }
 function onPassMap(){
   return _map?.preset==='wall';
@@ -2228,6 +2288,33 @@ function goToPass(S){
   queueBeats(beats);
   try{ _hooks.save?.(); }catch(_){}
 }
+function goToSolmir(S){
+  if(!S) return;
+  const f=campFlags(S);
+  f.solmirField=true;
+  f.solmirArrived=true;
+  S.campaign.chapterIdx=2;
+  S.campaign.sceneId='c3_open';
+  S.campaign.mode='scene';
+  S.campaign.dungeon=null;
+  S.world=S.world||{}; S.world.scene=S.world.scene||{};
+  S.world.scene.ort='Ruinen von Solmir';
+  S.flags=S.flags||{};
+  document.body.classList.add('field-play');
+  showOverworld(S);
+  const beats=[];
+  if(f.ariaStood && f.ariaRomance){
+    beats.push({name:'Aria', sheet:'princess', text:'Die Gruft bleibt zu. Lio ist am Pass, am Feuer. Ich geh in den Hof, nicht in das Loch.'});
+  } else if(f.ariaRefused){
+    beats.push({name:'Aria', sheet:'princess', text:'Hier liegt Staub, kein Hund. Ich such etwas für Lios Husten und geh dann zurück.'});
+  } else if(f.ariaCool || f.ariaNoRomance || f.ariaRomanceRefused){
+    beats.push({name:'Jex', sheet:'spy', text:'Die Blonde ist am Pass geblieben. Sie hat nicht nach dir gefragt. Der Hof ist offen. Die Gruft nicht.'});
+  } else {
+    beats.push({name:'Mara', sheet:'mage', text:'Der Hof ist offen. Die Tür zur Gruft ist verriegelt. Heute kommst du nicht weiter.'});
+  }
+  queueBeats(beats);
+  try{ _hooks.save?.(); }catch(_){}
+}
 function placeMark(x,y,label,kind){
   if(!walkable(x,y)) return false;
   if((_questMarks||[]).some(m=>m.kind===kind && m.x===x && m.y===y)) return true;
@@ -2247,21 +2334,36 @@ function ensurePassJobs(S){
   if(!onPassMap() || !S?.campaign?.flags?.passField) return;
   const cx=Math.floor((_map.w||30)/2), cy=Math.floor((_map.h||30)/2);
   if(!S.campaign.flags.passWolf){
-    const spots=[[cx+4,cy],[cx+5,cy+1],[cx+3,cy],[cx+4,cy+1]];
+    const spots=[[cx,cy+12],[cx+1,cy+12],[cx-1,cy+11],[cx,cy+11]];
     for(const [x,y] of spots){ if(placeMark(x,y,'Wolf','hunt')) break; }
   }
   if(!S.campaign.flags.beat_hellhound && !S.campaign.flags.passClear){
-    const spots=[[cx+8,cy-3],[cx+7,cy-2],[cx+9,cy-4],[cx+6,cy-3]];
+    const spots=[[cx+12,cy-8],[cx+11,cy-7],[cx+12,cy-6],[cx+10,cy-8]];
     for(const [x,y] of spots){ if(placeMark(x,y,'Höllenhund','boss')) break; }
+  }
+  if(S.campaign.flags.passClear && !S.campaign.flags.solmirArrived){
+    const spots=[[cx+2,cy-8],[cx+3,cy-7],[cx-2,cy-8],[cx+2,cy-7]];
+    for(const [x,y] of spots){ if(placeMark(x,y,'Nach Solmir','solmir')) break; }
   }
   const add=(name,sheet,x,y)=>{
     if(_npcs.some(n=>n.name===name)) return;
     if(!walkable(x,y)) return;
     _npcs.push({name, sheet, x, y, px:x, py:y, dir:0, frame:0, e:'', home:{x,y}});
   };
-  if((S.party||[]).includes('Sekretärin Velka')) add('Sekretärin Velka','mage', cx-1, cy+1);
-  if((S.party||[]).includes('General Brok')) add('General Brok','guard', cx-2, cy+1);
-  add('Heldin Aria','princess', cx+1, cy+2);
+  if((S.party||[]).includes('Sekretärin Velka')) add('Sekretärin Velka','mage', Math.max(6,cx-10), cy+2);
+  if((S.party||[]).includes('General Brok')) add('General Brok','guard', Math.min((_map.w||40)-7, cx+10), cy+2);
+}
+function ensureSolmir(S){
+  if(_map?.preset!=='graveyard' || !S?.campaign?.flags?.solmirField) return;
+  const cx=Math.floor((_map.w||30)/2), cy=Math.floor((_map.h||30)/2);
+  const f=S.campaign.flags;
+  const add=(name,sheet,x,y)=>{
+    if(_npcs.some(n=>n.name===name)) return;
+    if(!walkable(x,y)) return;
+    _npcs.push({name, sheet, x, y, px:x, py:y, dir:0, frame:0, home:{x,y}});
+  };
+  if((f.ariaStood && f.ariaRomance) || f.ariaRefused) add('Heldin Aria','princess', cx+5, cy+4);
+  if((S.party||[]).includes('Sekretärin Velka')) add('Sekretärin Velka','mage', cx-6, cy+4);
 }
 function passFieldLine(S, label, sh, party, f){
   if(label==='Heldin Aria'){
@@ -2321,9 +2423,41 @@ function passFieldLine(S, label, sh, party, f){
   }
   return null;
 }
+function onSolmirMap(){
+  return _map?.preset==='graveyard';
+}
+function solmirLine(S, label, party, f){
+  if(label==='Heldin Aria'){
+    if(f.ariaStood && f.ariaRomance) return {text:'Ich bleib im Hof. Die Nacht hat uns nicht verheiratet, und die Gruft macht es nicht besser. Lio wartet am Feuer.'};
+    if(f.ariaRefused) return {text:'Ein Mittel für den Husten, dann zurück. Fass das nicht als Einladung an.'};
+    return {text:'Ich bin wegen Lio hier. Nicht wegen der Gruft, und nicht wegen dir.'};
+  }
+  if(label==='Grabräuber Jex'){
+    if(f.ariaCool || f.ariaNoRomance || f.ariaRomanceRefused) return {text:'Sie ist nicht mit dir gekommen. Gut für sie. Ich nehm Münzen im Vorraum. Die Knochen lass ich liegen.'};
+    if(f.ariaStood) return {text:'Sie steht hinter dir und guckt, als wär das kein Ausflug. Die Gruft ist zu. Ich bleib im Hof.'};
+    return {text:'Staub und Münzen. Die Tür unten ist zu. Ich klopf nicht.'};
+  }
+  if(label==='Chronistin Mara'){
+    return {text:'Ich schreib, wer hier gelegen hat. Die Gruft bleibt verriegelt. Heute ist nur der Hof offen.'};
+  }
+  if(label==='Hüter Orun'){
+    return {text:'Hof ja. Gruft nein. Wenn du klopfst, klopft es zurück. Lass es.'};
+  }
+  if(label==='Sekretärin Velka' && party.includes(label)){
+    return {text:'Trockener Staub, nicht wie bei Venn. Die Tür ist zu. Ich les hier nichts vor.'};
+  }
+  if(label==='General Brok' && party.includes(label)){
+    return {text:'Kein Hund, nur Stein. Wir gehen nicht rein, solange die Tür zu ist.'};
+  }
+  return null;
+}
 function fieldLine(S, label, sh){
   const party=(S.party||[]);
   const f=campFlags(S);
+  if(onSolmirMap() && f.solmirField){
+    const sol=solmirLine(S, label, party, f);
+    if(sol) return sol;
+  }
   if(onPassMap()){
     const pass=passFieldLine(S, label, sh, party, f);
     if(pass) return pass;
@@ -2424,6 +2558,11 @@ function talkNearest(){
   if(passGate && S?.campaign?.flags?.beat_lesser_fiend && !S.campaign.flags.passArrived){
     goToPass(S);
     return 'pass';
+  }
+  const solmir=nearMark('solmir');
+  if(solmir && S?.campaign?.flags?.passClear && !S.campaign.flags.solmirArrived){
+    goToSolmir(S);
+    return 'solmir';
   }
   const hunt=nearMark('hunt');
   if(hunt && !S?.campaign?.flags?.passWolf){
@@ -2560,6 +2699,47 @@ function stepHero(dt){
 }
 
 /** Draw LPC 64×64 frame from 256×256 sheet (4 dirs × 4 frames) */
+const WALK_LOOK={
+  'Heldin Aria': {sheet:'princess', tint:'rgba(186,96,78,0.34)'},
+  'Aria': {sheet:'princess', tint:'rgba(186,96,78,0.34)'},
+  'Sekretärin Velka': {sheet:'mage', tint:'rgba(86,72,176,0.32)'},
+  'Velka': {sheet:'mage', tint:'rgba(86,72,176,0.32)'},
+  'General Brok': {sheet:'guard', tint:'rgba(92,102,70,0.28)'},
+  'Brok': {sheet:'guard', tint:'rgba(92,102,70,0.28)'},
+  'Wächter Toren': {sheet:'guard', tint:'rgba(58,104,150,0.36)'},
+  'Toren': {sheet:'guard', tint:'rgba(58,104,150,0.36)'},
+  'Rekrut Venn': {sheet:'villager', tint:'rgba(156,64,58,0.30)'},
+  'Venn': {sheet:'villager', tint:'rgba(156,64,58,0.30)'},
+  'Spionin Nyx': {sheet:'spy', tint:'rgba(18,16,28,0.40)'},
+  'Nyx': {sheet:'spy', tint:'rgba(18,16,28,0.40)'},
+  'Kundschafterin Lira': {sheet:'spy', tint:'rgba(46,118,78,0.34)'},
+  'Lira': {sheet:'spy', tint:'rgba(46,118,78,0.34)'},
+  'Händler Bram': {sheet:'merchant', tint:'rgba(138,96,48,0.32)'},
+  'Bram': {sheet:'merchant', tint:'rgba(138,96,48,0.32)'},
+  'Schmiedin Kael': {sheet:'merchant', tint:'rgba(176,78,36,0.36)'},
+  'Kael': {sheet:'merchant', tint:'rgba(176,78,36,0.36)'},
+  'Grabräuber Jex': {sheet:'spy', tint:'rgba(110,86,48,0.30)'},
+  'Chronistin Mara': {sheet:'mage', tint:'rgba(120,90,140,0.28)'},
+  'Hüter Orun': {sheet:'guard', tint:'rgba(130,130,120,0.26)'},
+};
+const _tintCache={};
+function tintedSheet(src, tint){
+  const key=src+'|'+tint;
+  const cached=_tintCache[key];
+  if(cached) return cached;
+  const im=loadImg(src);
+  if(!(im.complete && im.naturalWidth)) return im;
+  const c=document.createElement('canvas');
+  c.width=im.naturalWidth; c.height=im.naturalHeight;
+  const g=c.getContext('2d');
+  g.imageSmoothingEnabled=false;
+  g.drawImage(im,0,0);
+  g.globalCompositeOperation='source-atop';
+  g.fillStyle=tint;
+  g.fillRect(0,0,c.width,c.height);
+  _tintCache[key]=c;
+  return c;
+}
 function drawSprite(ctx, im, frame, dir, dx, dy, tw){
   if(!(im.complete && im.naturalWidth)){
     ctx.fillStyle='#3a3428'; ctx.fillRect(dx+tw*0.2, dy+tw*0.15, tw*0.6, tw*1.0);
@@ -2794,8 +2974,8 @@ function draw(){
           if(gim.complete && gim.naturalWidth) ctx.drawImage(gim, sx, sy, tw, tw);
           else { ctx.fillStyle='#1a1520'; ctx.fillRect(sx,sy,tw,tw); }
           ctx.fillStyle='rgba(5,4,10,.55)'; ctx.fillRect(sx,sy,tw,tw);
-        } else if(_map.preset==='wall' && paintNa(ctx,'sand',x,y,sx,sy,tw,tw)){
-          ctx.fillStyle='rgba(5,4,10,.72)'; ctx.fillRect(sx,sy,tw,tw);
+        } else if(_map.preset==='wall' && paintPassTile(ctx,'sand',x,y,sx,sy,tw)){
+          ctx.fillStyle='rgba(8,12,18,.45)'; ctx.fillRect(sx,sy,tw,tw);
         } else {
           const gim=loadImg(tileUrl('grass'));
           if(gim.complete && gim.naturalWidth) ctx.drawImage(gim, sx, sy, tw, tw);
@@ -2810,7 +2990,7 @@ function draw(){
       const needsUnder = t!=='void' && t!=='wall' && t!=='floor' && t!=='carpet' && t!=='wood' && t!=='stone' && t!=='plaza' && t!=='path' && (SOLID.has(t) || t==='door' || t==='house' || t==='flower' || t==='bush' || t==='well' || t==='stall');
       if(needsUnder || t==='flower' || t==='bush' || t==='well' || t==='stall'){
         if(_map.preset==='wall' && !indoorHere){
-          paintNa(ctx,'sand',x,y,sx,sy,tw,tw);
+          paintPassTile(ctx,'sand',x,y,sx,sy,tw);
         } else {
           const under = indoorHere ? 'floor' : 'grass';
           const gim=loadImg(tileUrl(under));
@@ -2856,6 +3036,8 @@ function draw(){
           ctx.fillStyle='#5a564c';
           for(let i=0;i<4;i++) ctx.fillRect(sx+2, sy+2+i*(tw/4), tw-4, tw/6);
         }
+      } else if(paintPassTile(ctx, t, x, y, sx, sy, tw)){
+        /* snow cuts and rock lips, not the teal wall bricks */
       } else if(paintNa(ctx, t, x, y, sx, sy, tw, tw)){
         shadeField(ctx, t, x, y, sx, sy, tw);
       } else {
@@ -2893,7 +3075,7 @@ function draw(){
             const nx=x+dx, ny=y+dy;
             if(ny<0||nx<0||ny>=_map.h||nx>=_map.w) continue;
             const nt=_map.tiles[ny][nx];
-            if(nt && nt!==t && nt!=='void' && _map.kind!=='dungeon' && _map.preset!=='throne'){
+            if(nt && nt!==t && nt!=='void' && _map.kind!=='dungeon' && _map.preset!=='throne' && _map.preset!=='wall'){
               ctx.fillStyle='rgba(0,0,0,0.18)';
               if(dx===1) ctx.fillRect(sx+tw-2, sy, 2, tw);
               if(dx===-1) ctx.fillRect(sx, sy, 2, tw);
@@ -3036,16 +3218,15 @@ function draw(){
         ctx.fillStyle='#c44'; ctx.fillRect(sx+tw*0.2, sy+tw*0.3, tw*0.6, tw*0.6);
       }
     } else {
-      const cast=CAST_PORT[n.name];
-      const im=loadImg(cast||NPC_SHEETS[n.sheet]||NPC_SHEETS.default);
-      if(cast && im.complete && im.naturalWidth){
-        const bob=(_animFrame%8)<4?0:Math.max(1, Math.round(tw*0.06));
-        const dw=tw*1.2, dh=tw*1.85;
-        ctx.drawImage(im, sx+(tw-dw)/2, sy+tw*0.15-bob, dw, dh);
-      } else drawSprite(ctx, im, n.frame|0, n.dir|0, sx+tw*0.0, sy, tw);
+      const look=WALK_LOOK[n.name];
+      const sheet=look?.sheet||n.sheet;
+      const src=NPC_SHEETS[sheet]||NPC_SHEETS.default;
+      const im=look?.tint ? tintedSheet(src, look.tint) : loadImg(src);
+      const fr=n.pace ? (n.frame|0) : ((_animFrame>>3)%4);
+      drawSprite(ctx, im, fr, n.dir|0, sx, sy, tw);
     }
     // v66: nameplate only near hero; font sized in CSS-px so desktop upscale stays mobile-sized
-    const nearDist=3.2;
+    const nearDist=2.2;
     const near=Math.hypot((n.px||n.x)-_hero.px,(n.py||n.y)-_hero.py)<nearDist;
     if(near){
       let label='';
@@ -3065,7 +3246,7 @@ function draw(){
       }
       if(label){
         const sc=Math.max(1, _intScale||1);
-        const fontPx=Math.max(5, Math.round(12/sc)); // ~12 CSS px after integer upscale
+        const fontPx=Math.max(6, Math.round(16/sc));
         const pad=Math.max(1, Math.round(3/sc));
         const boxH=Math.max(7, Math.round(14/sc));
         ctx.fillStyle='rgba(0,0,0,.62)';
@@ -3727,6 +3908,23 @@ function ensureDOM(){
       if(e.key==='Escape'){ document.getElementById('txt')?.blur(); hideDialogue(); e.preventDefault(); }
       return;
     }
+    if(_dlgChoices && isDialogueOpen()){
+      const btns=[...document.querySelectorAll('#owDlgChoices button')];
+      if(btns.length && (e.key==='ArrowLeft'||e.key==='ArrowRight'||e.key==='ArrowUp'||e.key==='ArrowDown')){
+        e.preventDefault();
+        let i=btns.indexOf(document.activeElement);
+        if(i<0) i=0;
+        const dir=(e.key==='ArrowRight'||e.key==='ArrowDown')?1:-1;
+        btns[(i+dir+btns.length)%btns.length].focus();
+        return;
+      }
+      if(btns.length && (e.key==='Enter'||e.key===' ')){
+        e.preventDefault();
+        const cur=btns.includes(document.activeElement)?document.activeElement:btns[0];
+        cur.click();
+        return;
+      }
+    }
     const moveKeys=['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','w','a','s','d','W','A','S','D'];
     if(moveKeys.includes(e.key)){ _keys[e.key]=true; e.preventDefault(); return; }
     if(e.key==='Enter' || e.key===' '){
@@ -3835,6 +4033,7 @@ export function showOverworld(S){
   }catch(_){}
   try{ ensurePassWorld(S); }catch(_){}
   try{ ensurePassJobs(S); }catch(_){}
+  try{ ensureSolmir(S); }catch(_){}
   loadFog(S);
   _root.classList.remove('hidden');
   document.body.classList.add('pixel-ow','ow-fs-active');

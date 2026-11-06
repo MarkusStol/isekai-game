@@ -1503,7 +1503,7 @@ function applyJrpgPack(pack){
   try{ typewrite(sp, text, ()=>{}); }catch(_){}
   try{ setPortraitFromSpeaker(sp); }catch(_){}
   if(pack.changes) try{ apply(pack.changes); }catch(_){}
-  if((S.campaign?.chapterIdx|0)<=1 && S.campaign?.id==='nocturna'){
+  if(S.campaign?.id==='nocturna' && ((S.campaign?.chapterIdx|0)<=1 || S.campaign?.flags?.solmirField)){
     document.body.classList.add('field-play');
     if(S.campaign.sceneId==='c1_reward' && !S.flags.fieldReward){
       S.flags.fieldReward=true;
