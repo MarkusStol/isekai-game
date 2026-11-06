@@ -310,47 +310,35 @@ const PASS_SNOW=[
 ];
 function paintPassTile(ctx, t, x, y, sx, sy, tw){
   if(_map?.preset!=='wall') return false;
+  const SNOW='#e7eef4';
+  const ROCK='#6a7278';
+  const ROCK_DARK='#525960';
   const cliff=t==='stone'||t==='wall'||t==='cliff';
   if(cliff){
-    const walk=new Set(['sand','path','grass','floor','water','door','plaza']);
-    let edge=false;
-    for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){
-      if(walk.has(_map.tiles?.[y+dy]?.[x+dx])) edge=true;
+    ctx.fillStyle=ROCK;
+    ctx.fillRect(sx, sy, tw, tw);
+    ctx.fillStyle=ROCK_DARK;
+    ctx.fillRect(sx, sy+tw-Math.max(2, Math.round(tw*0.12)), tw, Math.max(2, Math.round(tw*0.12)));
+    const above=_map.tiles?.[y-1]?.[x];
+    const snowAbove=above==='sand'||above==='path'||above==='grass'||above==='floor'||above==='plaza'||above==='snow';
+    if(snowAbove){
+      ctx.fillStyle=SNOW;
+      ctx.fillRect(sx, sy, tw, Math.max(2, Math.round(tw*0.16)));
     }
-    if(edge){
-      const lip=loadImg('./assets/pixel/tiles-na/cut/cliff_snow.png');
-      if(lip.complete && lip.naturalWidth) ctx.drawImage(lip, 0, 0, lip.naturalWidth, lip.naturalHeight, sx, sy, tw, tw);
-      else { ctx.fillStyle='#d7e0e8'; ctx.fillRect(sx,sy,tw,tw); }
-      ctx.fillStyle='#4a5258';
-      ctx.fillRect(sx, sy+tw*0.58, tw, tw*0.42);
-      return true;
-    }
-    ctx.fillStyle='#5c656c';
-    ctx.fillRect(sx,sy,tw,tw);
-    ctx.fillStyle='#8d969e';
-    ctx.fillRect(sx, sy, tw, Math.max(2, tw*0.16));
     return true;
   }
   const ground=t==='sand'||t==='grass'||t==='floor'||t==='plaza'||t==='path'||t==='water'||t==='snow';
   if(!ground) return false;
-  const src=PASS_SNOW[Math.abs((x*5+y*3)|0)%PASS_SNOW.length];
-  const im=loadImg(src);
-  if(im.complete && im.naturalWidth) ctx.drawImage(im, 0, 0, im.naturalWidth, im.naturalHeight, sx, sy, tw, tw);
-  else { ctx.fillStyle='#e7eef6'; ctx.fillRect(sx,sy,tw,tw); }
-  if(((x*7+y*3)%11)===0){
-    ctx.fillStyle='rgba(198,214,228,0.40)';
-    ctx.beginPath();
-    ctx.ellipse(sx+tw*0.46, sy+tw*0.6, tw*0.22, tw*0.08, 0, 0, Math.PI*2);
-    ctx.fill();
-  }
-  if(t==='path'){
-    ctx.fillStyle='rgba(110,124,136,0.30)';
-    ctx.fillRect(sx+tw*0.08, sy+tw*0.4, tw*0.84, tw*0.22);
-  }
   if(t==='water'){
-    ctx.fillStyle='rgba(146,186,216,0.42)';
+    ctx.fillStyle='#c3d3df';
     ctx.fillRect(sx, sy, tw, tw);
+    ctx.fillStyle='#a9bfce';
+    ctx.fillRect(sx, sy+Math.floor(tw*0.62), tw, Math.max(1, Math.floor(tw*0.08)));
+    return true;
   }
+  const im=loadImg(PASS_SNOW[0]);
+  if(im.complete && im.naturalWidth) ctx.drawImage(im, 0, 0, im.naturalWidth, im.naturalHeight, sx, sy, tw, tw);
+  else ctx.fillStyle=SNOW, ctx.fillRect(sx, sy, tw, tw);
   return true;
 }
 function paintNa(ctx, t, x, y, dx, dy, dw, dh){
@@ -1010,150 +998,45 @@ export function buildMapForLocation(S, ort){
     kind='wild';
     const rnd=(n)=>((h*1103515245+n*12345)>>>0)%100;
     for(let y=0;y<ht;y++) for(let x=0;x<w;x++){
-      const edgeL = x < 5 + ((y*3+h)%4) + (rnd(x+y*17)%3);
-      const edgeR = x > w-6 - ((y*5+h)%3) - (rnd(x*3+y)%3);
-      if(edgeL || edgeR){
-        tiles[y][x] = (rnd(x+y*9)%5===0)?'wall':'stone';
-      } else {
-        tiles[y][x]='sand';
-      }
+      tiles[y][x] = (x<2 || x>=w-2) ? 'stone' : 'sand';
     }
-    // winding path with soft edges
-    let ppx=cx, ppy=0;
-    while(ppy<ht){
-      const half=1+(rnd(ppy*7)%2);
-      for(let dx=-half;dx<=half;dx++){
-        const xx=Math.max(6,Math.min(w-7,ppx+dx));
-        if(tiles[ppy]?.[xx]) tiles[ppy][xx]='path';
-      }
-      // soft shoulder snow
-      for(const s of [-half-1, half+1]){
-        const xx=Math.max(5,Math.min(w-6,ppx+s));
-        if(tiles[ppy]?.[xx]==='sand' && rnd(ppy+xx)%3===0) tiles[ppy][xx]='path';
-      }
-      if(ppy%2===0) ppx = Math.max(8, Math.min(w-9, ppx + ((ppy/2|0)%2===0?1:-1) + (rnd(ppy)%3-1)));
-      ppy++;
+    for(let y=1;y<ht-1;y++){
+      if(tiles[y]?.[cx]) tiles[y][cx]='path';
+      if(tiles[y]?.[cx+1]) tiles[y][cx+1]='path';
     }
     // frozen stream — continuous meander with soft banks (not square pools)
-    let sx=Math.floor(w*0.32), sy=2;
+    let sx=6, sy=2;
     while(sy<ht-2){
-      const bend=Math.sin(sy*0.35+(h%7))*2.2;
-      const mid=Math.max(8, Math.min(w-10, Math.round(sx+bend)));
-      for(let k=-1;k<=2;k++){
+      const mid=Math.max(4, Math.min(11, Math.round(sx+Math.sin(sy*0.22)*1.1)));
+      for(let k=0;k<=1;k++){
         const xx=mid+k;
-        if(xx<6||xx>w-7) continue;
-        if(tiles[sy]?.[xx]==='wall'||tiles[sy]?.[xx]==='stone') continue;
-        tiles[sy][xx]='water';
-      }
-      // snowy banks
-      for(const bank of [mid-2, mid+3]){
-        if(bank>5&&bank<w-6 && tiles[sy]?.[bank]==='sand'){
-          ov(bank, sy, 'snowdrift'); prop(bank, sy, 'snowdrift');
-        }
+        if(tiles[sy]?.[xx] && tiles[sy][xx]!=='stone') tiles[sy][xx]='water';
       }
       sx = mid;
       sy++;
     }
     // v63: curved cliff bands (noise ridge, not diagonal brick stairs)
     const ridge=(y0)=>{
-      let rx=cx;
-      for(let x=4;x<w-4;x++){
-        const wave=Math.sin(x*0.45+(h%5))*1.7 + Math.sin(x*0.19)*1.1;
-        const yy=Math.round(y0+wave);
-        if(yy<2||yy>=ht-2) continue;
-        if(Math.abs(x-cx)<=2) continue;
-        for(let dy=-1;dy<=1;dy++){
-          const y=yy+dy;
-          if(tiles[y]?.[x] && tiles[y][x]!=='path' && tiles[y][x]!=='water'){
-            tiles[y][x]=(dy===0?'stone':'stone');
-          }
-        }
-        // soft curve fill north of ridge
-        for(let y=Math.max(1,yy-2); y<yy; y++){
-          if(tiles[y]?.[x]==='sand' && rnd(x+y*3)%2===0) tiles[y][x]='stone';
-        }
+      for(let x=3;x<w-3;x++){
+        if(Math.abs(x-cx)<=4) continue;
+        if(tiles[y0]?.[x] && tiles[y0][x]!=='water') tiles[y0][x]='stone';
       }
-      fill(cx-1,y0,3,1,'path');
     };
-    ridge(6); ridge(ht-8);
+    ridge(5); ridge(ht-6);
     // pass camp with fire (near spawn so towers+NPCs are on camera)
     const campX=cx-3, campY=Math.max(8, cy-1);
-    fill(campX, campY, 7, 5, 'path');
-    for(let j=0;j<5;j++) for(let i=0;i<7;i++){
-      if(i===0||i===6||j===0||j===4){
-        if(rnd(i+j*8)%2===0 && tiles[campY+j]?.[campX+i]) tiles[campY+j][campX+i]='stone';
-      }
-    }
+    fill(campX, campY, 7, 5, 'sand');
     // tall watchtowers flanking the camp (visible at spawn)
-    const twY=Math.max(3, campY-5);
-    overhead.push({x:campX-4,y:twY,src:DECOR.watchtower,tw:3,th:5,label:'Wachturm West'});
-    overhead.push({x:campX+8,y:twY,src:DECOR.watchtower,tw:3,th:5,label:'Wachturm Ost'});
-    for(let j=0;j<5;j++) for(let i=0;i<3;i++){
-      const y1=twY+j, xL=campX-4+i, xR=campX+8+i;
-      if(tiles[y1]?.[xL]!=null) tiles[y1][xL]=(j>=4)?'path':'stone';
-      if(tiles[y1]?.[xR]!=null) tiles[y1][xR]=(j>=4)?'path':'stone';
-    }
+    const twY=Math.max(3, campY-2);
+    overhead.push({x:campX-6,y:twY,src:DECOR.watchtower,tw:2.4,th:4,label:'Wachturm West'});
+    overhead.push({x:campX+8,y:twY,src:DECOR.watchtower,tw:2.4,th:4,label:'Wachturm Ost'});
     prop(campX+3, campY+2, 'campfire');
     anim(campX+3, campY+2, 'torch');
     prop(campX+1, campY+2, 'barrel');
-    prop(campX+5, campY+2, 'crate');
     prop(campX+2, campY+3, 'bench');
     prop(campX+4, campY+3, 'bench');
-    // v63: pine clusters (not lonely singles) + rocks/snow
-    const pineSrc=(k)=>{
-      const pick=[DECOR.pine, DECOR.pine2, DECOR.pine3, DECOR.pine_tall];
-      return pick[k % pick.length];
-    };
-    const plantCluster=(cx0,cy0,n)=>{
-      for(let k=0;k<n;k++){
-        const tx=cx0+(rnd(cx0*11+k*3)%5)-2;
-        const ty=cy0+(rnd(cy0*13+k*7)%4)-1;
-        if(!tiles[ty]?.[tx]) continue;
-        if(tiles[ty][tx]==='path'||tiles[ty][tx]==='water'||tiles[ty][tx]==='wall') continue;
-        // v70: never stamp stump wang — keep snow under pine sprites
-        if(tiles[ty][tx]==='tree'||tiles[ty][tx]==='stone') tiles[ty][tx]='sand';
-        if(tiles[ty][tx]!=='sand') continue;
-        const src=pineSrc(k+cx0);
-        const th = src===DECOR.pine_tall?4:3;
-        overhead.push({x:tx,y:ty-1,src,tw:2,th,label:'pine'});
-        if(k%2===0){ ov(tx+1, ty, 'snowdrift'); }
-        if(k%3===0){ ov(tx-1, ty+1, 'dead_bush'); }
-        if(k%4===0){ ov(tx, ty+1, 'rock'); }
-      }
-    };
-    // denser pine belts (left + right) — varied sprites, no stump floor
-    plantCluster(7, 8, 7);
-    plantCluster(8, 14, 6);
-    plantCluster(6, ht-12, 6);
-    plantCluster(w-10, 9, 6);
-    plantCluster(w-9, 15, 5);
-    plantCluster(w-10, ht-12, 5);
-    plantCluster(cx-6, cy+3, 4);
-    plantCluster(cx+5, cy-4, 4);
-    plantCluster(cx-8, cy-6, 4);
-    // scatter snowdrifts / rocks / dead bushes / footprints on open snow
-    for(let i=0;i<72;i++){
-      const tx=5+(rnd(i*13+3)*7)%Math.max(1,w-10);
-      const ty=3+(rnd(i*17+9)*9)%Math.max(1,ht-6);
-      if(!tiles[ty]?.[tx] || tiles[ty][tx]!=='sand') continue;
-      const roll=rnd(i*19)%6;
-      if(roll===0){ ov(tx, ty, 'rock'); }
-      else if(roll===1){ ov(tx, ty, 'dead_bush'); }
-      else if(roll<=3){ ov(tx, ty, 'footprints'); }
-      else { ov(tx, ty, 'snowdrift'); }
-    }
-    // path + near-path footprints
-    for(let y=2;y<ht-2;y++){
-      for(let x=0;x<w;x++){
-        if(tiles[y][x]==='path' && rnd(x+y*9)%3===0) ov(x,y,'footprints');
-        if(tiles[y][x]==='sand' && (tiles[y][x-1]==='path'||tiles[y][x+1]==='path') && rnd(x*5+y)%2===0) ov(x,y,'footprints');
-      }
-    }
-    // v69/v70: rock bands OOB — no pine wall filler
-    for(let y=0;y<ht;y++){
-      for(let x=0;x<4;x++){ if(tiles[y]) tiles[y][x]='stone'; }
-      for(let x=w-4;x<w;x++){ if(tiles[y]) tiles[y][x]='stone'; }
-    }
+    overhead.push({x:campX+9, y:campY-2, src:DECOR.pine, tw:2, th:3, label:'pine'});
+    overhead.push({x:campX-5, y:campY, src:DECOR.pine, tw:2, th:3, label:'pine'});
     // scrub grass/tree leftovers → snow (no green plateaus)
     for(let y=0;y<ht;y++) for(let x=0;x<w;x++){
       if(tiles[y][x]==='grass' || tiles[y][x]==='tree') tiles[y][x]='sand';
@@ -1162,10 +1045,9 @@ export function buildMapForLocation(S, ort){
     placeChest(cx+2, cy-1, {gold:15, item:'Eisen-Schild'});
     placeChest(8, 11, {gold:10, item:'Antidot'});
     placeChest(w-9, cy+2, {gold:18, item:'Nyx-Bericht'});
-    prop(cx, cy-2, 'sign');
     questMark(cx, 7, 'Grenzpass', 'story');
     // camp NPCs with context
-        placeHouse(Math.max(8,cx-3), Math.min(ht-8, cy+4), 'Herberge', {variant:3});
+        placeHouse(Math.max(8,cx-3), Math.min(ht-8, cy+8), 'Herberge', {variant:3});
     // Around the fire, on the path, so they stay in frame while someone is talking.
     // Spawn sits one tile north of the fire; leave that tile empty.
     const fireX=campX+3, fireY=campY+2;
@@ -2800,8 +2682,10 @@ function tintedSheet(src, tint){
   g.imageSmoothingEnabled=false;
   g.drawImage(im,0,0);
   g.globalCompositeOperation='source-atop';
+  g.globalAlpha=0.45;
   g.fillStyle=tint;
   g.fillRect(0,0,c.width,c.height);
+  g.globalAlpha=1;
   _tintCache[key]=c;
   return c;
 }
@@ -2865,6 +2749,14 @@ function syncDayNight(){
   }catch(_){ _dayTint='day'; }
 }
 function tintColor(){
+  if(_map?.preset==='wall'){
+    return ({
+      night:'rgba(24,36,58,.18)',
+      dawn:'rgba(210,200,188,.08)',
+      dusk:'rgba(64,82,104,.10)',
+      day:'rgba(0,0,0,0)'
+    })[_dayTint]||'rgba(0,0,0,0)';
+  }
   return ({
     night:'rgba(18,28,70,.28)',
     dawn:'rgba(255,160,100,.18)',
@@ -2874,8 +2766,8 @@ function tintColor(){
 }
 function ensureWxParts(){
   if(_wxParts.length) return;
-  for(let i=0;i<40;i++){
-    _wxParts.push({x:Math.random(), y:Math.random(), s:0.5+Math.random()*1.5, v:0.2+Math.random()*0.6, a:0.3+Math.random()*0.5});
+  for(let i=0;i<14;i++){
+    _wxParts.push({x:Math.random(), y:Math.random(), s:0.6, v:0.15+Math.random()*0.2, a:0.18+Math.random()*0.12});
   }
 }
 function drawWeather(ctx, cssW, cssH, dt){
@@ -2945,7 +2837,7 @@ function draw(){
           if(viewW / viewH < aspect) viewW = Math.max(viewW, Math.ceil(viewH * aspect));
           else viewH = Math.max(viewH, Math.ceil(viewW / aspect));
         }
-        // outdoors / pass: keep _viewW/_viewH from fitCanvas (player-follow)
+        if(_map.preset==='wall'){ viewW=18; viewH=10; }
       }
     }
   }catch(_){}
@@ -3002,24 +2894,9 @@ function draw(){
         else {
           // v69: pass OOB = snow + rock faces + dark fog vignette (NO pine wall filler)
           const useCliff = (_map.preset==='wall' || /pass|grenze|berg/i.test(String(_map.name||'')));
-          if(useCliff){
-            const n = ((x*17)^(y*31)) & 7;
-            const rocky = n < 3; // mostly snow continuation, rock faces as accents
-            let url;
-            if(rocky){
-              const rockIdx=[0,1,2,3];
-              const base = tileUrl('stone') || './assets/pixel/tiles-na/cut/biome_mountain.png';
-              const dir = base.slice(0, base.lastIndexOf('/')+1);
-              url = dir + 'cliff' + rockIdx[n%4] + '.png';
-            } else {
-              url = tileUrl('sand') || './assets/pixel/tiles-na/cut/biome_snow.png';
-            }
-            const gim=loadImg(url);
-            if(gim.complete && gim.naturalWidth) ctx.drawImage(gim, sx, sy, tw, tw);
-            else { ctx.fillStyle = rocky?'#2a3038':'#d8e4f0'; ctx.fillRect(sx,sy,tw,tw); }
-            // dark mountain fog vignette (never pine wall)
-            const edge=Math.min(1, Math.hypot(x-_hero.x, y-_hero.y)/16);
-            ctx.fillStyle=`rgba(4,8,18,${0.28+edge*0.62})`; ctx.fillRect(sx,sy,tw,tw);
+            if(useCliff){
+            ctx.fillStyle='#e7eef4';
+            ctx.fillRect(sx, sy, tw, tw);
           } else {
             const url = tileUrl('grass');
             const gim=loadImg(url);
@@ -3203,7 +3080,7 @@ function draw(){
       }catch(_){}
       // v70: tall height-shaded cliff faces (replace thin dark wang lips)
       try{
-        if((t==='stone'||t==='wall'||t==='cliff') && y+1<_map.h){
+        if(_map.preset!=='wall' && (t==='stone'||t==='wall'||t==='cliff') && y+1<_map.h){
           const below=_map.tiles[y+1][x];
           if(below==='sand'||below==='path'||below==='grass'||below==='water'||below==='tree'){
             const faceH=tw*1.85;
@@ -3321,7 +3198,7 @@ function draw(){
       const d=Math.hypot((n.px||n.x)-_hero.px,(n.py||n.y)-_hero.py);
       if(d<best){ best=d; pick=n; }
     }
-    if(pick){
+    if(pick && !speaking){
       const nsx=ox+(pick.px-camX)*tw, nsy=oy+(pick.py-camY)*tw - tw*0.55;
       let label=pick.name||'';
       try{
@@ -3341,10 +3218,11 @@ function draw(){
         const boxH=Math.max(10, Math.round(16/sc));
         ctx.font=`bold ${fontPx}px "Noto Sans",system-ui,sans-serif`;
         const twm=ctx.measureText(label).width;
+        const labelBase=nsy-tw*1.15;
         ctx.fillStyle='rgba(8,6,14,.78)';
-        ctx.fillRect(nsx+tw/2-twm/2-pad, nsy-boxH-2, twm+pad*2, boxH);
+        ctx.fillRect(nsx+tw/2-twm/2-pad, labelBase-boxH, twm+pad*2, boxH);
         ctx.fillStyle='#ffe8a0';
-        ctx.fillText(label, nsx+tw/2-twm/2, nsy-Math.max(3, Math.round(4/sc)));
+        ctx.fillText(label, nsx+tw/2-twm/2, labelBase-Math.max(2, Math.round(3/sc)));
       }
     }
   }catch(_){}
@@ -3532,11 +3410,17 @@ function draw(){
       const onDoor=(_map.doors||[]).some(d=>d.x===m.x&&d.y===m.y);
       if(!(onNpc||onChest||onDoor)) continue;
     }
-    const sx=ox+(m.x-camX)*tw+tw/2, sy=oy+(m.y-camY)*tw-4;
-    ctx.fillStyle='#ffd35a'; ctx.strokeStyle='#000'; ctx.lineWidth=3;
-    ctx.font='bold 14px monospace';
-    ctx.strokeText(m.kind==='done'?'✓':'!', sx-4, sy);
-    ctx.fillText(m.kind==='done'?'✓':'!', sx-4, sy);
+    if(_npcs.some(n=>Math.round(n.x)===m.x && Math.round(n.y)===m.y)) continue;
+    const sx=ox+(m.x-camX)*tw+tw/2, sy=oy+(m.y-camY)*tw+tw*0.22;
+    const s=Math.max(3, Math.round(tw*0.14));
+    ctx.fillStyle=m.kind==='done'?'#9aa4ae':'#e2c36a';
+    ctx.beginPath();
+    ctx.moveTo(sx, sy-s);
+    ctx.lineTo(sx+s*0.72, sy);
+    ctx.lineTo(sx, sy+s);
+    ctx.lineTo(sx-s*0.72, sy);
+    ctx.closePath();
+    ctx.fill();
   }
   // open chests visual (empty)
   for(const c of _chests){
