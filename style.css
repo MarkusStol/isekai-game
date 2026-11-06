@@ -7608,13 +7608,13 @@ body.ow-desktop #overworld canvas{
   animation: atkCast .4s ease-out;
 }
 @keyframes atkAnt{
-  from{ transform:translateX(0) translateY(var(--lean,0)); }
-  to{ transform:translateX(28px) translateY(var(--lean,0)); }
+  from{ transform:translateX(0) !important; }
+  to{ transform:translateX(28px) !important; }
 }
 @keyframes atkStrike{
-  0%{ transform:translateX(28px); }
-  38%{ transform:translateX(-78px); }
-  100%{ transform:translateX(0); }
+  0%{ transform:translateX(28px) !important; }
+  38%{ transform:translateX(-78px) !important; }
+  100%{ transform:translateX(0) !important; }
 }
 @keyframes atkCast{
   0%{ filter:brightness(1); transform:translateX(8px) scale(1); }
@@ -7740,6 +7740,83 @@ body.pixel-ow.jrpg-classic:not(.ow-dialogue) .vn-text{
   font-size:15px !important;
   display:block !important;
   overflow:visible !important;
+}
+
+/* Chapter 1 is walked. No prose slab, no standing option list. */
+body.field-play .vn-wrap,
+body.field-play #choices,
+body.field-play.pixel-ow.jrpg-classic #choices,
+body.field-play.ow-desktop.pixel-ow.jrpg-classic:not(.ow-dialogue) .vn-wrap,
+body.field-play.ow-desktop.pixel-ow.jrpg-classic:not(.ow-dialogue) #choices,
+body.field-play.pixel-ow.jrpg-classic:not(.ow-dialogue) .vn-wrap{
+  display:none !important;
+  height:0 !important;
+  max-height:0 !important;
+  min-height:0 !important;
+  overflow:hidden !important;
+  pointer-events:none !important;
+  opacity:0 !important;
+}
+body.field-play .ow-region-minimap{
+  top:78px !important;
+  right:12px !important;
+  z-index:26 !important;
+}
+body.field-play .ow-dlg{
+  width:min(640px, 92vw);
+  bottom:16px;
+  z-index:60;
+}
+body.field-play .ow-dlg-port{
+  width:84px !important;
+  height:84px !important;
+  object-fit:contain;
+  background:#120c18;
+}
+body.field-play .ow-dlg-text{
+  font-family:"Noto Sans",system-ui,sans-serif !important;
+  font-size:16px !important;
+  line-height:1.45 !important;
+  color:#f4efe4;
+}
+body.field-play .ow-dlg-name{
+  font-family:"Noto Sans",system-ui,sans-serif !important;
+  font-size:14px !important;
+  letter-spacing:.04em;
+}
+body.field-play .ow-dlg-choices{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  margin-top:8px;
+}
+body.field-play .ow-dlg-choice{
+  flex:1 1 140px;
+  min-height:34px;
+  text-align:left;
+  font-size:14px;
+}
+
+/* Battlers stand on the hall floor, not on the upper wall. */
+.battle-root.battle-ff67 .battle-foes{
+  top:auto !important;
+  bottom:4% !important;
+  height:auto !important;
+  justify-content:flex-end !important;
+  align-items:flex-start !important;
+}
+.battle-root.battle-ff67 .party-stage-spr,
+.battle-root.battle-ff67.battle-pixel .party-stage-spr,
+.battle-root.battle-pixel.battle-ff67 .party-stage-spr{
+  top:auto !important;
+  bottom: calc(2% + (3 - var(--i, 0)) * 8%) !important;
+  right: calc(1% + var(--i, 0) * 9vw) !important;
+}
+.battle-root.battle-ff67 .foe-card.foe-boss .foe-art,
+.battle-root.battle-ff67 .battle-setpiece .foe-art{
+  width:260px !important;
+  height:260px !important;
+  max-height:42vh !important;
 }
 body.pixel-ow.jrpg-classic:not(.ow-dialogue) #choices{
   max-height:none !important;

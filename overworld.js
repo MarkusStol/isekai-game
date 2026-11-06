@@ -267,23 +267,32 @@ const NA_CELL = {
   path: ['outdoor', [[336,256],[352,256],[192,224],[208,224]]],
   wood: ['outdoor', [[192,224],[208,224],[176,224]]],
   dun: ['interior', [[208,192],[224,192],[240,192],[256,192],[272,192],[208,208],[240,208],[224,208]]],
-  throne: ['interior', [[80,32],[96,32],[112,32],[80,48],[96,48],[128,32]]],
-  wall: ['outdoor', [[204,424],[220,424],[204,432],[220,432],[284,424],[220,440]]],
+  throne: ['interior', [[208,192],[224,192],[240,192],[256,192],[208,208]]],
+  dais: ['outdoor', [[204,416],[220,416],[204,424],[220,424]]],
+  wall: ['outdoor', [[204,432],[220,432],[204,440],[220,440],[284,424]]],
 };
 function naSpec(t, x, y){
   const kind=_map?.kind||'';
   const preset=String(_map?.preset||_map?.name||'');
   const pass=/wall|pass|grenze|berg/i.test(preset);
+  const throne=/throne|festung/i.test(preset) || (kind==='interior' && /thron/i.test(String(_map?.name||'')));
   const j=Math.abs((x*3+y*5)|0);
   let key='grass';
   if(kind==='dungeon'){
-    key=(t==='wall'||t==='void'||t==='cliff')?'wall':'dun';
+    key=(t==='wall'||t==='void'||t==='cliff')?'wall':(t==='stone'?'dais':'dun');
   } else if(pass){
     key=(t==='stone'||t==='wall'||t==='cliff')?'wall':'snow';
-  } else if(kind==='interior' || /throne|church|cathedral|festung/i.test(preset)){
+  } else if(throne){
     if(t==='wall'||t==='cliff') key='wall';
+    else if(t==='carpet') key='dun';
+    else if(t==='stone'||t==='plaza') key='dais';
     else if(t==='wood') key='wood';
     else key='throne';
+  } else if(kind==='interior' || /church|cathedral/i.test(preset)){
+    if(t==='wall'||t==='cliff') key='wall';
+    else if(t==='wood') key='wood';
+    else if(t==='carpet') key='dun';
+    else key='dais';
   } else if(t==='path'||t==='sand'||t==='wood') key = t==='wood'?'wood':'path';
   else if(t==='stone'||t==='wall'||t==='cliff') key='wall';
   else if(t==='water') key='snow';
@@ -300,6 +309,62 @@ function paintNa(ctx, t, x, y, dx, dy, dw, dh){
     ctx.drawImage(im, spec.sx, spec.sy, 16, 16, dx, dy, dw||0, dh||dw||0);
     return true;
   }catch(_){ return false; }
+}
+/** Floor / rug / dais / wall separation. The sheet cell is the texture; the wash is the room. */
+function shadeField(ctx, t, x, y, sx, sy, tw){
+  const preset=String(_map?.preset||'');
+  const throne=/throne/i.test(preset);
+  const dung=_map?.kind==='dungeon';
+  if(throne && t==='carpet'){
+    ctx.fillStyle='rgba(92,18,32,0.78)';
+    ctx.fillRect(sx+1, sy+1, tw-2, tw-2);
+    ctx.fillStyle='rgba(196,154,62,0.9)';
+    ctx.fillRect(sx+1, sy+1, tw-2, 2);
+    ctx.fillRect(sx+1, sy+tw-3, tw-2, 2);
+    ctx.fillRect(sx+1, sy+1, 2, tw-2);
+    ctx.fillRect(sx+tw-3, sy+1, 2, tw-2);
+    return;
+  }
+  if(throne && (t==='stone'||t==='plaza')){
+    ctx.fillStyle='rgba(210,206,196,0.28)';
+    ctx.fillRect(sx, sy, tw, Math.max(2, tw*0.18));
+    const nb=(dx,dy)=>_map?.tiles?.[y+dy]?.[x+dx];
+    const beside=[nb(0,-1),nb(0,1),nb(1,0),nb(-1,0)].filter(v=>v==='carpet').length;
+    if(beside===1){
+      ctx.fillStyle='#242b38';
+      ctx.fillRect(sx+tw*0.3, sy-tw*1.25, tw*0.4, tw*1.35);
+      ctx.fillStyle='#9aa3b2';
+      ctx.fillRect(sx+tw*0.22, sy-tw*1.34, tw*0.56, Math.max(3, tw*0.12));
+      ctx.fillStyle='rgba(0,0,0,0.35)';
+      ctx.fillRect(sx+tw*0.15, sy+tw*0.72, tw*0.8, tw*0.18);
+    }
+    return;
+  }
+  if(throne && (t==='floor'||t==='path')){
+    ctx.fillStyle='rgba(18,20,28,0.18)';
+    ctx.fillRect(sx, sy, tw, tw);
+    return;
+  }
+  if(dung && (t==='floor'||t==='path'||t==='carpet'||t==='plaza')){
+    ctx.fillStyle='rgba(6,8,14,0.28)';
+    ctx.fillRect(sx, sy, tw, tw);
+    return;
+  }
+  if(dung && (t==='wall'||t==='cliff')){
+    ctx.fillStyle='#17202a';
+    ctx.fillRect(sx, sy, tw, tw);
+    ctx.fillStyle='#3c4c5c';
+    ctx.fillRect(sx, sy, tw, Math.max(3, tw*0.2));
+    ctx.fillStyle='#10161e';
+    ctx.fillRect(sx, sy+tw*0.55, tw, tw*0.45);
+    return;
+  }
+  if(throne && (t==='wall'||t==='cliff')){
+    ctx.fillStyle='rgba(8,10,16,0.55)';
+    ctx.fillRect(sx, sy, tw, tw);
+    ctx.fillStyle='rgba(170,178,190,0.35)';
+    ctx.fillRect(sx, sy, tw, Math.max(2, tw*0.12));
+  }
 }
 
 function applyGenre(S){
@@ -651,6 +716,7 @@ export function buildMapForLocation(S, ort){
       placeChest(west+2, sy0+1, {gold:10, item:'Schattenkristall'});
       if(roomN!==3){ prop(sx0, north+2, 'altar'); ov(sx0,north+2,'altar'); }
       questMark(sx0, north+2, 'Siegelsaal', 'puzzle');
+      questMark(sx0, Math.max(2, north), 'Fiendtor', 'boss');
       questMark(east+5, sy0, 'Schatzkammer', 'side');
       for(const [tx,ty] of [[sx0-4,sy0-3],[sx0+4,sy0-3],[west+2,sy0-3],[east+2,sy0-3],[sx0,north+1],[sx0,south+1],[west+2,south+1],[east+2,south+1]]){
         anim(tx,ty,'torch');
@@ -820,7 +886,7 @@ export function buildMapForLocation(S, ort){
     _hubNpcs.push({name:'Page Sera', x:cx-3, y:16, px:cx-3, py:16, sheet:'villager', e:'📨'});
     // v66 side dungeon entrance
     fill(2, ht-5, 3, 3, 'floor'); tiles[ht-4][3]='door';
-    questMark(3, ht-4, 'Schatzkatakomben', 'side');
+    questMark(cx, Math.max(4, ht-3), 'Schatzkatakomben', 'side');
     overhead.push({x:3,y:ht-5,src:DECOR.sign||DECOR.statue,tw:1,th:1,label:'Katakomben'});
 
 
@@ -1735,6 +1801,7 @@ function ensureDlg(){
         <div class="ow-dlg-body">
           <div class="ow-dlg-name" id="owDlgName">…</div>
           <div class="ow-dlg-text" id="owDlgText"></div>
+          <div class="ow-dlg-choices" id="owDlgChoices"></div>
         </div>
         <button type="button" class="ow-dlg-close" id="owDlgClose" aria-label="Schließen">×</button>
       </div>`;
@@ -1745,6 +1812,76 @@ function ensureDlg(){
   return el;
 }
 let _dlgTw=null;
+let _beatQueue=[];
+let _dlgChoices=null;
+const CAST_PORT={
+  'Velka':'./assets/pixel/battler/ally_velka.png',
+  'Sekretärin Velka':'./assets/pixel/battler/ally_velka.png',
+  'Brok':'./assets/pixel/battler/ally_brok.png',
+  'General Brok':'./assets/pixel/battler/ally_brok.png',
+  'Aria':'./assets/pixel/battler/ally_aria.png',
+  'Heldin Aria':'./assets/pixel/battler/ally_aria.png',
+  'Noctis':'./assets/pixel/battler/ally_hero.png',
+};
+function finishDlgText(){
+  if(!_dlgTw) return false;
+  clearInterval(_dlgTw); _dlgTw=null;
+  const tx=document.getElementById('owDlgText');
+  if(tx?.dataset.full) tx.textContent=tx.dataset.full;
+  return true;
+}
+function renderDlgChoices(choices){
+  _dlgChoices=choices&&choices.length?choices:null;
+  const box=document.getElementById('owDlgChoices');
+  if(!box) return;
+  box.innerHTML='';
+  if(!_dlgChoices) return;
+  _dlgChoices.forEach((ch,i)=>{
+    const b=document.createElement('button');
+    b.type='button';
+    b.className='ow-dlg-choice';
+    b.textContent=ch.label;
+    b.onclick=()=>{
+      _dlgChoices=null;
+      box.innerHTML='';
+      try{ ch.pick?.(); }catch(e){ console.warn('dlg choice', e); }
+    };
+    box.appendChild(b);
+  });
+}
+export function queueBeats(lines){
+  _beatQueue=(lines||[]).filter(Boolean);
+  if(_beatQueue.length) nextBeat();
+}
+function nextBeat(){
+  if(!_beatQueue.length){ hideDialogue(); return; }
+  const b=_beatQueue.shift();
+  showDialogue(b.name, b.text, b.sheet, b.choices||null);
+}
+function confirmDialogue(){
+  if(!isDialogueOpen()){ talkNearest(); return; }
+  if(finishDlgText()) return;
+  if(_dlgChoices) return;
+  if(_beatQueue.length){ nextBeat(); return; }
+  hideDialogue();
+}
+function enterFieldDungeon(name){
+  const S=_hooks.getS?.();
+  if(!S) return;
+  const base=String(name||'Schatzkatakomben').split('·')[0].trim();
+  S.world=S.world||{}; S.world.scene=S.world.scene||{};
+  S.world.scene.ort=base+' · Raum 1';
+  S.campaign=S.campaign||{};
+  S.campaign.mode='dungeon';
+  S.campaign.dungeon=S.campaign.dungeon||{name:base, room:1, rooms:5, boss:'lesser_fiend', bossName:'Niederer Fiend'};
+  S.flags=S.flags||{};
+  S.flags.owNeedsRefresh=false;
+  showOverworld(S);
+  showDialogue('Velka','Stufen. Das Siegel ist Norden. Neun, neun, neun.','mage');
+}
+function fieldChapter(S){
+  return (S?.campaign?.chapterIdx|0)===0 && S?.campaign?.id==='nocturna';
+}
 function coerceDlgText(v, fallback='…'){
   if(v==null) return fallback;
   if(typeof v==='object'){
@@ -1797,10 +1934,11 @@ export function showDialogue(name, text, sheet){
     const n=npc||{art:sh, sheet:sh};
     const role=C46?.portraitRole?.(trueName, n)||C45?.roleFromNpc?.(trueName,n)||sh||'villager';
     const roleUrl=C45?.ROLE_PORT?.[role]||C45?.ROLE_PORT?.villager;
-    if(port && roleUrl){ port.src=roleUrl; usedPx=true; }
-    C45?.loadFramedRolePortrait?.(role).then(url=>{ if(url && port) port.src=url; });
+    if(port && roleUrl && !CAST_PORT[trueName]){ port.src=roleUrl; usedPx=true; }
+    if(!CAST_PORT[trueName]) C45?.loadFramedRolePortrait?.(role).then(url=>{ if(url && port) port.src=url; });
   }catch(_){}
-  if(port && !usedPx) port.src=(window.__game?.C45?.ROLE_PORT?.villager)||PORTRAITS[sh]||PORTRAITS.default;
+  if(port && CAST_PORT[trueName]) port.src=CAST_PORT[trueName];
+  else if(port && !usedPx) port.src=(window.__game?.C45?.ROLE_PORT?.villager)||PORTRAITS[sh]||PORTRAITS.default;
   let shown=trueName.slice(0,36);
   try{
     const C64=window.__game?.C64;
@@ -1809,12 +1947,14 @@ export function showDialogue(name, text, sheet){
     else if(Know?.displayName) shown=String(Know.displayName(S, trueName, S?.world?.npcs?.[trueName]||{sheet:sh})||shown).slice(0,36);
   }catch(_){}
   shown=coerceDlgName(shown, trueName).slice(0,36);
+  if(CAST_PORT[trueName]) shown=trueName.replace(/^(Sekretärin|General|Heldin)\s+/,'');
   // strangers: never show bare "jemand" — role label until introduced
   if(/^(jemand|unbekannt|\?\?\?)$/i.test(shown) || shown===trueName && /hunderte|kniende|menge/i.test(trueName)){
     const ROLE_LABEL={guard:'Ein Wächter',mage:'Eine Gelehrte',merchant:'Ein Händler',spy:'Eine Vermummte',villager:'Ein Passant',daemon:'Eine dunkle Gestalt',princess:'Eine Edelfrau'};
     shown = ROLE_LABEL[sh] || 'Eine unbekannte Gestalt';
   }
   if(nm) nm.textContent=shown;
+  if(port && CAST_PORT[trueName]) port.src=CAST_PORT[trueName];
   let body=coerceDlgText(text, '');
   if(!body || body==='…' || body==='...'){
     try{
@@ -1826,8 +1966,10 @@ export function showDialogue(name, text, sheet){
   body=coerceDlgText(body, 'Guten Tag.');
   // strip leading "Name: " duplication if label already shows name
   const full=body;
+  if(tx) tx.dataset.full=full;
   if(_dlgTw) clearInterval(_dlgTw);
   let i=0; if(tx) tx.textContent='';
+  renderDlgChoices(arguments[3]);
   _dlgTw=setInterval(()=>{
     i=Math.min(full.length, i+2);
     if(tx) tx.textContent=full.slice(0,i);
@@ -1837,6 +1979,9 @@ export function showDialogue(name, text, sheet){
 }
 export function hideDialogue(){
   if(_dlgTw){ clearInterval(_dlgTw); _dlgTw=null; }
+  _dlgChoices=null;
+  const box=document.getElementById('owDlgChoices');
+  if(box) box.innerHTML='';
   _dlg?.classList.add('hidden');
   document.body.classList.remove('ow-dialogue');
 }
@@ -1853,6 +1998,14 @@ function talkTo(name){
     S.v64.talkCount=S.v64.talkCount||{};
   }catch(_){}
   const turn=(S?.v64?.talkCount?.[label]|0);
+  if(fieldChapter(S)){
+    const ft=fieldLine(S, label, sh);
+    if(ft){
+      showDialogue(label, ft.text, sh, ft.choices||null);
+      try{ if(S?.v64?.talkCount) S.v64.talkCount[label]=(turn+1)|0; }catch(_){}
+      return {name:label, text:ft.text};
+    }
+  }
   let line='Guten Tag.';
   try{
     const C64=window.__game?.C64;
@@ -1888,9 +2041,43 @@ function facingTile(){
   const dx=d===1?-1:d===2?1:0, dy=d===3?-1:d===0?1:0;
   return {x:_hero.x+dx, y:_hero.y+dy};
 }
+function fieldLine(S, label, sh){
+  const party=(S.party||[]);
+  if(label==='Sekretärin Velka'){
+    if(party.includes(label)) return {text:'Neun, neun, neun. Unter dem Thron, und am Siegel.'};
+    return {text:'Venn hustet Staub. Nimm mich mit. Jemand muss die Namen lesen.', choices:[
+      {label:'Mitnehmen', pick:()=>{ try{ window.__game?.C60?.recruitMember?.(S, label, {}); }catch(_){} showDialogue(label,'Ich lese, wenn du vergisst.', sh); }},
+      {label:'Noch nicht', pick:()=>hideDialogue()},
+    ]};
+  }
+  if(label==='General Brok'){
+    if(party.includes(label)) return {text:'Wenn es meinen Namen kennt, schlag nicht daneben.'};
+    return {text:'Eine Nacht. Ich komme mit hinunter. Für Venn.', choices:[
+      {label:'Brok kommt mit', pick:()=>{ try{ window.__game?.C60?.recruitMember?.(S, label, {}); }catch(_){} showDialogue(label,'Dann runter.', sh); }},
+      {label:'Bleib oben', pick:()=>hideDialogue()},
+    ]};
+  }
+  if(label==='Heldin Aria'){
+    if(S.campaign?.flags?.ariaGuest) return {text:'Bis zum Fiend. Danach hole ich Lio.'};
+    return {text:'Lio steht am Pass. Ich gehe mit hinunter. Danach nicht.', choices:[
+      {label:'Sie geht mit', pick:()=>{ S.campaign.flags=S.campaign.flags||{}; S.campaign.flags.ariaGuest=true; showDialogue(label,'Solstich gegen die Münzrüstung. Nicht weiter.', sh); }},
+      {label:'Geh zu Lio', pick:()=>hideDialogue()},
+    ]};
+  }
+  return null;
+}
 function talkNearest(){
   const f=facingTile();
-  const seal=(_questMarks||[]).find(m=>m && Math.abs((m.x|0)-f.x)<=1 && Math.abs((m.y|0)-f.y)<=1 && (m.kind==='puzzle' || /siegel/i.test(String(m.label||''))));
+  const S=_hooks.getS?.();
+  const nearMark=(kind)=> (_questMarks||[]).find(m=>m && Math.abs((m.x|0)-f.x)<=1 && Math.abs((m.y|0)-f.y)<=1 && (m.kind===kind || (kind==='puzzle' && /siegel/i.test(String(m.label||'')))));
+  const boss=nearMark('boss');
+  if(boss && fieldChapter(S)){
+    const open=!!S.campaign?.flags?.puzzle_c1_ledger_seal;
+    if(!open){ showDialogue('Velka','Das Siegel hält noch. Neun, neun, neun.','mage'); return 'locked'; }
+    try{ window.__game?.startFieldBoss?.(); }catch(_){}
+    return 'boss';
+  }
+  const seal=nearMark('puzzle');
   if(seal && window.__game?.openC1Seal){
     try{ window.__game.openC1Seal(); return 'seal'; }catch(_){}
   }
@@ -1955,6 +2142,10 @@ function tryMove(dx,dy){
     _audioApi?.stepSfx?.(surf);
   }catch(_){}
   if(door?.to){
+    if(door.sideDungeon || /katakomb/i.test(String(door.to||''))){
+      setTimeout(()=>{ try{ enterFieldDungeon(door.to); }catch(e){ console.warn('field-dung', e); } }, 60);
+      return 'dung';
+    }
     // v65: Herberge / Gasthof → real inn screen (rest + save), not empty interior
     if(/herberge|gasthof|gasthaus|\binn\b|taverne|wirtshaus/i.test(String(door.label||door.to||''))){
       try{ if(_hooks.openInn){ _hooks.openInn(); return 'inn'; } }catch(_){}
@@ -2306,7 +2497,9 @@ function draw(){
           ctx.fillStyle='#5a564c';
           for(let i=0;i<4;i++) ctx.fillRect(sx+2, sy+2+i*(tw/4), tw-4, tw/6);
         }
-      } else if(!paintNa(ctx, t, x, y, sx, sy, tw, tw)){
+      } else if(paintNa(ctx, t, x, y, sx, sy, tw, tw)){
+        shadeField(ctx, t, x, y, sx, sy, tw);
+      } else {
         const im=loadImg(wangUrlFor(t,x,y));
         if(im.complete && im.naturalWidth) ctx.drawImage(im, sx, sy, tw, tw);
         else {
@@ -2341,7 +2534,7 @@ function draw(){
             const nx=x+dx, ny=y+dy;
             if(ny<0||nx<0||ny>=_map.h||nx>=_map.w) continue;
             const nt=_map.tiles[ny][nx];
-            if(nt && nt!==t && nt!=='void'){
+            if(nt && nt!==t && nt!=='void' && _map.kind!=='dungeon' && _map.preset!=='throne'){
               ctx.fillStyle='rgba(0,0,0,0.18)';
               if(dx===1) ctx.fillRect(sx+tw-2, sy, 2, tw);
               if(dx===-1) ctx.fillRect(sx, sy, 2, tw);
@@ -2772,8 +2965,7 @@ function pollGamepad(){
       return now && !was;
     };
     if(edge('a',0) || edge('x',2)){ // A/X confirm/talk
-      if(isDialogueOpen()) hideDialogue();
-      else talkNearest();
+      confirmDialogue();
     }
     if(edge('b',1) || edge('start',9)){ // B/Start menu
       try{ _hooks.openMenu?.(); }catch(_){}
@@ -3175,8 +3367,7 @@ function ensureDOM(){
     if(moveKeys.includes(e.key)){ _keys[e.key]=true; e.preventDefault(); return; }
     if(e.key==='Enter' || e.key===' '){
       e.preventDefault();
-      if(isDialogueOpen()){ hideDialogue(); return; }
-      talkNearest();
+      confirmDialogue();
       return;
     }
     if(e.key==='Escape'){
@@ -3240,13 +3431,19 @@ export function showOverworld(S){
   _animators=built.animators||[];
   __map=built;
   _chests=(built.chests||[]).map(c=>({...c}));
-  if(Array.isArray(built.questMarks)&&built.questMarks.length){ _questMarks=(_questMarks||[]).concat(built.questMarks); }
   _lights=built.lights||[];
   try{
     const opened=S?.flags?.chests||{};
     for(const c of _chests){ if(opened[c.id]){ c.open=true; try{ if(_map.overlay?.[c.y]) _map.overlay[c.y][c.x]='crate'; }catch(_){}} }
   }catch(_){}
   try{ rebuildQuestMarks(S); }catch(_){}
+  if(Array.isArray(built.questMarks)&&built.questMarks.length){
+    const have=new Set((_questMarks||[]).map(m=>m.x+','+m.y+':'+m.kind));
+    for(const m of built.questMarks){
+      const k=m.x+','+m.y+':'+(m.kind||'');
+      if(!have.has(k)) _questMarks.push(m);
+    }
+  }
   _hero.x=built.spawn.x; _hero.y=built.spawn.y;
   _hero.px=_hero.x; _hero.py=_hero.y; _hero.moving=false; _hero.frame=0;
   // v74: visible map encounters (NA monster sheets) — outdoor/dungeon only
@@ -3319,6 +3516,21 @@ export function showOverworld(S){
     const S=_hooks.getS?.();
     window.__game?.C43?.syncAmbient?.(S, _map, _audioApi||window.__game?.Aud);
   }catch(_){}
+  try{ maybeFieldBoot(); }catch(_){}
+}
+
+function maybeFieldBoot(){
+  const S=_hooks.getS?.();
+  if(!fieldChapter(S) || S.flags?.c1FieldBoot) return;
+  if(_map?.preset!=='throne') return;
+  S.flags.c1FieldBoot=true;
+  document.body.classList.add('field-play');
+  queueBeats([
+    {name:'Velka', sheet:'mage', text:'Vierzehn Gold. Venn hustet Staub. Nicht aus der Tasche.'},
+    {name:'Brok', sheet:'guard', text:'Letzte Woche hieß ich für ihn nur Soldat. Nicht Brok.'},
+    {name:'Aria', sheet:'princess', text:'Lio steht am Pass. Ich gehe mit hinunter. Danach nicht.'},
+    {name:'Velka', sheet:'mage', text:'Unter dem Thron: neun, neun, neun.'},
+  ]);
 }
 
 export function hideOverworld(){
@@ -3372,4 +3584,4 @@ export function __talkNearest(){ return talkNearest(); }
 export function __talkTo(name){ return talkTo(name); }
 export function __listNpcs(){ return _npcs.map(n=>({name:n.name,x:n.x,y:n.y,sheet:n.sheet})); }
 
-export default { mountOverworld, showOverworld, hideOverworld, refreshOverworld, isOverworldActive, buildMapForLocation, showDialogue, hideDialogue, syncDialogueFromVN, __debug, __setHero, __tryMove, __talkNearest, __talkTo, __listNpcs, get __map(){ return __map; } };
+export default { mountOverworld, showOverworld, hideOverworld, refreshOverworld, isOverworldActive, buildMapForLocation, showDialogue, hideDialogue, queueBeats, syncDialogueFromVN, __debug, __setHero, __tryMove, __talkNearest, __talkTo, __listNpcs, get __map(){ return __map; } };

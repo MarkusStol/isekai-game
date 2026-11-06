@@ -1405,11 +1405,10 @@ async function jrpgPick(ch){
           try{
             const win = sum && sum.result==='win';
             const lost = sum && sum.result==='lose';
+            if(win && setOpts?.bossId){ try{ C67.markSetpieceBeat(S, setOpts.bossId); }catch(_){} }
             if(win && isBoss){
               applyJrpgPack(C63.onBossVictory(S,{toast}));
-            }
-            if(win && setOpts?.bossId){ try{ C67.markSetpieceBeat(S, setOpts.bossId); }catch(_){} }
- else if(win && S.campaign?.mode==='dungeon'){
+            } else if(win && S.campaign?.mode==='dungeon'){
               applyJrpgPack(C61.resolveChoice(S,{next:'dungeon'},{toast}));
             } else if(lost && isBoss){
               // softlock-safe: back to boss door with partial HP
@@ -1433,8 +1432,32 @@ async function jrpgPick(ch){
 function openC1Seal(){
   try{
     if(!S?.campaign) return;
-    applyJrpgPack(C60.dungeonMenu(S));
+    const OW=window.__game?.OW;
+    if(!OW?.showDialogue){ applyJrpgPack(C60.dungeonMenu(S)); return; }
+    if(S.campaign.flags?.puzzle_c1_ledger_seal){
+      OW.showDialogue('Velka','Das Siegel schläft. Der Fiend ist Norden.','mage');
+      return;
+    }
+    OW.showDialogue('Velka','Nur seine Hand. Neun, neun, neun.','mage',[
+      {label:'3-7-12', pick:()=>{ S.st.hp=Math.max(1,(S.st.hp|0)-8); OW.showDialogue('Velka','Das ist nicht seine Hand.','mage'); }},
+      {label:'9-9-9', pick:()=>{
+        S.campaign.flags=S.campaign.flags||{};
+        S.campaign.flags.puzzle_c1_ledger_seal=true;
+        S.st=S.st||{}; S.st.gold=(S.st.gold|0)+35;
+        OW.showDialogue('Velka','Die Knochen klappen. Norden ist frei.','mage');
+      }},
+      {label:'1-1-1', pick:()=>{ S.st.hp=Math.max(1,(S.st.hp|0)-8); OW.showDialogue('Velka','Das ist nicht seine Hand.','mage'); }},
+    ]);
   }catch(e){ console.warn('seal', e); }
+}
+function startFieldBoss(){
+  try{
+    const ch=C60.currentChapter(S);
+    if(!S.campaign.dungeon) C60.startDungeon(S, ch);
+    const d=S.campaign.dungeon;
+    if(d) d.room=(d.rooms|0)+1;
+    jrpgPick({id:'fieldboss', effect:'battle:'+(d?.boss||'lesser_fiend'), next:'boss_pending'});
+  }catch(e){ console.warn('field boss', e); }
 }
 function applyJrpgPack(pack){
   if(!pack) return;
@@ -1445,6 +1468,16 @@ function applyJrpgPack(pack){
   try{ typewrite(sp, text, ()=>{}); }catch(_){}
   try{ setPortraitFromSpeaker(sp); }catch(_){}
   if(pack.changes) try{ apply(pack.changes); }catch(_){}
+  if((S.campaign?.chapterIdx|0)===0 && S.campaign?.id==='nocturna'){
+    document.body.classList.add('field-play');
+    if(S.campaign.sceneId==='c1_reward' && !S.flags.fieldReward){
+      S.flags.fieldReward=true;
+      try{ window.__game?.OW?.queueBeats?.([
+        {name:'Velka', sheet:'mage', text:'Er sagte Broks Namen. Dann das stille Buch.'},
+        {name:'Brok', sheet:'guard', text:'Morgen sagen wir Venn: der Staub hat aufgehört.'},
+      ]); }catch(_){}
+    }
+  }
   hud(); renderChoices();
   // v71: dungeon/town ort changes must rebuild OW (catacombs, follow cam)
   try{
@@ -3747,6 +3780,7 @@ try{ const bms=$('#btnMusicSheet'); if(bms) bms.onclick=()=>{ try{ $('#btnMusic'
 window.__setCfg=o=>{cfg=Object.assign(cfg||{},o||{},{mode:'offline',gkey:'',pollenKey:''});try{localStorage.setItem(CFG,JSON.stringify(cfg))}catch(_){}};window.__game={VER,hud,syncOwHud,FREETEXT_ENABLED,jrpgPick,applyJrpgPack,syncFreetextUI,Aud,toast,clearTypewrite,renderChoices,C39,C40,C41,C42,C43,C44,C45,C46,C47,C48,C49,C50,C51,C52,C53,C54,C55,C56,C57,C58,C59,C60,C61,C62,C63, C64, C66, C67, C70,Cut40,updateNarratorDot,narratorStatusText,openSheet,setBusy,forceUnbusy,ACT_HARD_MS,V25,OW,Depth,Battle,Jobs,Gems,Summons,Equip,Jrpg,localBeatLine,parsePlayerIntent,offlineRespondIntent,freeStream,FREE_MODEL,msgsLean,FREE_URLS,openPendingEncounter,Imm,discoverThing,showCodexInline,Level,UI14,UI17,Know,Cont,lastPromptDump,advanceTimeMinutes,applyActionDuration,newGrey,greyDetails,loadGrey,loadPack,get S(){return S},act,newLife,gBody,msgs,gmRank,gmProbe,parseStream,thinkingCfg,gmOrder,readSSE,STREAM_DELIM,migrate,worldTick,bumpRel,openMenu,closeMenu,openInn,closeInn,openPixelShop,openRegionTravelMap,stageName,offline,startIntro,setSceneImage,setPortrait,imgUrl,advanceTime,phaseLabel,typewrite,enterPlay,showTitle,analyzeImage,applySceneTheme,themeFromText,loadValidatedImage,openingNarration,travelTo,parseTravel,killNPC,robNPC,addMemory,memoryHint,startProcedural,offlineGenerateWorld,generateWorldPack,GENRES,travelChoices,ensureGraph,whoHere,parseLifeSim,Sim,Persist,WorldMap,TravelMap,Cut31,Econ,Codex,UI13,save,loadSave,applyCatchUp,findAnyNpc,placeFlavorText,enrichPlaceDescs};
 window.__game.askNPC=a=>askNPC(a);window.__game.gemini=gemini;
 window.__game.openC1Seal=openC1Seal;
+window.__game.startFieldBoss=startFieldBoss;
 try{ syncFreetextUI(); }catch(_){};
 if(cfg.gkey)gmFetch(cfg.gkey.trim()).then(()=>gmProbe(cfg.gkey.trim()).catch(()=>{})).catch(()=>{});
 (function(){const root=document.documentElement;const apply=()=>{try{const vv=window.visualViewport;if(!vv)return;const kb=Math.max(0,window.innerHeight-vv.height-vv.offsetTop);root.style.setProperty('--kb',kb+'px')}catch(_){}};

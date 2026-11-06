@@ -43,6 +43,12 @@ export async function runChapterSlice({ browser, port, fail, ok }){
       fail('chapter-slice', 'opening did not reach the hall', { opened: opened.slice(0, 240) });
     } else ok('chapter-slice-open', { text: opened.slice(0, 120) });
 
+    for(let i=0;i<8;i++){
+      const open = await page.evaluate(() => { const el=document.getElementById('owDlg'); return !!(el && !el.classList.contains('hidden')); });
+      if(!open) break;
+      await page.keyboard.press('Enter');
+      await sleep(120);
+    }
     const before = await page.evaluate(() => window.__game?.OW?.__debug?.()?.hero || null);
     await page.keyboard.down('ArrowRight');
     await sleep(450);
@@ -291,6 +297,162 @@ async function surrender(page){
   await page.waitForFunction(() => /KAPITULATION|NIEDERLAGE|kapituliert/i.test(document.body.innerText || ''), { timeout: 4000 }).catch(()=>{});
   const card = await page.evaluate(() => document.querySelector('.battle-end-card')?.innerText || (window.__game?.Battle?.getBattle?.()?.log || []).join(' | ') || '');
   return { ok: /NIEDERLAGE|KAPITULATION|kapituliert/i.test(card), card: String(card).slice(0, 180) };
+}
+
+export async function runFieldBoss({ browser, port, fail, ok }){
+  const page = await browser.newPage();
+  await page.setViewport({ width: 1280, height: 720, isMobile: false, hasTouch: false });
+  try{
+    await page.goto(`http://127.0.0.1:${port}/?v=fieldboss`, { waitUntil: 'domcontentloaded', timeout: 60000 });
+    await page.waitForFunction(() => window.__game?.VER === '75', { timeout: 45000 });
+    await page.evaluate(async () => { localStorage.clear(); });
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await page.waitForFunction(() => window.__game?.VER === '75', { timeout: 45000 });
+    await page.click('#btnNew');
+    await page.waitForFunction(() => window.__game?.OW?.__debug?.()?.active || document.body.classList.contains('field-play') || document.getElementById('owDlg'), { timeout: 20000 }).catch(()=>{});
+    await sleep(800);
+    const coach = await page.evaluate(() => {
+      const el = document.getElementById('onboardCoach');
+      if(!el) return false;
+      return getComputedStyle(el).display !== 'none' && !el.classList.contains('hidden');
+    });
+    if(coach) await page.click('#btnCoachOk');
+    for(let i=0;i<8;i++){
+      const open = await page.evaluate(() => {
+        const el = document.getElementById('owDlg');
+        return !!(el && !el.classList.contains('hidden'));
+      });
+      if(!open) break;
+      await page.keyboard.press('Enter');
+      await sleep(180);
+    }
+    const dash = await page.evaluate(() => {
+      const cs = document.getElementById('choices');
+      const vn = document.querySelector('.vn-wrap');
+      const vis = (el) => {
+        if(!el) return false;
+        const st = getComputedStyle(el);
+        const r = el.getBoundingClientRect();
+        return st.display !== 'none' && st.visibility !== 'hidden' && r.height > 8 && r.width > 8;
+      };
+      return { choices: vis(cs), prose: vis(vn), field: document.body.classList.contains('field-play') };
+    });
+    if(dash.choices || dash.prose || !dash.field) fail('field-boss', 'story dashboard still visible', dash);
+    else ok('field-boss-no-dashboard', dash);
+
+    const velka = await page.evaluate(() => (window.__game.OW.__listNpcs() || []).find(n => /Velka/.test(n.name)));
+    if(!velka) { fail('field-boss', 'Velka missing'); }
+    else {
+      await stepNear(page, velka.x, velka.y);
+      await page.keyboard.press('Enter');
+      await sleep(250);
+      await page.evaluate(() => {
+        const b = [...document.querySelectorAll('#owDlgChoices button')].find(x => /Mitnehmen/.test(x.textContent || ''));
+        b?.click();
+      });
+      await sleep(200);
+      await page.keyboard.press('Enter');
+      await sleep(150);
+      const joined = await page.evaluate(() => (window.__game.S.party || []).some(n => /Velka/.test(n)));
+      if(!joined) fail('field-boss', 'Velka did not join');
+      else ok('field-boss-velka');
+    }
+
+    const door = await page.evaluate(() => (window.__game.OW.__debug().doors || []).find(d => /katakomb/i.test(d.to || d.label || '')));
+    if(!door) fail('field-boss', 'no catacomb door');
+    else {
+      await stepNear(page, door.x, door.y);
+      await page.keyboard.press('ArrowUp');
+      await sleep(200);
+      const hero = await page.evaluate(() => window.__game.OW.__debug().hero);
+      const dx = Math.sign(door.x - hero.x), dy = Math.sign(door.y - hero.y);
+      const key = dx < 0 ? 'ArrowLeft' : dx > 0 ? 'ArrowRight' : dy < 0 ? 'ArrowUp' : 'ArrowDown';
+      await page.keyboard.down(key);
+      await sleep(250);
+      await page.keyboard.up(key);
+      await sleep(400);
+      const ort = await page.evaluate(() => window.__game.S.world.scene.ort);
+      if(!/Katakomb/i.test(ort || '')) fail('field-boss', 'did not enter catacombs', { ort, hero, door });
+      else ok('field-boss-enter', { ort });
+    }
+    for(let i=0;i<4;i++){
+      const open = await page.evaluate(() => { const el=document.getElementById('owDlg'); return !!(el && !el.classList.contains('hidden')); });
+      if(!open) break;
+      await page.keyboard.press('Enter');
+      await sleep(120);
+    }
+    const seal = await page.evaluate(() => (window.__game.OW.__debug().questMarks || []).find(m => m.kind === 'puzzle' || /siegel/i.test(m.label || '')));
+    if(!seal) fail('field-boss', 'no seal');
+    else {
+      await stepNear(page, seal.x, seal.y);
+      await page.keyboard.press('Enter');
+      await sleep(300);
+      await page.evaluate(() => {
+        const b = [...document.querySelectorAll('#owDlgChoices button')].find(x => /9-9-9/.test(x.textContent || ''));
+        b?.click();
+      });
+      await sleep(250);
+      const flagged = await page.evaluate(() => !!window.__game.S.campaign.flags.puzzle_c1_ledger_seal);
+      if(!flagged) fail('field-boss', 'seal not opened');
+      else ok('field-boss-seal');
+      await page.keyboard.press('Enter');
+      await sleep(120);
+    }
+    const boss = await page.evaluate(() => (window.__game.OW.__debug().questMarks || []).find(m => m.kind === 'boss'));
+    if(!boss) fail('field-boss', 'no boss door');
+    else {
+      await stepNear(page, boss.x, boss.y);
+      await page.keyboard.press('Enter');
+      await sleep(500);
+    }
+    const started = await page.waitForFunction(() => !!window.__game?.Battle?.getBattle?.(), { timeout: 8000 }).then(()=>true).catch(()=>false);
+    if(!started) fail('field-boss', 'boss battle did not start');
+    else ok('field-boss-started');
+    await page.evaluate(() => { window.__game.S.flags.nachklangAuto = true; window.__game.S.cfgAtbMode = 'wait'; const b=window.__game.Battle.getBattle(); if(b) b.atbMode='wait'; });
+    const end = await finishFight(page, 90000);
+    if(!end.ok || end.result !== 'win') fail('field-boss', 'boss not won with attacks', end);
+    else ok('field-boss-win', end);
+    await page.waitForFunction(() => !!window.__game.S.campaign?.flags?.beat_lesser_fiend, { timeout: 5000 }).catch(()=>{});
+    await sleep(300);
+    const after = await page.evaluate(() => ({
+      scene: window.__game.S.campaign.sceneId,
+      beat: !!window.__game.S.campaign.flags.beat_lesser_fiend,
+      dlg: (document.getElementById('owDlgText')?.textContent || '').slice(0, 80),
+    }));
+    if(!after.beat) fail('field-boss', 'victory did not flag the fiend', after);
+    else ok('field-boss-reward', after);
+  } finally {
+    await page.close().catch(()=>{});
+  }
+}
+
+async function stepNear(page, x, y){
+  let stuck = 0;
+  let last = '';
+  for(let i=0;i<90;i++){
+    const h = await page.evaluate(() => window.__game.OW.__debug().hero);
+    const open = await page.evaluate(() => { const el=document.getElementById('owDlg'); return !!(el && !el.classList.contains('hidden') && !document.querySelector('#owDlgChoices button')); });
+    if(open){ await page.keyboard.press('Enter'); await sleep(70); continue; }
+    if(Math.abs(h.x - x) + Math.abs(h.y - y) <= 1) return h;
+    const primary = Math.abs(h.x - x) >= Math.abs(h.y - y)
+      ? (h.x < x ? 'ArrowRight' : 'ArrowLeft')
+      : (h.y < y ? 'ArrowDown' : 'ArrowUp');
+    const side = primary.startsWith('ArrowL') || primary.startsWith('ArrowR')
+      ? (h.y < y ? 'ArrowDown' : 'ArrowUp')
+      : (h.x < x ? 'ArrowRight' : 'ArrowLeft');
+    const key = stuck >= 2 ? side : primary;
+    if(key === last && stuck >= 2) stuck = 0;
+    const before = h.x + ',' + h.y;
+    await page.keyboard.down(key);
+    await sleep(150);
+    await page.keyboard.up(key);
+    await sleep(30);
+    const h2 = await page.evaluate(() => window.__game.OW.__debug().hero);
+    const after = h2.x + ',' + h2.y;
+    stuck = after === before ? stuck + 1 : 0;
+    last = key;
+  }
+  return page.evaluate(() => window.__game.OW.__debug().hero);
 }
 
 async function clickLabel(page, src){
