@@ -1221,8 +1221,19 @@ function aiEnemy(e){
   if(e.id==='boss_lich' && (e.phaseIdx|0)>=2){
     skill={name:'Knochenhieb',pow:1.25,elem:'phys'};
   } else if(e.id==='boss_lich' && (e.phaseIdx|0)===1){
-    const nova=(e.skills||[]).find(s=>s.id==='todesnova' && (s.mp|0)<=(e.mp|0));
-    if(nova) skill=nova;
+    if(!e._novaTold){
+      e._novaTold=true;
+      const party=_B.S?.party||[];
+      const velka=party.includes('Sekretärin Velka')?' Velka: Licht ist tot. Feuer, oder Deckung.':'';
+      const nyx=party.includes('Spionin Nyx')?' Nyx: Er hebt das Buch. Schützen.':'';
+      _B.log.push('Der Lich hebt das Buch. Nächste Runde kommt die Todesnova.'+velka+nyx);
+      showSkillBanner('Er hebt das Buch. Schützen.');
+      skill={name:'Seitenblick',pow:0.45,elem:'schatten'};
+    } else {
+      e._novaTold=false;
+      const nova=(e.skills||[]).find(s=>s.id==='todesnova' && (s.mp|0)<=(e.mp|0));
+      if(nova) skill=nova;
+    }
   }
   if(skill.mp) e.mp-=skill.mp|0;
   if(skill.heal){ e.hp=Math.min(e.maxhp,e.hp+skill.heal); _B.log.push(`${e.name}: ${skill.name}`); return }

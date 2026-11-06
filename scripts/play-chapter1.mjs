@@ -627,7 +627,8 @@ export async function runAriaStood(browser, port, fail, ok){
     else ok('aria-stood-yard', { line: stoodLine.slice(0, 90) });
     await clearDlg(page, 8);
     if(!(await walkMark(page, 'crypt'))){ fail('aria-stood', 'crypt door missing'); return; }
-    if(!(await clickChoice(page, '^Acht$'))){ fail('aria-stood', 'coffin count missing'); return; }
+    await clearDlg(page, 4);
+    if(!(await readCoffins(page, 'aria-stood', fail))) return;
     await clearDlg(page, 4);
     await page.evaluate(() => { window.__game.S.st.hp = window.__game.S.st.maxhp; window.__game.S.flags.nachklangAuto = true; });
     if(!(await walkMark(page, 'boss'))){ fail('aria-stood', 'lich missing'); return; }
@@ -772,7 +773,8 @@ export async function runAriaLoyal(browser, port, fail, ok){
     } else ok('aria-solmir', { ort: yard.ort, line: yard.line.slice(0, 100) });
     await clearDlg(page, 10);
     if(!(await walkMark(page, 'crypt'))){ fail('aria-loyal', 'crypt door missing'); return; }
-    if(!(await clickChoice(page, '^Acht$'))){ fail('aria-loyal', 'coffin count missing'); return; }
+    await clearDlg(page, 4);
+    if(!(await readCoffins(page, 'aria-loyal', fail))) return;
     await clearDlg(page, 4);
     const sealed = await flags(page);
     if(!sealed.solmirSeal){ fail('aria-loyal', 'eight coffins did not open the crypt', sealed); return; }
@@ -797,6 +799,15 @@ export async function runAriaLoyal(browser, port, fail, ok){
     if(!clearedCrypt.c3Clear || !ash || !clearedCrypt.party.includes('Sekretärin Velka')){
       fail('aria-loyal', 'lich clear missed the reward or the party', { ...clearedCrypt, ash });
     } else ok('aria-lich-win', { party: clearedCrypt.party, ash: true });
+    const endScreen = await page.evaluate(() => {
+      const cs = document.getElementById('choices');
+      const st = cs ? getComputedStyle(cs) : null;
+      const menu = !!(st && st.display !== 'none' && !cs.classList.contains('hidden') && cs.getBoundingClientRect().height > 8);
+      return { field: document.body.classList.contains('field-play'), menu, scene: window.__game.S.campaign.sceneId, idx: window.__game.S.campaign.chapterIdx|0 };
+    });
+    if(!endScreen.field || endScreen.menu || endScreen.scene !== 'c3_field'){
+      fail('aria-loyal', 'lich clear returned the chapter menu', endScreen);
+    } else ok('aria-lich-field', endScreen);
     const savedPass = await persist(page);
     if(!savedPass) fail('aria-loyal', 'pass save failed');
     await reloadContinue(page);
@@ -1124,6 +1135,32 @@ async function advanceToChoice(page, re){
     await sleep(180);
   }
   return false;
+}
+
+async function readCoffins(page, tag, fail){
+  const coffins = await page.evaluate(() => window.__game.OW.__debug().coffins || []);
+  if(coffins.length < 8){ fail(tag, 'crypt has no eight coffins', { n: coffins.length }); return false; }
+  for(const c of coffins){
+    await page.evaluate(() => window.__game.OW.hideDialogue?.());
+    let reached = false;
+    for(let i=0;i<100;i++){
+      const here = await page.evaluate(() => window.__game.OW.__debug().hero);
+      if(here.x===c.x && here.y===c.y){ reached = true; break; }
+      const key = await page.evaluate((x,y) => window.__game.OW.__nextStep(x,y), c.x, c.y);
+      if(!key) break;
+      await page.keyboard.down(key);
+      await sleep(90);
+      await page.keyboard.up(key);
+      await sleep(40);
+    }
+    if(!reached){ fail(tag, 'coffin unreachable', c); return false; }
+    await page.keyboard.press('Enter');
+    await sleep(150);
+    await page.keyboard.press('Enter');
+    await sleep(80);
+  }
+  await clearDlg(page, 6);
+  return true;
 }
 
 async function walkMark(page, kind){

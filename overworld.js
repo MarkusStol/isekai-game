@@ -1371,17 +1371,24 @@ export function buildMapForLocation(S, ort){
     _pendingLights.push({x:cx-2.5,y:cy-0.5,r:2.8}); _pendingLights.push({x:cx+3.5,y:cy-0.5,r:2.8});
     // four corner tombs connected by short halls
     const rooms=[[2,2,8,6],[w-10,2,8,6],[2,ht-9,8,6],[w-10,ht-9,8,6]];
+    const coffins=[];
+    const cL=cx-4, cR=cx+4, cT=cy-3, cB=cy+3;
     for(const [rx,ry,rw,rh] of rooms){
       fill(rx, ry, rw, rh, 'floor');
-      const midy=ry+Math.floor(rh/2), midx=rx+Math.floor(rw/2);
-      // short connector toward center (2–3 tiles, not full cross)
-      if(rx<cx) fill(rx+rw-1, midy, Math.max(2, cx-(rx+rw)+2), 2, 'floor');
-      else fill(cx+3, midy, Math.max(2, rx-(cx+3)), 2, 'floor');
-      if(ry<cy) fill(midx, ry+rh-1, 2, Math.max(2, cy-(ry+rh)+2), 'floor');
-      else fill(midx, cy+2, 2, Math.max(2, ry-(cy+2)), 'floor');
+      // 2-wide L from the room's inner corner onto the shrine edge. The old
+      // offsets stopped short, so the tombs were an island and the first lid
+      // could not be walked.
+      const innerX = rx < cx ? rx+rw-1 : rx;
+      const innerY = ry < cy ? ry+rh-1 : ry;
+      const centerX = rx < cx ? cL : cR;
+      const centerY = ry < cy ? cT : cB;
+      fill(Math.min(innerX, centerX), innerY, Math.abs(centerX-innerX)+1, 2, 'floor');
+      const vx = rx < cx ? centerX : centerX-1;
+      fill(vx, Math.min(innerY, centerY), 2, Math.abs(centerY-innerY)+1, 'floor');
       for(let i=0;i<2;i++){
         const cxr=rx+2+i*3, cyr=ry+2;
         prop(cxr, cyr, 'coffin');
+        coffins.push({x:cxr, y:cyr});
         anim(cxr, cyr-1, 'torch');
         _pendingLights.push({x:cxr+0.5,y:cyr-0.5,r:2});
       }
@@ -1393,12 +1400,14 @@ export function buildMapForLocation(S, ort){
     placeChest(cx+2, 4, {gold:20, item:'Phylakterium-Splitter'});
     placeChest(4, cy, {gold:12, item:'Manaessenz'});
     placeChest(w-6, ht-6, {gold:16, item:'Knochen-Schlüssel'});
+    questMark._coffins=coffins;
     questMark(cx, cy-2, 'Erster Held', 'secret');
-    fill(cx-1, ht-3, 3, 2, 'floor');
-    if(tiles[ht-2]) tiles[ht-2][cx]='door';
+    const doorY=Math.min(ht-3, cy+6);
+    fill(cx-1, cB, 3, Math.max(2, doorY-cB+1), 'floor');
+    fill(cx-1, 5, 3, Math.max(2, cT-5+1), 'floor');
     _hubNpcs.push({name:'Grabräuber Jex', x:cx-2, y:cy+2, px:cx-2, py:cy+2, sheet:'spy', e:'💀'});
-    _hubNpcs.push({name:'Chronistin Mara', x:4, y:4, px:4, py:4, sheet:'mage', e:'📖'});
-    _hubNpcs.push({name:'Hüter Orun', x:w-6, y:cy, px:w-6, py:cy, sheet:'guard', e:'🦴'});
+    _hubNpcs.push({name:'Chronistin Mara', x:5, y:5, px:5, py:5, sheet:'mage', e:'📖'});
+    _hubNpcs.push({name:'Hüter Orun', x:cx+2, y:cy+1, px:cx+2, py:cy+1, sheet:'guard', e:'🦴'});
     tiles[Math.min(ht-3,cy+6)][cx]='door';
     questMark(cx, Math.min(ht-3,cy+6), 'Knochenlabyrinth', 'side');
 
@@ -1726,7 +1735,7 @@ export function buildMapForLocation(S, ort){
     exits.push({x:qm.x,y:qm.y,to:dest, sideDungeon:true, label:lab||dest});
     if(tiles[qm.y]){ tiles[qm.y][qm.x]='door'; if(overlay[qm.y]) overlay[qm.y][qm.x]=null; }
   }
-  return {w,h:ht,tiles,overlay,doors:exits,spawn:{x:sx,y:sy},kind,name,npcs,interiors,overhead,animators,preset,chests,lights,questMarks:qmarks,campAudit:questMark._campAudit||null,passStair:questMark._passStair??null,passArt:questMark._passArt||null,tent:questMark._tent||null};
+  return {w,h:ht,tiles,overlay,doors:exits,spawn:{x:sx,y:sy},kind,name,npcs,interiors,overhead,animators,preset,chests,lights,questMarks:qmarks,campAudit:questMark._campAudit||null,passStair:questMark._passStair??null,passArt:questMark._passArt||null,tent:questMark._tent||null,coffins:questMark._coffins||[]};
 }
 
 function walkable(x,y){
@@ -1952,12 +1961,13 @@ export function showDialogue(name, text, sheet){
   }catch(_){}
   if(port && CAST_PORT[trueName]) port.src=CAST_PORT[trueName];
   else if(port && !usedPx) port.src=(window.__game?.C45?.ROLE_PORT?.villager)||PORTRAITS[sh]||PORTRAITS.default;
-  let shown=trueName.slice(0,36);
+  let shown=trueName.slice(0,64);
   try{
     const C64=window.__game?.C64;
     const Know=window.__game?.Know;
-    if(C64?.displayLabelFor) shown=String(C64.displayLabelFor(S, trueName, sh)||shown).slice(0,36);
-    else if(Know?.displayName) shown=String(Know.displayName(S, trueName, S?.world?.npcs?.[trueName]||{sheet:sh})||shown).slice(0,36);
+    if(Know?.learnName && _npcs.some(n=>n.name===trueName)) Know.learnName(S, trueName, 'told');
+    if(C64?.displayLabelFor) shown=String(C64.displayLabelFor(S, trueName, sh)||shown).slice(0,64);
+    else if(Know?.displayName) shown=String(Know.displayName(S, trueName, S?.world?.npcs?.[trueName]||{sheet:sh})||shown).slice(0,64);
   }catch(_){}
   shown=coerceDlgName(shown, trueName).slice(0,36);
   if(CAST_PORT[trueName]) shown=trueName.replace(/^(Sekretärin|General|Heldin)\s+/,'');
@@ -2298,10 +2308,10 @@ function ensureSolmir(S){
   const add=(name,sheet,x,y)=>{
     if(_npcs.some(n=>n.name===name)) return;
     if(!walkable(x,y)) return;
-    _npcs.push({name, sheet, x, y, px:x, py:y, dir:0, frame:0, home:{x,y}});
+    _npcs.push({name, sheet, x, y, px:x, py:y, dir:0, frame:0, home:{x,y}, pace:'idle', waypoints:[{x,y}]});
   };
-  if((f.ariaStood && f.ariaRomance) || f.ariaRefused) add('Heldin Aria','princess', cx+4, cy+3);
-  if((S.party||[]).includes('Sekretärin Velka')) add('Sekretärin Velka','mage', cx-5, cy+3);
+  if((f.ariaStood && f.ariaRomance) || f.ariaRefused) add('Heldin Aria','princess', cx+3, cy+2);
+  if((S.party||[]).includes('Sekretärin Velka')) add('Sekretärin Velka','mage', cx-3, cy+2);
   if(!f.solmirSeal && !f.c3Clear){
     const spots=[[cx,cy-2],[cx,cy-3],[cx-1,cy-2],[cx+1,cy-2]];
     for(const [x,y] of spots){ if(placeMark(x,y,'Grufttür','crypt')) break; }
@@ -2372,39 +2382,68 @@ function passFieldLine(S, label, sh, party, f){
 function onSolmirMap(){
   return _map?.preset==='graveyard';
 }
+function coffinKey(x,y){ return (x|0)+','+(y|0); }
+function readCoffin(x,y){
+  if(_map?.overlay?.[y]?.[x]!=='coffin') return false;
+  if(!onSolmirMap()) return false;
+  const S=_hooks.getS?.();
+  if(!S) return false;
+  const f=campFlags(S);
+  const id=coffinKey(x,y);
+  f.coffinSeen=Array.isArray(f.coffinSeen)?f.coffinSeen:[];
+  const fresh=!f.coffinSeen.includes(id);
+  if(fresh) f.coffinSeen.push(id);
+  const n=f.coffinSeen.length;
+  const party=S.party||[];
+  const velka=party.includes('Sekretärin Velka');
+  if(f.solmirSeal){
+    showDialogue('Orun','Den Deckel hast du schon. Die Riegel sind auf. Norden steht der Lich. Wenn er das Buch hebt, geh in Deckung.','guard');
+    return true;
+  }
+  if(n>=8){
+    f.solmirSeal=true;
+    const cx=Math.floor((_map.w||30)/2), cy=Math.floor((_map.h||30)/2);
+    const spots=[[cx,cy-2],[cx,cy-1],[cx+1,cy-2],[cx-1,cy-1],[cx,cy],[_hero.x,_hero.y-1]];
+    for(const [mx,my] of spots){ if(placeMark(mx|0,my|0,'Lich','boss')) break; }
+    const who=velka?' Velka hat mitgezählt. Acht, nicht vier.':'';
+    showDialogue('Orun','Acht Deckel. Zwei in jeder Kammer.'+who+' Die Riegel gehen. Der Lich steht nördlich. Wenn er das Buch hebt, drück Schützen. Licht tut ihm dann nichts, Feuer schon.','guard');
+    try{ _hooks.save?.(); }catch(_){}
+    return true;
+  }
+  const aria=f.ariaStood?' Aria bleibt an der Tür. Sie kommt erst mit, wenn die Riegel auf sind.':'';
+  showDialogue('Hüter Orun','Der Name ist fast weg. Der Deckel ist zu. Das ist Sarg '+n+' von acht.'+(velka&&fresh?' Velka schreibt die Zahl mit.':'')+aria,'guard');
+  return true;
+}
 function openCryptDoor(S){
   const f=campFlags(S);
-  showDialogue('Orun','Vier Kammern, zwei Särge in jeder. Wie viele sind das?','guard',[
-    {label:'Vier', pick:()=>{ S.st.hp=Math.max(1,(S.st.hp|0)-8); showDialogue('Orun','Zu wenig. Zähl die Kammern noch mal.','guard'); }},
-    {label:'Acht', pick:()=>{
-      f.solmirSeal=true;
-      const spots=[[_hero.x,_hero.y-2],[_hero.x+1,_hero.y-2],[_hero.x-1,_hero.y-2],[_hero.x,_hero.y+2],[_hero.x+2,_hero.y]];
-      for(const [x,y] of spots){ if(placeMark(x|0,y|0,'Lich','boss')) break; }
-      showDialogue('Orun','Acht. Die Riegel gehen. Der Lich steht direkt hinter der Tür.','guard');
-    }},
-    {label:'Zwölf', pick:()=>{ S.st.hp=Math.max(1,(S.st.hp|0)-8); showDialogue('Orun','Zu viele. Es sind zwei pro Kammer.','guard'); }},
-  ]);
+  const n=(f.coffinSeen||[]).length;
+  if(f.solmirSeal){
+    showDialogue('Orun','Die Riegel sind auf. Norden. Wenn er das Buch hebt, geh in Deckung, bevor die Nova kommt. Licht ist in der Mitte tot. Feuer nicht.','guard');
+    return;
+  }
+  const velka=(S.party||[]).includes('Sekretärin Velka')?' Velka kann mitzählen, raten tut sie nicht.':'';
+  showDialogue('Orun','Vier Kammern, zwei Särge in jeder. Ich mach die Tür nicht auf einen Tipp hin auf. Lies die Deckel. Du hast '+n+' von acht.'+velka,'guard');
 }
 function solmirLine(S, label, party, f){
   if(label==='Heldin Aria'){
     if(f.c3Clear && f.ariaStood) return {text:'Er ist still. Lio kann am Feuer bleiben. Ich geh mit dir zurück, und wir reden morgen. Heute nicht.'};
-    if(f.ariaStood && f.ariaRomance) return {text:'Ich geh mit bis zur Tür. Die Nacht hat uns nicht verheiratet. Wenn du acht sagst, komm ich mit rein.'};
+    if(f.ariaStood && f.ariaRomance) return {text:'Ich geh mit bis zur Tür. Die Nacht hat uns nicht verheiratet. Wenn die Riegel auf sind, komm ich mit rein.'};
     if(f.ariaRefused) return {text:'Etwas für den Husten, dann zurück. Das hier ist kein Spaziergang mit mir.'};
     return {text:'Ich bin wegen Lio hier. Nicht wegen der Gruft, und nicht wegen dir.'};
   }
   if(label==='Grabräuber Jex'){
     if(f.c3Clear) return {text:'Der Lich ist unten still. Ich nehm die Münzen im Vorraum und geh. Die Knochen bleiben.'};
     if(f.ariaCool || f.ariaNoRomance || f.ariaRomanceRefused) return {text:'Sie ist nicht mit dir gekommen. Gut für sie. Die Tür will acht Särge. Ich zähl nicht für dich.'};
-    if(f.ariaStood) return {text:'Sie steht hinter dir. Die Gruft ist zu, bis jemand acht sagt. Ich bleib im Hof.'};
+    if(f.ariaStood) return {text:'Sie steht hinter dir. Die Gruft ist zu, bis die acht Deckel gelesen sind. Ich bleib im Hof.'};
     return {text:'Staub und Münzen. Die Tür ist zu. Ich klopf nicht.'};
   }
   if(label==='Chronistin Mara'){
     if(f.c3Clear) return {text:'Ich schreib: der Lich ist still. Die Gruft bleibt sonst zu. Mehr hab ich heute nicht.'};
-    return {text:'Ich schreib, wer hier gelegen hat. Vier Kammern, zwei Särge. Die Tür geht auf acht auf.'};
+    return {text:'Ich schreib, wer hier gelegen hat. Vier Kammern, zwei Särge. Die Tür geht auf, wenn die acht Deckel gelesen sind.'};
   }
   if(label==='Hüter Orun'){
     if(f.solmirSeal) return {text:'Die Riegel sind auf. Norden. Und komm zurück, wenn er dich hinlegt.'};
-    return {text:'Vier Kammern. Zwei Särge in jeder. Sag acht an der Tür, dann geht sie auf.'};
+    return {text:'Vier Kammern. Zwei Särge in jeder. Lies die Deckel. Bei acht gehen die Riegel auf.'};
   }
   if(label==='Sekretärin Velka' && party.includes(label)){
     return {text:'Trockener Staub, nicht wie bei Venn. Die Tür ist zu. Ich les hier nichts vor.'};
@@ -2496,6 +2535,7 @@ function fieldLine(S, label, sh){
 function talkNearest(){
   const f=facingTile();
   const S=_hooks.getS?.();
+  if(readCoffin(_hero.x,_hero.y) || readCoffin(f.x,f.y)) return 'coffin';
   const nearMark=(kind)=> (_questMarks||[]).find(m=>{
     if(!m) return false;
     if(!(m.kind===kind || (kind==='puzzle' && /siegel/i.test(String(m.label||''))))) return false;
@@ -2512,7 +2552,7 @@ function talkNearest(){
   if(boss && fieldChapter(S)){
     if(onSolmirMap()){
       if(!S.campaign?.flags?.solmirSeal){
-        showDialogue('Orun','Die Tür ist zu. Vier Kammern, zwei Särge. Sag acht.','guard');
+        showDialogue('Orun','Die Tür ist zu. Vier Kammern, zwei Särge. Lies die Deckel.','guard');
         return 'locked';
       }
       S.campaign.chapterIdx=2;
@@ -3941,6 +3981,8 @@ function ensureDOM(){
     if(moveKeys.includes(e.key)){ _keys[e.key]=true; e.preventDefault(); return; }
     if(e.key==='Enter' || e.key===' '){
       e.preventDefault();
+      // A held key repeats. The first press only finishes the line; the next press, after release, advances it.
+      if(e.repeat) return;
       confirmDialogue();
       return;
     }
@@ -4023,7 +4065,8 @@ export function showOverworld(S){
   // v74: visible map encounters (NA monster sheets) — outdoor/dungeon only
   try{
     const authoredPass=built.preset==='wall' && S?.campaign?.flags?.passField;
-    if(!authoredPass && (built.kind==='dungeon' || built.kind==='wild' || built.preset==='wall')){
+    const authoredCrypt=built.preset==='graveyard' && S?.campaign?.flags?.solmirField;
+    if(!authoredPass && !authoredCrypt && (built.kind==='dungeon' || built.kind==='wild' || built.preset==='wall')){
       const mons=['1','2','3','4','5','6'];
       let nEnc=built.kind==='dungeon'?4:3;
       for(let i=0;i<nEnc;i++){
@@ -4053,16 +4096,8 @@ export function showOverworld(S){
   _active=true;
   try{
     const S=_hooks.getS?.();
-    if(S && !S.flags?.visual45Tip && document.body.classList.contains('pixel-ow')){
-      S.flags=S.flags||{}; S.flags.visual45Tip=1;
-      setTimeout(()=>{
-        try{
-          if(!document.body.classList.contains('pixel-ow')) return;
-          if(document.body.classList.contains('ow-dialogue')) return;
-          try{ const t=document.getElementById('toast'); if(t){ t.classList.add('toast-tip'); } }catch(_){}
-          window.__game?.toast?.('WASD/Pfeile · Enter/A reden · Esc/B Menü · Gamepad OK');
-        }catch(_){}
-      }, 3200);
+    if(S && !S.flags?.controlHintDismissed && document.body.classList.contains('pixel-ow')){
+      showControlHint();
     }
   }catch(_){}
  _last=0;
@@ -4097,6 +4132,19 @@ export function showOverworld(S){
   try{ maybeFieldBoot(); }catch(_){}
 }
 
+function showControlHint(){
+  if(document.getElementById('owControlHint')) return;
+  const el=document.createElement('div');
+  el.id='owControlHint';
+  el.innerHTML='<span>WASD oder Pfeile bewegen. Enter redet. Esc öffnet das Menü.</span><button type="button" id="owHintDismiss">OK</button>';
+  document.body.appendChild(el);
+  const dismiss=()=>{
+    el.remove();
+    const S=_hooks.getS?.();
+    if(S){ S.flags=S.flags||{}; S.flags.controlHintDismissed=true; }
+  };
+  el.querySelector('#owHintDismiss')?.addEventListener('click', dismiss);
+}
 function maybeFieldBoot(){
   const S=_hooks.getS?.();
   if(!fieldChapter(S)) return;
@@ -4154,13 +4202,50 @@ export function syncDialogueFromVN(){
   pushLog((sp?sp+': ':'')+tx.slice(0,60));
 }
 
-export function __debug(){
-  return {active:_active, desktop:_desktop, scale:_intScale, view:{w:_viewW,h:_viewH}, renderView:{w:_lastViewW,h:_lastViewH}, hero:{..._hero}, map:{w:_map.w,h:_map.h,name:_map.name,kind:_map.kind,preset:_map.preset,overhead:(_overhead||[]).length}, overhead:_overhead.slice(0,8), npcs:_npcs.map(n=>({name:n.name,x:n.x,y:n.y,slot:n._calSlot,cal:!!n.calendar,pace:n.pace})), questMarks:_questMarks.slice(), chests:_chests.slice(0,8), doors:_map.doors, campAudit:_map.campAudit||null, fog:{explored:_explored.size, visible:_visible.size}};
+function __nextStep(tx,ty){
+  tx=tx|0; ty=ty|0;
+  if(Math.abs(_hero.x-tx)+Math.abs(_hero.y-ty)<=0) return null;
+  const start=_hero.x+','+_hero.y;
+  const q=[[_hero.x,_hero.y]];
+  const prev=new Map();
+  prev.set(start, null);
+  const dirs=[[1,0,'ArrowRight'],[-1,0,'ArrowLeft'],[0,1,'ArrowDown'],[0,-1,'ArrowUp']];
+  while(q.length){
+    const [x,y]=q.shift();
+    for(const [dx,dy,key] of dirs){
+      const nx=x+dx, ny=y+dy;
+      const id=nx+','+ny;
+      if(prev.has(id)) continue;
+      const goal=nx===tx && ny===ty;
+      const person=(_npcs||[]).some(n=>Math.round(n.x)===nx && Math.round(n.y)===ny);
+      const exit=(_map.doors||[]).some(d=>d.x===nx && d.y===ny && d.to);
+      if(!goal && (!walkable(nx,ny) || person || exit)) continue;
+      prev.set(id, {x,y,key});
+      if(goal){
+        let cur=id;
+        let step=key;
+        while(true){
+          const p=prev.get(cur);
+          if(!p) break;
+          step=p.key;
+          if((p.x+','+p.y)===start) break;
+          cur=p.x+','+p.y;
+        }
+        return step;
+      }
+      q.push([nx,ny]);
+    }
+  }
+  return null;
 }
+export function __debug(){
+  return {active:_active, desktop:_desktop, scale:_intScale, view:{w:_viewW,h:_viewH}, renderView:{w:_lastViewW,h:_lastViewH}, hero:{..._hero}, map:{w:_map.w,h:_map.h,name:_map.name,kind:_map.kind,preset:_map.preset,overhead:(_overhead||[]).length}, overhead:_overhead.slice(0,8), npcs:_npcs.map(n=>({name:n.name,x:n.x,y:n.y,slot:n._calSlot,cal:!!n.calendar,pace:n.pace})), questMarks:_questMarks.slice(), chests:_chests.slice(0,8), doors:_map.doors, campAudit:_map.campAudit||null, coffins:_map.coffins||[], fog:{explored:_explored.size, visible:_visible.size}, dlg:{open:isDialogueOpen(), typing:!!_dlgTw, text:document.getElementById('owDlgText')?.textContent||'', full:document.getElementById('owDlgText')?.dataset?.full||''}};
+}
+export { __nextStep };
 export function __setHero(x,y){ if(!_hero) return false; _hero.x=+x; _hero.y=+y; _hero.px=_hero.x; _hero.py=_hero.y; _hero.moving=false; try{draw();}catch(_){} return true; }
 export function __tryMove(dx,dy){ return tryMove(dx,dy); }
 export function __talkNearest(){ return talkNearest(); }
 export function __talkTo(name){ return talkTo(name); }
 export function __listNpcs(){ return _npcs.map(n=>({name:n.name,x:n.x,y:n.y,sheet:n.sheet})); }
 
-export default { mountOverworld, showOverworld, hideOverworld, refreshOverworld, isOverworldActive, buildMapForLocation, showDialogue, hideDialogue, queueBeats, fieldReward, fieldPassEnd, fieldCryptEnd, syncDialogueFromVN, __debug, __setHero, __tryMove, __talkNearest, __talkTo, __listNpcs, get __map(){ return __map; } };
+export default { mountOverworld, showOverworld, hideOverworld, refreshOverworld, isOverworldActive, buildMapForLocation, showDialogue, hideDialogue, queueBeats, fieldReward, fieldPassEnd, fieldCryptEnd, syncDialogueFromVN, __debug, __setHero, __tryMove, __talkNearest, __talkTo, __listNpcs, __nextStep, get __map(){ return __map; } };
