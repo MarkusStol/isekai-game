@@ -25,60 +25,78 @@ export const CHAPTERS = [
     recruit: { id: 'Sekretärin Velka', role: 'mage', blurb: 'Velka legt das Klemmbrett beiseite — nur für dich.' },
     estimatedMin: 55,
     scenes: [
-      { id: 'c1_intro', speaker: 'Erzähler', text: 'Nacht über Nocturna. Der alte König ist Staub. Du — Noctis — erwachst auf dem Knochenthron, die Krone noch warm von fremdem Blut. Unter dir: leere Kassen. Über dir: ein Himmel ohne Sterne. Velka steht bereit, Klemmbrett wie ein Schild. Die Festung atmet. Dein erstes Kapitel beginnt.',
+      { id: 'c1_intro', speaker: 'Noctis', text: 'Die Krone drückt, weil du zu lange sitzt. Velka ist schon im Raum, bevor du den Kopf hebst. Brok atmet, als hätte er seit einer Stunde nicht gebrüllt. Irgendwer hustet und hört dann auf.',
         choices: [
-          { id: 'wake', label: 'Augen öffnen — Thronsaal', next: 'c1_open' },
+          { id: 'wake', label: 'Augen öffnen — Thronsaal', next: 'c1_velka' },
         ]},
-      { id: 'c1_open', speaker: 'Velka', text: 'Der Knochenthron knackt, wenn man sich setzt — als erinnerte er sich an jeden Vorgänger. Die Kasse ist leer. Brok will Krieg wie ein Kind Feuer. Aria steht schon am Pass. Und irgendwo unter uns tickt etwas, das Gold frisst. Was zuerst, Fürst?',
+      { id: 'c1_velka', speaker: 'Velka', text: 'In der Kasse sind vierzehn Gold. Ein Posten auf dich, den du nicht unterschrieben hast. Venn hustet seit heute früh Staub, aus der Lunge, nicht aus der Tasche. Ich hab dem alten König die Bücher geführt, bis er uns nicht mehr erkannt hat. Höflich mach ich das nicht noch mal.',
+        choices: [
+          { id: 'hear', label: 'Sie ausreden lassen', next: 'c1_brok_in' },
+        ]},
+      { id: 'c1_brok_in', speaker: 'Brok', text: 'Sie hat ihm die Seiten umgeschlagen, während er uns vergessen hat. Ich stand mit ihm im Matsch, und am Ende kannte er meine Stimme nicht. Für ihn war ich der Soldat. Nicht Brok. Gib mir die Nacht am Pass, oder Venn stirbt an dem Zeug in der Lunge. Aria ist schon im Saal. Ihr Bruder steht oben in der zweiten Wache.',
+        choices: [
+          { id: 'both', label: 'Beide anhören', next: 'c1_aria' },
+        ]},
+      { id: 'c1_aria', speaker: 'Aria', text: 'Solara will die Festung anzünden, wenn das unter dem Thron bis zur dritten Glocke nicht zu ist. Ich glaub ihr das nicht. Dir auch nicht. Lio schreibt vom Pass. Ich geh mit in den Keller. Danach geh ich zu ihm. Nicht in deine Gruppe.',
+        choices: [
+          { id: 'hall', label: 'In den Saal', next: 'c1_open' },
+        ]},
+      { id: 'c1_open', speaker: 'Velka', text: 'Brok will heute Nacht los. Ich will die Edikte, sonst frisst die Kasse morgen Venns Sold. Aria wartet an der Treppe, nicht auf einen Titel. Unter dem Sitz sind drei Kerben: neun, neun, neun. Dieselbe Folge steht im Register, in deiner Schrift. Du erinnerst dich nicht. Genau das macht mir Sorgen.',
         choices: [
           { id: 'budget', label: 'Finanzen — die Wahrheit der Zahlen', next: 'c1_budget' },
           { id: 'war', label: 'Kriegsrat mit Brok', next: 'c1_brok' },
           { id: 'side', label: 'Velkas Register (Side)', next: 'c1_side' },
+          { id: 'aria', label: 'Aria anhören', next: 'c1_aria_quiet' },
           { id: 'dungeon', label: 'Schatzkatakomben', next: 'c1_dung' },
           { id: 'town', label: 'Festung erkunden', next: 'town' },
         ]},
-      { id: 'c1_budget', speaker: 'Velka', text: 'Steuerreform. Unbeliebt wie Wahrheit. Ich kann die Edikte mit deiner Aura siegeln — oder du hältst die Rede und siehst, wer zuckt. Beides füllt Taschen. Beides macht Feinde.',
+      { id: 'c1_budget', speaker: 'Velka', text: 'Wenn ich die Edikte mit deiner Aura siegle, ist morgen Brot da. Venn wird bezahlt. Brok wird mich dafür hassen, und er hat nicht ganz unrecht: das Gold kommt aus derselben Kasse, an der Venn hustet. Oder du hältst die Rede und lässt die Fürsten selbst zittern. Beides füllt Taschen. Beides lässt danach noch jemanden übrig, dem wir es sagen müssen.',
         choices: [
-          { id: 'sign', label: 'Edikte siegeln', effect: 'gold+40', next: 'c1_after_budget' },
-          { id: 'speech', label: 'Rede an die Fürsten', effect: 'ruf+5', next: 'c1_after_budget' },
+          { id: 'sign', label: 'Edikte siegeln', effect: 'gold+40|flag:edicts', next: 'c1_after_budget' },
+          { id: 'speech', label: 'Rede an die Fürsten', effect: 'ruf+5|flag:speech', next: 'c1_after_budget' },
           { id: 'back', label: 'Zurück', next: 'c1_open' },
         ]},
-      { id: 'c1_after_budget', speaker: 'Velka', text: 'Tropfen. Nicht Regen. Unter der Schatzkammer liegen Relikte aus Zeiten, als Nocturna noch einen anderen Namen hatte. Der Fiend dort unten … er bewacht keine Münzen. Er bewacht Schulden.',
+      { id: 'c1_after_budget', speaker: 'Velka', text: 'Sie legt den Stempel hin, als wär er schwerer als das Brett. Brok sagt nichts. Das ist neu. Aria wischt Staub von einer Bank, die ihr nicht gehört. „Lio hat so gehustet, bevor er an den Pass ist“, sagt sie, zu niemandem. Hand unters Holz: drei Kerben. Neun. Neun. Neun. Dieselbe Folge macht das Siegel unten auf.',
         choices: [
           { id: 'dung', label: 'In die Katakomben', next: 'c1_dung' },
           { id: 'town', label: 'Festung', next: 'town' },
         ]},
-      { id: 'c1_side', speaker: 'Velka', text: 'Hinter dem Thron: mein Register. Namen. Summen. Wer wen verriet, als der alte König fiel. Du wirst Dinge lesen, die du nicht ungelesen machen kannst. Willst du?',
+      { id: 'c1_aria_quiet', speaker: 'Aria', text: 'Ich bleib bis zum Fiend. Danach hol ich Lio, ob du König bist oder nur ein Mann mit einer Schrift, an die er sich nicht erinnert. Solstich nehm ich mit, Licht gegen die Münzrüstung. Wenn er die Rüstung abwirft und mit eurer alten Stimme spricht, hilft Licht weniger. Dann braucht ihr Brok und Velka. Nicht mich als Heilige.',
+        choices: [
+          { id: 'guest', label: 'Sie geht mit hinunter', effect: 'flag:ariaGuest|aff:Heldin Aria:+12', next: 'c1_open' },
+          { id: 'back', label: 'Zurück', next: 'c1_open' },
+        ]},
+      { id: 'c1_side', speaker: 'Velka', text: 'Hinter dem Thron liegt das Register offen. Letzte Zeile, deine Hand: „Wenn ich sie vergesse, verbrennt die Seite, nicht die Stadt.“ Darunter, kleiner, nicht deine Tinte: drei Neunen. Das Datum hab ich nicht geschrieben. Daneben steht nur: er hat uns noch gekannt. Am Rand ein durchgestrichenes Wort. Ich les es nicht vor.',
         choices: [
           { id: 'read', label: 'Lesen (Geheimnis)', effect: 'aff:Sekretärin Velka:+10|ruf+2', next: 'c1_side_read' },
           { id: 'later', label: 'Später', next: 'c1_open' },
         ]},
-      { id: 'c1_side_read', speaker: 'Erzähler', text: 'Tinte wie Blut, getrocknet. Velkas Handschrift: „Ich half. Nicht aus Hass — aus Hunger nach Ordnung.“ Darunter ein Name, den der Thron selbst trägt: Thronhunger. Nicht Titel. Parasit.',
+      { id: 'c1_side_read', speaker: 'Noctis', text: 'Du liest es laut. Brok setzt sich, was er nie tut. Aria sagt: „Dann ist das Siegel keine Magie. Es erinnert ihn, wen er gemeint hat.“ Velka, leise: „Ich hab ihm die Feder geführt, Noctis. An dem Abend. Nicht du. Das Wort am Rand heißt Thronhunger. Ich benutz es nicht. Noch nicht.“',
         choices: [
           { id: 'ask', label: 'Velka konfrontieren', next: 'c1_side_ask' },
           { id: 'keep', label: 'Schweigen bewahren', effect: 'aff:Sekretärin Velka:+5', next: 'c1_open' },
         ]},
-      { id: 'c1_side_ask', speaker: 'Velka', text: 'Ja. Der Thron frisst. Jeder „König“ war Futter. Ich wollte einen, der widersteht — oder wenigstens langsam verdaut wird. Du bist … vielversprechend zäh.',
+      { id: 'c1_side_ask', speaker: 'Velka', text: 'Ja. Ich hab die Feder gehalten, weil seine Hand schon Goldstaub war. Wenn du mich dafür hasst, sag es laut. Wenn du mich mitnimmst, dann nicht, weil ich nützlich bin. Sondern weil jemand die Zeilen noch lesen kann, wenn du sie vergisst. Die drei Neunen sind sein Satz. Im Kampf ist es derselbe Takt: triff das helle Feld, sonst wird der Schlag dünn.',
         choices: [
           { id: 'trust', label: 'Ich vertraue dir trotzdem', effect: 'aff:Sekretärin Velka:+20|recruit:Sekretärin Velka', next: 'c1_open' },
           { id: 'watch', label: 'Ich behalte dich im Auge', effect: 'aff:Sekretärin Velka:+5', next: 'c1_open' },
         ]},
-      { id: 'c1_brok', speaker: 'Brok', text: 'KRIEG, Herr! Die Orks brauchen ein Zeichen, dass der Thron noch Zähne hat — keine Akten. Ein Duell. Blut. Trommeln. Oder wir verrotten in Kasernen voller Langeweile.',
+      { id: 'c1_brok', speaker: 'Brok', text: 'Nicht Krieg. Lio und Venn. Eine Nacht. Ich bring sie zurück, oder ich bring ihre Posten zurück, und dann red ich leiser. Ein Duell vorher, damit die Truppe sieht, dass du noch selbst stehst. Kein Spektakel. Ein Beweis. Wenn das Ding unten weiß, wer ich bin, hau nicht daneben.',
         choices: [
           { id: 'duel', label: 'Ehren-Duell (Kampf)', effect: 'battle:hellhound', next: 'c1_after_brok' },
           { id: 'later', label: 'Später — erst Gold', next: 'c1_open' },
         ]},
-      { id: 'c1_after_brok', speaker: 'Brok', text: 'Hah! Du stehst. Die Truppe hat gesehen. Sie folgen — vorerst. Langeweile ist der schlimmste Verrat.',
+      { id: 'c1_after_brok', speaker: 'Brok', text: 'Du stehst. Er nickt, einmal, wie einem Gleichen. „Letzte Woche war ich für ihn nur der Soldat. Nicht Brok. Ich komm mit runter. Nicht weil ich dir glaub. Weil Venn heute noch jemand haben soll, der ihren Posten laut sagt.“',
         choices: [
           { id: 'rec', label: 'Brok in die Party', effect: 'recruit:General Brok', next: 'c1_open' },
           { id: 'town', label: 'Festung', next: 'town' },
         ]},
-      { id: 'c1_dung', speaker: 'Erzähler', text: 'Stufen hinab. Fackeln werfen Schatten, die sich falsch bewegen. Imp-Geflüster: Schulden, Schulden. Am Ende der Katakomben wartet ein Fiend mit leeren Augen — und einer vollen Kasse aus Knochen.',
+      { id: 'c1_dung', speaker: 'Velka', text: 'Die Treppe ist schmaler, als du sie im Kopf hast. Ich zähl Stufen, damit Brok nicht die falsche nimmt. Aria geht zuletzt. „Wenn er Lios Posten sagt, schlagt weiter. Ich kann das nicht.“ Unten ein Siegel aus Knochen und Tinte. Drei Neunen. Falsche Hand, und es beißt.',
         choices: [
           { id: 'enter', label: 'Dungeon betreten', effect: 'dungeon:c1', next: 'dungeon' },
           { id: 'back', label: 'Zurück zum Thron', next: 'c1_open' },
         ]},
-      { id: 'c1_reward', speaker: 'Velka', text: 'Der Fiend zerfällt zu Zahlen. Gold rieselt — und ein Siegel: „Schuld getilgt, vorerst.“ Die Katakomben sind ruhig. Die Festung atmet leichter. Du hast ein Kapitel gewonnen, Fürst. Nicht den Krieg. Aber den Morgen.',
+      { id: 'c1_reward', speaker: 'Velka', text: 'Er setzt sich. Gold rieselt, und darin sagt eine Stimme, die Brok kennt: „Verbrennt die Seite nicht.“ Aria nickt nur und geht Lio holen. Brok bleibt. „Morgen sagen wir Venn, der Staub hat aufgehört.“',
         choices: [
           { id: 'keep', label: 'Siegel einstecken (+Loot)', effect: 'gold+80|aff:Sekretärin Velka:+15|recruit:Sekretärin Velka', next: 'c2_open' },
           { id: 'town', label: 'Festung feiern', effect: 'gold+40', next: 'town' },
@@ -93,7 +111,7 @@ export const CHAPTERS = [
     dungeon: { name: 'Wachtürme am Pass', rooms: 5, boss: 'hellhound', bossName: 'Höllenhund der Vorhut' },
     recruit: { id: 'Spionin Nyx', role: 'spy', blurb: 'Nyx verkauft Berichte — und bleibt, wenn der Preis stimmt.' },
     scenes: [
-      { id: 'c2_open', speaker: 'Nyx', text: 'Wind vom Pass riecht nach Weihrauch und Angst. Aria steht dort oben wie ein Urteil. Die Kirche Solari atmet ihr im Nacken — süß, giftig. Töten. Bekehren. Verhandeln. Ich verkaufe alle drei. Manchmal sogar die Wahrheit.',
+      { id: 'c2_open', speaker: 'Nyx', text: 'Kalt hier. Aria steht am Feuer und wartet nicht auf eine Predigt. Der Hund im Ostturm hat die Wache geholt. Ich verkauf dir, wo er steht, oder du gehst selbst gucken.',
         choices: [
           { id: 'spy', label: 'Bericht kaufen (15G)', effect: 'gold-15', next: 'c2_report' },
           { id: 'recruit', label: 'Nyx anheuern', effect: 'recruit:Spionin Nyx', next: 'c2_report' },
@@ -101,36 +119,36 @@ export const CHAPTERS = [
           { id: 'dung', label: 'Wachtürme säubern', next: 'c2_dung' },
           { id: 'town', label: 'Pass-Lager', next: 'town' },
         ]},
-      { id: 'c2_report', speaker: 'Nyx', text: 'Aria trägt ein Relikt des Ersten Helden. Es … summt, wenn du nah bist. Als erkennte es Schulden. Vorsicht: Solara hat ihr gesagt, du frisst Welten. Du hungerst nur. Das ist fast schlimmer — weil es menschlich klingt.',
+      { id: 'c2_report', speaker: 'Nyx', text: 'Solara hat Aria gesagt, du frisst Welten. Ich hab die Festung gesehen. Die hungert. Das ist was anderes, und Aria weiß das noch nicht.',
         choices: [
           { id: 'meet', label: 'Erstkontakt mit Aria', next: 'c2_aria' },
           { id: 'dung', label: 'Türme zuerst', next: 'c2_dung' },
         ]},
-      { id: 'c2_side', speaker: 'Nyx', text: 'In den Turmritzen: meine Caches. Berichte über Solara. Über dich. Über einen Namen, den die Kirche löschen will: Thronhunger. Hol sie — oder lass sie verfaulen. Beides ist eine Entscheidung.',
+      { id: 'c2_side', speaker: 'Nyx', text: 'In den Turmritzen liegen meine Berichte. Solara steht drin, du stehst drin, und ein Wort, das die Kirche streichen will. Hol sie, oder lass sie nass werden.',
         choices: [
           { id: 'take', label: 'Caches bergen', effect: 'gold+25|aff:Spionin Nyx:+15', next: 'c2_side_done' },
           { id: 'leave', label: 'Lassen', next: 'c2_open' },
         ]},
-      { id: 'c2_side_done', speaker: 'Erzähler', text: 'Pergament, kalt. Solara weiß vom Thronhunger. Sie will dich nicht töten — sie will dich ersetzen. Ein sauberer Wirt für denselben Parasit.',
+      { id: 'c2_side_done', speaker: 'Nyx', text: 'Pergament, nass. Solara will dich nicht tot. Sie will jemand anderen auf dem Stuhl, mit demselben Hunger drin.',
         choices: [
           { id: 'ok', label: 'Weiter', next: 'c2_open' },
         ]},
-      { id: 'c2_aria', speaker: 'Aria', text: 'Dämonenkönig. Die Schrift sagt: du bist Hunger mit Krone. Stell dich — oder rede, bevor Stahl die einzige Sprache ist. Ich … höre einmal. Nur einmal.',
+      { id: 'c2_aria', speaker: 'Aria', text: 'Die Schrift sagt, du bist Hunger mit Krone. Ich hör das einmal. Danach Stahl, wenn du nichts Besseres hast.',
         choices: [
           { id: 'fight', label: 'Kämpfen', effect: 'battle:blood_cultist', next: 'c2_aria_after' },
           { id: 'talk', label: 'Verhandeln', effect: 'aff:Heldin Aria:+20', next: 'c2_aria_talk' },
           { id: 'spare', label: 'Zurückweichen', next: 'c2_open' },
         ]},
-      { id: 'c2_aria_talk', speaker: 'Aria', text: 'Die Kirche sagte, du frisst Welten. Deine Festung hungert nur. Kinder. Soldaten. Ein Sekretärin mit zu vielen Listen. … Ich höre zu. Einmal reicht nicht für Vertrauen. Aber für Zweifel.',
+      { id: 'c2_aria_talk', speaker: 'Aria', text: 'Die Kirche hat gesagt, du frisst Welten. Deine Festung hungert bloß. Einmal reicht nicht für Vertrauen. Für Zweifel reicht es.',
         choices: [
           { id: 'ally', label: 'Um Waffenstillstand bitten', effect: 'aff:Heldin Aria:+15', next: 'c2_open' },
           { id: 'dung', label: 'Weiter zum Pass-Dungeon', next: 'c2_dung' },
         ]},
-      { id: 'c2_aria_after', speaker: 'Aria', text: 'Stahl auf Stahl. Sie weicht — lebend. In den Augen: nicht Hass. Rechnung. Als hätte jemand die Zahlen falsch addiert.',
+      { id: 'c2_aria_after', speaker: 'Aria', text: 'Stahl auf Stahl. Sie weicht, und sie lebt. Das war keine Versöhnung. Das war eine Rechnung, die nicht aufgeht.',
         choices: [
           { id: 'next', label: 'Weiter', next: 'c2_dung' },
         ]},
-      { id: 'c2_dung', speaker: 'Erzähler', text: 'Die Wachtürme stinken nach Schwefel und gebrochenen Gelübden. Die Vorhut der Kirche hält einen Höllenhund in Ketten — oder er hält sie. Ketten klingen wie Gebete, die niemand meint.',
+      { id: 'c2_dung', speaker: 'Nyx', text: 'Die Türme stinken nach Schwefel. Die Vorhut hat einen Höllenhund an der Kette, oder er hat sie. Geh rein, oder geh zurück ans Feuer.',
         choices: [
           { id: 'enter', label: 'Dungeon betreten', effect: 'dungeon:c2', next: 'dungeon' },
           { id: 'back', label: 'Zurück', next: 'c2_open' },
@@ -294,7 +312,7 @@ export function migrateV60(S){
 
 /** Chapter-boss stat floors (applied when starting dungeon boss fights). */
 export const BOSS_SCALE = {
-  lesser_fiend: { hp:110, atk:13, def:10, mag:12, spd:10, boss:true, exp:90, gold:40 },
+  lesser_fiend: { hp:150, atk:15, def:9, mag:12, spd:10, boss:true, exp:90, gold:40 },
   hellhound: { hp:160, atk:16, def:11, mag:8, spd:13, boss:true, exp:120, gold:50 },
   boss_lich: { hp:240, atk:11, def:13, mag:22, spd:8, boss:true, exp:220, gold:90 },
   boss_archfiend: { hp:240, atk:16, def:14, mag:18, spd:8, boss:true, exp:300, gold:140 },
@@ -353,6 +371,7 @@ function applyEffect(S, effect, hooks){
     else if(e.startsWith('gold-')){ const n=+e.slice(5)||0; S.st=S.st||{}; S.st.gold=Math.max(0,(S.st.gold|0)-n); notes.push(`−${n} Gold`); }
     else if(e.startsWith('ruf+')){ const n=+e.slice(4)||0; S.st=S.st||{}; S.st.ruf=(S.st.ruf|0)+n; notes.push(`Ruf +${n}`); }
     else if(e.startsWith('title:')){ S.campaign.title=e.slice(6); S.pc=S.pc||{}; S.pc.title=S.campaign.title; notes.push(`Titel: ${S.campaign.title}`); }
+    else if(e.startsWith('flag:')){ S.campaign.flags=S.campaign.flags||{}; S.campaign.flags[e.slice(5)]=true; notes.push(e.slice(5)); }
     else if(e.startsWith('aff:')){
       const m=e.slice(4).match(/^(.+):([+-]?\d+)$/);
       if(m){ const who=m[1]; const n=+m[2]; S.romance=S.romance||{}; S.romance[who]=S.romance[who]||{affection:0,stage:0}; S.romance[who].affection=(S.romance[who].affection|0)+n; notes.push(`${who} ${n>=0?'+':''}${n}`); }
@@ -498,7 +517,7 @@ export function dungeonMenu(S){
   if(puzzleRoom && d.room===puzzleRoom && !puzzleDone){
     return {
       speaker: d.name,
-      text: `Raum ${d.room}/${d.rooms}. Ein Siegelkreis aus Knochen und Tinte. Velkas Handschrift am Rand: „Drei Zahlen. Die Summe der Schulden. Nur die richtige öffnet.“`,
+      text: `Raum ${d.room}/${d.rooms}. Velka tippt auf die Kerben. „Neun, neun, neun. Seine Hand. Nicht irgendeine Summe.“`,
       choices: [
         { id: 'pz_a', label: 'Siegel: 3-7-12 (Summe 22)', next: 'dung_puzzle_wrong' },
         { id: 'pz_b', label: 'Siegel: 9-9-9 (Summe 27)', next: 'dung_puzzle_ok' },
@@ -623,7 +642,13 @@ export function resolveChoice(S, choice, hooks={}){
   }
   if(next==='dung_puzzle_wrong'){
     S.st=S.st||{}; S.st.hp=Math.max(1,(S.st.hp|0)-12);
-    return showPack(S, { speaker:'Siegel', text:'Falsch. Das Siegel beißt — 12 Schaden. Die Zahlen warten.', choices:[{id:'c',label:'Erneut versuchen',next:'dungeon'}] }, note);
+    return showPack(S, { speaker:'Velka', text:'Das ist nicht seine Hand. Brok zieht dich zurück, bevor das Siegel mehr nimmt als Luft. Zwölf Schaden. Die Kerben warten: neun, neun, neun.', choices:[{id:'c',label:'Erneut versuchen',next:'dungeon'}] }, note);
+  }
+  if(next==='pass_hunt'){
+    S.campaign.mode='scene';
+    S.campaign.flags=S.campaign.flags||{};
+    S.campaign.flags.passField=true;
+    return showPack(S, { speaker:'Lira', text:'Der Wolf ist tot. Das Fell kannst du behalten. Der Hund im Turm ist größer, und er hört nicht auf Zuruf.', choices:[] }, note);
   }
   if(next==='boss_pending' || next==='boss_win'){
     // Battle starts via pendingBattle; onEnd calls onBossVictory. Never advance pre-fight
@@ -667,13 +692,39 @@ export function onBossVictory(S, hooks={}){
   S.campaign.mode='scene';
   S.campaign.dungeon=null;
   S.st=S.st||{}; S.st.gold=(S.st.gold|0)+50; S.st.xp=(S.st.xp|0)+80;
-  if(ch.recruit?.id){ recruitMember(S, ch.recruit.id, hooks); }
+  if(ch.recruit?.id && !(ch.id==='c2' && S.campaign.flags?.passField) && !(ch.id==='c3' && S.campaign.flags?.solmirField)){ recruitMember(S, ch.recruit.id, hooks); }
   // v70: chapter-1 reward beat before advancing
   if(ch?.id==='c1'){
     const reward=ch.scenes.find(s=>s.id==='c1_reward')||ch.scenes[0];
     S.campaign.sceneId=reward.id;
     hooks.toast?.('Kapitel 1 — Fiend besiegt!');
     return showPack(S, reward, `Boss besiegt. +50 Gold. ${ch.recruit?.blurb||''}`);
+  }
+  if(ch?.id==='c3' && S.campaign.flags?.solmirField){
+    S.campaign.mode='scene';
+    S.campaign.dungeon=null;
+    S.campaign.sceneId='c3_field';
+    S.world.scene.ort='Ruinen von Solmir';
+    S.flags=S.flags||{};
+    S.flags.owNeedsRefresh=true;
+    S.campaign.flags.c3Clear=true;
+    S.inv=S.inv||[];
+    if(!S.inv.some(i=>i&&i.name==='Lichasche')) S.inv.push({name:'Lichasche', icon:'💎', type:'mat'});
+    hooks.toast?.('Der Lich ist still.');
+    return showPack(S, { speaker:'Mara', text:'Der Lich ist still. Die Kathedrale bleibt heute zu.', choices:[] }, '');
+  }
+  if(ch?.id==='c2' && S.campaign.flags?.passField){
+    S.campaign.mode='scene';
+    S.campaign.dungeon=null;
+    S.campaign.sceneId='c2_field';
+    S.world.scene.ort='Grenzpass';
+    S.flags=S.flags||{};
+    S.flags.owNeedsRefresh=true;
+    S.campaign.flags.passClear=true;
+    S.inv=S.inv||[];
+    S.inv.push({name:'Passmantel', icon:'🧥', type:'armor'});
+    hooks.toast?.('Der Hund ist tot.');
+    return showPack(S, { speaker:'Aria', text:'Der Hund ist still. Lio kann runter.', choices:[] }, '');
   }
   if((S.campaign.chapterIdx|0) < CHAPTERS.length-1){
     S.campaign.chapterIdx = (S.campaign.chapterIdx|0)+1;
@@ -704,11 +755,28 @@ function showPack(S, pack, note){
 export function startCampaign(S, hooks={}){
   migrateV58(S);
   ensureDaemonWorld(S, hooks);
+  S.skills=S.skills||[];
+  if(!S.skills.some(s=>(s&&s.name)==='Nachtklinge')){
+    S.skills.push({name:'Nachtklinge', mp:4, pow:1.35, elem:'dunkel', nachklang:3});
+  }
+  if(!S.skills.some(s=>(s&&s.name)==='Hieb')){
+    S.skills.push({name:'Hieb', mp:0, pow:1.1, elem:'phys'});
+  }
   S.campaign.mode='scene';
-  const { scene, chapter } = findScene(S, S.campaign.sceneId);
-  S.campaign.sceneId = scene.id;
-  S.world.scene.ort = chapter.hub;
-  return showPack(S, scene, '');
+  const savedId = S.campaign.sceneId;
+  const found = findScene(S, savedId);
+  // c2_field / c3_field are walked scenes, not menu packs. Unknown ids used to
+  // fall back to the throne and wipe the road the player had just opened.
+  if((savedId==='c2_field' || savedId==='c3_field') && found.scene.id!==savedId){
+    S.world.scene = S.world.scene || {};
+    S.world.scene.ort = savedId==='c3_field' ? 'Ruinen von Solmir' : 'Grenzpass';
+    S.choices = [];
+    S.campaign._choiceObjs = [];
+    return { speaker:'', text:'', choices:[], changes:{ choices:[] } };
+  }
+  S.campaign.sceneId = found.scene.id;
+  S.world.scene.ort = found.chapter.hub;
+  return showPack(S, found.scene, '');
 }
 
 export function renderJrpgChoices(S, hooks){

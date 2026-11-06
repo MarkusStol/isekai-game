@@ -5405,8 +5405,8 @@ body.battle-open .composer,
   image-rendering:pixelated;
 }
 /* Companions same visual size as hero — no back-row shrink */
-.battle-root.battle-pixel .party-stage-spr,
-.battle-root.battle-pixel .party-stage-spr.row-back{
+.battle-root.battle-pixel .party-stage-spr:not(.atk-ant):not(.atk-strike):not(.atk-cast):not(.hit-from-left):not(.hit-from-right),
+.battle-root.battle-pixel .party-stage-spr.row-back:not(.atk-ant):not(.atk-strike):not(.atk-cast):not(.hit-from-left):not(.hit-from-right){
   transform: translateY(calc(var(--i,0) * -8px)) !important;
   opacity:1 !important;
   filter:none !important;
@@ -6510,6 +6510,37 @@ body.pixel-ow.ow-dialogue #toast,
 body.pixel-ow #toast:empty,
 body.pixel-ow #toast.on:empty{ display:none !important; opacity:0 !important; }
 
+/* Control hint sits in the corner, under the HUD, and can be closed. It does not cover the hero. */
+#owControlHint{
+  position:fixed;
+  left:12px;
+  bottom:12px;
+  z-index:24;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  max-width:240px;
+  margin:0;
+  padding:6px 8px;
+  background:rgba(8,10,18,.9);
+  color:#e8d9a8;
+  border:1px solid #d4b45a88;
+  border-radius:8px;
+  font:12px/1.35 "Noto Sans",system-ui,sans-serif;
+  pointer-events:auto;
+}
+#owControlHint button{
+  flex:0 0 auto;
+  background:#1a2458;
+  color:#e8d9a8;
+  border:1px solid #d4b45a88;
+  border-radius:6px;
+  padding:4px 8px;
+  cursor:pointer;
+}
+body.ow-dialogue #owControlHint,
+body.in-battle #owControlHint{ display:none !important; }
+
 
 /* ===== v65: Herberge screen (rest + save) ===== */
 .inn-screen{
@@ -7463,7 +7494,6 @@ body.ow-desktop #overworld canvas{
   top: calc(2% + (var(--i, 0) * 16.5%)) !important;
   left:auto !important;
   bottom:auto !important;
-  transform:none !important;
   margin:0 !important;
   flex:none !important;
   width:auto !important;
@@ -7474,8 +7504,12 @@ body.ow-desktop #overworld canvas{
   filter:none !important;
   opacity:1 !important;
 }
-.battle-root.battle-ff67 .party-stage-spr.row-back,
-.battle-root.battle-ff67.battle-pixel .party-stage-spr.row-back{
+.battle-root.battle-ff67 .party-stage-spr:not(.atk-ant):not(.atk-strike):not(.atk-cast):not(.hit-from-left):not(.hit-from-right),
+.battle-root.battle-ff67.battle-pixel .party-stage-spr:not(.atk-ant):not(.atk-strike):not(.atk-cast):not(.hit-from-left):not(.hit-from-right){
+  transform:none !important;
+}
+.battle-root.battle-ff67 .party-stage-spr.row-back:not(.atk-ant):not(.atk-strike):not(.atk-cast):not(.hit-from-left):not(.hit-from-right),
+.battle-root.battle-ff67.battle-pixel .party-stage-spr.row-back:not(.atk-ant):not(.atk-strike):not(.atk-cast):not(.hit-from-left):not(.hit-from-right){
   filter:brightness(0.96) !important;
   opacity:1 !important;
   transform:none !important;
@@ -7592,4 +7626,314 @@ body.ow-desktop #overworld canvas{
 .battle-root.battle-ff67 .battle-setpiece .foe-art{
   width:300px !important; height:300px !important;
   max-width:38vw !important; max-height:50vh !important;
+}
+
+/* Strike rhythm: anticipate, hit, recover. Small camera nudge, not a shake loop. */
+.battle-root.battle-ff67 .party-stage-spr.atk-ant{
+  animation: atkAnt .32s ease-out forwards !important;
+}
+.battle-root.battle-ff67 .foe-card.atk-ant{
+  animation: atkAntFoe .32s ease-out forwards !important;
+}
+.battle-root.battle-ff67 .party-stage-spr.atk-strike{
+  animation: atkStrike .7s ease-out !important;
+}
+.battle-root.battle-ff67 .foe-card.atk-strike{
+  animation: atkStrikeFoe .7s ease-out !important;
+}
+.battle-root.battle-ff67 .party-stage-spr.atk-cast,
+.battle-root.battle-ff67 .foe-card.atk-cast{
+  animation: atkCast .4s ease-out;
+}
+@keyframes atkAnt{
+  from{ translate:0 0; }
+  to{ translate:70px 0; }
+}
+@keyframes atkStrike{
+  0%{ translate:70px 0; }
+  38%{ translate:-180px 0; }
+  100%{ translate:0 0; }
+}
+@keyframes atkAntFoe{
+  from{ translate:0 0; }
+  to{ translate:-48px 0; }
+}
+@keyframes atkStrikeFoe{
+  0%{ translate:-48px 0; }
+  38%{ translate:160px 0; }
+  100%{ translate:0 0; }
+}
+@keyframes atkCast{
+  0%{ filter:brightness(1); transform:translateX(8px) scale(1); }
+  45%{ filter:brightness(1.45); transform:translateX(-8px) scale(1.04); }
+  100%{ filter:brightness(1); transform:none; }
+}
+.battle-root.battle-ff67 .foe-card.hit-from-right,
+.battle-root.battle-ff67 .party-stage-spr.hit-from-right{
+  animation: hitRight .28s ease-out;
+}
+.battle-root.battle-ff67 .foe-card.hit-from-left,
+.battle-root.battle-ff67 .party-stage-spr.hit-from-left{
+  animation: hitLeft .28s ease-out;
+}
+@keyframes hitRight{
+  0%{ translate:0 0; filter:brightness(1); }
+  30%{ translate:-40px 0; filter:brightness(2.4); }
+  100%{ translate:0 0; filter:none; }
+}
+@keyframes hitLeft{
+  0%{ translate:0 0; filter:brightness(1); }
+  35%{ translate:16px 0; filter:brightness(2.1); }
+  100%{ translate:0 0; filter:none; }
+}
+.battle-root.cam-nudge{ animation: camNudge .22s ease-out; }
+.battle-root.cam-nudge-hard{ animation: camNudgeHard .26s ease-out; }
+@keyframes camNudge{
+  40%{ transform:translate(3px,-2px); }
+  100%{ transform:none; }
+}
+@keyframes camNudgeHard{
+  30%{ transform:translate(-4px,2px); }
+  65%{ transform:translate(3px,-1px); }
+  100%{ transform:none; }
+}
+.spell-bolt{
+  position:absolute; width:16px; height:16px; border-radius:50%;
+  z-index:36; pointer-events:none; margin-left:-8px; margin-top:-8px;
+  animation: boltFly .4s linear forwards;
+}
+.spell-bolt.spell-licht{ background:#ffe08a; box-shadow:0 0 14px #ffe08a; }
+.spell-bolt.spell-tinte{ background:#8b7cff; box-shadow:0 0 14px #6a5cff; }
+.spell-bolt.spell-eis{ background:#bfe9ff; box-shadow:0 0 14px #7ec8ff; }
+.spell-bolt.spell-feuer{ background:#ff6a3a; box-shadow:0 0 14px #ff6a3a; }
+@keyframes boltFly{
+  to{ left:var(--bx,30%); top:var(--by,40%); opacity:.15; transform:scale(1.8); }
+}
+.nachklang{
+  position:absolute; left:50%; bottom:22%; transform:translateX(-50%);
+  width:min(440px, 52vw); z-index:42; pointer-events:auto;
+  background:#0c1020f2; border:2px solid #e8c86a; border-radius:8px;
+  padding:8px 12px 10px; box-shadow:0 8px 0 #000a;
+}
+.nachklang .nk-label{ font-size:13px; letter-spacing:.04em; color:#ffe9a8; text-align:center; margin-bottom:6px; }
+.nachklang .nk-track{ position:relative; height:18px; background:#141820; border-radius:9px; overflow:hidden; }
+.nachklang .nk-win{ position:absolute; top:0; bottom:0; background:#e8c86acc; }
+.nachklang .nk-mark{ position:absolute; top:0; width:3px; height:18px; background:#fff; box-shadow:0 0 6px #fff; }
+.nachklang.nk-ok{ border-color:#fff3b0; }
+@media (max-height:760px){
+  .battle-root.battle-ff67 .party-stage-spr img,
+  .battle-root.battle-ff67 .party-stage-spr .pixel-hero-spr{
+    width:96px !important; height:128px !important; min-height:100px !important;
+  }
+  .nachklang{ bottom:26%; width:min(380px, 70vw); }
+  .battle-root.battle-ff67 .foe-art.battler-spr{ max-height:42vh !important; }
+  .battle-root.battle-ff67 #battleCmd,
+  .battle-root.battle-ff67 .battle-cmd-pop{
+    left:38% !important;
+    bottom:auto !important;
+    top:6% !important;
+  }
+}
+
+/* Story choices stay on screen over the map. The map must not swallow the chapter. */
+body.pixel-ow.jrpg-classic:not(.ow-dialogue) #choices{
+  display:grid !important;
+  grid-template-columns:1fr 1fr;
+  position:absolute !important;
+  z-index:40 !important;
+  left:12px; right:12px; bottom:8px;
+  max-height:none !important;
+  overflow:visible;
+  gap:6px;
+  padding:8px;
+  margin:0;
+  background:#0c1020f2;
+  border:2px solid #c9a227;
+  border-radius:8px;
+  pointer-events:auto;
+  box-shadow:0 6px 0 #000a;
+}
+body.pixel-ow.jrpg-classic:not(.ow-dialogue) #choices button{
+  flex:1 1 180px;
+  min-height:36px;
+  font-size:13px;
+  line-height:1.25;
+  text-align:left;
+}
+body.ow-desktop.pixel-ow.jrpg-classic:not(.ow-dialogue) .vn-wrap,
+body.pixel-ow.jrpg-classic:not(.ow-dialogue) .vn-wrap{
+  display:flex !important;
+  height:auto !important;
+  bottom:168px !important;
+  left:12px !important;
+  right:12px !important;
+  z-index:41 !important;
+  max-height:24vh !important;
+  margin:0 !important;
+  padding:0 !important;
+  pointer-events:none;
+  opacity:1 !important;
+  overflow:visible;
+}
+body.pixel-ow.jrpg-classic:not(.ow-dialogue) .vn-box{
+  max-height:28vh !important;
+  min-height:110px !important;
+  pointer-events:auto;
+  overflow:auto !important;
+}
+body.pixel-ow.jrpg-classic:not(.ow-dialogue) .vn-text{
+  max-height:none !important;
+  min-height:96px !important;
+  font-size:15px !important;
+  display:block !important;
+  overflow:visible !important;
+}
+
+/* Chapter 1 is walked. No prose slab, no standing option list. */
+body.field-play .vn-wrap,
+body.field-play #choices,
+body.field-play.pixel-ow.jrpg-classic #choices,
+body.field-play.ow-desktop.pixel-ow.jrpg-classic:not(.ow-dialogue) .vn-wrap,
+body.field-play.ow-desktop.pixel-ow.jrpg-classic:not(.ow-dialogue) #choices,
+body.field-play.pixel-ow.jrpg-classic:not(.ow-dialogue) .vn-wrap{
+  display:none !important;
+  height:0 !important;
+  max-height:0 !important;
+  min-height:0 !important;
+  overflow:hidden !important;
+  pointer-events:none !important;
+  opacity:0 !important;
+}
+body.field-play .ow-region-minimap{
+  top:78px !important;
+  right:12px !important;
+  z-index:26 !important;
+}
+#owFade{
+  position:fixed;
+  inset:0;
+  background:#000;
+  opacity:0;
+  pointer-events:none;
+  z-index:80;
+  transition:opacity .7s ease;
+}
+#owFade.on{ opacity:1; }
+body.field-play.pixel-ow .topbar{
+  top:14px !important;
+  left:14px !important;
+  right:auto !important;
+  width:auto !important;
+  max-width:none !important;
+  margin:0 !important;
+  padding:0 !important;
+}
+body.field-play.pixel-ow .hud{
+  max-width:380px !important;
+  min-width:260px !important;
+  background:rgba(14,20,40,0.94) !important;
+  border:2px solid #d4b45a !important;
+  border-radius:12px !important;
+  padding:12px 16px !important;
+  font-family:"Noto Sans",system-ui,sans-serif !important;
+  font-size:16px !important;
+  line-height:1.35 !important;
+  color:#f4efe4 !important;
+  box-shadow:none !important;
+}
+body.field-play.pixel-ow .hud .hud-top b{
+  font-family:"Noto Sans",system-ui,sans-serif !important;
+  font-size:17px !important;
+  font-weight:700 !important;
+  letter-spacing:0 !important;
+}
+body.field-play.pixel-ow .hud .loc-line,
+body.field-play.pixel-ow .hud .meta-line{
+  font-family:"Noto Sans",system-ui,sans-serif !important;
+  font-size:14px !important;
+  opacity:1 !important;
+}
+body.field-play .ow-dlg{
+  width:min(980px, 92vw);
+  bottom:16px;
+  z-index:60;
+}
+body.field-play .ow-dlg-port{
+  width:84px !important;
+  height:84px !important;
+  object-fit:contain;
+  background:#120c18;
+}
+body.field-play.ow-dialogue .ow-dlg-inner{
+  max-height:none !important;
+  overflow:visible !important;
+}
+body.field-play.ow-dialogue .ow-dlg-text,
+body.pixel-ow.ow-dialogue.field-play .ow-dlg-text{
+  font-family:"Noto Sans",system-ui,sans-serif !important;
+  font-size:22px !important;
+  line-height:1.4 !important;
+  color:#f4efe4;
+  max-height:none !important;
+  overflow:visible !important;
+}
+body.field-play.ow-dialogue .ow-dlg-name,
+body.pixel-ow.ow-dialogue.field-play .ow-dlg-name{
+  font-family:"Noto Sans",system-ui,sans-serif !important;
+  font-size:18px !important;
+  letter-spacing:.03em;
+}
+body.field-play .ow-dlg-choices{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-top:10px;
+}
+body.field-play .ow-dlg-choice{
+  flex:1 1 180px;
+  min-height:46px;
+  text-align:left;
+  font-size:18px;
+}
+body.field-play .ow-dlg-choice:focus{
+  outline:3px solid #f0d78c;
+  outline-offset:2px;
+  background:#2c2618;
+}
+@media (min-width: 1400px){
+  body.field-play.ow-dialogue .ow-dlg-text,
+  body.pixel-ow.ow-dialogue.field-play .ow-dlg-text{ font-size:26px !important; }
+  body.field-play.ow-dialogue .ow-dlg-name,
+  body.pixel-ow.ow-dialogue.field-play .ow-dlg-name{ font-size:20px !important; }
+  body.field-play .ow-dlg-choice{ font-size:20px !important; min-height:52px; }
+}
+
+/* Battlers stand on the hall floor, not on the upper wall. */
+.battle-root.battle-ff67 .battle-foes{
+  top:auto !important;
+  bottom:4% !important;
+  height:auto !important;
+  justify-content:flex-end !important;
+  align-items:flex-start !important;
+}
+.battle-root.battle-ff67 .party-stage-spr,
+.battle-root.battle-ff67.battle-pixel .party-stage-spr,
+.battle-root.battle-pixel.battle-ff67 .party-stage-spr{
+  top:auto !important;
+  bottom: calc(2% + (3 - var(--i, 0)) * 8%) !important;
+  right: calc(1% + var(--i, 0) * 9vw) !important;
+}
+.battle-root.battle-ff67 .foe-card.foe-boss .foe-art,
+.battle-root.battle-ff67 .battle-setpiece .foe-art{
+  width:260px !important;
+  height:260px !important;
+  max-height:42vh !important;
+}
+body.pixel-ow.jrpg-classic:not(.ow-dialogue) #choices{
+  max-height:none !important;
+}
+body.pixel-ow.jrpg-classic:not(.ow-dialogue) #choices button{
+  min-height:32px !important;
+  padding:6px 10px !important;
+  font-size:13px !important;
 }

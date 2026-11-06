@@ -12,7 +12,7 @@ import { fileURLToPath } from 'url';
 
 const ROOT=path.join(path.dirname(fileURLToPath(import.meta.url)),'..');
 const PORT=8793;
-const VER='74';
+const VER='75';
 const LIVE='https://markusstol.github.io/isekai-game/';
 const SKIP_LIVE=process.env.GATE_SKIP_LIVE==='1';
 const ONLY_LIVE=process.env.GATE_ONLY_LIVE==='1';
@@ -75,6 +75,18 @@ async function freshOffline(page){
     document.getElementById('stage')?.classList.remove('hidden');
   });
   await new Promise(r=>setTimeout(r,500));
+}
+
+async function advanceOpening(page){
+  for(let i=0;i<6;i++){
+    const labels=await page.evaluate(()=>[...document.querySelectorAll('#choices button')].map(b=>b.textContent||''));
+    if(labels.some(t=>/Finanzen/i.test(t))) return labels;
+    const hit=labels.find(t=>/Augen öffnen|ausreden|anhören|In den Saal/i.test(t));
+    if(!hit) return labels;
+    await clickChoice(page, hit.slice(0,18));
+    await new Promise(r=>setTimeout(r,280));
+  }
+  return [];
 }
 
 async function clickChoice(page, src){
@@ -188,6 +200,7 @@ async function runLocal(browser){
   if(String(ver)!==VER) fail('ver', 'local VER mismatch', {ver}); else ok('ver',{ver});
 
   await freshOffline(page);
+  await advanceOpening(page);
 
   // jrpg-boot
   const bootInfo=await page.evaluate(()=>({
@@ -704,6 +717,13 @@ async function runLocal(browser){
 
 
   await page.close();
+
+  try{
+    const { runChapterSlice, runFieldBoss, runAriaRoutes } = await import('./play-chapter1.mjs');
+    await runChapterSlice({ browser, port: PORT, fail, ok });
+    await runFieldBoss({ browser, port: PORT, fail, ok });
+    await runAriaRoutes({ browser, port: PORT, fail, ok });
+  }catch(e){ fail('chapter-slice','exception',{err:String(e)}); }
 }
 
 

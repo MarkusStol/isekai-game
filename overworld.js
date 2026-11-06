@@ -183,6 +183,8 @@ function preload(){
   for(let i=0;i<4;i++) loadImg(`./assets/pixel/decor/town_hall_${i}.png`);
   Object.values(ARCH_GENRE).forEach(arr=>arr.forEach(loadImg));
   loadImg('./assets/pixel/hero/walk.png');
+  loadImg('./assets/pixel/tiles-na/sheets/outdoor.png');
+  loadImg('./assets/pixel/tiles-na/sheets/interior_floor.png');
   loadImg(WATER_ANIM);
   for(const pack of Object.values(GENRE_SET)){
     for(const k of Object.keys(BASE_TILES)){
@@ -252,6 +254,163 @@ function wangUrlFor(t,x,y){
   if(t==='door') return NA + 'door.png';
   if(t==='stairs') return NA + 'stairs.png';
   return base;
+}
+
+/** Real Ninja Adventure sheet cells (16px). Repeating tiles only — not the peach cut/ placeholders. */
+const NA_SHEET = {
+  outdoor: './assets/pixel/tiles-na/sheets/outdoor.png',
+  interior: './assets/pixel/tiles-na/sheets/interior_floor.png',
+};
+const NA_CELL = {
+  grass: ['outdoor', [[48,128],[64,128],[48,160],[64,160]]],
+  snow: ['outdoor', [[304,344],[288,344],[320,344],[212,344],[260,344],[196,296]]],
+  trail: ['outdoor', [[288,344],[320,344],[228,344],[308,328]]],
+  path: ['outdoor', [[336,256],[352,256],[192,224],[208,224]]],
+  wood: ['outdoor', [[192,224],[208,224],[176,224]]],
+  dun: ['interior', [[208,192],[224,192],[240,192],[256,192],[272,192],[208,208],[240,208],[224,208]]],
+  throne: ['interior', [[208,192],[224,192],[240,192],[256,192],[208,208]]],
+  dais: ['outdoor', [[204,416],[220,416],[204,424],[220,424]]],
+  wall: ['outdoor', [[204,432],[220,432],[204,440],[220,440],[284,424]]],
+};
+function naSpec(t, x, y){
+  const kind=_map?.kind||'';
+  const preset=String(_map?.preset||_map?.name||'');
+  const pass=/wall|pass|grenze|berg/i.test(preset);
+  const throne=/throne|festung/i.test(preset) || (kind==='interior' && /thron/i.test(String(_map?.name||'')));
+  const j=Math.abs((x*3+y*5)|0);
+  let key='grass';
+  if(kind==='dungeon'){
+    key=(t==='wall'||t==='void'||t==='cliff')?'wall':(t==='stone'?'dais':'dun');
+  } else if(pass){
+    if(t==='stone'||t==='wall'||t==='cliff') key='wall';
+    else if(t==='path') key='trail';
+    else key='snow';
+  } else if(throne){
+    if(t==='wall'||t==='cliff') key='wall';
+    else if(t==='carpet') key='dun';
+    else if(t==='stone'||t==='plaza') key='dais';
+    else if(t==='wood') key='wood';
+    else key='throne';
+  } else if(kind==='interior' || /church|cathedral/i.test(preset)){
+    if(t==='wall'||t==='cliff') key='wall';
+    else if(t==='wood') key='wood';
+    else if(t==='carpet') key='dun';
+    else key='dais';
+  } else if(t==='path'||t==='sand'||t==='wood') key = t==='wood'?'wood':'path';
+  else if(t==='stone'||t==='wall'||t==='cliff') key='wall';
+  else if(t==='water') key='snow';
+  const pack=NA_CELL[key]||NA_CELL.grass;
+  const cell=pack[1][j%pack[1].length];
+  return {src:NA_SHEET[pack[0]], sx:cell[0], sy:cell[1]};
+}
+const CAMP='./assets/pixel/camp/';
+const NAC=CAMP+'na/';
+function blitCamp(ctx, file, sx, sy, tw, th){
+  const im=loadImg(file);
+  const w=im?.naturalWidth||im?.width||0;
+  const h=im?.naturalHeight||im?.height||0;
+  if(im?.complete && w>4 && h>4){
+    ctx.drawImage(im, 0, 0, w, h, sx, sy, tw, th==null?tw:th);
+    return true;
+  }
+  return false;
+}
+function passGround(t){ return t==='sand'||t==='path'||t==='grass'||t==='floor'||t==='plaza'||t==='snow'||t==='water'; }
+function passCliff(t){ return t==='wall'||t==='cliff'; }
+function paintPassTile(ctx, t, x, y, sx, sy, tw){
+  if(_map?.preset!=='wall') return false;
+  if(passCliff(t)){
+    const role=_map.passArt?.[y]?.[x]||'ridge_rock_m';
+    if(role==='snow' || role==='shade'){
+      const file=role==='shade' ? NAC+'snow_shade.png' : NAC+'snow.png';
+      if(!blitCamp(ctx, file, sx, sy, tw)){ ctx.fillStyle='#e7eef4'; ctx.fillRect(sx,sy,tw,tw); }
+      return true;
+    }
+    // Rounded corners are transparent. Snow under them, not the canvas clear.
+    blitCamp(ctx, NAC+'snow.png', sx, sy, tw);
+    if(!blitCamp(ctx, NAC+role+'.png', sx, sy, tw)){ ctx.fillStyle='#3e6e6a'; ctx.fillRect(sx,sy,tw,tw); }
+    return true;
+  }
+  if(!passGround(t)) return false;
+  const shaded=t!=='path' && passCliff(_map.tiles?.[y-1]?.[x]) && _map.passArt?.[y-1]?.[x]!=='snow';
+  const file=t==='path' ? CAMP+(((x+y)&1)?'path_b.png':'path_a.png') : shaded ? NAC+'snow_shade.png' : NAC+'snow.png';
+  if(!blitCamp(ctx, file, sx, sy, tw)){ ctx.fillStyle='#e7eef4'; ctx.fillRect(sx,sy,tw,tw); }
+  return true;
+}
+function drawPassProp(ctx, oh, ox, oy, camX, camY, tw){
+  const im=loadImg(oh.src);
+  if(!(im.complete && im.naturalWidth)) return;
+  ctx.imageSmoothingEnabled=false;
+  const dw=(oh.tw||2)*tw;
+  const dh=dw*(im.naturalHeight/Math.max(1, im.naturalWidth));
+  const footY=oy+(oh.y+(oh.th||oh.tw||2)-camY)*tw;
+  ctx.drawImage(im, ox+(oh.x-camX)*tw, footY-dh, dw, dh);
+}
+function paintNa(ctx, t, x, y, dx, dy, dw, dh){
+  try{
+    const spec=naSpec(t,x,y);
+    const im=loadImg(spec.src);
+    if(!(im.complete && im.naturalWidth)) return false;
+    ctx.imageSmoothingEnabled=false;
+    ctx.drawImage(im, spec.sx, spec.sy, 16, 16, dx, dy, dw||0, dh||dw||0);
+    return true;
+  }catch(_){ return false; }
+}
+/** Floor / rug / dais / wall separation. The sheet cell is the texture; the wash is the room. */
+function shadeField(ctx, t, x, y, sx, sy, tw){
+  const preset=String(_map?.preset||'');
+  const throne=/throne/i.test(preset);
+  const dung=_map?.kind==='dungeon';
+  if(throne && t==='carpet'){
+    ctx.fillStyle='rgba(92,18,32,0.78)';
+    ctx.fillRect(sx+1, sy+1, tw-2, tw-2);
+    ctx.fillStyle='rgba(196,154,62,0.9)';
+    ctx.fillRect(sx+1, sy+1, tw-2, 2);
+    ctx.fillRect(sx+1, sy+tw-3, tw-2, 2);
+    ctx.fillRect(sx+1, sy+1, 2, tw-2);
+    ctx.fillRect(sx+tw-3, sy+1, 2, tw-2);
+    return;
+  }
+  if(throne && (t==='stone'||t==='plaza')){
+    ctx.fillStyle='rgba(210,206,196,0.28)';
+    ctx.fillRect(sx, sy, tw, Math.max(2, tw*0.18));
+    const nb=(dx,dy)=>_map?.tiles?.[y+dy]?.[x+dx];
+    const beside=[nb(0,-1),nb(0,1),nb(1,0),nb(-1,0)].filter(v=>v==='carpet').length;
+    if(beside===1){
+      ctx.fillStyle='#242b38';
+      ctx.fillRect(sx+tw*0.3, sy-tw*1.25, tw*0.4, tw*1.35);
+      ctx.fillStyle='#9aa3b2';
+      ctx.fillRect(sx+tw*0.22, sy-tw*1.34, tw*0.56, Math.max(3, tw*0.12));
+      ctx.fillStyle='rgba(0,0,0,0.35)';
+      ctx.fillRect(sx+tw*0.15, sy+tw*0.72, tw*0.8, tw*0.18);
+    }
+    return;
+  }
+  if(throne && (t==='floor'||t==='path')){
+    ctx.fillStyle='rgba(18,20,28,0.18)';
+    ctx.fillRect(sx, sy, tw, tw);
+    return;
+  }
+  if(dung && (t==='floor'||t==='path'||t==='carpet'||t==='plaza')){
+    ctx.fillStyle='rgba(6,8,14,0.28)';
+    ctx.fillRect(sx, sy, tw, tw);
+    return;
+  }
+  if(dung && (t==='wall'||t==='cliff')){
+    ctx.fillStyle='#17202a';
+    ctx.fillRect(sx, sy, tw, tw);
+    ctx.fillStyle='#3c4c5c';
+    ctx.fillRect(sx, sy, tw, Math.max(3, tw*0.2));
+    ctx.fillStyle='#10161e';
+    ctx.fillRect(sx, sy+tw*0.55, tw, tw*0.45);
+    return;
+  }
+  if(throne && (t==='wall'||t==='cliff')){
+    ctx.fillStyle='rgba(8,10,16,0.55)';
+    ctx.fillRect(sx, sy, tw, tw);
+    ctx.fillStyle='rgba(170,178,190,0.35)';
+    ctx.fillRect(sx, sy, tw, Math.max(2, tw*0.12));
+  }
 }
 
 function applyGenre(S){
@@ -603,6 +762,7 @@ export function buildMapForLocation(S, ort){
       placeChest(west+2, sy0+1, {gold:10, item:'Schattenkristall'});
       if(roomN!==3){ prop(sx0, north+2, 'altar'); ov(sx0,north+2,'altar'); }
       questMark(sx0, north+2, 'Siegelsaal', 'puzzle');
+      questMark(sx0, Math.max(2, north), 'Fiendtor', 'boss');
       questMark(east+5, sy0, 'Schatzkammer', 'side');
       for(const [tx,ty] of [[sx0-4,sy0-3],[sx0+4,sy0-3],[west+2,sy0-3],[east+2,sy0-3],[sx0,north+1],[sx0,south+1],[west+2,south+1],[east+2,south+1]]){
         anim(tx,ty,'torch');
@@ -766,12 +926,13 @@ export function buildMapForLocation(S, ort){
     if(tiles[ht-2]) tiles[ht-2][cx]='door';
     _hubNpcs.push({name:'Sekretärin Velka', x:cx+2, y:6, px:cx+2, py:6, sheet:'mage', e:'📜'});
     _hubNpcs.push({name:'General Brok', x:cx-2, y:14, px:cx-2, py:14, sheet:'guard', e:'🪓'});
+    _hubNpcs.push({name:'Heldin Aria', x:cx+5, y:12, px:cx+5, py:12, sheet:'princess', e:'⚔'});
     _hubNpcs.push({name:'Wächter Toren', x:cx+4, y:17, px:cx+4, py:17, sheet:'guard', e:'🛡️'});
     _hubNpcs.push({name:'Archivar Quinn', x:4, y:10, px:4, py:10, sheet:'mage', e:'📚'});
     _hubNpcs.push({name:'Page Sera', x:cx-3, y:16, px:cx-3, py:16, sheet:'villager', e:'📨'});
     // v66 side dungeon entrance
     fill(2, ht-5, 3, 3, 'floor'); tiles[ht-4][3]='door';
-    questMark(3, ht-4, 'Schatzkatakomben', 'side');
+    questMark(cx, Math.max(4, ht-3), 'Schatzkatakomben', 'side');
     overhead.push({x:3,y:ht-5,src:DECOR.sign||DECOR.statue,tw:1,th:1,label:'Katakomben'});
 
 
@@ -838,172 +999,117 @@ export function buildMapForLocation(S, ort){
     prop(cx, cy, 'statue');
     scatterGrass();
   } else if(preset==='wall'){
-    // v62: natural mountain pass — irregular cliffs, frozen stream, tall towers, camp
+    // One cliff from the Ninja Adventure snow wall, tall enough that the cap
+    // leaves the frame, with a stair and a spur that holds the tent.
     kind='wild';
-    const rnd=(n)=>((h*1103515245+n*12345)>>>0)%100;
-    for(let y=0;y<ht;y++) for(let x=0;x<w;x++){
-      const edgeL = x < 5 + ((y*3+h)%4) + (rnd(x+y*17)%3);
-      const edgeR = x > w-6 - ((y*5+h)%3) - (rnd(x*3+y)%3);
-      if(edgeL || edgeR){
-        tiles[y][x] = (rnd(x+y*9)%5===0)?'wall':'stone';
-      } else {
-        tiles[y][x]='sand';
-      }
-    }
-    // winding path with soft edges
-    let ppx=cx, ppy=0;
-    while(ppy<ht){
-      const half=1+(rnd(ppy*7)%2);
-      for(let dx=-half;dx<=half;dx++){
-        const xx=Math.max(6,Math.min(w-7,ppx+dx));
-        if(tiles[ppy]?.[xx]) tiles[ppy][xx]='path';
-      }
-      // soft shoulder snow
-      for(const s of [-half-1, half+1]){
-        const xx=Math.max(5,Math.min(w-6,ppx+s));
-        if(tiles[ppy]?.[xx]==='sand' && rnd(ppy+xx)%3===0) tiles[ppy][xx]='path';
-      }
-      if(ppy%2===0) ppx = Math.max(8, Math.min(w-9, ppx + ((ppy/2|0)%2===0?1:-1) + (rnd(ppy)%3-1)));
-      ppy++;
-    }
-    // frozen stream — continuous meander with soft banks (not square pools)
-    let sx=Math.floor(w*0.32), sy=2;
-    while(sy<ht-2){
-      const bend=Math.sin(sy*0.35+(h%7))*2.2;
-      const mid=Math.max(8, Math.min(w-10, Math.round(sx+bend)));
-      for(let k=-1;k<=2;k++){
-        const xx=mid+k;
-        if(xx<6||xx>w-7) continue;
-        if(tiles[sy]?.[xx]==='wall'||tiles[sy]?.[xx]==='stone') continue;
-        tiles[sy][xx]='water';
-      }
-      // snowy banks
-      for(const bank of [mid-2, mid+3]){
-        if(bank>5&&bank<w-6 && tiles[sy]?.[bank]==='sand'){
-          ov(bank, sy, 'snowdrift'); prop(bank, sy, 'snowdrift');
-        }
-      }
-      sx = mid;
-      sy++;
-    }
-    // v63: curved cliff bands (noise ridge, not diagonal brick stairs)
-    const ridge=(y0)=>{
-      let rx=cx;
-      for(let x=4;x<w-4;x++){
-        const wave=Math.sin(x*0.45+(h%5))*1.7 + Math.sin(x*0.19)*1.1;
-        const yy=Math.round(y0+wave);
-        if(yy<2||yy>=ht-2) continue;
-        if(Math.abs(x-cx)<=2) continue;
-        for(let dy=-1;dy<=1;dy++){
-          const y=yy+dy;
-          if(tiles[y]?.[x] && tiles[y][x]!=='path' && tiles[y][x]!=='water'){
-            tiles[y][x]=(dy===0?'stone':'stone');
-          }
-        }
-        // soft curve fill north of ridge
-        for(let y=Math.max(1,yy-2); y<yy; y++){
-          if(tiles[y]?.[x]==='sand' && rnd(x+y*3)%2===0) tiles[y][x]='stone';
-        }
-      }
-      fill(cx-1,y0,3,1,'path');
+    for(let y=0;y<ht;y++) for(let x=0;x<w;x++) tiles[y][x]='sand';
+    const wall=[];
+    const art=[];
+    const rock=(x,y,role)=>{
+      if(!tiles[y]||x<=1||x>=w-2||y<=1||y>=ht-2) return;
+      tiles[y][x]='wall';
+      wall.push({x,y});
+      (art[y]=art[y]||{})[x]=role;
     };
-    ridge(6); ridge(ht-8);
-    // pass camp with fire (near spawn so towers+NPCs are on camera)
-    const campX=cx-3, campY=Math.max(8, cy-1);
-    fill(campX, campY, 7, 5, 'path');
-    for(let j=0;j<5;j++) for(let i=0;i<7;i++){
-      if(i===0||i===6||j===0||j===4){
-        if(rnd(i+j*8)%2===0 && tiles[campY+j]?.[campX+i]) tiles[campY+j][campX+i]='stone';
-      }
-    }
-    // tall watchtowers flanking the camp (visible at spawn)
-    const twY=Math.max(3, campY-5);
-    overhead.push({x:campX-4,y:twY,src:DECOR.watchtower,tw:3,th:5,label:'Wachturm West'});
-    overhead.push({x:campX+8,y:twY,src:DECOR.watchtower,tw:3,th:5,label:'Wachturm Ost'});
-    for(let j=0;j<5;j++) for(let i=0;i<3;i++){
-      const y1=twY+j, xL=campX-4+i, xR=campX+8+i;
-      if(tiles[y1]?.[xL]!=null) tiles[y1][xL]=(j>=4)?'path':'stone';
-      if(tiles[y1]?.[xR]!=null) tiles[y1][xR]=(j>=4)?'path':'stone';
-    }
-    prop(campX+3, campY+2, 'campfire');
-    anim(campX+3, campY+2, 'torch');
-    prop(campX+1, campY+2, 'barrel');
-    prop(campX+5, campY+2, 'crate');
-    prop(campX+2, campY+3, 'bench');
-    prop(campX+4, campY+3, 'bench');
-    // v63: pine clusters (not lonely singles) + rocks/snow
-    const pineSrc=(k)=>{
-      const pick=[DECOR.pine, DECOR.pine2, DECOR.pine3, DECOR.pine_tall];
-      return pick[k % pick.length];
-    };
-    const plantCluster=(cx0,cy0,n)=>{
-      for(let k=0;k<n;k++){
-        const tx=cx0+(rnd(cx0*11+k*3)%5)-2;
-        const ty=cy0+(rnd(cy0*13+k*7)%4)-1;
-        if(!tiles[ty]?.[tx]) continue;
-        if(tiles[ty][tx]==='path'||tiles[ty][tx]==='water'||tiles[ty][tx]==='wall') continue;
-        // v70: never stamp stump wang — keep snow under pine sprites
-        if(tiles[ty][tx]==='tree'||tiles[ty][tx]==='stone') tiles[ty][tx]='sand';
-        if(tiles[ty][tx]!=='sand') continue;
-        const src=pineSrc(k+cx0);
-        const th = src===DECOR.pine_tall?4:3;
-        overhead.push({x:tx,y:ty-1,src,tw:2,th,label:'pine'});
-        if(k%2===0){ ov(tx+1, ty, 'snowdrift'); }
-        if(k%3===0){ ov(tx-1, ty+1, 'dead_bush'); }
-        if(k%4===0){ ov(tx, ty+1, 'rock'); }
+    const ridge=(x,top,foot,kind)=>{
+      for(let y=top;y<=foot;y++){
+        const i=y-top;
+        const edge=kind==='L'?'l':kind==='R'?'r':'m';
+        let role;
+        if(kind==='S'){
+          if(i===0) role='ridge_cap_m';
+          else if(y===foot) role='ridge_stair_b';
+          else if(i===1) role='ridge_lip_m';
+          else role='ridge_stair_a';
+        } else if(kind==='B'){
+          if(i===0) role='ridge_lip_l';
+          else if(y===foot) role='ridge_foot_l';
+          else role='ridge_rock_l';
+        } else if(i===0) role='ridge_cap_'+edge;
+        else if(y===foot) role='ridge_foot_'+edge;
+        else if(i===1) role='ridge_lip_'+edge;
+        else role='ridge_rock_'+edge;
+        rock(x,y,role);
       }
     };
-    // denser pine belts (left + right) — varied sprites, no stump floor
-    plantCluster(7, 8, 7);
-    plantCluster(8, 14, 6);
-    plantCluster(6, ht-12, 6);
-    plantCluster(w-10, 9, 6);
-    plantCluster(w-9, 15, 5);
-    plantCluster(w-10, ht-12, 5);
-    plantCluster(cx-6, cy+3, 4);
-    plantCluster(cx+5, cy-4, 4);
-    plantCluster(cx-8, cy-6, 4);
-    // scatter snowdrifts / rocks / dead bushes / footprints on open snow
-    for(let i=0;i<72;i++){
-      const tx=5+(rnd(i*13+3)*7)%Math.max(1,w-10);
-      const ty=3+(rnd(i*17+9)*9)%Math.max(1,ht-6);
-      if(!tiles[ty]?.[tx] || tiles[ty][tx]!=='sand') continue;
-      const roll=rnd(i*19)%6;
-      if(roll===0){ ov(tx, ty, 'rock'); }
-      else if(roll===1){ ov(tx, ty, 'dead_bush'); }
-      else if(roll<=3){ ov(tx, ty, 'footprints'); }
-      else { ov(tx, ty, 'snowdrift'); }
+    const foot=cy-2;
+    ridge(cx-4, cy-7, foot, 'L');
+    ridge(cx-3, cy-7, foot, 'M');
+    ridge(cx-2, cy-7, foot, 'M');
+    ridge(cx-1, cy-7, foot, 'M');
+    ridge(cx,   cy-7, foot, 'S');
+    ridge(cx+1, cy-7, foot, 'M');
+    ridge(cx+2, cy-6, foot, 'M');
+    ridge(cx+3, cy-5, foot, 'M');
+    ridge(cx+4, cy-4, foot, 'R');
+    ridge(cx-5, cy-4, cy+1, 'B');
+    ridge(cx-6, cy-3, cy+1, 'B');
+    // Tent footprint stays snow, but solid, and joins the spur.
+    for(let y=cy;y<=cy+1;y++) for(let x=cx-8;x<=cx-7;x++) rock(x,y,'snow');
+    const isRock=(x,y)=>!!(art[y]&&art[y][x]&&art[y][x]!=='snow');
+    for(const c of wall){
+      const role=art[c.y][c.x];
+      if(!role || role==='snow' || role.includes('stair')) continue;
+      const bits=role.split('_');
+      if(bits.length<3) continue;
+      const left=isRock(c.x-1,c.y), right=isRock(c.x+1,c.y);
+      const edge=!left&&right?'l':left&&!right?'r':'m';
+      art[c.y][c.x]=bits[0]+'_'+bits[1]+'_'+edge;
     }
-    // path + near-path footprints
-    for(let y=2;y<ht-2;y++){
-      for(let x=0;x<w;x++){
-        if(tiles[y][x]==='path' && rnd(x+y*9)%3===0) ov(x,y,'footprints');
-        if(tiles[y][x]==='sand' && (tiles[y][x-1]==='path'||tiles[y][x+1]==='path') && rnd(x*5+y)%2===0) ov(x,y,'footprints');
-      }
+    questMark._passArt=art;
+    for(let y=cy;y<ht-2;y++){
+      if(tiles[y]?.[cx]==='sand') tiles[y][cx]='path';
+      if(tiles[y]?.[cx+1]==='sand') tiles[y][cx+1]='path';
     }
-    // v69/v70: rock bands OOB — no pine wall filler
-    for(let y=0;y<ht;y++){
-      for(let x=0;x<4;x++){ if(tiles[y]) tiles[y][x]='stone'; }
-      for(let x=w-4;x<w;x++){ if(tiles[y]) tiles[y][x]='stone'; }
+    for(let x=cx+2;x<=cx+14;x++){
+      if(tiles[cy]?.[x]==='sand') tiles[cy][x]='path';
     }
-    // scrub grass/tree leftovers → snow (no green plateaus)
-    for(let y=0;y<ht;y++) for(let x=0;x<w;x++){
-      if(tiles[y][x]==='grass' || tiles[y][x]==='tree') tiles[y][x]='sand';
+    const blocks=[
+      {x:cx, y:cy, kind:'spawn'},
+      {x:cx-3, y:cy+2, kind:'fire'},
+      {x:cx-4, y:cy+3, kind:'bench'},
+      {x:cx-1, y:cy+3, kind:'bench'},
+      {x:cx-4, y:cy+1, kind:'barrel'},
+      {x:cx+5, y:cy+1, kind:'chest'},
+      {x:cx+4, y:cy, kind:'wolf'},
+    ];
+    for(const b of blocks){
+      if(b.kind==='spawn'||b.kind==='wolf') continue;
+      if(tiles[b.y] && tiles[b.y][b.x]!=='wall') tiles[b.y][b.x]='sand';
     }
-
-    placeChest(cx+2, cy-1, {gold:15, item:'Eisen-Schild'});
+    prop(cx-3, cy+2, 'campfire');
+    anim(cx-3, cy+2, 'torch');
+    prop(cx-4, cy+1, 'barrel');
+    prop(cx-4, cy+3, 'bench');
+    prop(cx-1, cy+3, 'bench');
+    overhead.push({x:cx-8, y:cy, src:NAC+'tent.png', tw:2.3, th:2.3, label:'tent'});
+    overhead.push({x:cx-8, y:cy-5, src:NAC+'shrub.png', tw:2, th:2, label:'shrub'});
+    overhead.push({x:cx+4, y:cy-5, src:NAC+'shrub.png', tw:2, th:2, label:'shrub'});
+    overhead.push({x:cx+7, y:cy-4, src:NAC+'winter.png', tw:2, th:3, label:'winter'});
+    overhead.push({x:cx+5, y:cy-3, src:NAC+'boulder.png', tw:2, th:2, label:'boulder'});
+    overhead.push({x:cx-6, y:cy+2, src:NAC+'rock_snow.png', tw:1, th:1, label:'rock_snow'});
+    overhead.push({x:cx+4, y:cy-1, src:NAC+'rock_snow.png', tw:1, th:1, label:'rock_snow'});
+    overhead.push({x:cx+6, y:cy+2, src:DECOR.watchtower, tw:1.7, th:2.8, label:'Wachturm'});
+    overhead.push({x:cx+7, y:cy+4, src:NAC+'boulder_snow.png', tw:1.6, th:1.6, label:'boulder_snow'});
+    const seats=[
+      {name:'Wächter Toren', sheet:'guard', e:'🛡️', x:cx-5, y:cy+3},
+      {name:'Schmiedin Kael', sheet:'merchant', e:'🔨', x:cx-2, y:cy+4},
+      {name:'Kundschafterin Lira', sheet:'spy', e:'🕵️', x:cx+3, y:cy+1},
+      {name:'Händler Bram', sheet:'merchant', e:'🧳', x:cx+2, y:cy+3},
+      {name:'Spionin Nyx', sheet:'spy', e:'🗡️', x:cx+4, y:cy+4},
+      {name:'Rekrut Venn', sheet:'villager', e:'🛡️', x:cx-7, y:cy+3},
+      {name:'Heldin Aria', sheet:'princess', e:'⚔', x:cx-2, y:cy},
+    ];
+    questMark._campAudit={blocks, npcs:seats.map(s=>({name:s.name,x:s.x,y:s.y}))};
+    for(const s of seats){
+      _hubNpcs.push({name:s.name, x:s.x, y:s.y, px:s.x, py:s.y, sheet:s.sheet, e:s.e, home:{x:s.x,y:s.y}});
+    }
+    placeChest(cx+5, cy+1, {gold:15, item:'Eisen-Schild'});
     placeChest(8, 11, {gold:10, item:'Antidot'});
     placeChest(w-9, cy+2, {gold:18, item:'Nyx-Bericht'});
-    prop(cx, cy-2, 'sign');
-    questMark(cx, 7, 'Grenzpass', 'story');
-    // camp NPCs with context
-        placeHouse(Math.max(8,cx-3), Math.min(ht-8, cy+4), 'Herberge', {variant:3});
-    _hubNpcs.push({name:'Wächter Toren', x:campX+2, y:campY+1, px:campX+2, py:campY+1, sheet:'guard', e:'🛡️', home:{x:campX+2,y:campY+1}});
-    _hubNpcs.push({name:'Kundschafterin Lira', x:campX+4, y:campY+1, px:campX+4, py:campY+1, sheet:'spy', e:'🕵️', home:{x:campX+4,y:campY+1}});
-    _hubNpcs.push({name:'Händler Bram', x:campX+3, y:campY+3, px:campX+3, py:campY+3, sheet:'merchant', e:'🧳', home:{x:campX+3,y:campY+3}});
-    _hubNpcs.push({name:'Spionin Nyx', x:campX+5, y:campY+3, px:campX+5, py:campY+3, sheet:'spy', e:'🗡️', home:{x:campX+5,y:campY+3}});
-    _hubNpcs.push({name:'Schmiedin Kael', x:Math.max(8,cx-2), y:Math.min(ht-6,cy+3), px:Math.max(8,cx-2), py:Math.min(ht-6,cy+3), sheet:'merchant', e:'🔨'});
-    _hubNpcs.push({name:'Rekrut Venn', x:campX+6, y:campY+2, px:campX+6, py:campY+2, sheet:'guard', e:'🛡️', home:{x:campX+6,y:campY+2}});
+    questMark(cx, cy, 'Grenzpass', 'story');
+    questMark._campAudit.wall=wall;
+    placeHouse(Math.max(8,cx-3), Math.min(ht-8, cy+9), 'Herberge', {variant:3});
     questMark(Math.max(4,cx-6), Math.min(ht-4,cy+5), 'Eishöhlen am Pass', 'side');
     if(tiles[Math.min(ht-4,cy+5)]) tiles[Math.min(ht-4,cy+5)][Math.max(4,cx-6)]='door';
     try{ if(S){ S.flags=S.flags||{}; S.flags.weather='schnee'; } }catch(_){}
@@ -1265,17 +1371,24 @@ export function buildMapForLocation(S, ort){
     _pendingLights.push({x:cx-2.5,y:cy-0.5,r:2.8}); _pendingLights.push({x:cx+3.5,y:cy-0.5,r:2.8});
     // four corner tombs connected by short halls
     const rooms=[[2,2,8,6],[w-10,2,8,6],[2,ht-9,8,6],[w-10,ht-9,8,6]];
+    const coffins=[];
+    const cL=cx-4, cR=cx+4, cT=cy-3, cB=cy+3;
     for(const [rx,ry,rw,rh] of rooms){
       fill(rx, ry, rw, rh, 'floor');
-      const midy=ry+Math.floor(rh/2), midx=rx+Math.floor(rw/2);
-      // short connector toward center (2–3 tiles, not full cross)
-      if(rx<cx) fill(rx+rw-1, midy, Math.max(2, cx-(rx+rw)+2), 2, 'floor');
-      else fill(cx+3, midy, Math.max(2, rx-(cx+3)), 2, 'floor');
-      if(ry<cy) fill(midx, ry+rh-1, 2, Math.max(2, cy-(ry+rh)+2), 'floor');
-      else fill(midx, cy+2, 2, Math.max(2, ry-(cy+2)), 'floor');
+      // 2-wide L from the room's inner corner onto the shrine edge. The old
+      // offsets stopped short, so the tombs were an island and the first lid
+      // could not be walked.
+      const innerX = rx < cx ? rx+rw-1 : rx;
+      const innerY = ry < cy ? ry+rh-1 : ry;
+      const centerX = rx < cx ? cL : cR;
+      const centerY = ry < cy ? cT : cB;
+      fill(Math.min(innerX, centerX), innerY, Math.abs(centerX-innerX)+1, 2, 'floor');
+      const vx = rx < cx ? centerX : centerX-1;
+      fill(vx, Math.min(innerY, centerY), 2, Math.abs(centerY-innerY)+1, 'floor');
       for(let i=0;i<2;i++){
         const cxr=rx+2+i*3, cyr=ry+2;
         prop(cxr, cyr, 'coffin');
+        coffins.push({x:cxr, y:cyr});
         anim(cxr, cyr-1, 'torch');
         _pendingLights.push({x:cxr+0.5,y:cyr-0.5,r:2});
       }
@@ -1287,12 +1400,14 @@ export function buildMapForLocation(S, ort){
     placeChest(cx+2, 4, {gold:20, item:'Phylakterium-Splitter'});
     placeChest(4, cy, {gold:12, item:'Manaessenz'});
     placeChest(w-6, ht-6, {gold:16, item:'Knochen-Schlüssel'});
+    questMark._coffins=coffins;
     questMark(cx, cy-2, 'Erster Held', 'secret');
-    fill(cx-1, ht-3, 3, 2, 'floor');
-    if(tiles[ht-2]) tiles[ht-2][cx]='door';
+    const doorY=Math.min(ht-3, cy+6);
+    fill(cx-1, cB, 3, Math.max(2, doorY-cB+1), 'floor');
+    fill(cx-1, 5, 3, Math.max(2, cT-5+1), 'floor');
     _hubNpcs.push({name:'Grabräuber Jex', x:cx-2, y:cy+2, px:cx-2, py:cy+2, sheet:'spy', e:'💀'});
-    _hubNpcs.push({name:'Chronistin Mara', x:4, y:4, px:4, py:4, sheet:'mage', e:'📖'});
-    _hubNpcs.push({name:'Hüter Orun', x:w-6, y:cy, px:w-6, py:cy, sheet:'guard', e:'🦴'});
+    _hubNpcs.push({name:'Chronistin Mara', x:5, y:5, px:5, py:5, sheet:'mage', e:'📖'});
+    _hubNpcs.push({name:'Hüter Orun', x:cx+2, y:cy+1, px:cx+2, py:cy+1, sheet:'guard', e:'🦴'});
     tiles[Math.min(ht-3,cy+6)][cx]='door';
     questMark(cx, Math.min(ht-3,cy+6), 'Knochenlabyrinth', 'side');
 
@@ -1620,7 +1735,7 @@ export function buildMapForLocation(S, ort){
     exits.push({x:qm.x,y:qm.y,to:dest, sideDungeon:true, label:lab||dest});
     if(tiles[qm.y]){ tiles[qm.y][qm.x]='door'; if(overlay[qm.y]) overlay[qm.y][qm.x]=null; }
   }
-  return {w,h:ht,tiles,overlay,doors:exits,spawn:{x:sx,y:sy},kind,name,npcs,interiors,overhead,animators,preset,chests,lights,questMarks:qmarks};
+  return {w,h:ht,tiles,overlay,doors:exits,spawn:{x:sx,y:sy},kind,name,npcs,interiors,overhead,animators,preset,chests,lights,questMarks:qmarks,campAudit:questMark._campAudit||null,passStair:questMark._passStair??null,passArt:questMark._passArt||null,tent:questMark._tent||null,coffins:questMark._coffins||[]};
 }
 
 function walkable(x,y){
@@ -1686,6 +1801,7 @@ function ensureDlg(){
         <div class="ow-dlg-body">
           <div class="ow-dlg-name" id="owDlgName">…</div>
           <div class="ow-dlg-text" id="owDlgText"></div>
+          <div class="ow-dlg-choices" id="owDlgChoices"></div>
         </div>
         <button type="button" class="ow-dlg-close" id="owDlgClose" aria-label="Schließen">×</button>
       </div>`;
@@ -1696,6 +1812,98 @@ function ensureDlg(){
   return el;
 }
 let _dlgTw=null;
+let _beatQueue=[];
+let _dlgChoices=null;
+const CAST_PORT={
+  'Velka':'./assets/pixel/battler/ally_velka.png',
+  'Sekretärin Velka':'./assets/pixel/battler/ally_velka.png',
+  'Brok':'./assets/pixel/battler/ally_brok.png',
+  'General Brok':'./assets/pixel/battler/ally_brok.png',
+  'Aria':'./assets/pixel/battler/ally_aria.png',
+  'Heldin Aria':'./assets/pixel/battler/ally_aria.png',
+  'Noctis':'./assets/pixel/battler/ally_hero.png',
+  'Spionin Nyx':'./assets/pixel/battler/ally_spy.png',
+  'Nyx':'./assets/pixel/battler/ally_spy.png',
+  'Kundschafterin Lira':'./assets/pixel/battler/ally_spy.png',
+  'Lira':'./assets/pixel/battler/ally_spy.png',
+  'Wächter Toren':'./assets/pixel/battler/ally_guard.png',
+  'Toren':'./assets/pixel/battler/ally_guard.png',
+  'Rekrut Venn':'./assets/pixel/battler/ally_guard.png',
+  'Venn':'./assets/pixel/battler/ally_guard.png',
+  'Händler Bram':'./assets/pixel/battler/ally_merchant.png',
+  'Bram':'./assets/pixel/battler/ally_merchant.png',
+  'Schmiedin Kael':'./assets/pixel/battler/ally_merchant.png',
+  'Kael':'./assets/pixel/battler/ally_merchant.png',
+};
+function finishDlgText(){
+  if(!_dlgTw) return false;
+  clearInterval(_dlgTw); _dlgTw=null;
+  const tx=document.getElementById('owDlgText');
+  if(tx?.dataset.full) tx.textContent=tx.dataset.full;
+  return true;
+}
+function renderDlgChoices(choices){
+  _dlgChoices=choices&&choices.length?choices:null;
+  const box=document.getElementById('owDlgChoices');
+  if(!box) return;
+  box.innerHTML='';
+  if(!_dlgChoices) return;
+  _dlgChoices.forEach((ch,i)=>{
+    const b=document.createElement('button');
+    b.type='button';
+    b.className='ow-dlg-choice';
+    b.textContent=ch.label;
+    b.onclick=()=>{
+      _dlgChoices=null;
+      box.innerHTML='';
+      try{ ch.pick?.(); }catch(e){ console.warn('dlg choice', e); }
+    };
+    box.appendChild(b);
+  });
+  const first=box.querySelector('button');
+  if(first) first.focus();
+}
+export function queueBeats(lines){
+  _beatQueue=(lines||[]).filter(Boolean);
+  if(_beatQueue.length) nextBeat();
+}
+function nextBeat(){
+  if(!_beatQueue.length){ hideDialogue(); return; }
+  const b=_beatQueue.shift();
+  showDialogue(b.name, b.text, b.sheet, b.choices||null);
+}
+function confirmDialogue(){
+  if(!isDialogueOpen()){ talkNearest(); return; }
+  if(finishDlgText()) return;
+  if(_dlgChoices) return;
+  if(_beatQueue.length){ nextBeat(); return; }
+  hideDialogue();
+}
+function enterFieldDungeon(name){
+  const S=_hooks.getS?.();
+  if(!S) return;
+  const base=String(name||'Schatzkatakomben').split('·')[0].trim();
+  S.world=S.world||{}; S.world.scene=S.world.scene||{};
+  S.world.scene.ort=base+' · Raum 1';
+  S.campaign=S.campaign||{};
+  S.campaign.mode='dungeon';
+  S.campaign.dungeon=S.campaign.dungeon||{name:base, room:1, rooms:5, boss:'lesser_fiend', bossName:'Niederer Fiend'};
+  S.flags=S.flags||{};
+  S.flags.owNeedsRefresh=false;
+  showOverworld(S);
+  const f=S.campaign?.flags||{};
+  if(f.ariaPact) showDialogue('Aria','Stufen. Die Seite liegt beim Siegel, nicht bei den Knochen.','princess');
+  else showDialogue('Velka','Stufen. Das Siegel ist im Norden. Neun, neun, neun. Fass nichts an, bevor ich\'s gelesen hab.','mage');
+}
+function fieldChapter(S){
+  if(S?.campaign?.id!=='nocturna') return false;
+  const idx=S?.campaign?.chapterIdx|0;
+  if(idx<=1) return true;
+  return idx===2 && !!S.campaign?.flags?.solmirField;
+}
+function onPassMap(){
+  return _map?.preset==='wall';
+}
 function coerceDlgText(v, fallback='…'){
   if(v==null) return fallback;
   if(typeof v==='object'){
@@ -1748,24 +1956,28 @@ export function showDialogue(name, text, sheet){
     const n=npc||{art:sh, sheet:sh};
     const role=C46?.portraitRole?.(trueName, n)||C45?.roleFromNpc?.(trueName,n)||sh||'villager';
     const roleUrl=C45?.ROLE_PORT?.[role]||C45?.ROLE_PORT?.villager;
-    if(port && roleUrl){ port.src=roleUrl; usedPx=true; }
-    C45?.loadFramedRolePortrait?.(role).then(url=>{ if(url && port) port.src=url; });
+    if(port && roleUrl && !CAST_PORT[trueName]){ port.src=roleUrl; usedPx=true; }
+    if(!CAST_PORT[trueName]) C45?.loadFramedRolePortrait?.(role).then(url=>{ if(url && port) port.src=url; });
   }catch(_){}
-  if(port && !usedPx) port.src=(window.__game?.C45?.ROLE_PORT?.villager)||PORTRAITS[sh]||PORTRAITS.default;
-  let shown=trueName.slice(0,36);
+  if(port && CAST_PORT[trueName]) port.src=CAST_PORT[trueName];
+  else if(port && !usedPx) port.src=(window.__game?.C45?.ROLE_PORT?.villager)||PORTRAITS[sh]||PORTRAITS.default;
+  let shown=trueName.slice(0,64);
   try{
     const C64=window.__game?.C64;
     const Know=window.__game?.Know;
-    if(C64?.displayLabelFor) shown=String(C64.displayLabelFor(S, trueName, sh)||shown).slice(0,36);
-    else if(Know?.displayName) shown=String(Know.displayName(S, trueName, S?.world?.npcs?.[trueName]||{sheet:sh})||shown).slice(0,36);
+    if(Know?.learnName && _npcs.some(n=>n.name===trueName)) Know.learnName(S, trueName, 'told');
+    if(C64?.displayLabelFor) shown=String(C64.displayLabelFor(S, trueName, sh)||shown).slice(0,64);
+    else if(Know?.displayName) shown=String(Know.displayName(S, trueName, S?.world?.npcs?.[trueName]||{sheet:sh})||shown).slice(0,64);
   }catch(_){}
   shown=coerceDlgName(shown, trueName).slice(0,36);
+  if(CAST_PORT[trueName]) shown=trueName.replace(/^(Sekretärin|General|Heldin)\s+/,'');
   // strangers: never show bare "jemand" — role label until introduced
   if(/^(jemand|unbekannt|\?\?\?)$/i.test(shown) || shown===trueName && /hunderte|kniende|menge/i.test(trueName)){
     const ROLE_LABEL={guard:'Ein Wächter',mage:'Eine Gelehrte',merchant:'Ein Händler',spy:'Eine Vermummte',villager:'Ein Passant',daemon:'Eine dunkle Gestalt',princess:'Eine Edelfrau'};
     shown = ROLE_LABEL[sh] || 'Eine unbekannte Gestalt';
   }
   if(nm) nm.textContent=shown;
+  if(port && CAST_PORT[trueName]) port.src=CAST_PORT[trueName];
   let body=coerceDlgText(text, '');
   if(!body || body==='…' || body==='...'){
     try{
@@ -1777,8 +1989,10 @@ export function showDialogue(name, text, sheet){
   body=coerceDlgText(body, 'Guten Tag.');
   // strip leading "Name: " duplication if label already shows name
   const full=body;
+  if(tx) tx.dataset.full=full;
   if(_dlgTw) clearInterval(_dlgTw);
   let i=0; if(tx) tx.textContent='';
+  renderDlgChoices(arguments[3]);
   _dlgTw=setInterval(()=>{
     i=Math.min(full.length, i+2);
     if(tx) tx.textContent=full.slice(0,i);
@@ -1788,6 +2002,9 @@ export function showDialogue(name, text, sheet){
 }
 export function hideDialogue(){
   if(_dlgTw){ clearInterval(_dlgTw); _dlgTw=null; }
+  _dlgChoices=null;
+  const box=document.getElementById('owDlgChoices');
+  if(box) box.innerHTML='';
   _dlg?.classList.add('hidden');
   document.body.classList.remove('ow-dialogue');
 }
@@ -1804,6 +2021,14 @@ function talkTo(name){
     S.v64.talkCount=S.v64.talkCount||{};
   }catch(_){}
   const turn=(S?.v64?.talkCount?.[label]|0);
+  if(fieldChapter(S)){
+    const ft=fieldLine(S, label, sh);
+    if(ft){
+      showDialogue(label, ft.text, sh, ft.choices||null);
+      try{ if(S?.v64?.talkCount) S.v64.talkCount[label]=(turn+1)|0; }catch(_){}
+      return {name:label, text:ft.text};
+    }
+  }
   let line='Guten Tag.';
   try{
     const C64=window.__game?.C64;
@@ -1839,8 +2064,534 @@ function facingTile(){
   const dx=d===1?-1:d===2?1:0, dy=d===3?-1:d===0?1:0;
   return {x:_hero.x+dx, y:_hero.y+dy};
 }
+function campFlags(S){
+  S.campaign=S.campaign||{};
+  S.campaign.flags=S.campaign.flags||{};
+  return S.campaign.flags;
+}
+function leaveParty(S, names){
+  const ban=new Set(names);
+  S.party=(S.party||[]).filter(n=>!ban.has(n));
+  if(S.campaign) S.campaign.party=(S.campaign.party||[]).filter(n=>!ban.has(n));
+}
+function noteAria(S, ev, aff, trust, stage){
+  const f=campFlags(S);
+  S.romance=S.romance||{};
+  const prev=S.romance['Heldin Aria']||{};
+  const r=S.romance['Heldin Aria']=Object.assign({affection:0,trust:0,stage:0,events:[],adult:true}, prev);
+  r.adult=true;
+  r.events=Array.isArray(r.events)?r.events:[];
+  if(ev && !r.events.includes(ev)) r.events.push(ev);
+  if(aff!=null) r.affection=Math.max(-100, Math.min(100, aff|0));
+  if(trust!=null) r.trust=Math.max(0, Math.min(100, trust|0));
+  if(stage!=null) r.stage=stage|0;
+  r.route=f.ariaRomance?'romance':f.ariaPact?'betray':f.ariaRefused?'loyal':f.ariaClosed?'closed':'open';
+  try{
+    const n=S.world?.npcs?.['Heldin Aria'];
+    if(n){ n.adult=true; n.romance=true; }
+  }catch(_){}
+  try{ _hooks.save?.(); }catch(_){}
+}
+function joinAria(S){
+  try{ window.__game?.C60?.recruitMember?.(S, 'Heldin Aria', {}); }catch(_){}
+}
+function fadeIntimate(){
+  let el=document.getElementById('owFade');
+  if(!el){
+    el=document.createElement('div');
+    el.id='owFade';
+    el.setAttribute('aria-hidden','true');
+    document.body.appendChild(el);
+  }
+  el.classList.remove('on');
+  void el.offsetWidth;
+  el.classList.add('on');
+  setTimeout(()=>{ try{ el.classList.remove('on'); }catch(_){} }, 1800);
+}
+function resolveAriaNight(S, yes, underage){
+  const f=campFlags(S);
+  f.ariaSplit=true;
+  leaveParty(S, ['Sekretärin Velka','General Brok']);
+  if(underage || !yes){
+    f.ariaRomanceRefused=true;
+    if(underage) f.ariaUnderageStop=true;
+    leaveParty(S, ['Heldin Aria']);
+    noteAria(S, underage?'stop':'nein', underage?0:22, underage?0:28, underage?0:1);
+    showDialogue('Aria', underage
+      ? 'Dann ist hier Schluss. So was fang ich nicht an. Die Seite nehm ich mit, den Rest nicht.'
+      : 'Dann bleib König. Die Seite nehm ich mit. Ich schlaf nicht aus Dankbarkeit.', 'princess');
+    return;
+  }
+  f.ariaRomance=true;
+  f.ariaAdults=true;
+  try{ if(S.pc) S.pc.adult=true; }catch(_){}
+  try{ window.__game?.C60?.recruitMember?.(S, 'Heldin Aria', {}); }catch(_){}
+  noteAria(S, 'ja', 78, 68, 4);
+  fadeIntimate();
+  showDialogue('Aria', 'Licht aus. Was danach ist, bleibt zwischen uns. Morgen holen wir Lio.', 'princess');
+}
+export function fieldCryptEnd(S){
+  if(!S) return;
+  const f=campFlags(S);
+  document.body.classList.add('field-play');
+  const beats=[];
+  if(f.ariaStood && f.ariaRomance){
+    beats.push({name:'Aria', sheet:'princess', text:'Er ist still. Ich geh mit dir zum Feuer zurück. Morgen reden wir. Heute holen wir erst Lio.'});
+  } else if(f.ariaRefused){
+    beats.push({name:'Velka', sheet:'mage', text:'Er ist still. Venn kann schlafen. Die Asche nehm ich mit, die Knochen nicht.'});
+    beats.push({name:'Aria', sheet:'princess', text:'Das reicht für Lios Husten nicht, aber der Lärm hört auf. Ich geh zurück zum Pass.'});
+  } else {
+    beats.push({name:'Jex', sheet:'spy', text:'Still da unten. Die Münzen im Vorraum nehm ich. Du hast die Asche. Die Kathedrale ist noch zu.'});
+  }
+  beats.push({name:'Mara', sheet:'mage', text:'Ich schreib: der Lich ist still. Die Kathedrale mach ich heute nicht auf.'});
+  queueBeats(beats);
+}
+export function fieldPassEnd(S){
+  if(!S) return;
+  const f=campFlags(S);
+  document.body.classList.add('field-play');
+  const beats=[];
+  if(f.ariaStood && f.ariaRomance){
+    beats.push({name:'Aria', sheet:'princess', text:'Der Hund ist still. Lio kann runter. Du hast dich vor Toren gestellt. Das war für ihn. Ob du bleibst, frag mich morgen, nicht im Schnee.'});
+  } else if(f.ariaCool || f.ariaNoRomance || f.ariaRomanceRefused){
+    beats.push({name:'Aria', sheet:'princess', text:'Der Hund ist still. Lio lebt. Das war der Handel. Ich geh mit ihm zum Feuer. Du nicht in mein Zelt.'});
+  } else if(f.ariaRefused){
+    if((S.party||[]).includes('Sekretärin Velka')) beats.push({name:'Velka', sheet:'mage', text:'Der Lärm hört auf. Venn hustet weniger, wenn sie schläft.'});
+    if((S.party||[]).includes('General Brok')) beats.push({name:'Brok', sheet:'guard', text:'Saubere Arbeit. Kein Spektakel.'});
+    beats.push({name:'Aria', sheet:'princess', text:'Ich bring Lio zum Feuer. Du hast Wort gehalten. Das ist viel. Es ist kein Versprechen.'});
+  } else {
+    beats.push({name:'Nyx', sheet:'spy', text:'Hund tot, Wache atmet. Der Mantel liegt bei der Beute. Mehr hab ich nicht gesehen.'});
+  }
+  if(f.nyxReport){
+    try{ window.__game?.C60?.recruitMember?.(S, 'Spionin Nyx', {}); }catch(_){}
+    beats.push({name:'Nyx', sheet:'spy', text:'Der Bericht ist bezahlt. Ich bleib, bis Solmir. Nicht aus Zuneigung. Aus dem Preis.'});
+  }
+  queueBeats(beats);
+}
+export function fieldReward(S){
+  if(!S) return;
+  const f=campFlags(S);
+  document.body.classList.add('field-play');
+  if(f.ariaPact && f.ariaPageTaken){
+    const beats=[
+      {name:'Velka', sheet:'mage', text:'Sie hat die Seite. Du hast ja gesagt. Ich hab\'s gesehen. Such dir jemand anders für die Zahlen. Ich geh zu Venn.'},
+      {name:'Brok', sheet:'guard', text:'Die Nacht war für Venn. Du hast sie für Aria ausgegeben. Ich geh hoch. Such dir eine andere Wand.'},
+    ];
+    if(f.ariaCourt && !f.ariaNoRomance && !f.ariaRomance && !f.ariaRomanceRefused){
+      beats.push({name:'Aria', sheet:'princess', text:'Die beiden gehen. Das hast du gewusst. Ich bin sechsundzwanzig, und ich frag trotzdem: bist du erwachsen? Eine Nacht am Pass, bei mir, nicht auf dem Thron. Ja oder nein.', choices:[
+        {label:'Ja. Ich bin erwachsen. Ich komm mit.', pick:()=>resolveAriaNight(S, true, false)},
+        {label:'Nein. Ich bleib.', pick:()=>resolveAriaNight(S, false, false)},
+        {label:'Ich bin nicht erwachsen.', pick:()=>resolveAriaNight(S, false, true)},
+      ]});
+    }else if(f.ariaRomance){
+      beats.push({name:'Aria', sheet:'princess', text:'Wir haben ja gesagt. Lio wartet. Wir gehen zu Fuß.'});
+    }else{
+      beats.push({name:'Aria', sheet:'princess', text:'Die Seite hab ich. Du hast nicht gefragt, und das ist in Ordnung. Ich hol Lio. Damit hat sich\'s.'});
+      leaveParty(S, ['Sekretärin Velka','General Brok','Heldin Aria']);
+      f.ariaSplit=true;
+      noteAria(S, 'seite-ohne-frage', 24, 30, 2);
+    }
+    queueBeats(beats);
+    return;
+  }
+  const beats=[
+    {name:'Velka', sheet:'mage', text:'Er hat Broks Stimme benutzt. Danach war er still. Das Buch bleibt ganz.'},
+    {name:'Brok', sheet:'guard', text:'Morgen sag ich Venn, der Staub hat aufgehört. Komm mit hoch, wenn du willst.'},
+  ];
+  if(f.ariaGuest && !f.ariaClosed){
+    beats.push({name:'Aria', sheet:'princess', text:'Ich hol Lio. Danke fürs Mitkommen. Mehr war nicht ausgemacht.'});
+    leaveParty(S, ['Heldin Aria']);
+  }
+  queueBeats(beats);
+}
+function goToPass(S){
+  if(!S) return;
+  const f=campFlags(S);
+  f.passField=true;
+  f.passArrived=true;
+  S.campaign.chapterIdx=1;
+  S.campaign.sceneId='c2_open';
+  S.campaign.mode='scene';
+  S.campaign.dungeon=null;
+  S.world=S.world||{}; S.world.scene=S.world.scene||{};
+  S.world.scene.ort='Grenzpass';
+  S.flags=S.flags||{};
+  S.flags.c2FieldBoot=true;
+  document.body.classList.add('field-play');
+  showOverworld(S);
+  const beats=[];
+  if(f.ariaRomance && !f.ariaCool){
+    beats.push({name:'Aria', sheet:'princess', text:'Wir sind am Pass. Die Nacht bleibt die Nacht. Lio hustet da oben, und ich bin nicht deine Frau.'});
+    beats.push({name:'Toren', sheet:'guard', text:'Halt. Wer die Seite rausgerissen hat, kommt nicht mit Begleitung durch. Rede mit mir, bevor sie weitergeht.'});
+  } else if(f.ariaNoRomance || f.ariaRomanceRefused){
+    beats.push({name:'Aria', sheet:'princess', text:'Pass. Lio hustet. Du hast klar gesagt, was die Nacht nicht ist. Der Hund ist im Ostturm.'});
+  } else if(f.ariaRefused){
+    beats.push({name:'Aria', sheet:'princess', text:'Lio hustet. Die Klinge unten war die Klinge. Der Hund ist im Ostturm.'});
+    beats.push({name:'Velka', sheet:'mage', text:'Zwei Wachen fehlen. Der Hund hat sie, nicht der Schnee. Zähl sie nicht zu den Lebenden.'});
+  } else {
+    beats.push({name:'Toren', sheet:'guard', text:'Grenzpass. Der Hund im Ostturm hat die Wache geholt. Feuer ist da, wenn du eins brauchst.'});
+  }
+  queueBeats(beats);
+  try{ _hooks.save?.(); }catch(_){}
+}
+function goToSolmir(S){
+  if(!S) return;
+  const f=campFlags(S);
+  f.solmirField=true;
+  f.solmirArrived=true;
+  S.campaign.chapterIdx=2;
+  S.campaign.sceneId='c3_open';
+  S.campaign.mode='scene';
+  S.campaign.dungeon=null;
+  S.world=S.world||{}; S.world.scene=S.world.scene||{};
+  S.world.scene.ort='Ruinen von Solmir';
+  S.flags=S.flags||{};
+  document.body.classList.add('field-play');
+  showOverworld(S);
+  const beats=[];
+  if(f.ariaStood && f.ariaRomance){
+    beats.push({name:'Aria', sheet:'princess', text:'Ich geh mit in den Hof. Nicht weiter, bis die Tür auf ist. Lio bleibt am Pass, am Feuer.'});
+  } else if(f.ariaRefused){
+    beats.push({name:'Aria', sheet:'princess', text:'Hier liegt Staub, kein Hund. Ich such etwas für Lios Husten. Danach geh ich zurück.'});
+  } else if(f.ariaCool || f.ariaNoRomance || f.ariaRomanceRefused){
+    beats.push({name:'Jex', sheet:'spy', text:'Die Blonde ist am Pass geblieben. Sie hat nicht nach dir gefragt. Der Hof ist offen. Die Gruft nicht.'});
+  } else {
+    beats.push({name:'Mara', sheet:'mage', text:'Der Hof ist offen. Die Tür zur Gruft ist zu. Heute kommst du da nicht durch.'});
+  }
+  beats.push({name:'Orun', sheet:'guard', text:'Vier Kammern. In jeder stehen zwei Särge. Die Tür will acht. Nicht vier, und nicht ein Gebet.'});
+  queueBeats(beats);
+  try{ _hooks.save?.(); }catch(_){}
+}
+function placeMark(x,y,label,kind){
+  if(!walkable(x,y)) return false;
+  if((_questMarks||[]).some(m=>m.kind===kind && m.x===x && m.y===y)) return true;
+  _questMarks.push({x,y,label,kind});
+  return true;
+}
+function ensurePassWorld(S){
+  if(!S?.campaign?.flags?.beat_lesser_fiend || S.campaign.flags.passArrived) return;
+  if((S.campaign.chapterIdx|0)!==0) return;
+  if((_questMarks||[]).some(m=>m.kind==='pass')) return;
+  const spots=[[_hero.x,_hero.y+2],[_hero.x+1,_hero.y+1],[_hero.x-1,_hero.y+1],[_hero.x,_hero.y+1],[_hero.x+2,_hero.y]];
+  for(const [x,y] of spots){
+    if(placeMark(x|0,y|0,'Zum Pass','pass')) return;
+  }
+}
+function ensurePassJobs(S){
+  if(!onPassMap() || !S?.campaign?.flags?.passField) return;
+  const cx=Math.floor((_map.w||30)/2), cy=Math.floor((_map.h||30)/2);
+  if(!S.campaign.flags.passWolf){
+    // Far enough east that standing beside the mark is not also beside the Solmir mark.
+    const spots=[[cx+4,cy],[cx+5,cy],[cx+3,cy],[cx+6,cy]];
+    for(const [x,y] of spots){ if(placeMark(x,y,'Wolf','hunt')) break; }
+  }
+  if(!S.campaign.flags.beat_hellhound && !S.campaign.flags.passClear){
+    const spots=[[cx+12,cy-8],[cx+11,cy-7],[cx+12,cy-6],[cx+10,cy-8]];
+    for(const [x,y] of spots){ if(placeMark(x,y,'Höllenhund','boss')) break; }
+  }
+  if(S.campaign.flags.passArrived && !S.campaign.flags.solmirArrived){
+    const spots=[[cx,cy-1],[cx+1,cy-1],[cx,cy],[cx+1,cy]];
+    for(const [x,y] of spots){ if(placeMark(x,y,'Nach Solmir','solmir')) break; }
+  }
+  const add=(name,sheet,x,y)=>{
+    if(_npcs.some(n=>n.name===name)) return;
+    if(!walkable(x,y)) return;
+    _npcs.push({name, sheet, x, y, px:x, py:y, dir:0, frame:0, e:'', home:{x,y}});
+  };
+  if((S.party||[]).includes('Sekretärin Velka')) add('Sekretärin Velka','mage', Math.max(6,cx-10), cy+2);
+  if((S.party||[]).includes('General Brok')) add('General Brok','guard', Math.min((_map.w||40)-7, cx+10), cy+2);
+}
+function ensureSolmir(S){
+  if(_map?.preset!=='graveyard' || !S?.campaign?.flags?.solmirField) return;
+  const cx=Math.floor((_map.w||30)/2), cy=Math.floor((_map.h||30)/2);
+  const f=S.campaign.flags;
+  const add=(name,sheet,x,y)=>{
+    if(_npcs.some(n=>n.name===name)) return;
+    if(!walkable(x,y)) return;
+    _npcs.push({name, sheet, x, y, px:x, py:y, dir:0, frame:0, home:{x,y}, pace:'idle', waypoints:[{x,y}]});
+  };
+  if((f.ariaStood && f.ariaRomance) || f.ariaRefused) add('Heldin Aria','princess', cx+3, cy+2);
+  if((S.party||[]).includes('Sekretärin Velka')) add('Sekretärin Velka','mage', cx-3, cy+2);
+  if(!f.solmirSeal && !f.c3Clear){
+    const spots=[[cx,cy-2],[cx,cy-3],[cx-1,cy-2],[cx+1,cy-2]];
+    for(const [x,y] of spots){ if(placeMark(x,y,'Grufttür','crypt')) break; }
+  }
+  if(f.solmirSeal && !f.beat_boss_lich && !f.c3Clear){
+    const spots=[[cx,cy-5],[cx,cy-4],[cx-1,cy-5],[cx+1,cy-4]];
+    for(const [x,y] of spots){ if(placeMark(x,y,'Lich','boss')) break; }
+  }
+}
+function passFieldLine(S, label, sh, party, f){
+  if(label==='Heldin Aria'){
+    if(f.passClear && f.ariaStood) return {text:'Der Hund ist still. Lio kann runter. Du hast dich vor Toren gestellt. Das war für Lio. Ob du bleibst, weiß ich morgen, nicht heute Nacht.'};
+    if(f.passClear && (f.ariaNoRomance || f.ariaRomanceRefused || f.ariaCool)) return {text:'Lio lebt. Das war der Handel. Mehr nicht, und nicht in meinem Zelt.'};
+    if(f.passClear && f.ariaRefused) return {text:'Lio kommt zum Feuer. Du hast Wort gehalten. Das ist viel. Es ist kein Versprechen.'};
+    if(f.ariaCool) return {text:'Fass mich nicht an. Die Nacht war die Nacht. Lio hol ich allein.'};
+    if(f.ariaStood) return {text:'Du stehst vor ihm. Gut. Das ist für Lio, nicht weil die Nacht uns was schuldet.'};
+    if(f.ariaRomance) return {text:'Die Nacht war eine Nacht. Ich bin nicht deine Frau. Lio hustet da oben. Toren will mich nicht durch. Stell dich vor mich, oder lass es.'};
+    if(f.ariaNoRomance || f.ariaRomanceRefused) return {text:'Die Seite ist draußen. Du hast klar gesagt, was du nicht willst. Der Hund frisst die Wache. Ich geh wegen Lio mit. Das ist kein Bett.'};
+    if(f.ariaRefused) return {text:'Lio hustet. Die Klinge unten war die Klinge, nicht mehr. Der Hund ist im Ostturm. Komm mit, und fang nicht von uns an.'};
+    return {text:'Lio hustet. Der Hund ist im Ostturm. Ich bin wegen ihm hier, nicht wegen dir.'};
+  }
+  if(label==='Wächter Toren'){
+    if(f.ariaStood) return {text:'Sie geht durch. Du stehst davor, also halt ich die Order. Der Hund ist trotzdem im Turm.'};
+    if(f.ariaCool) return {text:'Sie ist weg. Die Order gilt noch für dich. Ostturm, wenn du den Hund willst.'};
+    if(f.ariaRomance && !f.ariaStood){
+      return {text:'Sie bleibt stehen. Order: wer die Seite rausgerissen hat, kommt nicht mit Begleitung durch. Du entscheidest das, nicht ich.', choices:[
+        {label:'Sie geht durch.', pick:()=>{ f.ariaStood=true; noteAria(S,'toren',78,74,4); showDialogue('Aria','Du stellst dich vor ihn. Das ist für Lio. Nicht, weil die Nacht uns was schuldet.', 'princess'); }},
+        {label:'Halt sie auf.', pick:()=>{ f.ariaCool=true; leaveParty(S,['Heldin Aria']); noteAria(S,'kalt',20,10,1); showDialogue('Aria','Dann war die Nacht nur die Nacht. Lio hol ich allein.', 'princess'); }},
+      ]};
+    }
+    return {text:'Grenzpass. Der Hund im Ostturm hat zwei von uns geholt. Feuer ist da. Rein geh ich nicht.'};
+  }
+  if(label==='Spionin Nyx'){
+    if(f.nyxReport) return {text:'Er hängt im Ostturm, an der Kette. Licht kannst du dir sparen, das beißt ihn nicht. Wenn du Eis oder Wasser dabei hast, nimm das. Wenn nicht, geh mit Stahl rein und bleib nicht stehen.'};
+    return {text:'Fünfzehn Gold, dann sag ich dir, wo er steht. Er hängt im Ostturm an der Kette. Licht beißt ihn nicht. Hast du Eis oder Wasser, nimm das mit. Hast du keins, nimm Stahl, und geh nicht allein rein.', choices:[
+      {label:'Zahlen', pick:()=>{
+        if((S.st?.gold|0)<15){ showDialogue(label,'Fünfzehn. Weniger nehm ich nicht.', sh); return; }
+        S.st.gold=(S.st.gold|0)-15;
+        f.nyxReport=true;
+        try{ _hooks.save?.(); }catch(_){}
+        showDialogue(label,'Ostturm, an der Kette. Fass die Kette nicht an. Wenn Aria bei dir ist, hat die Wache eine Order gegen sie. Das ist nicht meine Order.', sh);
+      }},
+      {label:'Später', pick:()=>hideDialogue()},
+    ]};
+  }
+  if(label==='Rekrut Venn'){
+    if(f.ariaSplit || f.ariaCool) return {text:'Brok ist nicht hier. Er hat gesagt, er kommt, wenn du die Nacht nicht verkaufst. Ich hust noch.'};
+    return {text:'Ich hust noch. Zwei von uns hat der Hund geholt. Wenn Brok bei dir ist, sag ihm das, bevor ihr den Turm aufmacht.'};
+  }
+  if(label==='Kundschafterin Lira'){
+    if(f.passWolf) return {text:'Der Wolf ist tot. Das Fell kannst du behalten. Der Hund im Turm ist größer, und der kommt nicht, wenn du rufst.'};
+    return {text:'Ein Wolf auf dem Weg, der Hund im Turm. Der Wolf ist der kleinere. Dreh ihm trotzdem nicht den Rücken zu.'};
+  }
+  if(label==='Händler Bram'){
+    return {text:'Decken, Seil, ein Trank. Der Weg nach Solmir friert zu. Ich frag nicht, wen du mitbringst.'};
+  }
+  if(label==='Schmiedin Kael'){
+    return {text:'Der Turm braucht Stahl, keine Rede. Wenn die Klinge splittert, bring sie her. Lass mich sonst am Feuer.'};
+  }
+  if(label==='Sekretärin Velka' && party.includes(label)){
+    return {text:'Zwei von der Wache fehlen. Der Hund hat sie geholt. Ich zähl die beiden nicht mehr mit.'};
+  }
+  if(label==='General Brok' && party.includes(label)){
+    return {text:'Ostturm. Ich geh vor. Wenn du Aria anfasst, ohne dass sie es will, schlag ich dich. König oder nicht.'};
+  }
+  return null;
+}
+function onSolmirMap(){
+  return _map?.preset==='graveyard';
+}
+function coffinKey(x,y){ return (x|0)+','+(y|0); }
+function readCoffin(x,y){
+  if(_map?.overlay?.[y]?.[x]!=='coffin') return false;
+  if(!onSolmirMap()) return false;
+  const S=_hooks.getS?.();
+  if(!S) return false;
+  const f=campFlags(S);
+  const id=coffinKey(x,y);
+  f.coffinSeen=Array.isArray(f.coffinSeen)?f.coffinSeen:[];
+  const fresh=!f.coffinSeen.includes(id);
+  if(fresh) f.coffinSeen.push(id);
+  const n=f.coffinSeen.length;
+  const party=S.party||[];
+  const velka=party.includes('Sekretärin Velka');
+  if(f.solmirSeal){
+    showDialogue('Orun','Den Deckel hast du schon. Die Riegel sind auf. Norden steht der Lich. Wenn er das Buch hebt, geh in Deckung.','guard');
+    return true;
+  }
+  if(n>=8){
+    f.solmirSeal=true;
+    const cx=Math.floor((_map.w||30)/2), cy=Math.floor((_map.h||30)/2);
+    const spots=[[cx,cy-2],[cx,cy-1],[cx+1,cy-2],[cx-1,cy-1],[cx,cy],[_hero.x,_hero.y-1]];
+    for(const [mx,my] of spots){ if(placeMark(mx|0,my|0,'Lich','boss')) break; }
+    const who=velka?' Velka hat mitgezählt. Acht, nicht vier.':'';
+    showDialogue('Orun','Acht Deckel. Zwei in jeder Kammer.'+who+' Die Riegel gehen. Der Lich steht nördlich. Wenn er das Buch hebt, drück Schützen. Licht tut ihm dann nichts, Feuer schon.','guard');
+    try{ _hooks.save?.(); }catch(_){}
+    return true;
+  }
+  const aria=f.ariaStood?' Aria bleibt an der Tür. Sie kommt erst mit, wenn die Riegel auf sind.':'';
+  showDialogue('Hüter Orun','Der Name ist fast weg. Der Deckel ist zu. Das ist Sarg '+n+' von acht.'+(velka&&fresh?' Velka schreibt die Zahl mit.':'')+aria,'guard');
+  return true;
+}
+function openCryptDoor(S){
+  const f=campFlags(S);
+  const n=(f.coffinSeen||[]).length;
+  if(f.solmirSeal){
+    showDialogue('Orun','Die Riegel sind auf. Norden. Wenn er das Buch hebt, geh in Deckung, bevor die Nova kommt. Licht ist in der Mitte tot. Feuer nicht.','guard');
+    return;
+  }
+  const velka=(S.party||[]).includes('Sekretärin Velka')?' Velka kann mitzählen, raten tut sie nicht.':'';
+  showDialogue('Orun','Vier Kammern, zwei Särge in jeder. Ich mach die Tür nicht auf einen Tipp hin auf. Lies die Deckel. Du hast '+n+' von acht.'+velka,'guard');
+}
+function solmirLine(S, label, party, f){
+  if(label==='Heldin Aria'){
+    if(f.c3Clear && f.ariaStood) return {text:'Er ist still. Lio kann am Feuer bleiben. Ich geh mit dir zurück, und wir reden morgen. Heute nicht.'};
+    if(f.ariaStood && f.ariaRomance) return {text:'Ich geh mit bis zur Tür. Die Nacht hat uns nicht verheiratet. Wenn die Riegel auf sind, komm ich mit rein.'};
+    if(f.ariaRefused) return {text:'Etwas für den Husten, dann zurück. Das hier ist kein Spaziergang mit mir.'};
+    return {text:'Ich bin wegen Lio hier. Nicht wegen der Gruft, und nicht wegen dir.'};
+  }
+  if(label==='Grabräuber Jex'){
+    if(f.c3Clear) return {text:'Der Lich ist unten still. Ich nehm die Münzen im Vorraum und geh. Die Knochen bleiben.'};
+    if(f.ariaCool || f.ariaNoRomance || f.ariaRomanceRefused) return {text:'Sie ist nicht mit dir gekommen. Gut für sie. Die Tür will acht Särge. Ich zähl nicht für dich.'};
+    if(f.ariaStood) return {text:'Sie steht hinter dir. Die Gruft ist zu, bis die acht Deckel gelesen sind. Ich bleib im Hof.'};
+    return {text:'Staub und Münzen. Die Tür ist zu. Ich klopf nicht.'};
+  }
+  if(label==='Chronistin Mara'){
+    if(f.c3Clear) return {text:'Ich schreib: der Lich ist still. Die Gruft bleibt sonst zu. Mehr hab ich heute nicht.'};
+    return {text:'Ich schreib, wer hier gelegen hat. Vier Kammern, zwei Särge. Die Tür geht auf, wenn die acht Deckel gelesen sind.'};
+  }
+  if(label==='Hüter Orun'){
+    if(f.solmirSeal) return {text:'Die Riegel sind auf. Norden. Und komm zurück, wenn er dich hinlegt.'};
+    return {text:'Vier Kammern. Zwei Särge in jeder. Lies die Deckel. Bei acht gehen die Riegel auf.'};
+  }
+  if(label==='Sekretärin Velka' && party.includes(label)){
+    return {text:'Trockener Staub, nicht wie bei Venn. Die Tür ist zu. Ich les hier nichts vor.'};
+  }
+  if(label==='General Brok' && party.includes(label)){
+    return {text:'Kein Hund, nur Stein. Wir gehen nicht rein, solange die Tür zu ist.'};
+  }
+  return null;
+}
+function fieldLine(S, label, sh){
+  const party=(S.party||[]);
+  const f=campFlags(S);
+  if(onSolmirMap() && f.solmirField){
+    const sol=solmirLine(S, label, party, f);
+    if(sol) return sol;
+  }
+  if(onPassMap()){
+    const pass=passFieldLine(S, label, sh, party, f);
+    if(pass) return pass;
+  }
+  if(label==='Sekretärin Velka'){
+    if(f.ariaSplit) return {text:'Die Seite ist raus. Mach deine Kasse allein. Ich les dir nichts mehr vor.'};
+    if(f.ariaPageTaken) return {text:'Ich hab die Seite in ihrer Hand gesehen. Erklär das nach dem Fiend. Nicht jetzt.'};
+    if(f.ariaPact){
+      const line='Du guckst die ganze Zeit zu Aria. Wenn aus dem Buch eine Seite fehlt, seh ich das noch heute.';
+      if(party.includes(label)) return {text:line};
+      return {text:line+' Ich komm trotzdem mit. Venn wartet nicht.', choices:[
+        {label:'Mitnehmen', pick:()=>{ try{ window.__game?.C60?.recruitMember?.(S, label, {}); }catch(_){} showDialogue(label,'Gut. Und ich guck auf das Buch, nicht auf sie.', sh); }},
+        {label:'Noch nicht', pick:()=>hideDialogue()},
+      ]};
+    }
+    if(party.includes(label)) return {text:'Neun, neun, neun. Unterm Thron, und noch mal am Siegel. Nicht laut. Unten hört einer mit.'};
+    return {text:'Venn wird nicht gesünder, wenn wir hier stehen. Ich komm mit runter. Du vergisst Zahlen, ich nicht.', choices:[
+      {label:'Mitnehmen', pick:()=>{ try{ window.__game?.C60?.recruitMember?.(S, label, {}); }catch(_){} showDialogue(label,'Gut. Wenn du\'s unterwegs vergisst: neun, neun, neun, unter dem Sitz.', sh); }},
+      {label:'Noch nicht', pick:()=>hideDialogue()},
+    ]};
+  }
+  if(label==='General Brok'){
+    if(f.ariaSplit) return {text:'Gegen mich. Gegen Venn. Für sie. Such dir eine andere Wand.'};
+    if(f.ariaPageTaken) return {text:'Du hast ihr die Seite gegeben. Vor meinen Augen. Den Fiend kämpf ich noch. Danach nicht mehr für dich.'};
+    if(f.ariaPact){
+      const line='Aria redet leise mit dir. Ich hör das trotzdem. Überleg dir, für wen die Nacht draufgeht.';
+      if(party.includes(label)) return {text:line};
+      return {text:line, choices:[
+        {label:'Brok kommt mit', pick:()=>{ try{ window.__game?.C60?.recruitMember?.(S, label, {}); }catch(_){} showDialogue(label,'Na gut. Runter. Ich pass auf, wem du die Seite gibst.', sh); }},
+        {label:'Bleib oben', pick:()=>hideDialogue()},
+      ]};
+    }
+    if(party.includes(label)) return {text:'Wenn das Ding unten weiß, wer ich bin, hau nicht daneben.'};
+    return {text:'Eine Nacht. Ich komm mit runter. Nicht für die Krone. Für Venn.', choices:[
+      {label:'Brok kommt mit', pick:()=>{ try{ window.__game?.C60?.recruitMember?.(S, label, {}); }catch(_){} showDialogue(label,'Na gut. Runter. Und hau nicht daneben.', sh); }},
+      {label:'Bleib oben', pick:()=>hideDialogue()},
+    ]};
+  }
+  if(label==='Heldin Aria'){
+    if(f.ariaRomance) return {text:'Pass. Lio. Und du gehst zu Fuß, nicht auf dem Thron.'};
+    if(f.ariaUnderageStop) return {text:'Ich hab Schluss gesagt. Fass mich nicht an. Hol dir jemand in deinem Alter.'};
+    if(f.ariaRomanceRefused) return {text:'Ich hab nein gesagt. Die Seite hab ich. Mehr gibt\'s nicht.'};
+    if(f.ariaClosed && !f.ariaPact) return {text:'Ich hab nein gesagt. Geh.'};
+    const step=f.ariaStep|0;
+    if(step<1){
+      return {text:'Lio ist neunzehn und steht draußen Wache. Ich bin sechsundzwanzig. Wir sind beide erwachsen, und ich lass ihn nicht stehen, nur weil du ein Siegel brauchst. Im Buch unten steht seine Schicht. Velka liest die Summen. Die Zeile lässt sie weg.', choices:[
+        {label:'Erzähl weiter.', pick:()=>{ f.ariaStep=1; f.ariaHeard=true; noteAria(S,'gehört',12,18,1); showDialogue(label,'Nicht hier. Brok hört durch die Säulen. Geh zwei Schritte und komm wieder.', sh); }},
+        {label:'Geh zu ihm.', pick:()=>{ f.ariaStep=2; f.ariaClosed=true; noteAria(S,'weg',4,0,0); showDialogue(label,'Wie du willst. Ich hol ihn allein.', sh); }},
+      ]};
+    }
+    if(!f.ariaPact && !f.ariaRefused && !f.ariaClosed){
+      return {text:'Die Zeile mit seiner Schicht. Die will ich draußen haben, nicht im Buch. Wenn du sie rausnimmst, sind Velka und Brok gegen dich. Die merken das. Ich lüg die beiden nicht an, und du sollst es nicht hinter ihrem Rücken tun. Sag\'s jetzt.', choices:[
+        {label:'Ich nehm die Seite. Den beiden sag ich\'s.', pick:()=>{ f.ariaStep=2; f.ariaPact=true; f.ariaGuest=true; joinAria(S); noteAria(S,'pakt',36,40,2); showDialogue(label,'Dann geh ich mit runter. Wenn du kneifst, geh ich ohne dich.', sh); }},
+        {label:'Die Seite bleibt. Du kannst als Klinge mit.', pick:()=>{ f.ariaStep=2; f.ariaRefused=true; f.ariaGuest=true; joinAria(S); noteAria(S,'klinge',20,24,2); showDialogue(label,'In Ordnung. Klinge, keine Komplizin. Verwechsel das nicht.', sh); }},
+        {label:'Weder die Seite noch du.', pick:()=>{ f.ariaStep=2; f.ariaClosed=true; noteAria(S,'zu',0,0,0); showDialogue(label,'Dann sind wir fertig.', sh); }},
+      ]};
+    }
+    if(f.ariaPact && !f.ariaCourt && !f.ariaNoRomance && !f.ariaRomance && !f.ariaRomanceRefused){
+      return {text:'Die Seite ist eine Sache. Ich bin keine Belohnung dafür. Sechsundzwanzig, und du bist alt genug für ein Nein. Wenn du mich willst, frag mich, wenn das Ding unten still ist. Nicht im Keller. Ein Nein bleibt ein Nein.', choices:[
+        {label:'Ich frag dich danach. Nicht jetzt.', pick:()=>{ f.ariaCourt=true; noteAria(S,'warte',48,55,3); showDialogue(label,'Mal sehen, ob du das aushältst. Bis dahin halt ich das Schwert, nicht deine Hand.', sh); }},
+        {label:'Nur die Seite. Mehr nicht.', pick:()=>{ f.ariaNoRomance=true; noteAria(S,'nur-seite',30,36,2); showDialogue(label,'Ehrlich. Das kann ich brauchen.', sh); }},
+      ]};
+    }
+    if(f.ariaPact && f.ariaCourt && !f.ariaPageTaken) return {text:'Frag mich, wenn er still ist. Nicht vorher. Ich halt das Schwert.'};
+    if(f.ariaPact && f.ariaNoRomance) return {text:'Nur die Seite. Abgemacht. Dräng nicht nach.'};
+    if(f.ariaPageTaken && f.ariaCourt) return {text:'Sie hat\'s gesehen. Nach dem Fiend fragst du. Nicht hier zwischen den Knochen.'};
+    if(f.ariaPageTaken) return {text:'Die Seite ist draußen. Mehr hab ich nicht von dir verlangt.'};
+    if(f.ariaRefused) return {text:'Ich kämpf mit. Dräng nicht. Lio wartet, und ich hab keine Lust auf einen König, der Grenzen vergisst.'};
+    return {text:'Bis zum Fiend. Danach hol ich Lio.'};
+  }
+  return null;
+}
 function talkNearest(){
   const f=facingTile();
+  const S=_hooks.getS?.();
+  if(readCoffin(_hero.x,_hero.y) || readCoffin(f.x,f.y)) return 'coffin';
+  const nearMark=(kind)=> (_questMarks||[]).find(m=>{
+    if(!m) return false;
+    if(!(m.kind===kind || (kind==='puzzle' && /siegel/i.test(String(m.label||''))))) return false;
+    const byFace=Math.abs((m.x|0)-f.x)<=1 && Math.abs((m.y|0)-f.y)<=1;
+    const byHero=Math.abs((m.x|0)-_hero.x)<=1 && Math.abs((m.y|0)-_hero.y)<=1;
+    return byFace || byHero;
+  });
+  const crypt=nearMark('crypt');
+  if(crypt && onSolmirMap() && S?.campaign?.flags?.solmirField && !S.campaign.flags.solmirSeal){
+    openCryptDoor(S);
+    return 'crypt';
+  }
+  const boss=nearMark('boss');
+  if(boss && fieldChapter(S)){
+    if(onSolmirMap()){
+      if(!S.campaign?.flags?.solmirSeal){
+        showDialogue('Orun','Die Tür ist zu. Vier Kammern, zwei Särge. Lies die Deckel.','guard');
+        return 'locked';
+      }
+      S.campaign.chapterIdx=2;
+      S.campaign.flags.solmirField=true;
+      S.campaign.dungeon=null;
+      try{ window.__game?.startFieldBoss?.(); }catch(_){}
+      return 'boss';
+    }
+    const open=!!S.campaign?.flags?.puzzle_c1_ledger_seal;
+    const hound=/hund|turm|pass/i.test(String(boss.label||'')) || onPassMap();
+    if(!hound && !open){ showDialogue('Velka','Das Siegel hält noch. Erst neun, neun, neun. Dann das Ding dahinter.','mage'); return 'locked'; }
+    if(hound){
+      S.campaign.chapterIdx=1;
+      S.campaign.flags=S.campaign.flags||{};
+      S.campaign.flags.passField=true;
+      S.campaign.dungeon=null;
+    }
+    try{ window.__game?.startFieldBoss?.(); }catch(_){}
+    return 'boss';
+  }
+  const passGate=nearMark('pass');
+  if(passGate && S?.campaign?.flags?.beat_lesser_fiend && !S.campaign.flags.passArrived){
+    goToPass(S);
+    return 'pass';
+  }
+  const solmir=nearMark('solmir');
+  if(solmir && S?.campaign?.flags?.passArrived && !S.campaign.flags.solmirArrived){
+    goToSolmir(S);
+    return 'solmir';
+  }
+  const hunt=nearMark('hunt');
+  if(hunt && !S?.campaign?.flags?.passWolf){
+    try{ window.__game?.startFieldHunt?.(); }catch(_){}
+    return 'hunt';
+  }
+  const seal=nearMark('puzzle');
+  if(seal && window.__game?.openC1Seal){
+    try{ window.__game.openC1Seal(); return 'seal'; }catch(_){}
+  }
   if(openChestAt(f.x,f.y)) return 'chest';
   const door=(_map.doors||[]).find(d=>d.x===f.x&&d.y===f.y);
   if(door?.to){
@@ -1902,6 +2653,10 @@ function tryMove(dx,dy){
     _audioApi?.stepSfx?.(surf);
   }catch(_){}
   if(door?.to){
+    if(door.sideDungeon || /katakomb/i.test(String(door.to||''))){
+      setTimeout(()=>{ try{ enterFieldDungeon(door.to); }catch(e){ console.warn('field-dung', e); } }, 60);
+      return 'dung';
+    }
     // v65: Herberge / Gasthof → real inn screen (rest + save), not empty interior
     if(/herberge|gasthof|gasthaus|\binn\b|taverne|wirtshaus/i.test(String(door.label||door.to||''))){
       try{ if(_hooks.openInn){ _hooks.openInn(); return 'inn'; } }catch(_){}
@@ -1963,19 +2718,65 @@ function stepHero(dt){
 }
 
 /** Draw LPC 64×64 frame from 256×256 sheet (4 dirs × 4 frames) */
+const WALK_LOOK={
+  'Heldin Aria': {sheet:'princess', tint:'rgba(186,96,78,0.34)'},
+  'Aria': {sheet:'princess', tint:'rgba(186,96,78,0.34)'},
+  'Sekretärin Velka': {sheet:'mage', tint:'rgba(86,72,176,0.32)'},
+  'Velka': {sheet:'mage', tint:'rgba(86,72,176,0.32)'},
+  'General Brok': {sheet:'guard', tint:'rgba(92,102,70,0.28)'},
+  'Brok': {sheet:'guard', tint:'rgba(92,102,70,0.28)'},
+  'Wächter Toren': {sheet:'guard', tint:'rgba(58,104,150,0.36)'},
+  'Toren': {sheet:'guard', tint:'rgba(58,104,150,0.36)'},
+  'Rekrut Venn': {sheet:'villager', tint:'rgba(156,64,58,0.30)'},
+  'Venn': {sheet:'villager', tint:'rgba(156,64,58,0.30)'},
+  'Spionin Nyx': {sheet:'spy', tint:'rgba(18,16,28,0.40)'},
+  'Nyx': {sheet:'spy', tint:'rgba(18,16,28,0.40)'},
+  'Kundschafterin Lira': {sheet:'spy', tint:'rgba(46,118,78,0.34)'},
+  'Lira': {sheet:'spy', tint:'rgba(46,118,78,0.34)'},
+  'Händler Bram': {sheet:'merchant', tint:'rgba(138,96,48,0.32)'},
+  'Bram': {sheet:'merchant', tint:'rgba(138,96,48,0.32)'},
+  'Schmiedin Kael': {sheet:'merchant', tint:'rgba(176,78,36,0.36)'},
+  'Kael': {sheet:'merchant', tint:'rgba(176,78,36,0.36)'},
+  'Grabräuber Jex': {sheet:'spy', tint:'rgba(110,86,48,0.30)'},
+  'Chronistin Mara': {sheet:'mage', tint:'rgba(120,90,140,0.28)'},
+  'Hüter Orun': {sheet:'guard', tint:'rgba(130,130,120,0.26)'},
+};
+const _tintCache={};
+function tintedSheet(src, tint){
+  const key=src+'|'+tint;
+  const cached=_tintCache[key];
+  if(cached) return cached;
+  const im=loadImg(src);
+  if(!(im.complete && im.naturalWidth)) return im;
+  const c=document.createElement('canvas');
+  c.width=im.naturalWidth; c.height=im.naturalHeight;
+  const g=c.getContext('2d');
+  g.imageSmoothingEnabled=false;
+  g.drawImage(im,0,0);
+  g.globalCompositeOperation='source-atop';
+  g.globalAlpha=0.45;
+  g.fillStyle=tint;
+  g.fillRect(0,0,c.width,c.height);
+  g.globalAlpha=1;
+  _tintCache[key]=c;
+  return c;
+}
 function drawSprite(ctx, im, frame, dir, dx, dy, tw){
-  if(!(im.complete && im.naturalWidth)){
+  const sw=im?.naturalWidth||im?.width||0;
+  const sh=im?.naturalHeight||im?.height||0;
+  if(!(sw>8 && sh>8)){
     ctx.fillStyle='#3a3428'; ctx.fillRect(dx+tw*0.2, dy+tw*0.15, tw*0.6, tw*1.0);
     return;
   }
   const fw=SPR, fh=SPR;
-  const cols=Math.max(1, Math.floor(im.naturalWidth/fw));
-  const rows=Math.max(1, Math.floor(im.naturalHeight/fh));
+  const cols=Math.max(1, Math.floor(sw/fw));
+  const rows=Math.max(1, Math.floor(sh/fh));
   const fr=frame%cols;
   // LPC sheet rows: 0=down, 1=left, 2=right, 3=up — matches our dir
   const d=Math.min(dir%4, rows-1);
-  const drawH=tw*1.35, drawW=tw*1.0;
-  ctx.drawImage(im, fr*fw, d*fh, fw, fh, dx, dy+(tw-drawH)+tw*0.15, drawW, drawH);
+  const drawH=tw*1.55, drawW=tw*1.05;
+  const bob=(frame%2)?Math.round(tw*0.06):0;
+  ctx.drawImage(im, fr*fw, d*fh, fw, fh, dx-(drawW-tw)*0.5, dy+(tw-drawH)+tw*0.05-bob, drawW, drawH);
 }
 
 function updatePartyPanel(){
@@ -2020,6 +2821,14 @@ function syncDayNight(){
   }catch(_){ _dayTint='day'; }
 }
 function tintColor(){
+  if(_map?.preset==='wall'){
+    return ({
+      night:'rgba(24,36,58,.18)',
+      dawn:'rgba(210,200,188,.08)',
+      dusk:'rgba(64,82,104,.10)',
+      day:'rgba(0,0,0,0)'
+    })[_dayTint]||'rgba(0,0,0,0)';
+  }
   return ({
     night:'rgba(18,28,70,.28)',
     dawn:'rgba(255,160,100,.18)',
@@ -2029,8 +2838,8 @@ function tintColor(){
 }
 function ensureWxParts(){
   if(_wxParts.length) return;
-  for(let i=0;i<40;i++){
-    _wxParts.push({x:Math.random(), y:Math.random(), s:0.5+Math.random()*1.5, v:0.2+Math.random()*0.6, a:0.3+Math.random()*0.5});
+  for(let i=0;i<14;i++){
+    _wxParts.push({x:Math.random(), y:Math.random(), s:0.6, v:0.15+Math.random()*0.2, a:0.18+Math.random()*0.12});
   }
 }
 function drawWeather(ctx, cssW, cssH, dt){
@@ -2100,7 +2909,7 @@ function draw(){
           if(viewW / viewH < aspect) viewW = Math.max(viewW, Math.ceil(viewH * aspect));
           else viewH = Math.max(viewH, Math.ceil(viewW / aspect));
         }
-        // outdoors / pass: keep _viewW/_viewH from fitCanvas (player-follow)
+        if(_map.preset==='wall'){ viewW=16; viewH=11; }
       }
     }
   }catch(_){}
@@ -2157,24 +2966,9 @@ function draw(){
         else {
           // v69: pass OOB = snow + rock faces + dark fog vignette (NO pine wall filler)
           const useCliff = (_map.preset==='wall' || /pass|grenze|berg/i.test(String(_map.name||'')));
-          if(useCliff){
-            const n = ((x*17)^(y*31)) & 7;
-            const rocky = n < 3; // mostly snow continuation, rock faces as accents
-            let url;
-            if(rocky){
-              const rockIdx=[0,1,2,3];
-              const base = tileUrl('stone') || './assets/pixel/tiles-na/cut/biome_mountain.png';
-              const dir = base.slice(0, base.lastIndexOf('/')+1);
-              url = dir + 'cliff' + rockIdx[n%4] + '.png';
-            } else {
-              url = tileUrl('sand') || './assets/pixel/tiles-na/cut/biome_snow.png';
-            }
-            const gim=loadImg(url);
-            if(gim.complete && gim.naturalWidth) ctx.drawImage(gim, sx, sy, tw, tw);
-            else { ctx.fillStyle = rocky?'#2a3038':'#d8e4f0'; ctx.fillRect(sx,sy,tw,tw); }
-            // dark mountain fog vignette (never pine wall)
-            const edge=Math.min(1, Math.hypot(x-_hero.x, y-_hero.y)/16);
-            ctx.fillStyle=`rgba(4,8,18,${0.28+edge*0.62})`; ctx.fillRect(sx,sy,tw,tw);
+            if(useCliff){
+            ctx.fillStyle='#e7eef4';
+            ctx.fillRect(sx, sy, tw, tw);
           } else {
             const url = tileUrl('grass');
             const gim=loadImg(url);
@@ -2196,6 +2990,8 @@ function draw(){
           if(gim.complete && gim.naturalWidth) ctx.drawImage(gim, sx, sy, tw, tw);
           else { ctx.fillStyle='#1a1520'; ctx.fillRect(sx,sy,tw,tw); }
           ctx.fillStyle='rgba(5,4,10,.55)'; ctx.fillRect(sx,sy,tw,tw);
+        } else if(_map.preset==='wall' && paintPassTile(ctx,'sand',x,y,sx,sy,tw)){
+          ctx.fillStyle='rgba(8,12,18,.45)'; ctx.fillRect(sx,sy,tw,tw);
         } else {
           const gim=loadImg(tileUrl('grass'));
           if(gim.complete && gim.naturalWidth) ctx.drawImage(gim, sx, sy, tw, tw);
@@ -2209,12 +3005,16 @@ function draw(){
       const indoorHere=_map.kind==='dungeon'||_map.kind==='interior';
       const needsUnder = t!=='void' && t!=='wall' && t!=='floor' && t!=='carpet' && t!=='wood' && t!=='stone' && t!=='plaza' && t!=='path' && (SOLID.has(t) || t==='door' || t==='house' || t==='flower' || t==='bush' || t==='well' || t==='stall');
       if(needsUnder || t==='flower' || t==='bush' || t==='well' || t==='stall'){
-        const under = indoorHere ? 'floor' : 'grass';
-        const gim=loadImg(tileUrl(under));
-        if(gim.complete && gim.naturalWidth) ctx.drawImage(gim, sx, sy, tw, tw);
-        else { ctx.fillStyle=indoorHere?'#2a2438':'#2a5a28'; ctx.fillRect(sx,sy,tw,tw); }
+        if(_map.preset==='wall' && !indoorHere){
+          paintPassTile(ctx,'sand',x,y,sx,sy,tw);
+        } else {
+          const under = indoorHere ? 'floor' : 'grass';
+          const gim=loadImg(tileUrl(under));
+          if(gim.complete && gim.naturalWidth) ctx.drawImage(gim, sx, sy, tw, tw);
+          else { ctx.fillStyle=indoorHere?'#2a2438':'#2a5a28'; ctx.fillRect(sx,sy,tw,tw); }
+        }
       }
-      if(t==='water' && waterIm.complete && waterIm.naturalWidth){
+      if(t==='water' && _map.preset!=='wall' && waterIm.complete && waterIm.naturalWidth){
         const fw=16;
         ctx.drawImage(waterIm, (_waterFrame%4)*fw, 0, fw, fw, sx, sy, tw, tw);
       } else if(t==='flower' || t==='bush' || t==='stall' || t==='well'){
@@ -2232,13 +3032,9 @@ function draw(){
         }
         if(!edge || t==='void'){
           ctx.fillStyle='#05060a'; ctx.fillRect(sx,sy,tw,tw);
-        } else {
-          const crypt='./assets/pixel/tiles-na/cut/';
-          const top=loadImg(crypt + 'wall_top' + ((x+y)&3) + '.png');
-          if(top.complete && top.naturalWidth) ctx.drawImage(top, sx, sy, tw, tw);
-          else { ctx.fillStyle='#7a7468'; ctx.fillRect(sx,sy,tw,tw); }
-          // lit north lip
-          ctx.fillStyle='rgba(220,210,185,0.35)'; ctx.fillRect(sx, sy, tw, Math.max(2, tw*0.12));
+        } else if(!paintNa(ctx,'wall',x,y,sx,sy,tw,tw)){
+          ctx.fillStyle='#2c3a44'; ctx.fillRect(sx,sy,tw,tw);
+          ctx.fillStyle='rgba(180,200,210,0.35)'; ctx.fillRect(sx, sy, tw, Math.max(2, tw*0.14));
         }
       } else if(_map.kind==='dungeon' && t==='door'){
         const crypt='./assets/pixel/tiles-na/cut/';
@@ -2256,6 +3052,10 @@ function draw(){
           ctx.fillStyle='#5a564c';
           for(let i=0;i<4;i++) ctx.fillRect(sx+2, sy+2+i*(tw/4), tw-4, tw/6);
         }
+      } else if(paintPassTile(ctx, t, x, y, sx, sy, tw)){
+        /* snow cuts and rock lips, not the teal wall bricks */
+      } else if(paintNa(ctx, t, x, y, sx, sy, tw, tw)){
+        shadeField(ctx, t, x, y, sx, sy, tw);
       } else {
         const im=loadImg(wangUrlFor(t,x,y));
         if(im.complete && im.naturalWidth) ctx.drawImage(im, sx, sy, tw, tw);
@@ -2269,7 +3069,7 @@ function draw(){
         }
       }
       // flower overlay underlay — outdoor only (v65: never paint grass into castle/crypt)
-      if(_map.overlay?.[y]?.[x]==='flower' && t!=='grass' && t!=='path' && t!=='plaza'){
+      if(_map.preset!=='wall' && _map.overlay?.[y]?.[x]==='flower' && t!=='grass' && t!=='path' && t!=='plaza'){
         if(!(_map.kind==='interior'||_map.kind==='dungeon')){
           const gim=loadImg(tileUrl('grass'));
           if(gim.complete && gim.naturalWidth) ctx.drawImage(gim, sx, sy, tw, tw);
@@ -2278,7 +3078,7 @@ function draw(){
       // v44 autotile edge blend
       try{
         const C44=window.__game?.C44;
-        if(C44?.neighborDiffMask && C44?.drawTileEdgeBlend){
+        if(_map.preset!=='wall' && C44?.neighborDiffMask && C44?.drawTileEdgeBlend){
           const mask=C44.neighborDiffMask(_map,x,y);
           if(mask) C44.drawTileEdgeBlend(ctx,sx,sy,tw,mask);
         }
@@ -2291,7 +3091,7 @@ function draw(){
             const nx=x+dx, ny=y+dy;
             if(ny<0||nx<0||ny>=_map.h||nx>=_map.w) continue;
             const nt=_map.tiles[ny][nx];
-            if(nt && nt!==t && nt!=='void'){
+            if(nt && nt!==t && nt!=='void' && _map.kind!=='dungeon' && _map.preset!=='throne' && _map.preset!=='wall'){
               ctx.fillStyle='rgba(0,0,0,0.18)';
               if(dx===1) ctx.fillRect(sx+tw-2, sy, 2, tw);
               if(dx===-1) ctx.fillRect(sx, sy, 2, tw);
@@ -2308,21 +3108,18 @@ function draw(){
           const southWalk=walk.has(_map.tiles[y+1]?.[x]);
           const anyWalk=[[1,0],[-1,0],[0,1],[0,-1]].some(([dx,dy])=>walk.has(_map.tiles[y+dy]?.[x+dx]));
           if(anyWalk){
-            const crypt='./assets/pixel/tiles-na/cut/';
             if(southWalk){
-              const front=loadImg(crypt + 'wall_front' + ((x+y)&3) + '.png');
-              const fh=tw*1.15;
-              if(front.complete&&front.naturalWidth){
-                ctx.drawImage(front, sx, sy+tw*0.15, tw, fh);
-              } else {
-                ctx.fillStyle='#2a2830'; ctx.fillRect(sx, sy+tw*0.15, tw, fh);
-                ctx.fillStyle='rgba(200,190,160,0.45)'; ctx.fillRect(sx, sy+tw*0.15, tw, Math.max(2,tw*0.1));
+              const fh=tw*0.95;
+              ctx.save();
+              ctx.globalAlpha=0.95;
+              if(!paintNa(ctx,'wall',x,y,sx, sy+tw*0.22, tw, fh)){
+                ctx.fillStyle='#1c2830'; ctx.fillRect(sx, sy+tw*0.22, tw, fh);
               }
-              // shadow cast onto floor south of wall
-              ctx.fillStyle='rgba(0,0,0,0.45)';
-              ctx.fillRect(sx, sy+tw*0.15+fh*0.85, tw, tw*0.45);
-              ctx.fillStyle='rgba(0,0,0,0.22)';
-              ctx.fillRect(sx-tw*0.05, sy+tw*0.15+fh, tw*1.1, tw*0.25);
+              ctx.restore();
+              ctx.fillStyle='rgba(8,10,14,0.45)';
+              ctx.fillRect(sx, sy+tw*0.22, tw, Math.max(2, tw*0.12));
+              ctx.fillStyle='rgba(0,0,0,0.38)';
+              ctx.fillRect(sx, sy+tw*0.95, tw, tw*0.28);
             } else {
               // side/north edges: short drop shadow only
               ctx.fillStyle='rgba(0,0,0,0.35)';
@@ -2336,8 +3133,9 @@ function draw(){
             if(walk.has(_map.tiles[y+dy]?.[x+dx])){ edge=true; break; }
           }
           if(edge){
-            const him=loadImg(wangUrlFor('wall',x,y));
-            if(him.complete&&him.naturalWidth) ctx.drawImage(him, sx, sy-tw*0.85, tw, tw*0.9);
+            if(!paintNa(ctx,'wall',x,y,sx, sy-tw*0.55, tw, tw*0.7)){
+              ctx.fillStyle='#2c3a44'; ctx.fillRect(sx, sy-tw*0.45, tw, tw*0.6);
+            }
             ctx.fillStyle='rgba(0,0,0,0.35)'; ctx.fillRect(sx, sy+tw*0.15, tw, tw*0.2);
           }
         }
@@ -2354,7 +3152,7 @@ function draw(){
       }catch(_){}
       // v70: tall height-shaded cliff faces (replace thin dark wang lips)
       try{
-        if((t==='stone'||t==='wall'||t==='cliff') && y+1<_map.h){
+        if(_map.preset!=='wall' && (t==='stone'||t==='wall'||t==='cliff') && y+1<_map.h){
           const below=_map.tiles[y+1][x];
           if(below==='sand'||below==='path'||below==='grass'||below==='water'||below==='tree'){
             const faceH=tw*1.85;
@@ -2424,10 +3222,31 @@ function draw(){
     }
   }
 
+  const _cast=[];
   for(const n of _npcs){
     const k=fogKey(Math.round(n.x), Math.round(n.y));
     if(!_visible.has(k)) continue;
+    _cast.push(n);
+  }
+  _cast.push({_hero:true, x:_hero.x, y:_hero.y, px:_hero.px, py:_hero.py, dir:_hero.dir, frame:_hero.frame});
+  if(_map?.preset==='wall'){
+    for(const oh of _overhead){
+      const foot=oh.y+(oh.th||oh.tw||2);
+      if(!_explored.has(fogKey(Math.round(oh.x), Math.round(oh.y)))) continue;
+      _cast.push({_prop:true, px:oh.x, py:foot-0.05, oh});
+    }
+  }
+  _cast.sort((a,b)=>(a.py??a.y)-(b.py??b.y));
+  for(const n of _cast){
+    if(n._prop){ drawPassProp(ctx, n.oh, ox, oy, camX, camY, tw); continue; }
     const sx=ox+(n.px-camX)*tw, sy=oy+(n.py-camY)*tw - tw*0.55;
+    if(n._hero){
+      const him=loadImg('./assets/pixel/hero/walk.png');
+      const sh=loadImg(DECOR.shadow);
+      if(sh.complete && sh.naturalWidth) ctx.drawImage(sh, sx+tw*0.1, sy+tw*0.72, tw*0.8, tw*0.28);
+      drawSprite(ctx, him, n.frame|0, n.dir|0, sx, sy, tw);
+      continue;
+    }
     if(n._mapEncounter && n._encImg){
       const mim=loadImg(n._encImg);
       if(mim.complete&&mim.naturalWidth){
@@ -2436,56 +3255,57 @@ function draw(){
         ctx.fillStyle='#c44'; ctx.fillRect(sx+tw*0.2, sy+tw*0.3, tw*0.6, tw*0.6);
       }
     } else {
-      const im=loadImg(NPC_SHEETS[n.sheet]||NPC_SHEETS.default);
-      drawSprite(ctx, im, n.frame|0, n.dir|0, sx+tw*0.0, sy, tw);
+      const look=WALK_LOOK[n.name];
+      const sheet=look?.sheet||n.sheet;
+      const src=NPC_SHEETS[sheet]||NPC_SHEETS.default;
+      const im=look?.tint ? tintedSheet(src, look.tint) : loadImg(src);
+      const sh=loadImg(DECOR.shadow);
+      if(sh.complete && sh.naturalWidth) ctx.drawImage(sh, sx+tw*0.1, sy+tw*0.72, tw*0.8, tw*0.28);
+      const stepping=Math.abs(n.x-n.px)+Math.abs(n.y-n.py)>0.15;
+      const fr=stepping ? ((n.frame|0)%4) : ((_animFrame>>4)%2);
+      drawSprite(ctx, im, fr, n.dir|0, sx, sy, tw);
     }
-    // v66: nameplate only near hero; font sized in CSS-px so desktop upscale stays mobile-sized
-    const nearDist=3.2;
-    const near=Math.hypot((n.px||n.x)-_hero.px,(n.py||n.y)-_hero.py)<nearDist;
-    if(near){
-      let label='';
+  }
+  // One nameplate: the person being talked to, otherwise the nearest neighbour.
+  try{
+    const speaking=isDialogueOpen() ? String(document.getElementById('owDlgName')?.textContent||'') : '';
+    let pick=null, best=1.6;
+    for(const n of _npcs){
+      if(n._mapEncounter) continue;
+      const k=fogKey(Math.round(n.x), Math.round(n.y));
+      if(!_visible.has(k)) continue;
+      if(speaking && speaking!=='…' && (n.name===speaking || speaking.includes(n.name) || n.name.includes(speaking))){ pick=n; break; }
+      const d=Math.hypot((n.px||n.x)-_hero.px,(n.py||n.y)-_hero.py);
+      if(d<best){ best=d; pick=n; }
+    }
+    if(pick && !speaking){
+      const nsx=ox+(pick.px-camX)*tw, nsy=oy+(pick.py-camY)*tw - tw*0.55;
+      let label=pick.name||'';
       try{
         const Know=window.__game?.Know;
         const S=_hooks.getS?.();
-        const ROLE={guard:'Wächter',mage:'Gelehrte',merchant:'Händler',spy:'Vermummte',villager:'Passant',daemon:'Gestalt',princess:'Edelfrau',orc:'Ork',succubus:'Sukkubus'};
-        if(Know?.isNameKnown?.(S,n.name)) label=String(n.name||'');
-        else label=ROLE[n.sheet]||ROLE[String(n.sheet||'').toLowerCase()]||'Fremde';
-      }catch(_){ label='Fremde'; }
-      label=String(label||'').trim().replace(/[,.;:]+$/,'');
-      if(label.length>18){
-        const parts=label.split(/\s+/);
-        let acc='';
-        for(const p of parts){ const next=acc?acc+' '+p:p; if(next.length>18) break; acc=next; }
-        label=acc||parts[0].slice(0,18);
-      }
+        const ROLE={guard:'Wächter',mage:'Gelehrte',merchant:'Händler',spy:'Vermummte',villager:'Passant',daemon:'Gestalt',princess:'Edelfrau'};
+        const named=speaking && (pick.name===speaking || speaking.includes(pick.name) || pick.name.includes(speaking));
+        if(named) label=speaking;
+        else if(!(Know?.isNameKnown?.(S, pick.name))) label=ROLE[pick.sheet]||label;
+      }catch(_){}
+      label=String(label||'').trim();
+      if(label.length>18) label=label.split(/\s+/).slice(0,2).join(' ');
       if(label){
         const sc=Math.max(1, _intScale||1);
-        const fontPx=Math.max(5, Math.round(12/sc)); // ~12 CSS px after integer upscale
-        const pad=Math.max(1, Math.round(3/sc));
-        const boxH=Math.max(7, Math.round(14/sc));
-        ctx.fillStyle='rgba(0,0,0,.62)';
+        const fontPx=Math.max(8, Math.round(18/sc));
+        const pad=Math.max(2, Math.round(4/sc));
+        const boxH=Math.max(10, Math.round(16/sc));
         ctx.font=`bold ${fontPx}px "Noto Sans",system-ui,sans-serif`;
         const twm=ctx.measureText(label).width;
-        ctx.fillRect(sx+tw/2-twm/2-pad, sy-boxH-1, twm+pad*2, boxH);
-        ctx.fillStyle='#ffe8a0'; ctx.fillText(label, sx+tw/2-twm/2, sy-Math.max(2, Math.round(3/sc)));
+        const labelBase=nsy-tw*1.15;
+        ctx.fillStyle='rgba(8,6,14,.78)';
+        ctx.fillRect(nsx+tw/2-twm/2-pad, labelBase-boxH, twm+pad*2, boxH);
+        ctx.fillStyle='#ffe8a0';
+        ctx.fillText(label, nsx+tw/2-twm/2, labelBase-Math.max(2, Math.round(3/sc)));
       }
     }
-  }
-
-  const him=loadImg('./assets/pixel/hero/walk.png');
-  const hx=ox+(_hero.px-camX)*tw, hy=oy+(_hero.py-camY)*tw - tw*0.55;
-  // entity shadows
-  const sh=loadImg(DECOR.shadow);
-  if(sh.complete && sh.naturalWidth){
-    ctx.drawImage(sh, hx+tw*0.1, hy+tw*0.85, tw*0.8, tw*0.35);
-    for(const n of _npcs){
-      const k=fogKey(Math.round(n.x), Math.round(n.y));
-      if(!_visible.has(k)) continue;
-      const nsx=ox+(n.px-camX)*tw, nsy=oy+(n.py-camY)*tw - tw*0.55;
-      ctx.drawImage(sh, nsx+tw*0.1, nsy+tw*0.85, tw*0.8, tw*0.35);
-    }
-  }
-  drawSprite(ctx, him, _hero.frame, _hero.dir, hx, hy, tw);
+  }catch(_){}
 
   // v74: interaction prompt (NPC / chest / door under face tile)
   try{
@@ -2545,8 +3365,8 @@ function draw(){
     }
   }
 
-  // overhead big buildings (drawn above ground, soft depth)
-  for(const oh of _overhead){
+  // overhead big buildings (drawn above ground, soft depth). The pass sorts these with people.
+  for(const oh of (_map?.preset==='wall'?[]:_overhead)){
     const im=loadImg(oh.src);
     if(!(im.complete && im.naturalWidth)) continue;
     // visibility: any tile of footprint explored
@@ -2563,7 +3383,7 @@ function draw(){
     ctx.globalAlpha=vis?(night?0.95:1):(night?0.7:0.5);
     let dw=(oh.tw||3)*tw, dh=(oh.th||3)*tw;
     // v62: tall landmarks keep sprite aspect (watchtower/pine)
-    if(/watchtower|pine|throne_chair|altar|pine_tall/.test(String(oh.src||oh.label||''))){
+    if(/watchtower|pine|peaks|tent|throne_chair|altar|pine_tall/.test(String(oh.src||oh.label||''))){
       const aspect=im.naturalHeight/Math.max(1,im.naturalWidth);
       dw=(oh.tw||3)*tw;
       dh=dw*aspect;
@@ -2670,11 +3490,17 @@ function draw(){
       const onDoor=(_map.doors||[]).some(d=>d.x===m.x&&d.y===m.y);
       if(!(onNpc||onChest||onDoor)) continue;
     }
-    const sx=ox+(m.x-camX)*tw+tw/2, sy=oy+(m.y-camY)*tw-4;
-    ctx.fillStyle='#ffd35a'; ctx.strokeStyle='#000'; ctx.lineWidth=3;
-    ctx.font='bold 14px monospace';
-    ctx.strokeText(m.kind==='done'?'✓':'!', sx-4, sy);
-    ctx.fillText(m.kind==='done'?'✓':'!', sx-4, sy);
+    if(_npcs.some(n=>Math.round(n.x)===m.x && Math.round(n.y)===m.y)) continue;
+    const sx=ox+(m.x-camX)*tw+tw/2, sy=oy+(m.y-camY)*tw+tw*0.22;
+    const s=Math.max(3, Math.round(tw*0.14));
+    ctx.fillStyle=m.kind==='done'?'#9aa4ae':'#e2c36a';
+    ctx.beginPath();
+    ctx.moveTo(sx, sy-s);
+    ctx.lineTo(sx+s*0.72, sy);
+    ctx.lineTo(sx, sy+s);
+    ctx.lineTo(sx-s*0.72, sy);
+    ctx.closePath();
+    ctx.fill();
   }
   // open chests visual (empty)
   for(const c of _chests){
@@ -2724,8 +3550,7 @@ function pollGamepad(){
       return now && !was;
     };
     if(edge('a',0) || edge('x',2)){ // A/X confirm/talk
-      if(isDialogueOpen()) hideDialogue();
-      else talkNearest();
+      confirmDialogue();
     }
     if(edge('b',1) || edge('start',9)){ // B/Start menu
       try{ _hooks.openMenu?.(); }catch(_){}
@@ -2776,10 +3601,22 @@ function calendarSlot(n, hour){
   return cal.home||n.home;
 }
 function stepNpcs(dt){
+  if(isDialogueOpen()){
+    for(const n of _npcs){
+      n.px+=(n.x-n.px)*Math.min(1, dt*8);
+      n.py+=(n.y-n.py)*Math.min(1, dt*8);
+    }
+    return;
+  }
   const phase=phaseNow();
   let hour=12;
   try{ const raw=_hooks.getS?.()?.cal?.hour; if(raw!=null && raw!=='') hour=Number(raw)|0; }catch(_){}
   for(const n of _npcs){
+    if(n.pace==='idle' || n.pace==='still'){
+      n.px+=(n.x-n.px)*Math.min(1, dt*8);
+      n.py+=(n.y-n.py)*Math.min(1, dt*8);
+      continue;
+    }
     n.wait=(n.wait||0)-dt;
     let target=null;
     const wps=n.waypoints||[];
@@ -3024,11 +3861,10 @@ function fitCanvas(){
   _canvas.style.setProperty('margin', '0 auto', 'important');
   _canvas.style.setProperty('flex', '0 0 auto', 'important');
   _intScale=scale;
-  const tile=16;
-  _viewW=Math.max(20, Math.floor(lw/tile));
-  _viewH=Math.max(14, Math.floor(lh/tile));
-  while(_viewW*tile > lw && _viewW>16) _viewW--;
-  while(_viewH*tile > lh && _viewH>12) _viewH--;
+  // Close follow frustum. Canvas scale stays 2–4; tiles draw larger than 16 logical px
+  // so the hero reads at 720p and 1080p instead of a whole-map overview.
+  _viewW=22;
+  _viewH=13;
 }
 
 function toggleFullscreen(){
@@ -3124,12 +3960,30 @@ function ensureDOM(){
       if(e.key==='Escape'){ document.getElementById('txt')?.blur(); hideDialogue(); e.preventDefault(); }
       return;
     }
+    if(_dlgChoices && isDialogueOpen()){
+      const btns=[...document.querySelectorAll('#owDlgChoices button')];
+      if(btns.length && (e.key==='ArrowLeft'||e.key==='ArrowRight'||e.key==='ArrowUp'||e.key==='ArrowDown')){
+        e.preventDefault();
+        let i=btns.indexOf(document.activeElement);
+        if(i<0) i=0;
+        const dir=(e.key==='ArrowRight'||e.key==='ArrowDown')?1:-1;
+        btns[(i+dir+btns.length)%btns.length].focus();
+        return;
+      }
+      if(btns.length && (e.key==='Enter'||e.key===' ')){
+        e.preventDefault();
+        const cur=btns.includes(document.activeElement)?document.activeElement:btns[0];
+        cur.click();
+        return;
+      }
+    }
     const moveKeys=['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','w','a','s','d','W','A','S','D'];
     if(moveKeys.includes(e.key)){ _keys[e.key]=true; e.preventDefault(); return; }
     if(e.key==='Enter' || e.key===' '){
       e.preventDefault();
-      if(isDialogueOpen()){ hideDialogue(); return; }
-      talkNearest();
+      // A held key repeats. The first press only finishes the line; the next press, after release, advances it.
+      if(e.repeat) return;
+      confirmDialogue();
       return;
     }
     if(e.key==='Escape'){
@@ -3193,18 +4047,26 @@ export function showOverworld(S){
   _animators=built.animators||[];
   __map=built;
   _chests=(built.chests||[]).map(c=>({...c}));
-  if(Array.isArray(built.questMarks)&&built.questMarks.length){ _questMarks=(_questMarks||[]).concat(built.questMarks); }
   _lights=built.lights||[];
   try{
     const opened=S?.flags?.chests||{};
     for(const c of _chests){ if(opened[c.id]){ c.open=true; try{ if(_map.overlay?.[c.y]) _map.overlay[c.y][c.x]='crate'; }catch(_){}} }
   }catch(_){}
   try{ rebuildQuestMarks(S); }catch(_){}
+  if(Array.isArray(built.questMarks)&&built.questMarks.length){
+    const have=new Set((_questMarks||[]).map(m=>m.x+','+m.y+':'+m.kind));
+    for(const m of built.questMarks){
+      const k=m.x+','+m.y+':'+(m.kind||'');
+      if(!have.has(k)) _questMarks.push(m);
+    }
+  }
   _hero.x=built.spawn.x; _hero.y=built.spawn.y;
   _hero.px=_hero.x; _hero.py=_hero.y; _hero.moving=false; _hero.frame=0;
   // v74: visible map encounters (NA monster sheets) — outdoor/dungeon only
   try{
-    if(built.kind==='dungeon' || built.kind==='wild' || built.preset==='wall'){
+    const authoredPass=built.preset==='wall' && S?.campaign?.flags?.passField;
+    const authoredCrypt=built.preset==='graveyard' && S?.campaign?.flags?.solmirField;
+    if(!authoredPass && !authoredCrypt && (built.kind==='dungeon' || built.kind==='wild' || built.preset==='wall')){
       const mons=['1','2','3','4','5','6'];
       let nEnc=built.kind==='dungeon'?4:3;
       for(let i=0;i<nEnc;i++){
@@ -3224,6 +4086,9 @@ export function showOverworld(S){
       }
     }
   }catch(_){}
+  try{ ensurePassWorld(S); }catch(_){}
+  try{ ensurePassJobs(S); }catch(_){}
+  try{ ensureSolmir(S); }catch(_){}
   loadFog(S);
   _root.classList.remove('hidden');
   document.body.classList.add('pixel-ow','ow-fs-active');
@@ -3231,16 +4096,8 @@ export function showOverworld(S){
   _active=true;
   try{
     const S=_hooks.getS?.();
-    if(S && !S.flags?.visual45Tip && document.body.classList.contains('pixel-ow')){
-      S.flags=S.flags||{}; S.flags.visual45Tip=1;
-      setTimeout(()=>{
-        try{
-          if(!document.body.classList.contains('pixel-ow')) return;
-          if(document.body.classList.contains('ow-dialogue')) return;
-          try{ const t=document.getElementById('toast'); if(t){ t.classList.add('toast-tip'); } }catch(_){}
-          window.__game?.toast?.('WASD/Pfeile · Enter/A reden · Esc/B Menü · Gamepad OK');
-        }catch(_){}
-      }, 3200);
+    if(S && !S.flags?.controlHintDismissed && document.body.classList.contains('pixel-ow')){
+      showControlHint();
     }
   }catch(_){}
  _last=0;
@@ -3272,6 +4129,35 @@ export function showOverworld(S){
     const S=_hooks.getS?.();
     window.__game?.C43?.syncAmbient?.(S, _map, _audioApi||window.__game?.Aud);
   }catch(_){}
+  try{ maybeFieldBoot(); }catch(_){}
+}
+
+function showControlHint(){
+  if(document.getElementById('owControlHint')) return;
+  const el=document.createElement('div');
+  el.id='owControlHint';
+  el.innerHTML='<span>WASD oder Pfeile bewegen. Enter redet. Esc öffnet das Menü.</span><button type="button" id="owHintDismiss">OK</button>';
+  document.body.appendChild(el);
+  const dismiss=()=>{
+    el.remove();
+    const S=_hooks.getS?.();
+    if(S){ S.flags=S.flags||{}; S.flags.controlHintDismissed=true; }
+  };
+  el.querySelector('#owHintDismiss')?.addEventListener('click', dismiss);
+}
+function maybeFieldBoot(){
+  const S=_hooks.getS?.();
+  if(!fieldChapter(S)) return;
+  document.body.classList.add('field-play');
+  if(S.flags?.c1FieldBoot) return;
+  if(_map?.preset!=='throne') return;
+  S.flags.c1FieldBoot=true;
+  queueBeats([
+    {name:'Velka', sheet:'mage', text:'Bleib stehen. In der Kasse sind vierzehn Gold, und Venn hustet seit Dienstag. Der Staub kommt von unten. Ich leg das nicht aus meiner Tasche drauf.'},
+    {name:'Brok', sheet:'guard', text:'Letzte Woche war ich für ihn nur noch der Soldat. Ich heiß Brok. Wenn du das auch vergisst, sag ich\'s dir einmal.'},
+    {name:'Aria', sheet:'princess', text:'Lio steht am Pass in der zweiten Wache. Ich bin nicht zum Knien hergekommen. Wenn du was willst, komm rüber.'},
+    {name:'Velka', sheet:'mage', text:'Unter dem Sitz sind drei Kerben. Neun, neun, neun. Seine Hand. Merk dir das, bevor wir runtergehen.'},
+  ]);
 }
 
 export function hideOverworld(){
@@ -3316,13 +4202,50 @@ export function syncDialogueFromVN(){
   pushLog((sp?sp+': ':'')+tx.slice(0,60));
 }
 
-export function __debug(){
-  return {active:_active, desktop:_desktop, scale:_intScale, view:{w:_viewW,h:_viewH}, renderView:{w:_lastViewW,h:_lastViewH}, hero:{..._hero}, map:{w:_map.w,h:_map.h,name:_map.name,kind:_map.kind,preset:_map.preset,overhead:(_overhead||[]).length}, overhead:_overhead.slice(0,8), npcs:_npcs.map(n=>({name:n.name,x:n.x,y:n.y,slot:n._calSlot,cal:!!n.calendar,pace:n.pace})), questMarks:_questMarks.slice(), chests:_chests.slice(0,8), doors:_map.doors, fog:{explored:_explored.size, visible:_visible.size}};
+function __nextStep(tx,ty){
+  tx=tx|0; ty=ty|0;
+  if(Math.abs(_hero.x-tx)+Math.abs(_hero.y-ty)<=0) return null;
+  const start=_hero.x+','+_hero.y;
+  const q=[[_hero.x,_hero.y]];
+  const prev=new Map();
+  prev.set(start, null);
+  const dirs=[[1,0,'ArrowRight'],[-1,0,'ArrowLeft'],[0,1,'ArrowDown'],[0,-1,'ArrowUp']];
+  while(q.length){
+    const [x,y]=q.shift();
+    for(const [dx,dy,key] of dirs){
+      const nx=x+dx, ny=y+dy;
+      const id=nx+','+ny;
+      if(prev.has(id)) continue;
+      const goal=nx===tx && ny===ty;
+      const person=(_npcs||[]).some(n=>Math.round(n.x)===nx && Math.round(n.y)===ny);
+      const exit=(_map.doors||[]).some(d=>d.x===nx && d.y===ny && d.to);
+      if(!goal && (!walkable(nx,ny) || person || exit)) continue;
+      prev.set(id, {x,y,key});
+      if(goal){
+        let cur=id;
+        let step=key;
+        while(true){
+          const p=prev.get(cur);
+          if(!p) break;
+          step=p.key;
+          if((p.x+','+p.y)===start) break;
+          cur=p.x+','+p.y;
+        }
+        return step;
+      }
+      q.push([nx,ny]);
+    }
+  }
+  return null;
 }
+export function __debug(){
+  return {active:_active, desktop:_desktop, scale:_intScale, view:{w:_viewW,h:_viewH}, renderView:{w:_lastViewW,h:_lastViewH}, hero:{..._hero}, map:{w:_map.w,h:_map.h,name:_map.name,kind:_map.kind,preset:_map.preset,overhead:(_overhead||[]).length}, overhead:_overhead.slice(0,8), npcs:_npcs.map(n=>({name:n.name,x:n.x,y:n.y,slot:n._calSlot,cal:!!n.calendar,pace:n.pace})), questMarks:_questMarks.slice(), chests:_chests.slice(0,8), doors:_map.doors, campAudit:_map.campAudit||null, coffins:_map.coffins||[], fog:{explored:_explored.size, visible:_visible.size}, dlg:{open:isDialogueOpen(), typing:!!_dlgTw, text:document.getElementById('owDlgText')?.textContent||'', full:document.getElementById('owDlgText')?.dataset?.full||''}};
+}
+export { __nextStep };
 export function __setHero(x,y){ if(!_hero) return false; _hero.x=+x; _hero.y=+y; _hero.px=_hero.x; _hero.py=_hero.y; _hero.moving=false; try{draw();}catch(_){} return true; }
 export function __tryMove(dx,dy){ return tryMove(dx,dy); }
 export function __talkNearest(){ return talkNearest(); }
 export function __talkTo(name){ return talkTo(name); }
 export function __listNpcs(){ return _npcs.map(n=>({name:n.name,x:n.x,y:n.y,sheet:n.sheet})); }
 
-export default { mountOverworld, showOverworld, hideOverworld, refreshOverworld, isOverworldActive, buildMapForLocation, showDialogue, hideDialogue, syncDialogueFromVN, __debug, __setHero, __tryMove, __talkNearest, __talkTo, __listNpcs, get __map(){ return __map; } };
+export default { mountOverworld, showOverworld, hideOverworld, refreshOverworld, isOverworldActive, buildMapForLocation, showDialogue, hideDialogue, queueBeats, fieldReward, fieldPassEnd, fieldCryptEnd, syncDialogueFromVN, __debug, __setHero, __tryMove, __talkNearest, __talkTo, __listNpcs, __nextStep, get __map(){ return __map; } };

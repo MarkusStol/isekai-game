@@ -168,7 +168,7 @@ try{ // v63 scrub AI cfg from localStorage
 
  // v41: test-only scripted, fair ATB bosses, boss dialogue talk-down, tilemap minimap, craft XP→T4
 const $=s=>document.querySelector(s);const $$=s=>[...document.querySelectorAll(s)];const R=a=>a[Math.floor(Math.random()*a.length)];const rnd=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
-const VER='74',CACHE_V='v74';
+const VER='75',CACHE_V='v75';
 try{document.body.classList.add('pc-only','ow-desktop');document.body.classList.remove('touch-ui');}catch(_){}
 
 const FREETEXT_ENABLED = false; // v63: classic JRPG only — free-text archived on freetext-archive
@@ -749,7 +749,7 @@ function parseCrime(a){const t=a.toLowerCase();const who=findNpcTarget(a);
 
 
 /* ---------- save / toast / gate ---------- */
-function save(){if(!S)return;Persist.atomicSave(S,{toast:(m)=>{ /* v64: never surface stale-overwrite toast over OW HUD/minimap */ if(/Stand nicht überschrieben/i.test(String(m||''))) return; toast(m); }}).then(r=>{if(!r.ok&&r.reason==='stale'){/* suppressed */} else if(!r.ok)toast('⚠ Speichern fehlgeschlagen')}).catch(()=>toast('⚠ Speichern fehlgeschlagen'))}
+function save(){if(!S)return Promise.resolve();return Persist.atomicSave(S,{toast:(m)=>{ /* v64: never surface stale-overwrite toast over OW HUD/minimap */ if(/Stand nicht überschrieben/i.test(String(m||''))) return; toast(m); }}).then(r=>{if(!r.ok&&r.reason==='stale'){/* suppressed */} else if(!r.ok)toast('⚠ Speichern fehlgeschlagen'); return r;}).catch(()=>{ toast('⚠ Speichern fehlgeschlagen'); return {ok:false}; })}
 async function loadSave(){const s=await Persist.loadBest(migrate);return s}
 function applyCatchUp(){if(!S)return null;
  // v13.1 default: skip auto catch-up (preserves ongoing scene). Opt-in via S.cfgCatchupOptIn or confirm.
@@ -1405,11 +1405,22 @@ async function jrpgPick(ch){
           try{
             const win = sum && sum.result==='win';
             const lost = sum && sum.result==='lose';
+            if(win && setOpts?.bossId){ try{ C67.markSetpieceBeat(S, setOpts.bossId); }catch(_){} }
             if(win && isBoss){
               applyJrpgPack(C63.onBossVictory(S,{toast}));
-            }
-            if(win && setOpts?.bossId){ try{ C67.markSetpieceBeat(S, setOpts.bossId); }catch(_){} }
- else if(win && S.campaign?.mode==='dungeon'){
+            } else if((lost || (sum && sum.result==='surrender')) && (bid==='wolf' || ((S.campaign?.flags?.passField || S.campaign?.flags?.solmirField) && bid!=='lesser_fiend' && bid!=='demon_imp'))){
+              try{ document.body.classList.add('field-play'); }catch(_){}
+              try{ S.st.hp=Math.max(1,(S.st.hp|0)||(S.st.maxhp|0)||1); }catch(_){}
+              showFieldRetry(bid==='wolf' ? 'wolf' : (bid==='boss_lich' ? 'lich' : 'boss'));
+            } else if(win && bid==='wolf'){
+              S.campaign.flags=S.campaign.flags||{};
+              S.campaign.flags.passWolf=true;
+              S.campaign.flags.passField=true;
+              S.st=S.st||{}; S.st.gold=(S.st.gold|0)+12;
+              S.inv=S.inv||[];
+              if(!S.inv.some(i=>i && i.name==='Wolfsfell')) S.inv.push({name:'Wolfsfell', icon:'毛皮', type:'mat'});
+              applyJrpgPack(pack);
+            } else if(win && S.campaign?.mode==='dungeon'){
               applyJrpgPack(C61.resolveChoice(S,{next:'dungeon'},{toast}));
             } else if(lost && isBoss){
               // softlock-safe: back to boss door with partial HP
@@ -1430,6 +1441,59 @@ async function jrpgPick(ch){
   }
   applyJrpgPack(pack);
 }
+function showFieldRetry(bid){
+  const OW=window.__game?.OW;
+  if(!OW?.showDialogue) return;
+  OW.showDialogue('Nyx','Runter mit dir. Steh auf, oder der Turm bleibt zu.','spy',[
+    {label:'Noch mal', pick:()=>{ if(bid==='wolf') startFieldHunt(); else startFieldBoss(); }},
+    {label:'Zurück', pick:()=>{ try{ OW.hideDialogue?.(); }catch(_){} }},
+  ]);
+}
+function startFieldHunt(){
+  try{
+    if((S.campaign?.chapterIdx|0)<1) S.campaign.chapterIdx=1;
+    S.campaign.flags=S.campaign.flags||{};
+    S.campaign.flags.passField=true;
+    S.campaign.mode='scene';
+    jrpgPick({id:'wolf', effect:'battle:wolf', next:'pass_hunt'});
+  }catch(e){ console.warn('hunt', e); }
+}
+function openC1Seal(){
+  try{
+    if(!S?.campaign) return;
+    const OW=window.__game?.OW;
+    if(!OW?.showDialogue){ applyJrpgPack(C60.dungeonMenu(S)); return; }
+    if(S.campaign.flags?.puzzle_c1_ledger_seal){
+      const taken=!!S.campaign.flags.ariaPageTaken;
+      OW.showDialogue(taken?'Aria':'Velka', taken?'Die Seite ist draußen. Norden ist offen.':'Das Siegel ist auf. Norden. Fass die lose Seite nicht an.','mage');
+      return;
+    }
+    OW.showDialogue('Velka','Drei Kerben. Seine Hand, nicht deine. Wenn du rätst, beißt es.','mage',[
+      {label:'3-7-12', pick:()=>{ S.st.hp=Math.max(1,(S.st.hp|0)-8); OW.showDialogue('Velka','Das ist nicht seine Hand. Nochmal, und ohne zu raten.','mage'); }},
+      {label:'9-9-9', pick:()=>{
+        S.campaign.flags=S.campaign.flags||{};
+        S.campaign.flags.puzzle_c1_ledger_seal=true;
+        S.st=S.st||{}; S.st.gold=(S.st.gold|0)+35;
+        if(S.campaign.flags.ariaPact){
+          S.campaign.flags.ariaPageTaken=true;
+          OW.showDialogue('Aria','Die Knochen gehen auf. Ich steck die Seite ein. Velka hat\'s gesehen.','princess');
+        }else{
+          OW.showDialogue('Velka','Die Knochen klappen. Norden ist frei.','mage');
+        }
+      }},
+      {label:'1-1-1', pick:()=>{ S.st.hp=Math.max(1,(S.st.hp|0)-8); OW.showDialogue('Velka','Das ist nicht seine Hand. Nochmal, und ohne zu raten.','mage'); }},
+    ]);
+  }catch(e){ console.warn('seal', e); }
+}
+function startFieldBoss(){
+  try{
+    const ch=C60.currentChapter(S);
+    if(!S.campaign.dungeon) C60.startDungeon(S, ch);
+    const d=S.campaign.dungeon;
+    if(d) d.room=(d.rooms|0)+1;
+    jrpgPick({id:'fieldboss', effect:'battle:'+(d?.boss||'lesser_fiend'), next:'boss_pending'});
+  }catch(e){ console.warn('field boss', e); }
+}
 function applyJrpgPack(pack){
   if(!pack) return;
   const sp = pack.speaker||'Erzähler';
@@ -1439,6 +1503,25 @@ function applyJrpgPack(pack){
   try{ typewrite(sp, text, ()=>{}); }catch(_){}
   try{ setPortraitFromSpeaker(sp); }catch(_){}
   if(pack.changes) try{ apply(pack.changes); }catch(_){}
+  if(S.campaign?.id==='nocturna' && ((S.campaign?.chapterIdx|0)<=1 || S.campaign?.flags?.solmirField)){
+    document.body.classList.add('field-play');
+    if(S.campaign.sceneId==='c1_reward' && !S.flags.fieldReward){
+      S.flags.fieldReward=true;
+      try{ window.__game?.OW?.fieldReward?.(S); }catch(_){}
+    }
+    if(S.campaign.sceneId==='c3_field' && !S.flags.cryptEndShown){
+      S.flags.cryptEndShown=true;
+      try{ window.__game?.OW?.fieldCryptEnd?.(S); }catch(_){}
+    }
+    if(S.campaign.sceneId==='c2_field' && !S.flags.passEndShown){
+      S.flags.passEndShown=true;
+      try{ window.__game?.OW?.fieldPassEnd?.(S); }catch(_){}
+    }
+    if(S.campaign.flags?.passWolf && !S.flags.wolfSaid && /Wolf ist tot/.test(String(pack.text||''))){
+      S.flags.wolfSaid=true;
+      try{ window.__game?.OW?.showDialogue?.('Lira', pack.text, 'spy'); }catch(_){}
+    }
+  }
   hud(); renderChoices();
   // v71: dungeon/town ort changes must rebuild OW (catacombs, follow cam)
   try{
@@ -3714,18 +3797,19 @@ function openSheet(){
   try{ if($('#dbgToggle')) $('#dbgToggle').checked=!!cfg.debug; }catch(_){}
   try{ if($('#battleDiff')) $('#battleDiff').value=cfg.battleDiff||'normal'; }catch(_){}
   try{ if($('#atbMode')) $('#atbMode').value=cfg.atbMode||'active'; }catch(_){}
+  try{ if($('#nachklangAuto')) $('#nachklangAuto').checked=!!(cfg.nachklangAuto||S?.flags?.nachklangAuto); }catch(_){}
   try{ $('#sheet').classList.remove('hidden'); }catch(_){}
 }
 try{ const m=$('#mode'); if(m) m.onchange=()=>{ cfg.mode='offline'; m.value='offline'; }; }catch(_){}
 $('#btnClose').onclick=()=>{$('#sheet').classList.add('hidden'); try{document.body.classList.remove('sheet-open');document.documentElement.classList.remove('sheet-open')}catch(_){};};
 function saveCfgFromUI(){
-  cfg={v2:1,gkey:'',pollenKey:'',mode:'offline',wmodel:cfg.wmodel||'',aurl:'',akey:'',amodel:'',debug:!!($('#dbgToggle')&&$('#dbgToggle').checked),battleDiff:$('#battleDiff')?.value||'normal',atbMode:$('#atbMode')?.value||'active'};
+  cfg={v2:1,gkey:'',pollenKey:'',mode:'offline',wmodel:cfg.wmodel||'',aurl:'',akey:'',amodel:'',debug:!!($('#dbgToggle')&&$('#dbgToggle').checked),battleDiff:$('#battleDiff')?.value||'normal',atbMode:$('#atbMode')?.value||'active',nachklangAuto:!!($('#nachklangAuto')&&$('#nachklangAuto').checked)};
   localStorage.setItem(CFG,JSON.stringify(cfg));
   return cfg;
 }
 $('#btnSave').onclick=()=>{
   saveCfgFromUI();
-  if(S){S.cfgBattleDiff=cfg.battleDiff||'normal';S.cfgAtbMode=cfg.atbMode||'active'}
+  if(S){S.cfgBattleDiff=cfg.battleDiff||'normal';S.cfgAtbMode=cfg.atbMode||'active';S.flags=S.flags||{};S.flags.nachklangAuto=!!cfg.nachklangAuto}
   toast('Einstellungen gespeichert');
   $('#sheet').classList.add('hidden');
   try{document.body.classList.remove('sheet-open');document.documentElement.classList.remove('sheet-open')}catch(_){};
@@ -3739,6 +3823,8 @@ try{ const bms=$('#btnMusicSheet'); if(bms) bms.onclick=()=>{ try{ $('#btnMusic'
 
 window.__setCfg=o=>{cfg=Object.assign(cfg||{},o||{},{mode:'offline',gkey:'',pollenKey:''});try{localStorage.setItem(CFG,JSON.stringify(cfg))}catch(_){}};window.__game={VER,hud,syncOwHud,FREETEXT_ENABLED,jrpgPick,applyJrpgPack,syncFreetextUI,Aud,toast,clearTypewrite,renderChoices,C39,C40,C41,C42,C43,C44,C45,C46,C47,C48,C49,C50,C51,C52,C53,C54,C55,C56,C57,C58,C59,C60,C61,C62,C63, C64, C66, C67, C70,Cut40,updateNarratorDot,narratorStatusText,openSheet,setBusy,forceUnbusy,ACT_HARD_MS,V25,OW,Depth,Battle,Jobs,Gems,Summons,Equip,Jrpg,localBeatLine,parsePlayerIntent,offlineRespondIntent,freeStream,FREE_MODEL,msgsLean,FREE_URLS,openPendingEncounter,Imm,discoverThing,showCodexInline,Level,UI14,UI17,Know,Cont,lastPromptDump,advanceTimeMinutes,applyActionDuration,newGrey,greyDetails,loadGrey,loadPack,get S(){return S},act,newLife,gBody,msgs,gmRank,gmProbe,parseStream,thinkingCfg,gmOrder,readSSE,STREAM_DELIM,migrate,worldTick,bumpRel,openMenu,closeMenu,openInn,closeInn,openPixelShop,openRegionTravelMap,stageName,offline,startIntro,setSceneImage,setPortrait,imgUrl,advanceTime,phaseLabel,typewrite,enterPlay,showTitle,analyzeImage,applySceneTheme,themeFromText,loadValidatedImage,openingNarration,travelTo,parseTravel,killNPC,robNPC,addMemory,memoryHint,startProcedural,offlineGenerateWorld,generateWorldPack,GENRES,travelChoices,ensureGraph,whoHere,parseLifeSim,Sim,Persist,WorldMap,TravelMap,Cut31,Econ,Codex,UI13,save,loadSave,applyCatchUp,findAnyNpc,placeFlavorText,enrichPlaceDescs};
 window.__game.askNPC=a=>askNPC(a);window.__game.gemini=gemini;
+window.__game.openC1Seal=openC1Seal;
+window.__game.startFieldBoss=startFieldBoss; window.__game.startFieldHunt=startFieldHunt;
 try{ syncFreetextUI(); }catch(_){};
 if(cfg.gkey)gmFetch(cfg.gkey.trim()).then(()=>gmProbe(cfg.gkey.trim()).catch(()=>{})).catch(()=>{});
 (function(){const root=document.documentElement;const apply=()=>{try{const vv=window.visualViewport;if(!vv)return;const kb=Math.max(0,window.innerHeight-vv.height-vv.offsetTop);root.style.setProperty('--kb',kb+'px')}catch(_){}};

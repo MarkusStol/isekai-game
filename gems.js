@@ -1,7 +1,7 @@
 /** v17 Aetherkristalle — gem sockets on gear (original; not materia) */
 export const ELEMENTS=['feuer','eis','blitz','wasser','wind','erde','licht','dunkel'];
 export const ELEM_LABEL={
-  feuer:'Feuer',eis:'Eis',blitz:'Blitz',wasser:'Wasser',wind:'Wind',erde:'Erde',licht:'Licht',dunkel:'Dunkel',phys:'Physisch'
+  feuer:'Feuer',eis:'Eis',blitz:'Blitz',wasser:'Wasser',wind:'Wind',erde:'Erde',licht:'Licht',dunkel:'Dunkel',tinte:'Tinte',phys:'Physisch'
 };
 
 export const GEM_CATALOG={

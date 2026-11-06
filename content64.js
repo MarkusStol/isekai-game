@@ -22,29 +22,37 @@ export const HUB_NPC_LINES = {
   ],
 
   'Sekretärin Velka': [
-    'Velka: Die Register sind bereit, Fürst. Die Zahlen lügen nicht.',
-    'Velka: Drei Posten fehlen noch. Soll ich Mahnung schreiben?',
-    'Velka: Am Thron wartet mehr als Gold — auch Schuld.',
+    'Velka: Vierzehn Gold in der Kasse, und Venn hustet seit Dienstag. Lies das, bevor du mich nützlich findest.',
+    'Velka: Unter dem Sitz sind drei Kerben. Neun, neun, neun. Dieselbe Folge wie in deiner Schrift.',
+    'Velka: Ich hab die Feder gehalten, weil seine Hand schon Gold war. Wenn du mich dafür hasst, sag es laut.',
   ],
   'General Brok': [
-    'Brok: Die Wachen halten. Sag, wen wir zerschlagen sollen.',
-    'Brok: Grenzpass meldet Bewegung. Ich schicke Speere.',
-    'Brok: Ein guter Schlag sagt mehr als zehn Edikte.',
+    'Brok: Letzte Woche war ich für ihn nur noch der Soldat. Nicht Brok.',
+    'Brok: Eine Nacht am Pass, oder Venn stirbt an dem Zeug in der Lunge. Ich schrei heute nicht.',
+    'Brok: Wenn das Ding unten weiß, wer ich bin, hau nicht daneben.',
   ],
   'Wächter Toren': [
-    'Toren: Halt! Grenzpass. Pässe und Absichten, bitte.',
-    'Toren: Die Türme sehen alles. Nachtwachen sind doppelt besetzt.',
-    'Toren: Schneesturm kommt. Bleibt nahe am Feuer.',
+    'Toren: Halt. Grenzpass. Sag, wen du suchst, bevor du am Turm vorbeiläufst.',
+    'Toren: Der Hund im Ostturm hat zwei von uns geholt. Die Nachtwache ist dünn.',
+    'Toren: Schnee kommt. Bleib am Feuer, wenn du keine Klinge dabei hast.',
   ],
   'Kundschafterin Lira': [
-    'Lira: Spuren im Schnee — nicht menschlich. Ich folge ihnen.',
-    'Lira: Östlich des Bachs: Rauch. Vielleicht Banditen.',
-    'Lira: Wenn ihr geht, geht leise. Der Pass hört mit.',
+    'Lira: Spuren im Schnee. Zu groß für einen Mann. Ich geh ihnen nach, bis sie aufhören.',
+    'Lira: Östlich vom Bach steigt Rauch. Kann Banditen sein. Kann auch nur ein nasses Feuer sein.',
+    'Lira: Wenn du gehst, geh leise. Der Schnee trägt die Schritte weiter, als du denkst.',
   ],
   'Händler Bram': [
-    'Bram: Tränke, Seile, warme Decken. Gold gegen Überleben.',
-    'Bram: Der Weg nach Solmir friert zu. Packt euch warm ein.',
-    'Bram: Ich kaufe auch Beute — ohne Fragen.',
+    'Bram: Trank, Seil, eine Decke. Gold her, oder du frierst.',
+    'Bram: Der Weg nach Solmir friert zu. Nimm Wolle mit, nicht nur Stahl.',
+    'Bram: Beute kauf ich. Frag nicht, woher. Ich frag auch nicht.',
+  ],
+  'Rekrut Venn': [
+    'Venn: Ich hust noch. Zwei von uns sind im Turm geblieben.',
+    'Venn: Brok hat gesagt, er kommt. Sag ihm, er soll sich beeilen.',
+  ],
+  'Schmiedin Kael': [
+    'Kael: Stahl für den Turm. Wenn die Klinge splittert, bring sie her.',
+    'Kael: Reden wärmen nicht. Das Feuer schon. Tritt zur Seite.',
   ],
   'Priesterin Solara': [
     'Solara: Licht auf dich. Die Kathedrale hört Beichte und Bitte.',
@@ -61,9 +69,9 @@ export const HUB_NPC_LINES = {
   ],
 
   'Spionin Nyx': [
-    'Nyx: Schattenarbeit. Frag nicht, was ich gesehen habe.',
-    'Nyx: Der Pass hat Ohren. Ich auch.',
-    'Nyx: Wenn Brok fragt — ich war nie hier.',
+    'Nyx: Fünfzehn Gold, dann sag ich dir, wo der Hund steht. Ohne Gold sag ich nichts.',
+    'Nyx: Der Pass hat Ohren. Ich auch. Sprich leiser, wenn Toren in der Nähe ist.',
+    'Nyx: Wenn Brok fragt, ich war am Feuer. Mehr nicht.',
   ],
   'Akolyth Ren': [
     'Ren: Die Kerzen… Solara sagt, Zweifel sei erlaubt.',
@@ -71,14 +79,19 @@ export const HUB_NPC_LINES = {
     'Ren: Verzeihung. Ich muss die Gänge fegen.',
   ],
   'Heldin Aria': [
-    'Aria: Ich kämpfe, wenn Worte versagen. Bleib wachsam.',
-    'Aria: Das Glas dort… es erinnert mich an einen Eid.',
-    'Aria: Braucht ihr eine Klinge, ruft mich.',
+    'Aria: Lio hält die zweite Wache. Ich bin nicht hier, um zu knien.',
+    'Aria: Wenn das Ding unten seinen Posten sagt, schlagt weiter. Ich kann das nicht.',
+    'Aria: Ich geh mit in den Keller. Danach geh ich. Das ist kein Bündnis.',
   ],
   'Grabräuber Jex': [
-    'Jex: Was guckst du? Hier ist nichts… noch.',
-    'Jex: Die Toten schweigen. Wir auch — für Gold.',
-    'Jex: In der Westkammer klirrt etwas. Interessiert?',
+    'Jex: Ich nehm Münzen. Staub lass ich liegen. Der Fiend zahlt mit beidem, und ich will nur eins davon.',
+    'Jex: Links klirrt es, rechts hustet es. Ich bleib in der Mitte, da ist es nur kalt.',
+    'Jex: Drei Neunen, sagen sie. Ich zähl nicht mit, wenn die Knochen mitzählen.',
+  ],
+  'Imp-Schuldner': [
+    'Imp: Schulden. Dein Posten steht schon in der Spalte, auch wenn du den nicht geschrieben hast.',
+    'Imp: Der König hat uns noch gekannt. Du riechst nach seiner Feder.',
+    'Imp: Schlag im Takt, sonst kommt der zweite Schlag nicht an.',
   ],
   'Chronistin Mara': [
     'Mara: Ich schreibe, was bleibt. Namen verblassen sonst.',
