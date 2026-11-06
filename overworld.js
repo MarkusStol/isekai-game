@@ -304,50 +304,47 @@ function naSpec(t, x, y){
   return {src:NA_SHEET[pack[0]], sx:cell[0], sy:cell[1]};
 }
 const CAMP='./assets/pixel/camp/';
-const CAMP_PEAKS=CAMP+'peaks.png';
-const CAMP_SNOW=[CAMP+'snow_a.png', CAMP+'snow_b.png', CAMP+'snow_c.png'];
-function blitCamp(ctx, file, sx, sy, tw){
+const NAC=CAMP+'na/';
+function blitCamp(ctx, file, sx, sy, tw, th){
   const im=loadImg(file);
-  if(im.complete && (im.naturalWidth||im.width)>4){
-    ctx.drawImage(im, 0, 0, im.naturalWidth||im.width, im.naturalHeight||im.height, sx, sy, tw, tw);
+  const w=im?.naturalWidth||im?.width||0;
+  const h=im?.naturalHeight||im?.height||0;
+  if(im?.complete && w>4 && h>4){
+    ctx.drawImage(im, 0, 0, w, h, sx, sy, tw, th==null?tw:th);
     return true;
   }
   return false;
 }
 function passGround(t){ return t==='sand'||t==='path'||t==='grass'||t==='floor'||t==='plaza'||t==='snow'||t==='water'; }
+function passCliff(t){ return t==='wall'||t==='cliff'; }
 function paintPassTile(ctx, t, x, y, sx, sy, tw){
   if(_map?.preset!=='wall') return false;
-  const north=_map.tiles?.[y-1]?.[x];
-  const south=_map.tiles?.[y+1]?.[x];
-  const stone=t==='stone'||t==='wall'||t==='cliff';
-  const northStone=north==='stone'||north==='wall'||north==='cliff';
-  const southGround=passGround(south);
-  if(stone){
-    const lip=[CAMP+'cliff_lip.png', CAMP+'cliff_lip_b.png', CAMP+'cliff_lip_c.png'][Math.abs(x)%3];
-    const face=[CAMP+'cliff_face.png', CAMP+'cliff_face_b.png'][Math.abs(x)%2];
-    const out=[CAMP+'cliff_out.png', CAMP+'cliff_out_b.png', CAMP+'cliff_out_c.png'][Math.abs(x)%3];
-    const northGround=passGround(north);
-    const file=(northGround && southGround) ? out : (northGround ? lip : (southGround ? CAMP+'cliff_base.png' : face));
-    if(!blitCamp(ctx, file, sx, sy, tw)){ ctx.fillStyle='#6a7278'; ctx.fillRect(sx,sy,tw,tw); }
-    const east=_map.tiles?.[y]?.[x+1];
-    const west=_map.tiles?.[y]?.[x-1];
-    const edge=Math.max(2, Math.round(tw*0.05));
-    ctx.fillStyle='#3e464d';
-    if(passGround(east)) ctx.fillRect(sx+tw-edge, sy, edge, tw);
-    if(passGround(west)) ctx.fillRect(sx, sy, edge, tw);
+  if(passCliff(t)){
+    const role=_map.passArt?.[y]?.[x]||'ridge_rock_m';
+    if(role==='snow' || role==='shade'){
+      const file=role==='shade' ? NAC+'snow_shade.png' : NAC+'snow.png';
+      if(!blitCamp(ctx, file, sx, sy, tw)){ ctx.fillStyle='#e7eef4'; ctx.fillRect(sx,sy,tw,tw); }
+      return true;
+    }
+    // Rounded corners are transparent. Snow under them, not the canvas clear.
+    blitCamp(ctx, NAC+'snow.png', sx, sy, tw);
+    if(!blitCamp(ctx, NAC+role+'.png', sx, sy, tw)){ ctx.fillStyle='#3e6e6a'; ctx.fillRect(sx,sy,tw,tw); }
     return true;
   }
   if(!passGround(t)) return false;
-  if(t==='water'){
-    if(!blitCamp(ctx, CAMP+'snow_shade.png', sx, sy, tw)){ ctx.fillStyle='#c3d3df'; ctx.fillRect(sx,sy,tw,tw); }
-    return true;
-  }
-  const underCliff=northStone;
-  const file=t==='path'
-    ? CAMP+(((x+y)&1)?'path_b.png':'path_a.png')
-    : (underCliff ? CAMP+'snow_shade.png' : CAMP_SNOW[Math.abs((x*3+y*5)|0)%CAMP_SNOW.length]);
-  if(!blitCamp(ctx, file, sx, sy, tw)){ ctx.fillStyle='#e7eef3'; ctx.fillRect(sx,sy,tw,tw); }
+  const shaded=t!=='path' && passCliff(_map.tiles?.[y-1]?.[x]) && _map.passArt?.[y-1]?.[x]!=='snow';
+  const file=t==='path' ? CAMP+(((x+y)&1)?'path_b.png':'path_a.png') : shaded ? NAC+'snow_shade.png' : NAC+'snow.png';
+  if(!blitCamp(ctx, file, sx, sy, tw)){ ctx.fillStyle='#e7eef4'; ctx.fillRect(sx,sy,tw,tw); }
   return true;
+}
+function drawPassProp(ctx, oh, ox, oy, camX, camY, tw){
+  const im=loadImg(oh.src);
+  if(!(im.complete && im.naturalWidth)) return;
+  ctx.imageSmoothingEnabled=false;
+  const dw=(oh.tw||2)*tw;
+  const dh=dw*(im.naturalHeight/Math.max(1, im.naturalWidth));
+  const footY=oy+(oh.y+(oh.th||oh.tw||2)-camY)*tw;
+  ctx.drawImage(im, ox+(oh.x-camX)*tw, footY-dh, dw, dh);
 }
 function paintNa(ctx, t, x, y, dx, dy, dw, dh){
   try{
@@ -1002,69 +999,115 @@ export function buildMapForLocation(S, ort){
     prop(cx, cy, 'statue');
     scatterGrass();
   } else if(preset==='wall'){
-    // v62: natural mountain pass — irregular cliffs, frozen stream, tall towers, camp
+    // One cliff from the Ninja Adventure snow wall, tall enough that the cap
+    // leaves the frame, with a stair and a spur that holds the tent.
     kind='wild';
-    for(let y=0;y<ht;y++) for(let x=0;x<w;x++){
-      tiles[y][x] = (x<2 || x>=w-2) ? 'stone' : 'sand';
-    }
-    // Irregular rock mass: every column shares the base row, so the shelter is one piece.
+    for(let y=0;y<ht;y++) for(let x=0;x<w;x++) tiles[y][x]='sand';
     const wall=[];
-    const rock=(x,y)=>{ if(tiles[y]&&x>1&&x<w-2){ tiles[y][x]='stone'; wall.push({x,y}); } };
-    for(let x=cx-6;x<=cx-2;x++) for(let y=cy-4;y<=cy-2;y++) rock(x,y);
-    for(let x=cx+2;x<=cx+7;x++) for(let y=cy-4;y<=cy-2;y++) rock(x,y);
-    for(let x=cx-1;x<=cx+1;x++) rock(x, cy-4);
-    for(let x=cx-6;x<=cx-4;x++) rock(x, cy-5);
-    for(let x=cx+5;x<=cx+7;x++) rock(x, cy-5);
-    rock(cx-6, cy-1); rock(cx-5, cy-1);
-    rock(cx+6, cy-1); rock(cx+7, cy-1);
-    for(let y=cy-1;y<ht-2;y++){
-      if(tiles[y]?.[cx] && tiles[y][cx]!=='stone') tiles[y][cx]='path';
-      if(tiles[y]?.[cx+1] && tiles[y][cx+1]!=='stone') tiles[y][cx+1]='path';
+    const art=[];
+    const rock=(x,y,role)=>{
+      if(!tiles[y]||x<=1||x>=w-2||y<=1||y>=ht-2) return;
+      tiles[y][x]='wall';
+      wall.push({x,y});
+      (art[y]=art[y]||{})[x]=role;
+    };
+    const ridge=(x,top,foot,kind)=>{
+      for(let y=top;y<=foot;y++){
+        const i=y-top;
+        const edge=kind==='L'?'l':kind==='R'?'r':'m';
+        let role;
+        if(kind==='S'){
+          if(i===0) role='ridge_cap_m';
+          else if(y===foot) role='ridge_stair_b';
+          else if(i===1) role='ridge_lip_m';
+          else role='ridge_stair_a';
+        } else if(kind==='B'){
+          if(i===0) role='ridge_lip_l';
+          else if(y===foot) role='ridge_foot_l';
+          else role='ridge_rock_l';
+        } else if(i===0) role='ridge_cap_'+edge;
+        else if(y===foot) role='ridge_foot_'+edge;
+        else if(i===1) role='ridge_lip_'+edge;
+        else role='ridge_rock_'+edge;
+        rock(x,y,role);
+      }
+    };
+    const foot=cy-2;
+    ridge(cx-4, cy-7, foot, 'L');
+    ridge(cx-3, cy-7, foot, 'M');
+    ridge(cx-2, cy-7, foot, 'M');
+    ridge(cx-1, cy-7, foot, 'M');
+    ridge(cx,   cy-7, foot, 'S');
+    ridge(cx+1, cy-7, foot, 'M');
+    ridge(cx+2, cy-6, foot, 'M');
+    ridge(cx+3, cy-5, foot, 'M');
+    ridge(cx+4, cy-4, foot, 'R');
+    ridge(cx-5, cy-4, cy+1, 'B');
+    ridge(cx-6, cy-3, cy+1, 'B');
+    // Tent footprint stays snow, but solid, and joins the spur.
+    for(let y=cy;y<=cy+1;y++) for(let x=cx-8;x<=cx-7;x++) rock(x,y,'snow');
+    const isRock=(x,y)=>!!(art[y]&&art[y][x]&&art[y][x]!=='snow');
+    for(const c of wall){
+      const role=art[c.y][c.x];
+      if(!role || role==='snow' || role.includes('stair')) continue;
+      const bits=role.split('_');
+      if(bits.length<3) continue;
+      const left=isRock(c.x-1,c.y), right=isRock(c.x+1,c.y);
+      const edge=!left&&right?'l':left&&!right?'r':'m';
+      art[c.y][c.x]=bits[0]+'_'+bits[1]+'_'+edge;
+    }
+    questMark._passArt=art;
+    for(let y=cy;y<ht-2;y++){
+      if(tiles[y]?.[cx]==='sand') tiles[y][cx]='path';
+      if(tiles[y]?.[cx+1]==='sand') tiles[y][cx+1]='path';
     }
     for(let x=cx+2;x<=cx+14;x++){
-      if(tiles[cy]?.[x] && tiles[cy][x]!=='stone') tiles[cy][x]='path';
+      if(tiles[cy]?.[x]==='sand') tiles[cy][x]='path';
     }
     const blocks=[
       {x:cx, y:cy, kind:'spawn'},
-      {x:cx-1, y:cy+2, kind:'fire'},
-      {x:cx-3, y:cy+2, kind:'bench'},
-      {x:cx+2, y:cy+2, kind:'bench'},
-      {x:cx-5, y:cy, kind:'barrel'},
-      {x:cx+5, y:cy-1, kind:'chest'},
-      {x:cx+2, y:cy, kind:'wolf'},
+      {x:cx-3, y:cy+2, kind:'fire'},
+      {x:cx-4, y:cy+3, kind:'bench'},
+      {x:cx-1, y:cy+3, kind:'bench'},
+      {x:cx-4, y:cy+1, kind:'barrel'},
+      {x:cx+5, y:cy+1, kind:'chest'},
+      {x:cx+4, y:cy, kind:'wolf'},
     ];
     for(const b of blocks){
       if(b.kind==='spawn'||b.kind==='wolf') continue;
-      if(tiles[b.y] && tiles[b.y][b.x]!=='stone') tiles[b.y][b.x]='sand';
+      if(tiles[b.y] && tiles[b.y][b.x]!=='wall') tiles[b.y][b.x]='sand';
     }
-    prop(cx-1, cy+2, 'campfire');
-    anim(cx-1, cy+2, 'torch');
-    prop(cx-5, cy, 'barrel');
-    prop(cx-3, cy+2, 'bench');
-    prop(cx+2, cy+2, 'bench');
-    prop(cx-5, cy+4, 'snowdrift');
-    prop(cx+6, cy+1, 'snowdrift');
-    prop(cx-7, cy+1, 'rock');
-    prop(cx-2, cy+4, 'snowdrift');
-    overhead.push({x:cx+8, y:cy-1, src:DECOR.watchtower, tw:2.3, th:3.6, label:'Wachturm'});
-    overhead.push({x:cx-8, y:cy, src:DECOR.pine, tw:1.7, th:2.5, label:'pine'});
+    prop(cx-3, cy+2, 'campfire');
+    anim(cx-3, cy+2, 'torch');
+    prop(cx-4, cy+1, 'barrel');
+    prop(cx-4, cy+3, 'bench');
+    prop(cx-1, cy+3, 'bench');
+    overhead.push({x:cx-8, y:cy, src:NAC+'tent.png', tw:2.3, th:2.3, label:'tent'});
+    overhead.push({x:cx-8, y:cy-5, src:NAC+'shrub.png', tw:2, th:2, label:'shrub'});
+    overhead.push({x:cx+4, y:cy-5, src:NAC+'shrub.png', tw:2, th:2, label:'shrub'});
+    overhead.push({x:cx+7, y:cy-4, src:NAC+'winter.png', tw:2, th:3, label:'winter'});
+    overhead.push({x:cx+5, y:cy-3, src:NAC+'boulder.png', tw:2, th:2, label:'boulder'});
+    overhead.push({x:cx-6, y:cy+2, src:NAC+'rock_snow.png', tw:1, th:1, label:'rock_snow'});
+    overhead.push({x:cx+4, y:cy-1, src:NAC+'rock_snow.png', tw:1, th:1, label:'rock_snow'});
+    overhead.push({x:cx+6, y:cy+2, src:DECOR.watchtower, tw:1.7, th:2.8, label:'Wachturm'});
+    overhead.push({x:cx+7, y:cy+4, src:NAC+'boulder_snow.png', tw:1.6, th:1.6, label:'boulder_snow'});
     const seats=[
-      {name:'Wächter Toren', sheet:'guard', e:'🛡️', x:cx-4, y:cy-1},
-      {name:'Schmiedin Kael', sheet:'merchant', e:'🔨', x:cx-2, y:cy},
-      {name:'Kundschafterin Lira', sheet:'spy', e:'🕵️', x:cx+3, y:cy-1},
-      {name:'Händler Bram', sheet:'merchant', e:'🧳', x:cx+5, y:cy+3},
-      {name:'Spionin Nyx', sheet:'spy', e:'🗡️', x:cx+4, y:cy+1},
-      {name:'Rekrut Venn', sheet:'villager', e:'🛡️', x:cx-5, y:cy+2},
-      {name:'Heldin Aria', sheet:'princess', e:'⚔', x:cx, y:cy+4},
+      {name:'Wächter Toren', sheet:'guard', e:'🛡️', x:cx-5, y:cy+3},
+      {name:'Schmiedin Kael', sheet:'merchant', e:'🔨', x:cx-2, y:cy+4},
+      {name:'Kundschafterin Lira', sheet:'spy', e:'🕵️', x:cx+3, y:cy+1},
+      {name:'Händler Bram', sheet:'merchant', e:'🧳', x:cx+2, y:cy+3},
+      {name:'Spionin Nyx', sheet:'spy', e:'🗡️', x:cx+4, y:cy+4},
+      {name:'Rekrut Venn', sheet:'villager', e:'🛡️', x:cx-7, y:cy+3},
+      {name:'Heldin Aria', sheet:'princess', e:'⚔', x:cx-2, y:cy},
     ];
     questMark._campAudit={blocks, npcs:seats.map(s=>({name:s.name,x:s.x,y:s.y}))};
     for(const s of seats){
       _hubNpcs.push({name:s.name, x:s.x, y:s.y, px:s.x, py:s.y, sheet:s.sheet, e:s.e, home:{x:s.x,y:s.y}});
     }
-    placeChest(cx+5, cy-1, {gold:15, item:'Eisen-Schild'});
+    placeChest(cx+5, cy+1, {gold:15, item:'Eisen-Schild'});
     placeChest(8, 11, {gold:10, item:'Antidot'});
     placeChest(w-9, cy+2, {gold:18, item:'Nyx-Bericht'});
-    questMark(cx, cy-1, 'Grenzpass', 'story');
+    questMark(cx, cy, 'Grenzpass', 'story');
     questMark._campAudit.wall=wall;
     placeHouse(Math.max(8,cx-3), Math.min(ht-8, cy+9), 'Herberge', {variant:3});
     questMark(Math.max(4,cx-6), Math.min(ht-4,cy+5), 'Eishöhlen am Pass', 'side');
@@ -1683,7 +1726,7 @@ export function buildMapForLocation(S, ort){
     exits.push({x:qm.x,y:qm.y,to:dest, sideDungeon:true, label:lab||dest});
     if(tiles[qm.y]){ tiles[qm.y][qm.x]='door'; if(overlay[qm.y]) overlay[qm.y][qm.x]=null; }
   }
-  return {w,h:ht,tiles,overlay,doors:exits,spawn:{x:sx,y:sy},kind,name,npcs,interiors,overhead,animators,preset,chests,lights,questMarks:qmarks,campAudit:questMark._campAudit||null};
+  return {w,h:ht,tiles,overlay,doors:exits,spawn:{x:sx,y:sy},kind,name,npcs,interiors,overhead,animators,preset,chests,lights,questMarks:qmarks,campAudit:questMark._campAudit||null,passStair:questMark._passStair??null,passArt:questMark._passArt||null,tent:questMark._tent||null};
 }
 
 function walkable(x,y){
@@ -2228,7 +2271,8 @@ function ensurePassJobs(S){
   if(!onPassMap() || !S?.campaign?.flags?.passField) return;
   const cx=Math.floor((_map.w||30)/2), cy=Math.floor((_map.h||30)/2);
   if(!S.campaign.flags.passWolf){
-    const spots=[[cx+2,cy],[cx-2,cy],[cx,cy+2],[cx+2,cy+1]];
+    // Far enough east that standing beside the mark is not also beside the Solmir mark.
+    const spots=[[cx+4,cy],[cx+5,cy],[cx+3,cy],[cx+6,cy]];
     for(const [x,y] of spots){ if(placeMark(x,y,'Wolf','hunt')) break; }
   }
   if(!S.campaign.flags.beat_hellhound && !S.campaign.flags.passClear){
@@ -2994,7 +3038,7 @@ function draw(){
       // v44 autotile edge blend
       try{
         const C44=window.__game?.C44;
-        if(C44?.neighborDiffMask && C44?.drawTileEdgeBlend){
+        if(_map.preset!=='wall' && C44?.neighborDiffMask && C44?.drawTileEdgeBlend){
           const mask=C44.neighborDiffMask(_map,x,y);
           if(mask) C44.drawTileEdgeBlend(ctx,sx,sy,tw,mask);
         }
@@ -3145,8 +3189,16 @@ function draw(){
     _cast.push(n);
   }
   _cast.push({_hero:true, x:_hero.x, y:_hero.y, px:_hero.px, py:_hero.py, dir:_hero.dir, frame:_hero.frame});
+  if(_map?.preset==='wall'){
+    for(const oh of _overhead){
+      const foot=oh.y+(oh.th||oh.tw||2);
+      if(!_explored.has(fogKey(Math.round(oh.x), Math.round(oh.y)))) continue;
+      _cast.push({_prop:true, px:oh.x, py:foot-0.05, oh});
+    }
+  }
   _cast.sort((a,b)=>(a.py??a.y)-(b.py??b.y));
   for(const n of _cast){
+    if(n._prop){ drawPassProp(ctx, n.oh, ox, oy, camX, camY, tw); continue; }
     const sx=ox+(n.px-camX)*tw, sy=oy+(n.py-camY)*tw - tw*0.55;
     if(n._hero){
       const him=loadImg('./assets/pixel/hero/walk.png');
@@ -3273,8 +3325,8 @@ function draw(){
     }
   }
 
-  // overhead big buildings (drawn above ground, soft depth)
-  for(const oh of _overhead){
+  // overhead big buildings (drawn above ground, soft depth). The pass sorts these with people.
+  for(const oh of (_map?.preset==='wall'?[]:_overhead)){
     const im=loadImg(oh.src);
     if(!(im.complete && im.naturalWidth)) continue;
     // visibility: any tile of footprint explored
@@ -3291,7 +3343,7 @@ function draw(){
     ctx.globalAlpha=vis?(night?0.95:1):(night?0.7:0.5);
     let dw=(oh.tw||3)*tw, dh=(oh.th||3)*tw;
     // v62: tall landmarks keep sprite aspect (watchtower/pine)
-    if(/watchtower|pine|peaks|throne_chair|altar|pine_tall/.test(String(oh.src||oh.label||''))){
+    if(/watchtower|pine|peaks|tent|throne_chair|altar|pine_tall/.test(String(oh.src||oh.label||''))){
       const aspect=im.naturalHeight/Math.max(1,im.naturalWidth);
       dw=(oh.tw||3)*tw;
       dh=dw*aspect;

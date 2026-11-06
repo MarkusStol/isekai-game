@@ -1,0 +1,10 @@
+Grenzpass camp only. Not a replacement for other areas.
+
+License: CC0 1.0. See assets/vendor/ninja-adventure/LICENSE.txt.
+Sheet: assets/pixel/tiles-na/sheets/outdoor.png
+Source: pixel-boy.itch.io/ninja-adventure-asset-pack
+
+Cliff cells are the authored snow wall, columns 12–18, rows 25–28,
+including the stair in column 16. Corner cells keep their rounded edge.
+Shrub, leafless trees, and boulders are other cells from that same sheet.
+snow_shade.png is a flat contact shadow derived for the cliff foot, not a sheet cell.
