@@ -458,6 +458,7 @@ async function stepNear(page, x, y){
 export async function runAriaRoutes({ browser, port, fail, ok }){
   await runAriaYes(browser, port, fail, ok);
   await runAriaLoyal(browser, port, fail, ok);
+  await runAriaPageOnly(browser, port, fail, ok);
   await runAriaNo(browser, port, fail, ok);
   await runAriaUnderage(browser, port, fail, ok);
 }
@@ -535,12 +536,36 @@ async function runAriaYes(browser, port, fail, ok){
     if(!again.ariaRomance || !again.ariaPact || !again.party.includes('Heldin Aria') || again.party.includes('Sekretärin Velka')){
       fail('aria-yes', 'reload lost the route', again);
     } else ok('aria-yes-reload', { party: again.party, stage: again.rom?.stage, events: again.rom?.events });
+
+    if(!(await walkMark(page, 'pass'))){ fail('aria-yes', 'no road to the pass'); return; }
+    await sleep(400);
+    const passLine = await page.evaluate(() => document.getElementById('owDlgText')?.dataset?.full || '');
+    if(!/nicht deine Frau|Die Nacht war/.test(passLine)) fail('aria-yes', 'pass did not keep the night separate from a marriage', { passLine: passLine.slice(0, 160) });
+    else ok('aria-pass-night', { passLine: passLine.slice(0, 100) });
+    await clearDlg(page, 8);
+    await page.setViewport({ width: 1920, height: 1080, isMobile: false, hasTouch: false });
+    await sleep(300);
+    if(!(await talkNpc(page, 'Toren'))){ fail('aria-yes', 'Toren missing on the pass'); return; }
+    await page.waitForFunction(() => {
+      const t = document.getElementById('owDlgText');
+      return t && t.textContent === t.dataset.full && document.querySelector('#owDlgChoices button');
+    }, { timeout: 8000 }).catch(()=>{});
+    await fsShot(page, 'pass_toren_1080.png');
+    await page.setViewport({ width: 1280, height: 720, isMobile: false, hasTouch: false });
+    await sleep(200);
+    await fsShot(page, 'pass_toren_720.png');
+    if(!(await clickChoice(page, 'Halt sie auf'))){ fail('aria-yes', 'Toren had no refusal'); return; }
+    await sleep(250);
+    const cool = await flags(page);
+    if(!cool.ariaRomance || !cool.ariaCool || cool.party.includes('Heldin Aria') || (cool.rom?.stage|0) > 2){
+      fail('aria-yes', 'standing aside did not end the affection', cool);
+    } else ok('aria-pass-cool', { party: cool.party, stage: cool.rom?.stage, events: cool.rom?.events });
   } finally {
     await page.close().catch(()=>{});
   }
 }
 
-async function runAriaLoyal(browser, port, fail, ok){
+export async function runAriaLoyal(browser, port, fail, ok){
   const page = await browser.newPage();
   await page.setViewport({ width: 1280, height: 720, isMobile: false, hasTouch: false });
   try{
@@ -578,6 +603,106 @@ async function runAriaLoyal(browser, port, fail, ok){
     if(end.ariaRomance || end.ariaSplit || end.ariaPageTaken || !end.party.includes('Sekretärin Velka') || end.party.includes('Heldin Aria')){
       fail('aria-loyal', 'loyal ending changed the wrong flags', end);
     } else ok('aria-loyal-end', { party: end.party, beat: end.beat });
+
+    if(!(await walkMark(page, 'pass'))){ fail('aria-loyal', 'no road to the pass'); return; }
+    await clearDlg(page, 8);
+    if(!(await talkNpc(page, 'Aria'))){ fail('aria-loyal', 'Aria missing at the pass'); return; }
+    const loyalLine = await page.evaluate(() => document.getElementById('owDlgText')?.dataset?.full || '');
+    if(!/Lio hustet|Klinge/.test(loyalLine)) fail('aria-loyal', 'pass line assumed a romance', { loyalLine: loyalLine.slice(0, 160) });
+    else ok('aria-loyal-pass', { loyalLine: loyalLine.slice(0, 100) });
+    await clearDlg(page, 4);
+    await page.evaluate(() => { const s=window.__game.S.st; s.hp=s.maxhp||s.hp; s.mp=s.maxmp||s.mp; });
+    if(!(await walkMark(page, 'hunt'))){ fail('aria-loyal', 'wolf not on the road'); return; }
+    const wolfUp = await page.waitForFunction(() => !!window.__game?.Battle?.getBattle?.(), { timeout: 8000 }).then(()=>true).catch(()=>false);
+    if(!wolfUp){ fail('aria-loyal', 'wolf fight did not start'); return; }
+    const down = await surrender(page);
+    if(!down.ok) fail('aria-loyal', 'wolf defeat did not present', down);
+    else ok('aria-pass-defeat', down);
+    await sleep(1900);
+    const retry = await clickChoice(page, 'Noch mal');
+    if(!retry){
+      const dbg = await page.evaluate(() => ({
+        field: document.body.classList.contains('field-play'),
+        pass: !!window.__game.S.campaign.flags.passField,
+        labels: [...document.querySelectorAll('#owDlgChoices button, #choices button')].map(b => b.textContent),
+        dlg: (document.getElementById('owDlgText')?.textContent || '').slice(0, 80),
+        battle: window.__game.Battle.getBattle()?.result || window.__game.Battle.getLastSummary?.()?.result || null,
+      }));
+      fail('aria-loyal', 'no retry after the wolf', dbg);
+      return;
+    }
+    await page.waitForFunction(() => !!window.__game?.Battle?.getBattle?.(), { timeout: 8000 }).catch(()=>{});
+    await page.evaluate(() => { window.__game.S.flags.nachklangAuto = true; window.__game.S.st.hp = window.__game.S.st.maxhp; const b=window.__game.Battle.getBattle(); if(b){ b.atbMode='wait'; } });
+    const wolf = await finishFight(page, 70000);
+    if(!wolf.ok || wolf.result!=='win'){ fail('aria-loyal', 'wolf retry did not win', wolf); return; }
+    ok('aria-pass-wolf', wolf);
+    await page.waitForFunction(() => !window.__game.Battle.getBattle() && window.__game.S.campaign.flags.passWolf, { timeout: 8000 }).catch(()=>{});
+    await sleep(500);
+    await clearDlg(page, 6);
+    const fur = await page.evaluate(() => (window.__game.S.inv||[]).some(i => /Wolfsfell/.test(i?.name||i||'')));
+    if(!fur) fail('aria-loyal', 'wolf left no pelt');
+    else ok('aria-pass-reward', { fur: true });
+    await page.evaluate(() => { window.__game.S.st.hp = window.__game.S.st.maxhp; });
+    if(!(await walkMark(page, 'boss'))){ fail('aria-loyal', 'hound mark missing'); return; }
+    const houndUp = await page.waitForFunction(() => !!window.__game?.Battle?.getBattle?.(), { timeout: 8000 }).then(()=>true).catch(()=>false);
+    if(!houndUp){ fail('aria-loyal', 'hound did not start'); return; }
+    await page.evaluate(() => { window.__game.S.flags.nachklangAuto = true; const b=window.__game.Battle.getBattle(); if(b) b.atbMode='wait'; });
+    const hound = await finishFight(page, 90000);
+    if(!hound.ok || hound.result!=='win'){ fail('aria-loyal', 'hound not won with attacks', hound); return; }
+    ok('aria-pass-hound', hound);
+    await page.waitForFunction(() => !window.__game.Battle.getBattle() && window.__game.S.campaign.flags.passClear, { timeout: 8000 }).catch(()=>{});
+    await sleep(500);
+    const cleared = await flags(page);
+    const mantle = await page.evaluate(() => (window.__game.S.inv||[]).some(i => /Passmantel/.test(i.name||'')));
+    if(!cleared.passClear || cleared.ariaRomance || !cleared.party.includes('Sekretärin Velka') || !mantle){
+      fail('aria-loyal', 'pass clear did not pay out or kept the wrong party', { ...cleared, mantle });
+    } else ok('aria-pass-clear', { party: cleared.party, mantle: true });
+    const savedPass = await persist(page);
+    if(!savedPass) fail('aria-loyal', 'pass save failed');
+    await reloadContinue(page);
+    const back = await flags(page);
+    if(!back.passClear || !back.ariaRefused || back.ariaRomance) fail('aria-loyal', 'pass reload lost the route', back);
+    else ok('aria-pass-reload', { passClear: true, party: back.party });
+  } finally {
+    await page.close().catch(()=>{});
+  }
+}
+
+async function runAriaPageOnly(browser, port, fail, ok){
+  const page = await browser.newPage();
+  await page.setViewport({ width: 1280, height: 720, isMobile: false, hasTouch: false });
+  try{
+    await bootField(page, port, 'aria-page');
+    await clearDlg(page, 14);
+    if(!(await ariaToPact(page, fail, 'aria-page'))) return;
+    if(!(await talkNpc(page, 'Aria'))){ fail('aria-page', 'Aria missing for the limit'); return; }
+    if(!(await clickChoice(page, 'Nur die Seite'))){ fail('aria-page', 'page-only choice missing'); return; }
+    await clearDlg(page, 6);
+    const set = await flags(page);
+    if(!set.ariaNoRomance || set.ariaCourt || !set.ariaPact){ fail('aria-page', 'page-only did not stick', set); return; }
+    ok('aria-page-set', { events: set.rom?.events });
+    const boss = await fieldBossWin(page);
+    if(!boss.ok){ fail('aria-page', 'page-only route did not finish the fiend', boss); return; }
+    ok('aria-page-boss', boss);
+    await clearDlg(page, 8);
+    const end = await flags(page);
+    const asked = await page.evaluate(() => /erwachsen/.test(document.getElementById('owDlgText')?.dataset?.full || ''));
+    if(end.ariaRomance || asked || !end.ariaSplit || end.party.includes('Heldin Aria') || end.party.includes('Sekretärin Velka') || !end.ariaPageTaken){
+      fail('aria-page', 'page-only still offered the night or kept the allies', { ...end, asked });
+    } else ok('aria-page-end', { party: end.party, events: end.rom?.events });
+    if(!(await walkMark(page, 'pass'))){ fail('aria-page', 'no road to the pass'); return; }
+    await clearDlg(page, 6);
+    if(!(await talkNpc(page, 'Aria'))){ fail('aria-page', 'Aria missing at the pass'); return; }
+    const line = await page.evaluate(() => document.getElementById('owDlgText')?.dataset?.full || '');
+    if(!/kein Bett|nicht gefragt|nicht willst/.test(line)) fail('aria-page', 'pass treated the page as affection', { line: line.slice(0, 160) });
+    else ok('aria-page-pass', { line: line.slice(0, 110) });
+    const saved = await persist(page);
+    if(!saved) fail('aria-page', 'save did not write');
+    await reloadContinue(page);
+    const again = await flags(page);
+    if(!again.ariaNoRomance || again.ariaRomance || !again.passArrived || again.party.includes('Sekretärin Velka')){
+      fail('aria-page', 'reload lost the page-only route', again);
+    } else ok('aria-page-reload', { party: again.party, events: again.rom?.events });
   } finally {
     await page.close().catch(()=>{});
   }
@@ -590,27 +715,30 @@ async function runAriaNo(browser, port, fail, ok){
     await bootField(page, port, 'aria-no');
     await clearDlg(page, 14);
     if(!(await ariaToCourt(page, fail, 'aria-no'))) return;
-    const seal = await openFieldSeal(page);
-    if(!seal.ok){ fail('aria-no', 'could not open the seal', seal); return; }
-    const ready = await flags(page);
-    if(!ready.ariaPageTaken || !ready.ariaCourt) fail('aria-no', 'page or court missing before the no', ready);
-    await page.evaluate(() => window.__game.OW.fieldReward(window.__game.S));
-    await sleep(300);
+    const boss = await fieldBossWin(page);
+    if(!boss.ok){ fail('aria-no', 'refusal route did not finish the fiend', boss); return; }
+    ok('aria-no-boss', boss);
     const shown = await advanceToChoice(page, 'Nein');
-    if(!shown){ fail('aria-no', 'no-button missing'); return; }
-    await fsShot(page, 'aria-refusal-choices.png');
+    if(!shown){ fail('aria-no', 'no-button missing after the fiend'); return; }
+    await fsShot(page, 'aria_refusal_after_boss.png');
     if(!(await clickChoice(page, '^Nein'))){ fail('aria-no', 'could not refuse'); return; }
     await sleep(250);
     const end = await flags(page);
-    if(end.ariaRomance || !end.ariaRomanceRefused || !end.ariaSplit || end.party.includes('Heldin Aria') || end.party.includes('Sekretärin Velka')){
+    if(end.ariaRomance || !end.ariaRomanceRefused || !end.ariaSplit || !end.beat || end.party.includes('Heldin Aria') || end.party.includes('Sekretärin Velka')){
       fail('aria-no', 'refusal still left the romance or the allies', end);
-    } else ok('aria-no', { party: end.party, events: end.rom?.events });
+    } else ok('aria-no', { party: end.party, events: end.rom?.events, beat: true });
+    if(!(await walkMark(page, 'pass'))){ fail('aria-no', 'no road to the pass'); return; }
+    await clearDlg(page, 6);
+    if(!(await talkNpc(page, 'Aria'))){ fail('aria-no', 'Aria missing at the pass'); return; }
+    const line = await page.evaluate(() => document.getElementById('owDlgText')?.dataset?.full || '');
+    if(!/nein gesagt|kein Bett|Zelt/.test(line)) fail('aria-no', 'pass ignored the refusal', { line: line.slice(0, 160) });
+    else ok('aria-no-pass', { line: line.slice(0, 110) });
     const saved = await persist(page);
     if(!saved) fail('aria-no', 'save did not write');
     await reloadContinue(page);
     const again = await flags(page);
-    if(again.ariaRomance || !again.ariaRomanceRefused) fail('aria-no', 'reload lost the refusal', again);
-    else ok('aria-no-reload', { ariaRomanceRefused: true, party: again.party });
+    if(again.ariaRomance || !again.ariaRomanceRefused || !again.passArrived) fail('aria-no', 'reload lost the refusal', again);
+    else ok('aria-no-reload', { ariaRomanceRefused: true, party: again.party, pass: true });
   } finally {
     await page.close().catch(()=>{});
   }
@@ -642,13 +770,18 @@ async function runAriaUnderage(browser, port, fail, ok){
   }
 }
 
-async function ariaToCourt(page, fail, tag){
+async function ariaToPact(page, fail, tag){
   if(!(await talkNpc(page, 'Aria'))){ fail(tag, 'Aria missing'); return false; }
   if(!(await clickChoice(page, 'Erzähl weiter'))){ fail(tag, 'motive missing'); return false; }
   await clearDlg(page, 6);
   if(!(await talkNpc(page, 'Aria'))){ fail(tag, 'Aria missing for pact'); return false; }
   if(!(await clickChoice(page, 'Ich nehm die Seite'))){ fail(tag, 'pact missing'); return false; }
   await clearDlg(page, 6);
+  return true;
+}
+
+async function ariaToCourt(page, fail, tag){
+  if(!(await ariaToPact(page, fail, tag))) return false;
   if(!(await talkNpc(page, 'Aria'))){ fail(tag, 'Aria missing for court'); return false; }
   if(!(await clickChoice(page, 'Ich frag dich danach'))){ fail(tag, 'court missing'); return false; }
   await clearDlg(page, 6);
@@ -733,6 +866,11 @@ async function flags(page){
       ariaUnderageStop: !!f.ariaUnderageStop,
       ariaSplit: !!f.ariaSplit,
       ariaAdults: !!f.ariaAdults,
+      ariaNoRomance: !!f.ariaNoRomance,
+      ariaCool: !!f.ariaCool,
+      ariaStood: !!f.ariaStood,
+      passArrived: !!f.passArrived,
+      passClear: !!f.passClear,
       step: f.ariaStep|0,
       beat: !!f.beat_lesser_fiend,
       party: S.party || [],
@@ -775,6 +913,17 @@ async function advanceToChoice(page, re){
     await sleep(180);
   }
   return false;
+}
+
+async function walkMark(page, kind){
+  await clearDlg(page, 6);
+  const m = await page.evaluate((kind) => (window.__game.OW.__debug().questMarks || []).find(x => x.kind === kind), kind);
+  if(!m) return null;
+  await stepNear(page, m.x, m.y);
+  await clearDlg(page, 4);
+  await page.keyboard.press('Enter');
+  await sleep(350);
+  return m;
 }
 
 async function openFieldSeal(page){

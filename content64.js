@@ -32,19 +32,27 @@ export const HUB_NPC_LINES = {
     'Brok: Wenn das Ding unten weiß, wer ich bin, hau nicht daneben.',
   ],
   'Wächter Toren': [
-    'Toren: Halt! Grenzpass. Pässe und Absichten, bitte.',
-    'Toren: Die Türme sehen alles. Nachtwachen sind doppelt besetzt.',
-    'Toren: Schneesturm kommt. Bleibt nahe am Feuer.',
+    'Toren: Halt. Grenzpass. Sag, wen du suchst, bevor du am Turm vorbeiläufst.',
+    'Toren: Der Hund im Ostturm hat zwei von uns geholt. Die Nachtwache ist dünn.',
+    'Toren: Schnee kommt. Bleib am Feuer, wenn du keine Klinge dabei hast.',
   ],
   'Kundschafterin Lira': [
-    'Lira: Spuren im Schnee — nicht menschlich. Ich folge ihnen.',
-    'Lira: Östlich des Bachs: Rauch. Vielleicht Banditen.',
-    'Lira: Wenn ihr geht, geht leise. Der Pass hört mit.',
+    'Lira: Spuren im Schnee. Zu groß für einen Mann. Ich geh ihnen nach, bis sie aufhören.',
+    'Lira: Östlich vom Bach steigt Rauch. Kann Banditen sein. Kann auch nur ein nasses Feuer sein.',
+    'Lira: Wenn du gehst, geh leise. Der Schnee trägt die Schritte weiter, als du denkst.',
   ],
   'Händler Bram': [
-    'Bram: Tränke, Seile, warme Decken. Gold gegen Überleben.',
-    'Bram: Der Weg nach Solmir friert zu. Packt euch warm ein.',
-    'Bram: Ich kaufe auch Beute — ohne Fragen.',
+    'Bram: Trank, Seil, eine Decke. Gold her, oder du frierst.',
+    'Bram: Der Weg nach Solmir friert zu. Nimm Wolle mit, nicht nur Stahl.',
+    'Bram: Beute kauf ich. Frag nicht, woher. Ich frag auch nicht.',
+  ],
+  'Rekrut Venn': [
+    'Venn: Ich hust noch. Zwei von uns sind im Turm geblieben.',
+    'Venn: Brok hat gesagt, er kommt. Sag ihm, er soll sich beeilen.',
+  ],
+  'Schmiedin Kael': [
+    'Kael: Stahl für den Turm. Wenn die Klinge splittert, bring sie her.',
+    'Kael: Reden wärmen nicht. Das Feuer schon. Tritt zur Seite.',
   ],
   'Priesterin Solara': [
     'Solara: Licht auf dich. Die Kathedrale hört Beichte und Bitte.',
@@ -61,9 +69,9 @@ export const HUB_NPC_LINES = {
   ],
 
   'Spionin Nyx': [
-    'Nyx: Schattenarbeit. Frag nicht, was ich gesehen habe.',
-    'Nyx: Der Pass hat Ohren. Ich auch.',
-    'Nyx: Wenn Brok fragt — ich war nie hier.',
+    'Nyx: Fünfzehn Gold, dann sag ich dir, wo der Hund steht. Ohne Gold sag ich nichts.',
+    'Nyx: Der Pass hat Ohren. Ich auch. Sprich leiser, wenn Toren in der Nähe ist.',
+    'Nyx: Wenn Brok fragt, ich war am Feuer. Mehr nicht.',
   ],
   'Akolyth Ren': [
     'Ren: Die Kerzen… Solara sagt, Zweifel sei erlaubt.',

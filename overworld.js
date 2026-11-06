@@ -263,7 +263,8 @@ const NA_SHEET = {
 };
 const NA_CELL = {
   grass: ['outdoor', [[48,128],[64,128],[48,160],[64,160]]],
-  snow: ['outdoor', [[304,344],[320,344],[288,344],[336,344]]],
+  snow: ['outdoor', [[304,344],[288,344],[320,344],[212,344],[260,344],[196,296]]],
+  trail: ['outdoor', [[288,344],[320,344],[228,344],[308,328]]],
   path: ['outdoor', [[336,256],[352,256],[192,224],[208,224]]],
   wood: ['outdoor', [[192,224],[208,224],[176,224]]],
   dun: ['interior', [[208,192],[224,192],[240,192],[256,192],[272,192],[208,208],[240,208],[224,208]]],
@@ -281,7 +282,9 @@ function naSpec(t, x, y){
   if(kind==='dungeon'){
     key=(t==='wall'||t==='void'||t==='cliff')?'wall':(t==='stone'?'dais':'dun');
   } else if(pass){
-    key=(t==='stone'||t==='wall'||t==='cliff')?'wall':'snow';
+    if(t==='stone'||t==='wall'||t==='cliff') key='wall';
+    else if(t==='path') key='trail';
+    else key='snow';
   } else if(throne){
     if(t==='wall'||t==='cliff') key='wall';
     else if(t==='carpet') key='dun';
@@ -364,6 +367,18 @@ function shadeField(ctx, t, x, y, sx, sy, tw){
     ctx.fillRect(sx, sy, tw, tw);
     ctx.fillStyle='rgba(170,178,190,0.35)';
     ctx.fillRect(sx, sy, tw, Math.max(2, tw*0.12));
+  }
+  if(/wall/.test(preset)){
+    if(t==='path'){
+      ctx.fillStyle='rgba(70,78,88,0.28)';
+      ctx.fillRect(sx, sy+tw*0.72, tw, tw*0.28);
+    } else if(t==='water'){
+      ctx.fillStyle='rgba(150,186,214,0.45)';
+      ctx.fillRect(sx, sy, tw, tw);
+    } else if(t==='sand'||t==='grass'||t==='floor'||t==='plaza'){
+      ctx.fillStyle='rgba(255,255,255,0.08)';
+      ctx.fillRect(sx, sy, tw, tw);
+    }
   }
 }
 
@@ -1119,6 +1134,7 @@ export function buildMapForLocation(S, ort){
     _hubNpcs.push({name:'Spionin Nyx', x:campX+5, y:campY+3, px:campX+5, py:campY+3, sheet:'spy', e:'🗡️', home:{x:campX+5,y:campY+3}});
     _hubNpcs.push({name:'Schmiedin Kael', x:Math.max(8,cx-2), y:Math.min(ht-6,cy+3), px:Math.max(8,cx-2), py:Math.min(ht-6,cy+3), sheet:'merchant', e:'🔨'});
     _hubNpcs.push({name:'Rekrut Venn', x:campX+6, y:campY+2, px:campX+6, py:campY+2, sheet:'guard', e:'🛡️', home:{x:campX+6,y:campY+2}});
+    _hubNpcs.push({name:'Heldin Aria', x:campX-1, y:campY+2, px:campX-1, py:campY+2, sheet:'princess', e:'⚔', home:{x:campX-1,y:campY+2}});
     questMark(Math.max(4,cx-6), Math.min(ht-4,cy+5), 'Eishöhlen am Pass', 'side');
     if(tiles[Math.min(ht-4,cy+5)]) tiles[Math.min(ht-4,cy+5)][Math.max(4,cx-6)]='door';
     try{ if(S){ S.flags=S.flags||{}; S.flags.weather='schnee'; } }catch(_){}
@@ -1822,6 +1838,18 @@ const CAST_PORT={
   'Aria':'./assets/pixel/battler/ally_aria.png',
   'Heldin Aria':'./assets/pixel/battler/ally_aria.png',
   'Noctis':'./assets/pixel/battler/ally_hero.png',
+  'Spionin Nyx':'./assets/pixel/battler/ally_spy.png',
+  'Nyx':'./assets/pixel/battler/ally_spy.png',
+  'Kundschafterin Lira':'./assets/pixel/battler/ally_spy.png',
+  'Lira':'./assets/pixel/battler/ally_spy.png',
+  'Wächter Toren':'./assets/pixel/battler/ally_guard.png',
+  'Toren':'./assets/pixel/battler/ally_guard.png',
+  'Rekrut Venn':'./assets/pixel/battler/ally_guard.png',
+  'Venn':'./assets/pixel/battler/ally_guard.png',
+  'Händler Bram':'./assets/pixel/battler/ally_merchant.png',
+  'Bram':'./assets/pixel/battler/ally_merchant.png',
+  'Schmiedin Kael':'./assets/pixel/battler/ally_merchant.png',
+  'Kael':'./assets/pixel/battler/ally_merchant.png',
 };
 function finishDlgText(){
   if(!_dlgTw) return false;
@@ -1882,7 +1910,10 @@ function enterFieldDungeon(name){
   else showDialogue('Velka','Stufen. Das Siegel ist im Norden. Neun, neun, neun. Fass nichts an, bevor ich\'s gelesen hab.','mage');
 }
 function fieldChapter(S){
-  return (S?.campaign?.chapterIdx|0)===0 && S?.campaign?.id==='nocturna';
+  return (S?.campaign?.chapterIdx|0)<=1 && S?.campaign?.id==='nocturna';
+}
+function onPassMap(){
+  return _map?.preset==='wall';
 }
 function coerceDlgText(v, fallback='…'){
   if(v==null) return fallback;
@@ -2109,6 +2140,28 @@ function resolveAriaNight(S, yes, underage){
   fadeIntimate();
   showDialogue('Aria', 'Licht aus. Was danach ist, bleibt zwischen uns. Morgen holen wir Lio.', 'princess');
 }
+export function fieldPassEnd(S){
+  if(!S) return;
+  const f=campFlags(S);
+  document.body.classList.add('field-play');
+  const beats=[];
+  if(f.ariaStood && f.ariaRomance){
+    beats.push({name:'Aria', sheet:'princess', text:'Der Hund ist still. Lio kann runter. Du hast dich vor Toren gestellt. Das war für ihn. Ob du bleibst, frag mich morgen, nicht im Schnee.'});
+  } else if(f.ariaCool || f.ariaNoRomance || f.ariaRomanceRefused){
+    beats.push({name:'Aria', sheet:'princess', text:'Der Hund ist still. Lio lebt. Das war der Handel. Ich geh mit ihm zum Feuer. Du nicht in mein Zelt.'});
+  } else if(f.ariaRefused){
+    if((S.party||[]).includes('Sekretärin Velka')) beats.push({name:'Velka', sheet:'mage', text:'Der Lärm hört auf. Venn hustet weniger, wenn sie schläft.'});
+    if((S.party||[]).includes('General Brok')) beats.push({name:'Brok', sheet:'guard', text:'Saubere Arbeit. Kein Spektakel.'});
+    beats.push({name:'Aria', sheet:'princess', text:'Ich bring Lio zum Feuer. Du hast Wort gehalten. Das ist viel. Es ist kein Versprechen.'});
+  } else {
+    beats.push({name:'Nyx', sheet:'spy', text:'Hund tot, Wache atmet. Der Mantel liegt bei der Beute. Mehr hab ich nicht gesehen.'});
+  }
+  if(f.nyxReport){
+    try{ window.__game?.C60?.recruitMember?.(S, 'Spionin Nyx', {}); }catch(_){}
+    beats.push({name:'Nyx', sheet:'spy', text:'Der Bericht ist bezahlt. Ich bleib, bis Solmir. Nicht aus Zuneigung. Aus dem Preis.'});
+  }
+  queueBeats(beats);
+}
 export function fieldReward(S){
   if(!S) return;
   const f=campFlags(S);
@@ -2145,9 +2198,136 @@ export function fieldReward(S){
   }
   queueBeats(beats);
 }
+function goToPass(S){
+  if(!S) return;
+  const f=campFlags(S);
+  f.passField=true;
+  f.passArrived=true;
+  S.campaign.chapterIdx=1;
+  S.campaign.sceneId='c2_open';
+  S.campaign.mode='scene';
+  S.campaign.dungeon=null;
+  S.world=S.world||{}; S.world.scene=S.world.scene||{};
+  S.world.scene.ort='Grenzpass';
+  S.flags=S.flags||{};
+  S.flags.c2FieldBoot=true;
+  document.body.classList.add('field-play');
+  showOverworld(S);
+  const beats=[];
+  if(f.ariaRomance && !f.ariaCool){
+    beats.push({name:'Aria', sheet:'princess', text:'Wir sind am Pass. Die Nacht bleibt die Nacht. Lio hustet da oben, und ich bin nicht deine Frau.'});
+    beats.push({name:'Toren', sheet:'guard', text:'Halt. Wer die Seite rausgerissen hat, kommt nicht mit Begleitung durch. Rede mit mir, bevor sie weitergeht.'});
+  } else if(f.ariaNoRomance || f.ariaRomanceRefused){
+    beats.push({name:'Aria', sheet:'princess', text:'Pass. Lio hustet. Du hast klar gesagt, was die Nacht nicht ist. Der Hund ist im Ostturm.'});
+  } else if(f.ariaRefused){
+    beats.push({name:'Aria', sheet:'princess', text:'Lio hustet. Die Klinge unten war die Klinge. Der Hund ist im Ostturm.'});
+    beats.push({name:'Velka', sheet:'mage', text:'Zwei Wachen fehlen. Der Hund hat sie, nicht der Schnee. Zähl sie nicht zu den Lebenden.'});
+  } else {
+    beats.push({name:'Toren', sheet:'guard', text:'Grenzpass. Der Hund im Ostturm hat die Wache geholt. Feuer ist da, wenn du eins brauchst.'});
+  }
+  queueBeats(beats);
+  try{ _hooks.save?.(); }catch(_){}
+}
+function placeMark(x,y,label,kind){
+  if(!walkable(x,y)) return false;
+  if((_questMarks||[]).some(m=>m.kind===kind && m.x===x && m.y===y)) return true;
+  _questMarks.push({x,y,label,kind});
+  return true;
+}
+function ensurePassWorld(S){
+  if(!S?.campaign?.flags?.beat_lesser_fiend || S.campaign.flags.passArrived) return;
+  if((S.campaign.chapterIdx|0)!==0) return;
+  if((_questMarks||[]).some(m=>m.kind==='pass')) return;
+  const spots=[[_hero.x,_hero.y+2],[_hero.x+1,_hero.y+1],[_hero.x-1,_hero.y+1],[_hero.x,_hero.y+1],[_hero.x+2,_hero.y]];
+  for(const [x,y] of spots){
+    if(placeMark(x|0,y|0,'Zum Pass','pass')) return;
+  }
+}
+function ensurePassJobs(S){
+  if(!onPassMap() || !S?.campaign?.flags?.passField) return;
+  const cx=Math.floor((_map.w||30)/2), cy=Math.floor((_map.h||30)/2);
+  if(!S.campaign.flags.passWolf){
+    const spots=[[cx+4,cy],[cx+5,cy+1],[cx+3,cy],[cx+4,cy+1]];
+    for(const [x,y] of spots){ if(placeMark(x,y,'Wolf','hunt')) break; }
+  }
+  if(!S.campaign.flags.beat_hellhound && !S.campaign.flags.passClear){
+    const spots=[[cx+8,cy-3],[cx+7,cy-2],[cx+9,cy-4],[cx+6,cy-3]];
+    for(const [x,y] of spots){ if(placeMark(x,y,'Höllenhund','boss')) break; }
+  }
+  const add=(name,sheet,x,y)=>{
+    if(_npcs.some(n=>n.name===name)) return;
+    if(!walkable(x,y)) return;
+    _npcs.push({name, sheet, x, y, px:x, py:y, dir:0, frame:0, e:'', home:{x,y}});
+  };
+  if((S.party||[]).includes('Sekretärin Velka')) add('Sekretärin Velka','mage', cx-1, cy+1);
+  if((S.party||[]).includes('General Brok')) add('General Brok','guard', cx-2, cy+1);
+  add('Heldin Aria','princess', cx+1, cy+2);
+}
+function passFieldLine(S, label, sh, party, f){
+  if(label==='Heldin Aria'){
+    if(f.passClear && f.ariaStood) return {text:'Der Hund ist still. Lio kann runter. Du hast dich vor Toren gestellt. Das war für Lio. Ob du bleibst, weiß ich morgen, nicht heute Nacht.'};
+    if(f.passClear && (f.ariaNoRomance || f.ariaRomanceRefused || f.ariaCool)) return {text:'Lio lebt. Das war der Handel. Mehr nicht, und nicht in meinem Zelt.'};
+    if(f.passClear && f.ariaRefused) return {text:'Lio kommt zum Feuer. Du hast Wort gehalten. Das ist viel. Es ist kein Versprechen.'};
+    if(f.ariaCool) return {text:'Fass mich nicht an. Die Nacht war die Nacht. Lio hol ich allein.'};
+    if(f.ariaStood) return {text:'Du stehst vor ihm. Gut. Das ist für Lio, nicht weil die Nacht uns was schuldet.'};
+    if(f.ariaRomance) return {text:'Die Nacht war eine Nacht. Ich bin nicht deine Frau. Lio hustet da oben. Toren will mich nicht durch. Stell dich vor mich, oder lass es.'};
+    if(f.ariaNoRomance || f.ariaRomanceRefused) return {text:'Die Seite ist draußen. Du hast klar gesagt, was du nicht willst. Der Hund frisst die Wache. Ich geh wegen Lio mit. Das ist kein Bett.'};
+    if(f.ariaRefused) return {text:'Lio hustet. Die Klinge unten war die Klinge, nicht mehr. Der Hund ist im Ostturm. Komm mit, und fang nicht von uns an.'};
+    return {text:'Lio hustet. Der Hund ist im Ostturm. Ich bin wegen ihm hier, nicht wegen dir.'};
+  }
+  if(label==='Wächter Toren'){
+    if(f.ariaStood) return {text:'Sie geht durch. Du stehst davor, also halt ich die Order. Der Hund ist trotzdem im Turm.'};
+    if(f.ariaCool) return {text:'Sie ist weg. Die Order gilt noch für dich. Ostturm, wenn du den Hund willst.'};
+    if(f.ariaRomance && !f.ariaStood){
+      return {text:'Sie bleibt stehen. Order: wer die Seite rausgerissen hat, kommt nicht mit Begleitung durch. Du entscheidest das, nicht ich.', choices:[
+        {label:'Sie geht durch.', pick:()=>{ f.ariaStood=true; noteAria(S,'toren',78,74,4); showDialogue('Aria','Du stellst dich vor ihn. Das ist für Lio. Nicht, weil die Nacht uns was schuldet.', 'princess'); }},
+        {label:'Halt sie auf.', pick:()=>{ f.ariaCool=true; leaveParty(S,['Heldin Aria']); noteAria(S,'kalt',20,10,1); showDialogue('Aria','Dann war die Nacht nur die Nacht. Lio hol ich allein.', 'princess'); }},
+      ]};
+    }
+    return {text:'Grenzpass. Der Hund im Ostturm hat zwei von uns geholt. Feuer ist da. Rein geh ich nicht.'};
+  }
+  if(label==='Spionin Nyx'){
+    if(f.nyxReport) return {text:'Ostturm, an der Kette. Licht tut ihm nichts. Eis oder Wasser, sonst Stahl. Mehr hab ich nicht verkauft.'};
+    return {text:'Fünfzehn Gold. Der Hund steht am Ostturm an der Kette. Licht tut ihm nichts. Eis oder Wasser, wenn du das hast. Sonst Stahl.', choices:[
+      {label:'Zahlen', pick:()=>{
+        if((S.st?.gold|0)<15){ showDialogue(label,'Fünfzehn. Nicht weniger.', sh); return; }
+        S.st.gold=(S.st.gold|0)-15;
+        f.nyxReport=true;
+        try{ _hooks.save?.(); }catch(_){}
+        showDialogue(label,'Ostturm. Fass die Kette nicht an. Und die Wache hat Order gegen Aria, falls sie bei dir ist. Das ist nicht meine Order.', sh);
+      }},
+      {label:'Später', pick:()=>hideDialogue()},
+    ]};
+  }
+  if(label==='Rekrut Venn'){
+    if(f.ariaSplit || f.ariaCool) return {text:'Brok ist nicht hier. Er hat gesagt, er kommt, wenn du die Nacht nicht verkaufst. Ich hust noch.'};
+    return {text:'Ich hust noch. Zwei von uns hat der Hund geholt. Wenn Brok bei dir ist, sag ihm das, bevor ihr den Turm aufmacht.'};
+  }
+  if(label==='Kundschafterin Lira'){
+    if(f.passWolf) return {text:'Der Wolf ist tot. Das Fell kannst du behalten. Der Hund im Turm ist größer, und er hört nicht auf Zuruf.'};
+    return {text:'Wolf auf dem Weg, Hund im Turm. Der Wolf ist kleiner. Trotzdem beißt er, wenn du ihm den Rücken drehst.'};
+  }
+  if(label==='Händler Bram'){
+    return {text:'Decken, Seil, ein Trank. Der Weg nach Solmir friert zu. Ich frag nicht, wen du mitbringst.'};
+  }
+  if(label==='Schmiedin Kael'){
+    return {text:'Stahl für den Turm, nicht für Reden. Wenn die Klinge splittert, bring sie her. Sonst stör mich nicht am Feuer.'};
+  }
+  if(label==='Sekretärin Velka' && party.includes(label)){
+    return {text:'Zwei Wachen fehlen. Der Hund hat sie, nicht der Schnee. Ich zähl sie nicht zu den Lebenden.'};
+  }
+  if(label==='General Brok' && party.includes(label)){
+    return {text:'Ostturm. Ich geh vor. Wenn du Aria anfasst, ohne dass sie es will, schlag ich dich. König oder nicht.'};
+  }
+  return null;
+}
 function fieldLine(S, label, sh){
   const party=(S.party||[]);
   const f=campFlags(S);
+  if(onPassMap()){
+    const pass=passFieldLine(S, label, sh, party, f);
+    if(pass) return pass;
+  }
   if(label==='Sekretärin Velka'){
     if(f.ariaSplit) return {text:'Die Seite ist raus. Mach deine Kasse allein. Ich les dir nichts mehr vor.'};
     if(f.ariaPageTaken) return {text:'Ich hab die Seite in ihrer Hand gesehen. Erklär das nach dem Fiend. Nicht jetzt.'};
@@ -2219,13 +2399,36 @@ function fieldLine(S, label, sh){
 function talkNearest(){
   const f=facingTile();
   const S=_hooks.getS?.();
-  const nearMark=(kind)=> (_questMarks||[]).find(m=>m && Math.abs((m.x|0)-f.x)<=1 && Math.abs((m.y|0)-f.y)<=1 && (m.kind===kind || (kind==='puzzle' && /siegel/i.test(String(m.label||'')))));
+  const nearMark=(kind)=> (_questMarks||[]).find(m=>{
+    if(!m) return false;
+    if(!(m.kind===kind || (kind==='puzzle' && /siegel/i.test(String(m.label||''))))) return false;
+    const byFace=Math.abs((m.x|0)-f.x)<=1 && Math.abs((m.y|0)-f.y)<=1;
+    const byHero=Math.abs((m.x|0)-_hero.x)<=1 && Math.abs((m.y|0)-_hero.y)<=1;
+    return byFace || byHero;
+  });
   const boss=nearMark('boss');
   if(boss && fieldChapter(S)){
     const open=!!S.campaign?.flags?.puzzle_c1_ledger_seal;
-    if(!open){ showDialogue('Velka','Das Siegel hält noch. Erst neun, neun, neun. Dann das Ding dahinter.','mage'); return 'locked'; }
+    const hound=/hund|turm|pass/i.test(String(boss.label||'')) || onPassMap();
+    if(!hound && !open){ showDialogue('Velka','Das Siegel hält noch. Erst neun, neun, neun. Dann das Ding dahinter.','mage'); return 'locked'; }
+    if(hound){
+      S.campaign.chapterIdx=1;
+      S.campaign.flags=S.campaign.flags||{};
+      S.campaign.flags.passField=true;
+      S.campaign.dungeon=null;
+    }
     try{ window.__game?.startFieldBoss?.(); }catch(_){}
     return 'boss';
+  }
+  const passGate=nearMark('pass');
+  if(passGate && S?.campaign?.flags?.beat_lesser_fiend && !S.campaign.flags.passArrived){
+    goToPass(S);
+    return 'pass';
+  }
+  const hunt=nearMark('hunt');
+  if(hunt && !S?.campaign?.flags?.passWolf){
+    try{ window.__game?.startFieldHunt?.(); }catch(_){}
+    return 'hunt';
   }
   const seal=nearMark('puzzle');
   if(seal && window.__game?.openC1Seal){
@@ -2591,6 +2794,8 @@ function draw(){
           if(gim.complete && gim.naturalWidth) ctx.drawImage(gim, sx, sy, tw, tw);
           else { ctx.fillStyle='#1a1520'; ctx.fillRect(sx,sy,tw,tw); }
           ctx.fillStyle='rgba(5,4,10,.55)'; ctx.fillRect(sx,sy,tw,tw);
+        } else if(_map.preset==='wall' && paintNa(ctx,'sand',x,y,sx,sy,tw,tw)){
+          ctx.fillStyle='rgba(5,4,10,.72)'; ctx.fillRect(sx,sy,tw,tw);
         } else {
           const gim=loadImg(tileUrl('grass'));
           if(gim.complete && gim.naturalWidth) ctx.drawImage(gim, sx, sy, tw, tw);
@@ -2604,12 +2809,16 @@ function draw(){
       const indoorHere=_map.kind==='dungeon'||_map.kind==='interior';
       const needsUnder = t!=='void' && t!=='wall' && t!=='floor' && t!=='carpet' && t!=='wood' && t!=='stone' && t!=='plaza' && t!=='path' && (SOLID.has(t) || t==='door' || t==='house' || t==='flower' || t==='bush' || t==='well' || t==='stall');
       if(needsUnder || t==='flower' || t==='bush' || t==='well' || t==='stall'){
-        const under = indoorHere ? 'floor' : 'grass';
-        const gim=loadImg(tileUrl(under));
-        if(gim.complete && gim.naturalWidth) ctx.drawImage(gim, sx, sy, tw, tw);
-        else { ctx.fillStyle=indoorHere?'#2a2438':'#2a5a28'; ctx.fillRect(sx,sy,tw,tw); }
+        if(_map.preset==='wall' && !indoorHere){
+          paintNa(ctx,'sand',x,y,sx,sy,tw,tw);
+        } else {
+          const under = indoorHere ? 'floor' : 'grass';
+          const gim=loadImg(tileUrl(under));
+          if(gim.complete && gim.naturalWidth) ctx.drawImage(gim, sx, sy, tw, tw);
+          else { ctx.fillStyle=indoorHere?'#2a2438':'#2a5a28'; ctx.fillRect(sx,sy,tw,tw); }
+        }
       }
-      if(t==='water' && waterIm.complete && waterIm.naturalWidth){
+      if(t==='water' && _map.preset!=='wall' && waterIm.complete && waterIm.naturalWidth){
         const fw=16;
         ctx.drawImage(waterIm, (_waterFrame%4)*fw, 0, fw, fw, sx, sy, tw, tw);
       } else if(t==='flower' || t==='bush' || t==='stall' || t==='well'){
@@ -2662,7 +2871,7 @@ function draw(){
         }
       }
       // flower overlay underlay — outdoor only (v65: never paint grass into castle/crypt)
-      if(_map.overlay?.[y]?.[x]==='flower' && t!=='grass' && t!=='path' && t!=='plaza'){
+      if(_map.preset!=='wall' && _map.overlay?.[y]?.[x]==='flower' && t!=='grass' && t!=='path' && t!=='plaza'){
         if(!(_map.kind==='interior'||_map.kind==='dungeon')){
           const gim=loadImg(tileUrl('grass'));
           if(gim.complete && gim.naturalWidth) ctx.drawImage(gim, sx, sy, tw, tw);
@@ -2827,8 +3036,13 @@ function draw(){
         ctx.fillStyle='#c44'; ctx.fillRect(sx+tw*0.2, sy+tw*0.3, tw*0.6, tw*0.6);
       }
     } else {
-      const im=loadImg(NPC_SHEETS[n.sheet]||NPC_SHEETS.default);
-      drawSprite(ctx, im, n.frame|0, n.dir|0, sx+tw*0.0, sy, tw);
+      const cast=CAST_PORT[n.name];
+      const im=loadImg(cast||NPC_SHEETS[n.sheet]||NPC_SHEETS.default);
+      if(cast && im.complete && im.naturalWidth){
+        const bob=(_animFrame%8)<4?0:Math.max(1, Math.round(tw*0.06));
+        const dw=tw*1.2, dh=tw*1.85;
+        ctx.drawImage(im, sx+(tw-dw)/2, sy+tw*0.15-bob, dw, dh);
+      } else drawSprite(ctx, im, n.frame|0, n.dir|0, sx+tw*0.0, sy, tw);
     }
     // v66: nameplate only near hero; font sized in CSS-px so desktop upscale stays mobile-sized
     const nearDist=3.2;
@@ -3598,7 +3812,8 @@ export function showOverworld(S){
   _hero.px=_hero.x; _hero.py=_hero.y; _hero.moving=false; _hero.frame=0;
   // v74: visible map encounters (NA monster sheets) — outdoor/dungeon only
   try{
-    if(built.kind==='dungeon' || built.kind==='wild' || built.preset==='wall'){
+    const authoredPass=built.preset==='wall' && S?.campaign?.flags?.passField;
+    if(!authoredPass && (built.kind==='dungeon' || built.kind==='wild' || built.preset==='wall')){
       const mons=['1','2','3','4','5','6'];
       let nEnc=built.kind==='dungeon'?4:3;
       for(let i=0;i<nEnc;i++){
@@ -3618,6 +3833,8 @@ export function showOverworld(S){
       }
     }
   }catch(_){}
+  try{ ensurePassWorld(S); }catch(_){}
+  try{ ensurePassJobs(S); }catch(_){}
   loadFog(S);
   _root.classList.remove('hidden');
   document.body.classList.add('pixel-ow','ow-fs-active');
@@ -3735,4 +3952,4 @@ export function __talkNearest(){ return talkNearest(); }
 export function __talkTo(name){ return talkTo(name); }
 export function __listNpcs(){ return _npcs.map(n=>({name:n.name,x:n.x,y:n.y,sheet:n.sheet})); }
 
-export default { mountOverworld, showOverworld, hideOverworld, refreshOverworld, isOverworldActive, buildMapForLocation, showDialogue, hideDialogue, queueBeats, fieldReward, syncDialogueFromVN, __debug, __setHero, __tryMove, __talkNearest, __talkTo, __listNpcs, get __map(){ return __map; } };
+export default { mountOverworld, showOverworld, hideOverworld, refreshOverworld, isOverworldActive, buildMapForLocation, showDialogue, hideDialogue, queueBeats, fieldReward, fieldPassEnd, syncDialogueFromVN, __debug, __setHero, __tryMove, __talkNearest, __talkTo, __listNpcs, get __map(){ return __map; } };

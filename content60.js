@@ -111,7 +111,7 @@ export const CHAPTERS = [
     dungeon: { name: 'Wachtürme am Pass', rooms: 5, boss: 'hellhound', bossName: 'Höllenhund der Vorhut' },
     recruit: { id: 'Spionin Nyx', role: 'spy', blurb: 'Nyx verkauft Berichte — und bleibt, wenn der Preis stimmt.' },
     scenes: [
-      { id: 'c2_open', speaker: 'Nyx', text: 'Wind vom Pass riecht nach Weihrauch und Angst. Aria steht dort oben wie ein Urteil. Die Kirche Solari atmet ihr im Nacken — süß, giftig. Töten. Bekehren. Verhandeln. Ich verkaufe alle drei. Manchmal sogar die Wahrheit.',
+      { id: 'c2_open', speaker: 'Nyx', text: 'Kalt hier. Aria steht am Feuer und wartet nicht auf eine Predigt. Der Hund im Ostturm hat die Wache geholt. Ich verkauf dir, wo er steht, oder du gehst selbst gucken.',
         choices: [
           { id: 'spy', label: 'Bericht kaufen (15G)', effect: 'gold-15', next: 'c2_report' },
           { id: 'recruit', label: 'Nyx anheuern', effect: 'recruit:Spionin Nyx', next: 'c2_report' },
@@ -119,36 +119,36 @@ export const CHAPTERS = [
           { id: 'dung', label: 'Wachtürme säubern', next: 'c2_dung' },
           { id: 'town', label: 'Pass-Lager', next: 'town' },
         ]},
-      { id: 'c2_report', speaker: 'Nyx', text: 'Aria trägt ein Relikt des Ersten Helden. Es … summt, wenn du nah bist. Als erkennte es Schulden. Vorsicht: Solara hat ihr gesagt, du frisst Welten. Du hungerst nur. Das ist fast schlimmer — weil es menschlich klingt.',
+      { id: 'c2_report', speaker: 'Nyx', text: 'Solara hat Aria gesagt, du frisst Welten. Ich hab die Festung gesehen. Die hungert. Das ist was anderes, und Aria weiß das noch nicht.',
         choices: [
           { id: 'meet', label: 'Erstkontakt mit Aria', next: 'c2_aria' },
           { id: 'dung', label: 'Türme zuerst', next: 'c2_dung' },
         ]},
-      { id: 'c2_side', speaker: 'Nyx', text: 'In den Turmritzen: meine Caches. Berichte über Solara. Über dich. Über einen Namen, den die Kirche löschen will: Thronhunger. Hol sie — oder lass sie verfaulen. Beides ist eine Entscheidung.',
+      { id: 'c2_side', speaker: 'Nyx', text: 'In den Turmritzen liegen meine Berichte. Solara steht drin, du stehst drin, und ein Wort, das die Kirche streichen will. Hol sie, oder lass sie nass werden.',
         choices: [
           { id: 'take', label: 'Caches bergen', effect: 'gold+25|aff:Spionin Nyx:+15', next: 'c2_side_done' },
           { id: 'leave', label: 'Lassen', next: 'c2_open' },
         ]},
-      { id: 'c2_side_done', speaker: 'Erzähler', text: 'Pergament, kalt. Solara weiß vom Thronhunger. Sie will dich nicht töten — sie will dich ersetzen. Ein sauberer Wirt für denselben Parasit.',
+      { id: 'c2_side_done', speaker: 'Nyx', text: 'Pergament, nass. Solara will dich nicht tot. Sie will jemand anderen auf dem Stuhl, mit demselben Hunger drin.',
         choices: [
           { id: 'ok', label: 'Weiter', next: 'c2_open' },
         ]},
-      { id: 'c2_aria', speaker: 'Aria', text: 'Dämonenkönig. Die Schrift sagt: du bist Hunger mit Krone. Stell dich — oder rede, bevor Stahl die einzige Sprache ist. Ich … höre einmal. Nur einmal.',
+      { id: 'c2_aria', speaker: 'Aria', text: 'Die Schrift sagt, du bist Hunger mit Krone. Ich hör das einmal. Danach Stahl, wenn du nichts Besseres hast.',
         choices: [
           { id: 'fight', label: 'Kämpfen', effect: 'battle:blood_cultist', next: 'c2_aria_after' },
           { id: 'talk', label: 'Verhandeln', effect: 'aff:Heldin Aria:+20', next: 'c2_aria_talk' },
           { id: 'spare', label: 'Zurückweichen', next: 'c2_open' },
         ]},
-      { id: 'c2_aria_talk', speaker: 'Aria', text: 'Die Kirche sagte, du frisst Welten. Deine Festung hungert nur. Kinder. Soldaten. Ein Sekretärin mit zu vielen Listen. … Ich höre zu. Einmal reicht nicht für Vertrauen. Aber für Zweifel.',
+      { id: 'c2_aria_talk', speaker: 'Aria', text: 'Die Kirche hat gesagt, du frisst Welten. Deine Festung hungert bloß. Einmal reicht nicht für Vertrauen. Für Zweifel reicht es.',
         choices: [
           { id: 'ally', label: 'Um Waffenstillstand bitten', effect: 'aff:Heldin Aria:+15', next: 'c2_open' },
           { id: 'dung', label: 'Weiter zum Pass-Dungeon', next: 'c2_dung' },
         ]},
-      { id: 'c2_aria_after', speaker: 'Aria', text: 'Stahl auf Stahl. Sie weicht — lebend. In den Augen: nicht Hass. Rechnung. Als hätte jemand die Zahlen falsch addiert.',
+      { id: 'c2_aria_after', speaker: 'Aria', text: 'Stahl auf Stahl. Sie weicht, und sie lebt. Das war keine Versöhnung. Das war eine Rechnung, die nicht aufgeht.',
         choices: [
           { id: 'next', label: 'Weiter', next: 'c2_dung' },
         ]},
-      { id: 'c2_dung', speaker: 'Erzähler', text: 'Die Wachtürme stinken nach Schwefel und gebrochenen Gelübden. Die Vorhut der Kirche hält einen Höllenhund in Ketten — oder er hält sie. Ketten klingen wie Gebete, die niemand meint.',
+      { id: 'c2_dung', speaker: 'Nyx', text: 'Die Türme stinken nach Schwefel. Die Vorhut hat einen Höllenhund an der Kette, oder er hat sie. Geh rein, oder geh zurück ans Feuer.',
         choices: [
           { id: 'enter', label: 'Dungeon betreten', effect: 'dungeon:c2', next: 'dungeon' },
           { id: 'back', label: 'Zurück', next: 'c2_open' },
@@ -644,6 +644,12 @@ export function resolveChoice(S, choice, hooks={}){
     S.st=S.st||{}; S.st.hp=Math.max(1,(S.st.hp|0)-12);
     return showPack(S, { speaker:'Velka', text:'Das ist nicht seine Hand. Brok zieht dich zurück, bevor das Siegel mehr nimmt als Luft. Zwölf Schaden. Die Kerben warten: neun, neun, neun.', choices:[{id:'c',label:'Erneut versuchen',next:'dungeon'}] }, note);
   }
+  if(next==='pass_hunt'){
+    S.campaign.mode='scene';
+    S.campaign.flags=S.campaign.flags||{};
+    S.campaign.flags.passField=true;
+    return showPack(S, { speaker:'Lira', text:'Der Wolf ist tot. Das Fell kannst du behalten. Der Hund im Turm ist größer, und er hört nicht auf Zuruf.', choices:[] }, note);
+  }
   if(next==='boss_pending' || next==='boss_win'){
     // Battle starts via pendingBattle; onEnd calls onBossVictory. Never advance pre-fight
     // (boss_win was the v58 label — kept as alias so old choice objs cannot softlock).
@@ -686,13 +692,26 @@ export function onBossVictory(S, hooks={}){
   S.campaign.mode='scene';
   S.campaign.dungeon=null;
   S.st=S.st||{}; S.st.gold=(S.st.gold|0)+50; S.st.xp=(S.st.xp|0)+80;
-  if(ch.recruit?.id){ recruitMember(S, ch.recruit.id, hooks); }
+  if(ch.recruit?.id && !(ch.id==='c2' && S.campaign.flags?.passField)){ recruitMember(S, ch.recruit.id, hooks); }
   // v70: chapter-1 reward beat before advancing
   if(ch?.id==='c1'){
     const reward=ch.scenes.find(s=>s.id==='c1_reward')||ch.scenes[0];
     S.campaign.sceneId=reward.id;
     hooks.toast?.('Kapitel 1 — Fiend besiegt!');
     return showPack(S, reward, `Boss besiegt. +50 Gold. ${ch.recruit?.blurb||''}`);
+  }
+  if(ch?.id==='c2' && S.campaign.flags?.passField){
+    S.campaign.mode='scene';
+    S.campaign.dungeon=null;
+    S.campaign.sceneId='c2_field';
+    S.world.scene.ort='Grenzpass';
+    S.flags=S.flags||{};
+    S.flags.owNeedsRefresh=true;
+    S.campaign.flags.passClear=true;
+    S.inv=S.inv||[];
+    S.inv.push({name:'Passmantel', icon:'🧥', type:'armor'});
+    hooks.toast?.('Der Hund ist tot.');
+    return showPack(S, { speaker:'Aria', text:'Der Hund ist still. Lio kann runter.', choices:[] }, '');
   }
   if((S.campaign.chapterIdx|0) < CHAPTERS.length-1){
     S.campaign.chapterIdx = (S.campaign.chapterIdx|0)+1;
