@@ -694,6 +694,7 @@ export async function runAriaLoyal(browser, port, fail, ok){
 
     if(!(await walkMark(page, 'pass'))){ fail('aria-loyal', 'no road to the pass'); return; }
     await clearDlg(page, 8);
+    if(!(await assertCampSpace(page, fail, ok, 'aria-loyal'))) return;
     if(!(await talkNpc(page, 'Aria'))){ fail('aria-loyal', 'Aria missing at the pass'); return; }
     const loyalLine = await page.evaluate(() => document.getElementById('owDlgText')?.dataset?.full || '');
     if(!/Lio hustet|Klinge/.test(loyalLine)) fail('aria-loyal', 'pass line assumed a romance', { loyalLine: loyalLine.slice(0, 160) });
@@ -961,6 +962,51 @@ async function bootField(page, port, tag){
   });
   if(coach) await page.click('#btnCoachOk');
   await page.waitForFunction(() => (document.getElementById('owDlgText')?.dataset?.full || '').length > 30, { timeout: 8000 }).catch(()=>{});
+}
+
+async function assertCampSpace(page, fail, ok, tag){
+  const report = await page.evaluate(() => {
+    const d = window.__game.OW.__debug();
+    const npcs = (d.npcs||[]).filter(n => !String(n.name||'').startsWith('Wildnis'));
+    const blocks = (d.campAudit && d.campAudit.blocks) || [];
+    const wall = (d.campAudit && d.campAudit.wall) || [];
+    const problems = [];
+    const cheb = (a,b) => Math.max(Math.abs(a.x-b.x), Math.abs(a.y-b.y));
+    for(let i=0;i<npcs.length;i++){
+      for(let j=i+1;j<npcs.length;j++){
+        if(cheb(npcs[i], npcs[j]) < 2) problems.push({type:'npc', a:npcs[i].name, b:npcs[j].name, ax:npcs[i].x, ay:npcs[i].y, bx:npcs[j].x, by:npcs[j].y});
+      }
+      for(const b of blocks){
+        if(npcs[i].x===b.x && npcs[i].y===b.y) problems.push({type:'prop', who:npcs[i].name, prop:b.kind, x:b.x, y:b.y});
+      }
+    }
+    const hero = d.hero;
+    for(const b of blocks){
+      if(b.kind!=='spawn' && b.kind!=='wolf' && hero && hero.x===b.x && hero.y===b.y) problems.push({type:'hero-prop', prop:b.kind});
+    }
+    const set = new Set(wall.map(c => c.x+','+c.y));
+    const seen = new Set();
+    let parts = 0;
+    for(const c of wall){
+      const start = c.x+','+c.y;
+      if(seen.has(start)) continue;
+      parts++;
+      const q=[start];
+      seen.add(start);
+      while(q.length){
+        const [x,y] = q.pop().split(',').map(Number);
+        for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){
+          const nk=(x+dx)+','+(y+dy);
+          if(set.has(nk) && !seen.has(nk)){ seen.add(nk); q.push(nk); }
+        }
+      }
+    }
+    if(wall.length && parts!==1) problems.push({type:'wall', parts, n:wall.length});
+    return {problems, npcs: npcs.map(n=>({name:n.name,x:n.x,y:n.y})), parts};
+  });
+  if(!report || report.problems.length){ fail(tag, 'camp spacing', report); return false; }
+  ok(tag+'-space', {people: report.npcs.length, wall: report.parts});
+  return true;
 }
 
 async function clearDlg(page, n=8){

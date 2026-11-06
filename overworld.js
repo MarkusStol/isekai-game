@@ -339,6 +339,20 @@ function paintPassTile(ctx, t, x, y, sx, sy, tw){
   const im=loadImg(PASS_SNOW[0]);
   if(im.complete && im.naturalWidth) ctx.drawImage(im, 0, 0, im.naturalWidth, im.naturalHeight, sx, sy, tw, tw);
   else ctx.fillStyle=SNOW, ctx.fillRect(sx, sy, tw, tw);
+  const north=_map.tiles?.[y-1]?.[x];
+  if(north==='stone'||north==='wall'||north==='cliff'){
+    ctx.fillStyle='rgba(62,74,88,0.20)';
+    ctx.fillRect(sx, sy, tw, Math.max(3, Math.round(tw*0.42)));
+  }
+  if(t==='path'){
+    ctx.fillStyle='rgba(98,114,128,0.10)';
+    ctx.fillRect(sx, sy, tw, tw);
+  } else if((x%8)===3 && (y%7)===2){
+    ctx.fillStyle='rgba(176,190,204,0.45)';
+    ctx.beginPath();
+    ctx.ellipse(sx+tw*0.5, sy+tw*0.66, tw*0.42, tw*0.16, 0, 0, Math.PI*2);
+    ctx.fill();
+  }
   return true;
 }
 function paintNa(ctx, t, x, y, dx, dy, dw, dh){
@@ -996,89 +1010,64 @@ export function buildMapForLocation(S, ort){
   } else if(preset==='wall'){
     // v62: natural mountain pass — irregular cliffs, frozen stream, tall towers, camp
     kind='wild';
-    const rnd=(n)=>((h*1103515245+n*12345)>>>0)%100;
     for(let y=0;y<ht;y++) for(let x=0;x<w;x++){
       tiles[y][x] = (x<2 || x>=w-2) ? 'stone' : 'sand';
     }
-    for(let y=1;y<ht-1;y++){
-      if(tiles[y]?.[cx]) tiles[y][cx]='path';
-      if(tiles[y]?.[cx+1]) tiles[y][cx+1]='path';
+    // One shelter: north bar joined to a west leg and a shorter east leg. The east road at spawn height stays open.
+    const wallY=cy-5;
+    for(let x=cx-7;x<=cx+7;x++){ if(tiles[wallY]) tiles[wallY][x]='stone'; }
+    for(let y=wallY;y<=cy+2;y++){ if(tiles[y]) tiles[y][cx-7]='stone'; }
+    for(let y=wallY;y<=cy-1;y++){ if(tiles[y]) tiles[y][cx+7]='stone'; }
+    for(let y=2;y<ht-2;y++){
+      if(tiles[y]?.[cx] && tiles[y][cx]!=='stone') tiles[y][cx]='path';
+      if(tiles[y]?.[cx+1] && tiles[y][cx+1]!=='stone') tiles[y][cx+1]='path';
     }
-    // frozen stream — continuous meander with soft banks (not square pools)
-    let sx=6, sy=2;
-    while(sy<ht-2){
-      const mid=Math.max(4, Math.min(11, Math.round(sx+Math.sin(sy*0.22)*1.1)));
-      for(let k=0;k<=1;k++){
-        const xx=mid+k;
-        if(tiles[sy]?.[xx] && tiles[sy][xx]!=='stone') tiles[sy][xx]='water';
-      }
-      sx = mid;
-      sy++;
+    for(let x=cx+2;x<=cx+14;x++){
+      if(tiles[cy]?.[x] && tiles[cy][x]!=='stone') tiles[cy][x]='path';
     }
-    // v63: curved cliff bands (noise ridge, not diagonal brick stairs)
-    const ridge=(y0)=>{
-      for(let x=3;x<w-3;x++){
-        if(Math.abs(x-cx)<=4) continue;
-        if(tiles[y0]?.[x] && tiles[y0][x]!=='water') tiles[y0][x]='stone';
-      }
-    };
-    ridge(5); ridge(ht-6);
-    // pass camp with fire (near spawn so towers+NPCs are on camera)
-    const campX=cx-3, campY=Math.max(8, cy-1);
-    fill(campX, campY, 7, 5, 'sand');
-    // tall watchtowers flanking the camp (visible at spawn)
-    const twY=Math.max(3, campY-2);
-    overhead.push({x:campX-6,y:twY,src:DECOR.watchtower,tw:2.4,th:4,label:'Wachturm West'});
-    overhead.push({x:campX+8,y:twY,src:DECOR.watchtower,tw:2.4,th:4,label:'Wachturm Ost'});
-    prop(campX+3, campY+2, 'campfire');
-    anim(campX+3, campY+2, 'torch');
-    prop(campX+1, campY+2, 'barrel');
-    prop(campX+2, campY+3, 'bench');
-    prop(campX+4, campY+3, 'bench');
-    overhead.push({x:campX+9, y:campY-2, src:DECOR.pine, tw:2, th:3, label:'pine'});
-    overhead.push({x:campX-5, y:campY, src:DECOR.pine, tw:2, th:3, label:'pine'});
-    // scrub grass/tree leftovers → snow (no green plateaus)
-    for(let y=0;y<ht;y++) for(let x=0;x<w;x++){
-      if(tiles[y][x]==='grass' || tiles[y][x]==='tree') tiles[y][x]='sand';
+    const blocks=[
+      {x:cx, y:cy, kind:'spawn'},
+      {x:cx-1, y:cy+2, kind:'fire'},
+      {x:cx-2, y:cy+2, kind:'bench'},
+      {x:cx+2, y:cy+2, kind:'bench'},
+      {x:cx-5, y:cy-1, kind:'barrel'},
+      {x:cx+4, y:cy-2, kind:'chest'},
+      {x:cx+2, y:cy, kind:'wolf'},
+    ];
+    for(const b of blocks){
+      if(b.kind==='spawn'||b.kind==='wolf') continue;
+      if(tiles[b.y]) tiles[b.y][b.x]='sand';
     }
-
-    placeChest(cx+2, cy-1, {gold:15, item:'Eisen-Schild'});
+    prop(cx-1, cy+2, 'campfire');
+    anim(cx-1, cy+2, 'torch');
+    prop(cx-5, cy-1, 'barrel');
+    prop(cx-2, cy+2, 'bench');
+    prop(cx+2, cy+2, 'bench');
+    overhead.push({x:cx+8, y:cy-1, src:DECOR.watchtower, tw:2.1, th:3.1, label:'Wachturm'});
+    overhead.push({x:cx-8, y:cy-1, src:DECOR.pine, tw:1.6, th:2.4, label:'pine'});
+    const seats=[
+      {name:'Wächter Toren', sheet:'guard', e:'🛡️', x:cx-4, y:cy-2},
+      {name:'Schmiedin Kael', sheet:'merchant', e:'🔨', x:cx-2, y:cy-3},
+      {name:'Kundschafterin Lira', sheet:'spy', e:'🕵️', x:cx+2, y:cy-3},
+      {name:'Händler Bram', sheet:'merchant', e:'🧳', x:cx+5, y:cy+3},
+      {name:'Spionin Nyx', sheet:'spy', e:'🗡️', x:cx+4, y:cy+1},
+      {name:'Rekrut Venn', sheet:'villager', e:'🛡️', x:cx-5, y:cy+2},
+      {name:'Heldin Aria', sheet:'princess', e:'⚔', x:cx, y:cy+4},
+    ];
+    questMark._campAudit={blocks, npcs:seats.map(s=>({name:s.name,x:s.x,y:s.y}))};
+    for(const s of seats){
+      _hubNpcs.push({name:s.name, x:s.x, y:s.y, px:s.x, py:s.y, sheet:s.sheet, e:s.e, home:{x:s.x,y:s.y}});
+    }
+    placeChest(cx+4, cy-2, {gold:15, item:'Eisen-Schild'});
     placeChest(8, 11, {gold:10, item:'Antidot'});
     placeChest(w-9, cy+2, {gold:18, item:'Nyx-Bericht'});
-    questMark(cx, 7, 'Grenzpass', 'story');
-    // camp NPCs with context
-        placeHouse(Math.max(8,cx-3), Math.min(ht-8, cy+8), 'Herberge', {variant:3});
-    // Around the fire, on the path, so they stay in frame while someone is talking.
-    // Spawn sits one tile north of the fire; leave that tile empty.
-    const fireX=campX+3, fireY=campY+2;
-    const taken=new Set([cx+','+cy]);
-    const campSpot=(dx,dy)=>{
-      const solid=new Set(['wall','water','tree','void','house','ruin','fence','well','stall']);
-      const x0=fireX+dx, y0=fireY+dy;
-      for(let r=0;r<4;r++){
-        for(let oy=-r;oy<=r;oy++) for(let ox=-r;ox<=r;ox++){
-          const xx=Math.max(2, Math.min(w-3, x0+ox));
-          const yy=Math.max(2, Math.min(ht-3, y0+oy));
-          const key=xx+','+yy;
-          if(taken.has(key)) continue;
-          const t=tiles[yy]?.[xx];
-          if(t && !solid.has(t)){ taken.add(key); return {x:xx,y:yy}; }
-        }
-      }
-      if(tiles[y0]) tiles[y0][x0]='path';
-      taken.add(x0+','+y0);
-      return {x:x0,y:y0};
-    };
-    // Off the east and north roads out of camp, so walking to a mark does not bump someone.
-    const nyx=campSpot(3,1), toren=campSpot(-2,0), lira=campSpot(2,-2);
-    const kael=campSpot(-2,-2), bram=campSpot(2,1), venn=campSpot(-2,1), aria=campSpot(0,1);
-    _hubNpcs.push({name:'Wächter Toren', x:toren.x, y:toren.y, px:toren.x, py:toren.y, sheet:'guard', e:'🛡️', home:toren});
-    _hubNpcs.push({name:'Kundschafterin Lira', x:lira.x, y:lira.y, px:lira.x, py:lira.y, sheet:'spy', e:'🕵️', home:lira});
-    _hubNpcs.push({name:'Schmiedin Kael', x:kael.x, y:kael.y, px:kael.x, py:kael.y, sheet:'merchant', e:'🔨', home:kael});
-    _hubNpcs.push({name:'Händler Bram', x:bram.x, y:bram.y, px:bram.x, py:bram.y, sheet:'merchant', e:'🧳', home:bram});
-    _hubNpcs.push({name:'Spionin Nyx', x:nyx.x, y:nyx.y, px:nyx.x, py:nyx.y, sheet:'spy', e:'🗡️', home:nyx});
-    _hubNpcs.push({name:'Rekrut Venn', x:venn.x, y:venn.y, px:venn.x, py:venn.y, sheet:'villager', e:'🛡️', home:venn});
-    _hubNpcs.push({name:'Heldin Aria', x:aria.x, y:aria.y, px:aria.x, py:aria.y, sheet:'princess', e:'⚔', home:aria});
+    questMark(cx, cy-4, 'Grenzpass', 'story');
+    const wall=[];
+    for(let x=cx-7;x<=cx+7;x++) wall.push({x, y:wallY});
+    for(let y=wallY;y<=cy+2;y++) wall.push({x:cx-7, y});
+    for(let y=wallY;y<=cy-1;y++) wall.push({x:cx+7, y});
+    questMark._campAudit.wall=wall;
+    placeHouse(Math.max(8,cx-3), Math.min(ht-8, cy+9), 'Herberge', {variant:3});
     questMark(Math.max(4,cx-6), Math.min(ht-4,cy+5), 'Eishöhlen am Pass', 'side');
     if(tiles[Math.min(ht-4,cy+5)]) tiles[Math.min(ht-4,cy+5)][Math.max(4,cx-6)]='door';
     try{ if(S){ S.flags=S.flags||{}; S.flags.weather='schnee'; } }catch(_){}
@@ -1695,7 +1684,7 @@ export function buildMapForLocation(S, ort){
     exits.push({x:qm.x,y:qm.y,to:dest, sideDungeon:true, label:lab||dest});
     if(tiles[qm.y]){ tiles[qm.y][qm.x]='door'; if(overlay[qm.y]) overlay[qm.y][qm.x]=null; }
   }
-  return {w,h:ht,tiles,overlay,doors:exits,spawn:{x:sx,y:sy},kind,name,npcs,interiors,overhead,animators,preset,chests,lights,questMarks:qmarks};
+  return {w,h:ht,tiles,overlay,doors:exits,spawn:{x:sx,y:sy},kind,name,npcs,interiors,overhead,animators,preset,chests,lights,questMarks:qmarks,campAudit:questMark._campAudit||null};
 }
 
 function walkable(x,y){
@@ -2248,7 +2237,7 @@ function ensurePassJobs(S){
     for(const [x,y] of spots){ if(placeMark(x,y,'Höllenhund','boss')) break; }
   }
   if(S.campaign.flags.passArrived && !S.campaign.flags.solmirArrived){
-    const spots=[[cx,cy-3],[cx-1,cy-3],[cx+1,cy-3],[cx,cy-4]];
+    const spots=[[cx,cy-2],[cx+1,cy-2],[cx,cy-1],[cx+1,cy-1]];
     for(const [x,y] of spots){ if(placeMark(x,y,'Nach Solmir','solmir')) break; }
   }
   const add=(name,sheet,x,y)=>{
@@ -4115,7 +4104,7 @@ export function syncDialogueFromVN(){
 }
 
 export function __debug(){
-  return {active:_active, desktop:_desktop, scale:_intScale, view:{w:_viewW,h:_viewH}, renderView:{w:_lastViewW,h:_lastViewH}, hero:{..._hero}, map:{w:_map.w,h:_map.h,name:_map.name,kind:_map.kind,preset:_map.preset,overhead:(_overhead||[]).length}, overhead:_overhead.slice(0,8), npcs:_npcs.map(n=>({name:n.name,x:n.x,y:n.y,slot:n._calSlot,cal:!!n.calendar,pace:n.pace})), questMarks:_questMarks.slice(), chests:_chests.slice(0,8), doors:_map.doors, fog:{explored:_explored.size, visible:_visible.size}};
+  return {active:_active, desktop:_desktop, scale:_intScale, view:{w:_viewW,h:_viewH}, renderView:{w:_lastViewW,h:_lastViewH}, hero:{..._hero}, map:{w:_map.w,h:_map.h,name:_map.name,kind:_map.kind,preset:_map.preset,overhead:(_overhead||[]).length}, overhead:_overhead.slice(0,8), npcs:_npcs.map(n=>({name:n.name,x:n.x,y:n.y,slot:n._calSlot,cal:!!n.calendar,pace:n.pace})), questMarks:_questMarks.slice(), chests:_chests.slice(0,8), doors:_map.doors, campAudit:_map.campAudit||null, fog:{explored:_explored.size, visible:_visible.size}};
 }
 export function __setHero(x,y){ if(!_hero) return false; _hero.x=+x; _hero.y=+y; _hero.px=_hero.x; _hero.py=_hero.y; _hero.moving=false; try{draw();}catch(_){} return true; }
 export function __tryMove(dx,dy){ return tryMove(dx,dy); }
