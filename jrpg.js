@@ -144,7 +144,7 @@ export function tickStagger(foe, log){
 
 export function rollDamage(attacker, target, skill, opts={}){
   const pow=skill.pow||1;
-  const mag=/feuer|eis|blitz|wasser|wind|erde|licht|dunkel|gift|techno/.test(skill.elem||'');
+  const mag=/feuer|eis|blitz|wasser|wind|erde|licht|dunkel|gift|techno|tinte/.test(skill.elem||'');
   const base=mag?(attacker.mag||6):(attacker.atk||8);
   let def=mag?(target.def||4)*0.6:(target.def||4);
   // Protect / Shell

@@ -168,7 +168,7 @@ try{ // v63 scrub AI cfg from localStorage
 
  // v41: test-only scripted, fair ATB bosses, boss dialogue talk-down, tilemap minimap, craft XP→T4
 const $=s=>document.querySelector(s);const $$=s=>[...document.querySelectorAll(s)];const R=a=>a[Math.floor(Math.random()*a.length)];const rnd=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
-const VER='74',CACHE_V='v74';
+const VER='75',CACHE_V='v75';
 try{document.body.classList.add('pc-only','ow-desktop');document.body.classList.remove('touch-ui');}catch(_){}
 
 const FREETEXT_ENABLED = false; // v63: classic JRPG only — free-text archived on freetext-archive
@@ -1429,6 +1429,12 @@ async function jrpgPick(ch){
     }catch(e){ console.warn('jrpg-battle',e); }
   }
   applyJrpgPack(pack);
+}
+function openC1Seal(){
+  try{
+    if(!S?.campaign) return;
+    applyJrpgPack(C60.dungeonMenu(S));
+  }catch(e){ console.warn('seal', e); }
 }
 function applyJrpgPack(pack){
   if(!pack) return;
@@ -3714,18 +3720,19 @@ function openSheet(){
   try{ if($('#dbgToggle')) $('#dbgToggle').checked=!!cfg.debug; }catch(_){}
   try{ if($('#battleDiff')) $('#battleDiff').value=cfg.battleDiff||'normal'; }catch(_){}
   try{ if($('#atbMode')) $('#atbMode').value=cfg.atbMode||'active'; }catch(_){}
+  try{ if($('#nachklangAuto')) $('#nachklangAuto').checked=!!(cfg.nachklangAuto||S?.flags?.nachklangAuto); }catch(_){}
   try{ $('#sheet').classList.remove('hidden'); }catch(_){}
 }
 try{ const m=$('#mode'); if(m) m.onchange=()=>{ cfg.mode='offline'; m.value='offline'; }; }catch(_){}
 $('#btnClose').onclick=()=>{$('#sheet').classList.add('hidden'); try{document.body.classList.remove('sheet-open');document.documentElement.classList.remove('sheet-open')}catch(_){};};
 function saveCfgFromUI(){
-  cfg={v2:1,gkey:'',pollenKey:'',mode:'offline',wmodel:cfg.wmodel||'',aurl:'',akey:'',amodel:'',debug:!!($('#dbgToggle')&&$('#dbgToggle').checked),battleDiff:$('#battleDiff')?.value||'normal',atbMode:$('#atbMode')?.value||'active'};
+  cfg={v2:1,gkey:'',pollenKey:'',mode:'offline',wmodel:cfg.wmodel||'',aurl:'',akey:'',amodel:'',debug:!!($('#dbgToggle')&&$('#dbgToggle').checked),battleDiff:$('#battleDiff')?.value||'normal',atbMode:$('#atbMode')?.value||'active',nachklangAuto:!!($('#nachklangAuto')&&$('#nachklangAuto').checked)};
   localStorage.setItem(CFG,JSON.stringify(cfg));
   return cfg;
 }
 $('#btnSave').onclick=()=>{
   saveCfgFromUI();
-  if(S){S.cfgBattleDiff=cfg.battleDiff||'normal';S.cfgAtbMode=cfg.atbMode||'active'}
+  if(S){S.cfgBattleDiff=cfg.battleDiff||'normal';S.cfgAtbMode=cfg.atbMode||'active';S.flags=S.flags||{};S.flags.nachklangAuto=!!cfg.nachklangAuto}
   toast('Einstellungen gespeichert');
   $('#sheet').classList.add('hidden');
   try{document.body.classList.remove('sheet-open');document.documentElement.classList.remove('sheet-open')}catch(_){};
@@ -3739,6 +3746,7 @@ try{ const bms=$('#btnMusicSheet'); if(bms) bms.onclick=()=>{ try{ $('#btnMusic'
 
 window.__setCfg=o=>{cfg=Object.assign(cfg||{},o||{},{mode:'offline',gkey:'',pollenKey:''});try{localStorage.setItem(CFG,JSON.stringify(cfg))}catch(_){}};window.__game={VER,hud,syncOwHud,FREETEXT_ENABLED,jrpgPick,applyJrpgPack,syncFreetextUI,Aud,toast,clearTypewrite,renderChoices,C39,C40,C41,C42,C43,C44,C45,C46,C47,C48,C49,C50,C51,C52,C53,C54,C55,C56,C57,C58,C59,C60,C61,C62,C63, C64, C66, C67, C70,Cut40,updateNarratorDot,narratorStatusText,openSheet,setBusy,forceUnbusy,ACT_HARD_MS,V25,OW,Depth,Battle,Jobs,Gems,Summons,Equip,Jrpg,localBeatLine,parsePlayerIntent,offlineRespondIntent,freeStream,FREE_MODEL,msgsLean,FREE_URLS,openPendingEncounter,Imm,discoverThing,showCodexInline,Level,UI14,UI17,Know,Cont,lastPromptDump,advanceTimeMinutes,applyActionDuration,newGrey,greyDetails,loadGrey,loadPack,get S(){return S},act,newLife,gBody,msgs,gmRank,gmProbe,parseStream,thinkingCfg,gmOrder,readSSE,STREAM_DELIM,migrate,worldTick,bumpRel,openMenu,closeMenu,openInn,closeInn,openPixelShop,openRegionTravelMap,stageName,offline,startIntro,setSceneImage,setPortrait,imgUrl,advanceTime,phaseLabel,typewrite,enterPlay,showTitle,analyzeImage,applySceneTheme,themeFromText,loadValidatedImage,openingNarration,travelTo,parseTravel,killNPC,robNPC,addMemory,memoryHint,startProcedural,offlineGenerateWorld,generateWorldPack,GENRES,travelChoices,ensureGraph,whoHere,parseLifeSim,Sim,Persist,WorldMap,TravelMap,Cut31,Econ,Codex,UI13,save,loadSave,applyCatchUp,findAnyNpc,placeFlavorText,enrichPlaceDescs};
 window.__game.askNPC=a=>askNPC(a);window.__game.gemini=gemini;
+window.__game.openC1Seal=openC1Seal;
 try{ syncFreetextUI(); }catch(_){};
 if(cfg.gkey)gmFetch(cfg.gkey.trim()).then(()=>gmProbe(cfg.gkey.trim()).catch(()=>{})).catch(()=>{});
 (function(){const root=document.documentElement;const apply=()=>{try{const vv=window.visualViewport;if(!vv)return;const kb=Math.max(0,window.innerHeight-vv.height-vv.offsetTop);root.style.setProperty('--kb',kb+'px')}catch(_){}};

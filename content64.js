@@ -22,14 +22,14 @@ export const HUB_NPC_LINES = {
   ],
 
   'Sekretärin Velka': [
-    'Velka: Die Register sind bereit, Fürst. Die Zahlen lügen nicht.',
-    'Velka: Drei Posten fehlen noch. Soll ich Mahnung schreiben?',
-    'Velka: Am Thron wartet mehr als Gold — auch Schuld.',
+    'Velka: Vierzehn Gold, und Venn hustet Staub. Lies das, bevor du mich nützlich nennst.',
+    'Velka: Unter dem Sitz: drei Kerben. Neun, neun, neun. Dieselbe Folge wie in deiner Handschrift.',
+    'Velka: Ich habe die Feder gehalten, weil seine Hand schon Gold war. Sag es laut, wenn du mich hasst.',
   ],
   'General Brok': [
-    'Brok: Die Wachen halten. Sag, wen wir zerschlagen sollen.',
-    'Brok: Grenzpass meldet Bewegung. Ich schicke Speere.',
-    'Brok: Ein guter Schlag sagt mehr als zehn Edikte.',
+    'Brok: In der letzten Woche hieß ich für ihn nur noch Soldat. Nicht Brok.',
+    'Brok: Eine Nacht am Pass, oder Venn stirbt an ihrer Tinte. Ich schreie nicht. Heute nicht.',
+    'Brok: Wenn es meinen Namen kennt, schlag nicht daneben.',
   ],
   'Wächter Toren': [
     'Toren: Halt! Grenzpass. Pässe und Absichten, bitte.',
@@ -71,14 +71,19 @@ export const HUB_NPC_LINES = {
     'Ren: Verzeihung. Ich muss die Gänge fegen.',
   ],
   'Heldin Aria': [
-    'Aria: Ich kämpfe, wenn Worte versagen. Bleib wachsam.',
-    'Aria: Das Glas dort… es erinnert mich an einen Eid.',
-    'Aria: Braucht ihr eine Klinge, ruft mich.',
+    'Aria: Lio hält die zweite Wache. Ich bin nicht hier, um zu knien.',
+    'Aria: Wenn das Ding unten seinen Namen sagt, schlagt weiter. Ich kann das nicht.',
+    'Aria: Ich gehe mit in den Keller. Danach gehe ich. Das ist kein Bündnis.',
   ],
   'Grabräuber Jex': [
-    'Jex: Was guckst du? Hier ist nichts… noch.',
-    'Jex: Die Toten schweigen. Wir auch — für Gold.',
-    'Jex: In der Westkammer klirrt etwas. Interessiert?',
+    'Jex: Ich nehme Münzen, keinen Staub. Der Fiend zahlt in beidem.',
+    'Jex: Westkammer klirrt. Ostkammer hustet. Ich bleibe in der Mitte.',
+    'Jex: Drei Neunen, sagen sie. Ich kann nicht zählen, wenn die Knochen zählen.',
+  ],
+  'Imp-Schuldner': [
+    'Imp: Schulden, Schulden. Dein Name steht schon in der Spalte.',
+    'Imp: Der König hat uns noch gekannt. Du riechst nach seiner Feder.',
+    'Imp: Schlag im Takt. Sonst wird der Schlag dünn.',
   ],
   'Chronistin Mara': [
     'Mara: Ich schreibe, was bleibt. Namen verblassen sonst.',

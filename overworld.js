@@ -183,6 +183,8 @@ function preload(){
   for(let i=0;i<4;i++) loadImg(`./assets/pixel/decor/town_hall_${i}.png`);
   Object.values(ARCH_GENRE).forEach(arr=>arr.forEach(loadImg));
   loadImg('./assets/pixel/hero/walk.png');
+  loadImg('./assets/pixel/tiles-na/sheets/outdoor.png');
+  loadImg('./assets/pixel/tiles-na/sheets/interior_floor.png');
   loadImg(WATER_ANIM);
   for(const pack of Object.values(GENRE_SET)){
     for(const k of Object.keys(BASE_TILES)){
@@ -252,6 +254,52 @@ function wangUrlFor(t,x,y){
   if(t==='door') return NA + 'door.png';
   if(t==='stairs') return NA + 'stairs.png';
   return base;
+}
+
+/** Real Ninja Adventure sheet cells (16px). Repeating tiles only — not the peach cut/ placeholders. */
+const NA_SHEET = {
+  outdoor: './assets/pixel/tiles-na/sheets/outdoor.png',
+  interior: './assets/pixel/tiles-na/sheets/interior_floor.png',
+};
+const NA_CELL = {
+  grass: ['outdoor', [[48,128],[64,128],[48,160],[64,160]]],
+  snow: ['outdoor', [[304,344],[320,344],[288,344],[336,344]]],
+  path: ['outdoor', [[336,256],[352,256],[192,224],[208,224]]],
+  wood: ['outdoor', [[192,224],[208,224],[176,224]]],
+  dun: ['interior', [[208,192],[224,192],[240,192],[256,192],[272,192],[208,208],[240,208],[224,208]]],
+  throne: ['interior', [[80,32],[96,32],[112,32],[80,48],[96,48],[128,32]]],
+  wall: ['outdoor', [[204,424],[220,424],[204,432],[220,432],[284,424],[220,440]]],
+};
+function naSpec(t, x, y){
+  const kind=_map?.kind||'';
+  const preset=String(_map?.preset||_map?.name||'');
+  const pass=/wall|pass|grenze|berg/i.test(preset);
+  const j=Math.abs((x*3+y*5)|0);
+  let key='grass';
+  if(kind==='dungeon'){
+    key=(t==='wall'||t==='void'||t==='cliff')?'wall':'dun';
+  } else if(pass){
+    key=(t==='stone'||t==='wall'||t==='cliff')?'wall':'snow';
+  } else if(kind==='interior' || /throne|church|cathedral|festung/i.test(preset)){
+    if(t==='wall'||t==='cliff') key='wall';
+    else if(t==='wood') key='wood';
+    else key='throne';
+  } else if(t==='path'||t==='sand'||t==='wood') key = t==='wood'?'wood':'path';
+  else if(t==='stone'||t==='wall'||t==='cliff') key='wall';
+  else if(t==='water') key='snow';
+  const pack=NA_CELL[key]||NA_CELL.grass;
+  const cell=pack[1][j%pack[1].length];
+  return {src:NA_SHEET[pack[0]], sx:cell[0], sy:cell[1]};
+}
+function paintNa(ctx, t, x, y, dx, dy, dw, dh){
+  try{
+    const spec=naSpec(t,x,y);
+    const im=loadImg(spec.src);
+    if(!(im.complete && im.naturalWidth)) return false;
+    ctx.imageSmoothingEnabled=false;
+    ctx.drawImage(im, spec.sx, spec.sy, 16, 16, dx, dy, dw||0, dh||dw||0);
+    return true;
+  }catch(_){ return false; }
 }
 
 function applyGenre(S){
@@ -766,6 +814,7 @@ export function buildMapForLocation(S, ort){
     if(tiles[ht-2]) tiles[ht-2][cx]='door';
     _hubNpcs.push({name:'Sekretärin Velka', x:cx+2, y:6, px:cx+2, py:6, sheet:'mage', e:'📜'});
     _hubNpcs.push({name:'General Brok', x:cx-2, y:14, px:cx-2, py:14, sheet:'guard', e:'🪓'});
+    _hubNpcs.push({name:'Heldin Aria', x:cx+5, y:12, px:cx+5, py:12, sheet:'princess', e:'⚔'});
     _hubNpcs.push({name:'Wächter Toren', x:cx+4, y:17, px:cx+4, py:17, sheet:'guard', e:'🛡️'});
     _hubNpcs.push({name:'Archivar Quinn', x:4, y:10, px:4, py:10, sheet:'mage', e:'📚'});
     _hubNpcs.push({name:'Page Sera', x:cx-3, y:16, px:cx-3, py:16, sheet:'villager', e:'📨'});
@@ -1841,6 +1890,10 @@ function facingTile(){
 }
 function talkNearest(){
   const f=facingTile();
+  const seal=(_questMarks||[]).find(m=>m && Math.abs((m.x|0)-f.x)<=1 && Math.abs((m.y|0)-f.y)<=1 && (m.kind==='puzzle' || /siegel/i.test(String(m.label||''))));
+  if(seal && window.__game?.openC1Seal){
+    try{ window.__game.openC1Seal(); return 'seal'; }catch(_){}
+  }
   if(openChestAt(f.x,f.y)) return 'chest';
   const door=(_map.doors||[]).find(d=>d.x===f.x&&d.y===f.y);
   if(door?.to){
@@ -1974,8 +2027,9 @@ function drawSprite(ctx, im, frame, dir, dx, dy, tw){
   const fr=frame%cols;
   // LPC sheet rows: 0=down, 1=left, 2=right, 3=up — matches our dir
   const d=Math.min(dir%4, rows-1);
-  const drawH=tw*1.35, drawW=tw*1.0;
-  ctx.drawImage(im, fr*fw, d*fh, fw, fh, dx, dy+(tw-drawH)+tw*0.15, drawW, drawH);
+  const drawH=tw*1.85, drawW=tw*1.2;
+  const bob=(frame%2)?Math.round(tw*0.06):0;
+  ctx.drawImage(im, fr*fw, d*fh, fw, fh, dx-(drawW-tw)*0.5, dy+(tw-drawH)+tw*0.05-bob, drawW, drawH);
 }
 
 function updatePartyPanel(){
@@ -2232,13 +2286,9 @@ function draw(){
         }
         if(!edge || t==='void'){
           ctx.fillStyle='#05060a'; ctx.fillRect(sx,sy,tw,tw);
-        } else {
-          const crypt='./assets/pixel/tiles-na/cut/';
-          const top=loadImg(crypt + 'wall_top' + ((x+y)&3) + '.png');
-          if(top.complete && top.naturalWidth) ctx.drawImage(top, sx, sy, tw, tw);
-          else { ctx.fillStyle='#7a7468'; ctx.fillRect(sx,sy,tw,tw); }
-          // lit north lip
-          ctx.fillStyle='rgba(220,210,185,0.35)'; ctx.fillRect(sx, sy, tw, Math.max(2, tw*0.12));
+        } else if(!paintNa(ctx,'wall',x,y,sx,sy,tw,tw)){
+          ctx.fillStyle='#2c3a44'; ctx.fillRect(sx,sy,tw,tw);
+          ctx.fillStyle='rgba(180,200,210,0.35)'; ctx.fillRect(sx, sy, tw, Math.max(2, tw*0.14));
         }
       } else if(_map.kind==='dungeon' && t==='door'){
         const crypt='./assets/pixel/tiles-na/cut/';
@@ -2256,7 +2306,7 @@ function draw(){
           ctx.fillStyle='#5a564c';
           for(let i=0;i<4;i++) ctx.fillRect(sx+2, sy+2+i*(tw/4), tw-4, tw/6);
         }
-      } else {
+      } else if(!paintNa(ctx, t, x, y, sx, sy, tw, tw)){
         const im=loadImg(wangUrlFor(t,x,y));
         if(im.complete && im.naturalWidth) ctx.drawImage(im, sx, sy, tw, tw);
         else {
@@ -2308,21 +2358,18 @@ function draw(){
           const southWalk=walk.has(_map.tiles[y+1]?.[x]);
           const anyWalk=[[1,0],[-1,0],[0,1],[0,-1]].some(([dx,dy])=>walk.has(_map.tiles[y+dy]?.[x+dx]));
           if(anyWalk){
-            const crypt='./assets/pixel/tiles-na/cut/';
             if(southWalk){
-              const front=loadImg(crypt + 'wall_front' + ((x+y)&3) + '.png');
-              const fh=tw*1.15;
-              if(front.complete&&front.naturalWidth){
-                ctx.drawImage(front, sx, sy+tw*0.15, tw, fh);
-              } else {
-                ctx.fillStyle='#2a2830'; ctx.fillRect(sx, sy+tw*0.15, tw, fh);
-                ctx.fillStyle='rgba(200,190,160,0.45)'; ctx.fillRect(sx, sy+tw*0.15, tw, Math.max(2,tw*0.1));
+              const fh=tw*0.95;
+              ctx.save();
+              ctx.globalAlpha=0.95;
+              if(!paintNa(ctx,'wall',x,y,sx, sy+tw*0.22, tw, fh)){
+                ctx.fillStyle='#1c2830'; ctx.fillRect(sx, sy+tw*0.22, tw, fh);
               }
-              // shadow cast onto floor south of wall
-              ctx.fillStyle='rgba(0,0,0,0.45)';
-              ctx.fillRect(sx, sy+tw*0.15+fh*0.85, tw, tw*0.45);
-              ctx.fillStyle='rgba(0,0,0,0.22)';
-              ctx.fillRect(sx-tw*0.05, sy+tw*0.15+fh, tw*1.1, tw*0.25);
+              ctx.restore();
+              ctx.fillStyle='rgba(8,10,14,0.45)';
+              ctx.fillRect(sx, sy+tw*0.22, tw, Math.max(2, tw*0.12));
+              ctx.fillStyle='rgba(0,0,0,0.38)';
+              ctx.fillRect(sx, sy+tw*0.95, tw, tw*0.28);
             } else {
               // side/north edges: short drop shadow only
               ctx.fillStyle='rgba(0,0,0,0.35)';
@@ -2336,8 +2383,9 @@ function draw(){
             if(walk.has(_map.tiles[y+dy]?.[x+dx])){ edge=true; break; }
           }
           if(edge){
-            const him=loadImg(wangUrlFor('wall',x,y));
-            if(him.complete&&him.naturalWidth) ctx.drawImage(him, sx, sy-tw*0.85, tw, tw*0.9);
+            if(!paintNa(ctx,'wall',x,y,sx, sy-tw*0.55, tw, tw*0.7)){
+              ctx.fillStyle='#2c3a44'; ctx.fillRect(sx, sy-tw*0.45, tw, tw*0.6);
+            }
             ctx.fillStyle='rgba(0,0,0,0.35)'; ctx.fillRect(sx, sy+tw*0.15, tw, tw*0.2);
           }
         }
@@ -3024,11 +3072,10 @@ function fitCanvas(){
   _canvas.style.setProperty('margin', '0 auto', 'important');
   _canvas.style.setProperty('flex', '0 0 auto', 'important');
   _intScale=scale;
-  const tile=16;
-  _viewW=Math.max(20, Math.floor(lw/tile));
-  _viewH=Math.max(14, Math.floor(lh/tile));
-  while(_viewW*tile > lw && _viewW>16) _viewW--;
-  while(_viewH*tile > lh && _viewH>12) _viewH--;
+  // Close follow frustum. Canvas scale stays 2–4; tiles draw larger than 16 logical px
+  // so the hero reads at 720p and 1080p instead of a whole-map overview.
+  _viewW=22;
+  _viewH=13;
 }
 
 function toggleFullscreen(){

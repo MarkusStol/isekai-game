@@ -44,8 +44,9 @@ function skillFromProgress(S){
   for(const sk of (S.skills||[])){
     const name=typeof sk==='string'?sk:sk.name;
     if(list.some(x=>x.name===name))continue;
-    const def=COMBAT_SKILLS[name]||{name,mp:(typeof sk==='object'?sk.cost:5)||5,pow:1.2,elem:'phys'};
-    list.push({...def,name});
+    const base=COMBAT_SKILLS[name]||{name,mp:5,pow:1.2,elem:'phys'};
+    const extra=(sk&&typeof sk==='object')?sk:{};
+    list.push({...base, ...extra, name, mp: extra.mp??extra.cost??base.mp??0});
   }
   if(!list.length) list.push({...COMBAT_SKILLS.Hieb},{...COMBAT_SKILLS.Funke},{...COMBAT_SKILLS.Blitzfunke},{...COMBAT_SKILLS['Erste Hilfe']});
   return list.slice(0,8);
@@ -101,13 +102,26 @@ export function buildParty(S){
       mp:20+Math.min(20,aff/2|0), maxmp:20+Math.min(20,aff/2|0),
       atk:6+Math.min(6,aff/12|0), def:6, mag:6+Math.min(4,aff/15|0), spd:8,
       limit:0, maxLimit:100, limitTier:1, limitAcc:0,
-      skills:companionSkills(npc),
+      skills:companionSkills(npc, n),
       portrait:null, npcRef:n, row:'back',
       job:companionJobId(npc,n),
       statuses:[], guard:1, alive:true, aggro:0.8,
       gambits:Jrpg.defaultGambits()
     });
     if(comps.length>=3)break;
+  }
+  if(S.campaign?.flags?.ariaGuest && comps.length<3 && !comps.some(c=>/Aria/.test(c.name))){
+    const n='Heldin Aria';
+    const npc=S.world?.npcs?.[n]||{alive:true, art:'Heldin'};
+    comps.push({
+      id:'c_'+n, kind:'companion', name:n,
+      hp:78, maxhp:78, mp:28, maxmp:28, atk:9, def:7, mag:11, spd:9,
+      limit:0, maxLimit:100, limitTier:1, limitAcc:0,
+      skills:companionSkills(npc, n),
+      portrait:null, npcRef:n, row:'back', job:'krieger',
+      statuses:[], guard:1, alive:true, aggro:0.7,
+      gambits:Jrpg.defaultGambits()
+    });
   }
   const all=[hero,...comps];
   all.forEach((u,i)=>{ if(!u._iid) u._iid=(u.id||u.kind||'u')+'_'+i; });
@@ -124,11 +138,24 @@ function companionJobId(npc,name){
   if(/händl|kauf|wirt/.test(art)) return 'dieb';
   return 'krieger';
 }
-function companionSkills(npc){
-  const art=String(npc?.art||npc?.stimme||'').toLowerCase();
+function companionSkills(npc, name){
+  const art=(String(name||'')+' '+String(npc?.art||npc?.stimme||'')).toLowerCase();
+  if(/velka|sekret/.test(art)) return [
+    {name:'Registerfluch', mp:6, pow:1.55, elem:'tinte', staggerBonus:1.25},
+    {name:'Lesen', mp:0, pow:0, analyze:true},
+    {name:'Tintenheilung', mp:5, heal:36},
+  ];
+  if(/brok|general/.test(art)) return [
+    {name:'Brecher', mp:3, pow:1.6, elem:'phys', staggerBonus:1.7},
+    {name:'Schildwall', mp:0, defend:0.4},
+  ];
+  if(/aria|heldin/.test(art)) return [
+    {name:'Solstich', mp:5, pow:1.5, elem:'licht'},
+    {name:'Deckung', mp:0, defend:0.45},
+  ];
   if(/mag|zauber|hex/.test(art)) return [{name:'Funke',...COMBAT_SKILLS.Funke},{name:'Schild',...COMBAT_SKILLS.Schild}];
   if(/heil|priester|arzt/.test(art)) return [{name:'Erste Hilfe',...COMBAT_SKILLS['Erste Hilfe']},{name:'Schild',...COMBAT_SKILLS.Schild}];
-  if(/dieb|assass|schleich/.test(art)) return [{name:'Hieb',...COMBAT_SKILLS.Hieb},{name:'Komboschlag',...COMBAT_SKILLS.Komboschlag}];
+  if(/dieb|assass|schleich|nyx|spion/.test(art)) return [{name:'Hieb',...COMBAT_SKILLS.Hieb},{name:'Komboschlag',...COMBAT_SKILLS.Komboschlag}];
   return [{name:'Hieb',...COMBAT_SKILLS.Hieb},{name:'Inspiration',...COMBAT_SKILLS.Inspiration}];
 }
 
@@ -474,6 +501,9 @@ export function startBattle(S, opts={}){
       try{ shakeScreen(); }catch(_){}
     }
   }catch(_){}
+  if(!_B.scripted && _B.S && !_B.S.flags?.nachklangSeen && (_B.S.campaign?.mode==='dungeon' || _B.foes.some(f=>f.boss))){
+    _B.log.push('Velka, leise: Derselbe Takt wie seine letzten Nächte. Triff das helle Feld.');
+  }
   renderBattleUI();
   startBattleMusic(S);
   if(!_B.scripted) advanceUntilPlayer();
@@ -751,8 +781,8 @@ export function playerCommand(cmd, payload={}){
   }
   const actor=_B.selecting.actor;
   if(cmd==='menu'){ _B.selecting={actor, mode:payload.mode||'main'}; refreshUI(); return }
-  if(cmd==='attack'){ return doAttack(actor, payload.targetId) }
-  if(cmd==='skill'){ return doSkill(actor, payload.skill, payload.targetId) }
+  if(cmd==='attack'){ return doAttack(actor, payload.targetId, payload) }
+  if(cmd==='skill'){ return doSkill(actor, payload.skill, payload.targetId, payload) }
   if(cmd==='item'){ return doItem(actor, payload.item, payload.targetId) }
   if(cmd==='defend'){ return doDefend(actor) }
   if(cmd==='flee'){ return doFlee(actor) }
@@ -847,15 +877,27 @@ function pickTarget(id, enemies=true){
   return living(side)[0]||null;
 }
 
-function doAttack(actor, targetId){
+function satzMult(grade){
+  if(grade==='perfect') return 1.4;
+  if(grade==='miss') return 0.6;
+  return 1;
+}
+function doAttack(actor, targetId, payload={}){
   const t=pickTarget(targetId,true); if(!t)return;
-  const skill={name:'Angriff',pow:1.0,elem:'phys'};
+  const grade=payload.nachklang;
+  const skill={name:'Angriff',pow:1.0*satzMult(grade),elem:'phys',_grade:grade};
+  if(grade) _B.log.push(grade==='perfect'?'Satz: genau.':grade==='miss'?'Satz: daneben.':'Satz: getroffen.');
   resolveHit(actor,t,skill);
   afterAction();
 }
-function doSkill(actor, skill, targetId){
+function doSkill(actor, skill, targetId, payload={}){
   if(!skill)return;
-  const sk=typeof skill==='string'?(COMBAT_SKILLS[skill]||actor.skills.find(s=>s.name===skill)||{name:skill,pow:1.2,mp:4}):skill;
+  let sk=typeof skill==='string'?(COMBAT_SKILLS[skill]||actor.skills.find(s=>s.name===skill)||{name:skill,pow:1.2,mp:4}):skill;
+  if(payload.nachklang){
+    sk={...sk, pow:(sk.pow||1)*satzMult(payload.nachklang), _grade:payload.nachklang};
+    _B.log.push(payload.nachklang==='perfect'?'Satz: genau.':payload.nachklang==='miss'?'Satz: daneben.':'Satz: getroffen.');
+  }
+  if(sk.analyze){ return doAnalyze(actor, targetId); }
   if((sk.mp|0)>(actor.mp|0)){ _B.log.push('Nicht genug MP!'); refreshUI(); return }
   actor.mp-=sk.mp|0;
   if(sk.fleeBonus){ doFlee(actor, sk.fleeBonus); return }
@@ -944,30 +986,39 @@ function resolveHit(attacker, target, skill){
   if(need && (attacker.limitAcc|0)>=need && (attacker.limitTier||1)<3){ attacker.limitTier=(attacker.limitTier||1)+1; _B.log.push(`${attacker.name}: Grenzwoge Stufe ${attacker.limitTier}!`) }
   let note=`${attacker.name} (${skill.name||'Angriff'}) → ${target.name}: ${dmg}${crit?' KRIT!':''}${weak?' (Schwach!)':''}${target.staggered?' BRUCH×2':''}`;
   _B.log.push(note);
-  try{ playAttackLunge(attacker); }catch(_){}
-popNumber(target, String(dmg), crit?'crit':(weak?'weak':'dmg')); try{ const Aud=window.__game?.Aud; const k=Aud?.sfxForHit?.({elem:skill?.elem, skill:skill?.name, weapon:attacker?.weapon||attacker?.job, crit, heal:!!skill?.heal})||'hit'; Aud?.playSfx?.(k, crit?0.55:0.4); }catch(_){}
+  const isMagic = !!(skill?.elem && skill.elem!=='phys');
+  const numKind = crit?'crit':(weak?'weak':'dmg');
   try{
-    const isMagic = skill?.elem && skill.elem!=='phys';
-    if(isMagic) playSpriteAnim(attacker,'cast',{ms:65});
-    else playAttackLunge(attacker);
-  }catch(_){}
-  flashUnit(target,'hit');
-  if((target.hp|0)<=0){ try{ playDeathFade(target); }catch(_){} } else { spawnSpellFx(target, crit?'crit':'impact'); }
+    playStrike(attacker, target, {
+      magic: isMagic, elem: skill?.elem, crit,
+      onImpact: ()=>{
+        popNumber(target, String(dmg), numKind);
+        try{
+          const Aud=window.__game?.Aud;
+          const k=Aud?.sfxForHit?.({elem:skill?.elem, skill:skill?.name, weapon:attacker?.weapon||attacker?.job, crit, heal:!!skill?.heal})||'hit';
+          Aud?.playSfx?.(k, crit?0.5:0.35);
+        }catch(_){}
+        if(crit) nudgeCamera(false);
+      }
+    });
+  }catch(_){ popNumber(target, String(dmg), numKind); }
+  if((target.hp|0)<=0){ try{ playDeathFade(target); }catch(_){} }
   if(Jrpg.addStagger(target, rolled.stagger, Jrpg.difficultyOf(_B.S))){
     _B.log.push(`💥 ${target.name} — BRUCH!`);
     showSkillBanner('BRUCH');
-    shakeScreen();
+    nudgeCamera(true);
   }
   if(skill.status && Math.random()<(skill.statusChance||0.35)){ Jrpg.applyStatus(target, skill.status, 3); _B.log.push(`${target.name}: ${Jrpg.STATUS_DEFS[skill.status]?.name||skill.status}!`) }
-  // Multi-phase bosses: fire phases when thresholds are crossed (including killing blow)
   if(target.boss && target.phases && target.phases.length){
     const ratio=Math.max(0, target.hp)/Math.max(1,target.maxhp);
     while(target.phaseIdx<target.phases.length && ratio<=target.phases[target.phaseIdx].at){
       const ph=target.phases[target.phaseIdx++];
       if(ph.announce){ _B.log.push(ph.announce); (_B.phaseLog=_B.phaseLog||[]).push(ph.announce); }
+      if(ph.weak) target.weak=ph.weak.slice();
+      if(ph.resist) target.resist=ph.resist.slice();
       if(ph.buff && target.hp>0){ for(const[k,v] of Object.entries(ph.buff)) target[k]=Math.round((target[k]||1)*v) }
-      showSkillBanner(ph.announce||('Phase '+(target.phaseIdx+1)));
-      shakeScreen();
+      showSkillBanner((ph.announce||('Phase '+(target.phaseIdx+1))).slice(0,42));
+      nudgeCamera(true);
     }
   }
   if(target.hp<=0){
@@ -1350,8 +1401,17 @@ function refreshUI(){
         if(!_B.selecting)return;
         const iid=btn.dataset.iid;
         const mode=_B.selecting.mode;
-        if(mode==='attack') playerCommand('attack',{targetId:iid});
-        else if(mode==='skill') playerCommand('skill',{skill:_B.selecting.skill,targetId:iid});
+        if(mode==='attack'){
+          const actor=_B.selecting.actor;
+          if(actor?.kind==='hero' && !nachklangAuto()) beginNachklang({targetId:iid});
+          else playerCommand('attack',{targetId:iid, nachklang: nachklangAuto()&&actor?.kind==='hero'?'good':undefined});
+        }
+        else if(mode==='skill'){
+          const actor=_B.selecting.actor;
+          const sk=_B.selecting.skill;
+          if(actor?.kind==='hero' && sk?.nachklang && !nachklangAuto()) beginNachklang({targetId:iid, skill:sk});
+          else playerCommand('skill',{skill:sk,targetId:iid, nachklang: (nachklangAuto()&&sk?.nachklang)?'good':undefined});
+        }
         else if(mode==='analyze') playerCommand('analyze',{targetId:iid});
         else if(mode==='limit') playerCommand('limit',{targetId:iid});
         else if(mode==='talk'){
@@ -1628,7 +1688,17 @@ function hideBattleUI(){ clearBattleOpen(); try{ document.querySelector('.battle
 function popNumber(unit, text, kind){
   const fx=el('battleFx'); if(!fx)return;
   const d=document.createElement('div'); d.className='dmg-pop '+kind; d.textContent=text;
-  d.style.left=(20+Math.random()*60)+'%'; d.style.top=(20+Math.random()*40)+'%';
+  let left='48%', top='36%';
+  try{
+    const fr=fx.getBoundingClientRect();
+    const card=document.querySelector(`[data-iid="${unit?._iid}"]`);
+    if(card && fr.width>0){
+      const r=card.getBoundingClientRect();
+      left=((r.left+r.width*0.55-fr.left)/fr.width*100).toFixed(1)+'%';
+      top=((r.top+r.height*0.22-fr.top)/fr.height*100).toFixed(1)+'%';
+    }
+  }catch(_){}
+  d.style.left=left; d.style.top=top;
   fx.appendChild(d); setTimeout(()=>d.remove(),900);
 }
 function unitSpriteEl(unit){
@@ -1776,7 +1846,6 @@ function flashUnit(unit, kind){
   const root=el('battleRoot'); if(!root)return;
   root.classList.add('flash-'+kind); setTimeout(()=>root.classList.remove('flash-'+kind),180);
   if(kind==='hit'){
-    try{ playSpriteAnim(unit, 'hurt', {ms:60}); }catch(_){}
     spawnSpellFx(unit, 'impact');
   } else if(kind==='heal'){
     const card=unitSpriteEl(unit)?.closest('.party-card, .foe-card');
@@ -1793,30 +1862,147 @@ function spawnSpellFx(unit, kind){
   fx.appendChild(d);
   setTimeout(()=>d.remove(),700);
 }
+function stageEl(unit){
+  if(!unit) return null;
+  return document.querySelector(`.party-stage-spr[data-iid="${unit._iid}"], .foe-card[data-iid="${unit._iid}"]`);
+}
+function playStrike(attacker, target, opts={}){
+  const magic=!!opts.magic;
+  const aid=attacker?._iid, tid=target?._iid;
+  const fromParty=(_B?.party||[]).some(p=>p._iid===aid);
+  const sprNow=()=>aid?document.querySelector(`.party-stage-spr[data-iid="${aid}"], .foe-card[data-iid="${aid}"]`):null;
+  const tgtNow=()=>tid?document.querySelector(`.party-stage-spr[data-iid="${tid}"], .foe-card[data-iid="${tid}"]`):null;
+  const impact=()=>{ try{ opts.onImpact?.(); }catch(_){} };
+  // afterAction rebuilds the battle DOM; start the motion on the fresh nodes
+  setTimeout(()=>{
+    const spr=sprNow();
+    if(!spr){ impact(); return; }
+    spr.classList.remove('atk-ant','atk-strike','atk-cast');
+    void spr.offsetWidth;
+    spr.classList.add('atk-ant');
+    setTimeout(()=>{
+      const s2=sprNow(); if(!s2){ impact(); return; }
+      s2.classList.remove('atk-ant');
+      s2.classList.add(magic?'atk-cast':'atk-strike');
+      if(magic) spawnBolt(attacker, target, opts.elem);
+      else spawnSlash(target);
+      setTimeout(()=>{
+        const tg=tgtNow();
+        if(tg){
+          tg.classList.remove('hit-from-left','hit-from-right');
+          void tg.offsetWidth;
+          tg.classList.add(fromParty?'hit-from-right':'hit-from-left');
+          setTimeout(()=>{ const t3=tgtNow(); t3?.classList.remove('hit-from-left','hit-from-right'); }, 420);
+        }
+        impact();
+      }, magic?260:160);
+      setTimeout(()=>{ const s3=sprNow(); s3?.classList.remove('atk-strike','atk-cast'); }, 620);
+    }, 140);
+  }, 40);
+}
+function spawnSlash(target){
+  const fx=el('battleFx'); if(!fx) return;
+  const slash=document.createElement('div');
+  slash.className='slash-fx';
+  placeFx(slash, target, 0.4, 0.35);
+  fx.appendChild(slash);
+  setTimeout(()=>slash.remove(), 420);
+}
+function spawnBolt(attacker, target, elem){
+  const fx=el('battleFx'); if(!fx) return;
+  const bolt=document.createElement('div');
+  const kind=/licht/.test(elem||'')?'licht':/tinte|dunkel/.test(elem||'')?'tinte':/eis/.test(elem||'')?'eis':'feuer';
+  bolt.className='spell-bolt spell-'+kind;
+  placeFx(bolt, attacker, 0.5, 0.4);
+  fx.appendChild(bolt);
+  const fr=fx.getBoundingClientRect();
+  const card=stageEl(target);
+  if(card && fr.width){
+    const r=card.getBoundingClientRect();
+    bolt.style.setProperty('--bx', ((r.left+r.width*0.5-fr.left)/fr.width*100)+'%');
+    bolt.style.setProperty('--by', ((r.top+r.height*0.4-fr.top)/fr.height*100)+'%');
+  }
+  setTimeout(()=>bolt.remove(), 460);
+}
+function placeFx(node, unit, ax, ay){
+  const fx=el('battleFx'); if(!fx) return;
+  const fr=fx.getBoundingClientRect();
+  const card=stageEl(unit);
+  if(card && fr.width){
+    const r=card.getBoundingClientRect();
+    node.style.left=((r.left+r.width*(ax||0.5)-fr.left)/fr.width*100)+'%';
+    node.style.top=((r.top+r.height*(ay||0.4)-fr.top)/fr.height*100)+'%';
+  } else { node.style.left='42%'; node.style.top='38%'; }
+}
 function playAttackLunge(attacker){
-  // v70: step-forward on stage sprite + slash FX + sheet anim
-  const last = (_B?.log||[]).slice(-1)[0]||'';
-  const isCast=/magie|zauber|feuer|eis|blitz|heil|kristall|spell|cast/i.test(last);
-  try{ playSpriteAnim(attacker, isCast?'cast':'attack', {ms:65}); }catch(_){}
-  try{
-    const spr=document.querySelector(`.party-stage-spr[data-iid="${attacker._iid}"], .foe-card[data-iid="${attacker._iid}"]`);
-    if(spr){
-      spr.classList.remove('atk-step','atk-slash');
-      void spr.offsetWidth;
-      spr.classList.add(isCast?'atk-cast':'atk-step');
-      setTimeout(()=>spr.classList.remove('atk-step','atk-cast'),420);
+  playStrike(attacker, null, {magic:false});
+}
+function nachklangAuto(){
+  return !!(_B?.S?.flags?.nachklangAuto);
+}
+function beginNachklang({targetId, skill}){
+  if(!_B || _B._nachklang) return;
+  _B._nachklang=true;
+  const host=document.getElementById('battleStage')||document.getElementById('battleRoot');
+  if(!host){ _B._nachklang=false; return; }
+  const practice=!_B.S?.flags?.nachklangSeen;
+  const beats=(skill?.nachklang|0)===3?3:2;
+  const half=practice?0.16:0.10;
+  const cues=beats===3?[0.28,0.52,0.78]:[0.40,0.72];
+  const dur=practice?1600:1250;
+  const bar=document.createElement('div');
+  bar.id='nachklangBar';
+  bar.className='nachklang'+(practice?' practice':'');
+  bar.innerHTML=`<div class="nk-label">${practice?'Satz — Leertaste oder Klick im hellen Feld':'Satz'}</div><div class="nk-track"><i class="nk-mark"></i>${cues.map(c=>`<b class="nk-win" style="left:${((c-half)*100).toFixed(1)}%;width:${(half*2*100).toFixed(1)}%"></b>`).join('')}</div>`;
+  host.appendChild(bar);
+  const mark=bar.querySelector('.nk-mark');
+  const t0=performance.now();
+  let idx=0, hits=0, perfects=0, raf=0;
+  const hit=()=>{
+    if(idx>=cues.length) return;
+    const p=(performance.now()-t0)/dur;
+    if(Math.abs(p-cues[idx])<=half){
+      if(Math.abs(p-cues[idx])<=half*0.42) perfects++;
+      hits++; idx++;
+      bar.classList.add('nk-ok');
+      setTimeout(()=>bar.classList.remove('nk-ok'), 140);
+      try{ window.__game?.Aud?.playSfx?.('hit', 0.2); }catch(_){}
     }
-  }catch(_){}
-  try{
-    const fx=el('battleFx'); if(fx){
-      const slash=document.createElement('div');
-      slash.className='slash-fx'+(isCast?' cast':'');
-      // place near foe/attacker mid-field
-      slash.style.left='42%'; slash.style.top='38%';
-      fx.appendChild(slash);
-      setTimeout(()=>slash.remove(),480);
+  };
+  const onKey=(e)=>{
+    if(e.code==='Space'||e.code==='Enter'||e.code==='KeyF'||e.code==='KeyJ'||e.key===' '){
+      e.preventDefault(); hit();
     }
-  }catch(_){}
+  };
+  window.addEventListener('keydown', onKey, true);
+  bar.addEventListener('pointerdown', (e)=>{ e.preventDefault(); hit(); });
+  const step=(now)=>{
+    const p=Math.min(1,(now-t0)/dur);
+    if(mark) mark.style.left=(p*100)+'%';
+    try{
+      const pads=navigator.getGamepads?.()||[];
+      for(const gp of pads){
+        if(!gp) continue;
+        const pressed=gp.buttons?.[0]?.pressed;
+        if(pressed && !_B._padLatch){ _B._padLatch=true; hit(); }
+        if(!pressed) _B._padLatch=false;
+      }
+    }catch(_){}
+    if(p<1 && _B && !_B.done) raf=requestAnimationFrame(step);
+    else done();
+  };
+  raf=requestAnimationFrame(step);
+  function done(){
+    cancelAnimationFrame(raf);
+    window.removeEventListener('keydown', onKey, true);
+    try{ bar.remove(); }catch(_){}
+    const grade = hits>=cues.length ? (perfects>=cues.length?'perfect':'good') : 'miss';
+    if(_B?.S){ _B.S.flags=_B.S.flags||{}; _B.S.flags.nachklangSeen=true; }
+    if(_B) _B._nachklang=false;
+    if(!_B||_B.done) return;
+    if(skill) playerCommand('skill',{skill, targetId, nachklang:grade});
+    else playerCommand('attack',{targetId, nachklang:grade});
+  }
 }
 function playDeathFade(unit){
   const card=[...document.querySelectorAll('.foe-card')].find(c=>c.dataset.iid===unit._iid);
@@ -1824,14 +2010,15 @@ function playDeathFade(unit){
   card.classList.add('death-fade');
   setTimeout(()=>{ card.classList.add('dead'); }, 520);
 }
-function shakeScreen(){
+function nudgeCamera(hard){
   const root=el('battleRoot')||document.querySelector('.battle-root');
   if(!root) return;
-  root.classList.remove('shake','cam-shake-hard','flash-hit');
+  root.classList.remove('cam-nudge','cam-nudge-hard');
   void root.offsetWidth;
-  root.classList.add('shake','cam-shake-hard','flash-hit');
-  setTimeout(()=>root.classList.remove('shake','cam-shake-hard','flash-hit'),420);
+  root.classList.add(hard?'cam-nudge-hard':'cam-nudge');
+  setTimeout(()=>root.classList.remove('cam-nudge','cam-nudge-hard'), 240);
 }
+function shakeScreen(){ nudgeCamera(true); }
 
 /* ---- Music ---- */
 function startBattleMusic(S){
