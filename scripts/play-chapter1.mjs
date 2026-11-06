@@ -426,14 +426,14 @@ export async function runFieldBoss({ browser, port, fail, ok }){
   }
 }
 
-async function stepNear(page, x, y, limit=90){
+async function stepNear(page, x, y, limit=90, stop=1){
   let stuck = 0;
   let last = '';
   for(let i=0;i<limit;i++){
     const h = await page.evaluate(() => window.__game.OW.__debug().hero);
     const open = await page.evaluate(() => { const el=document.getElementById('owDlg'); return !!(el && !el.classList.contains('hidden') && !document.querySelector('#owDlgChoices button')); });
     if(open){ await page.keyboard.press('Enter'); await sleep(70); continue; }
-    if(Math.abs(h.x - x) + Math.abs(h.y - y) <= 1) return h;
+    if(Math.abs(h.x - x) + Math.abs(h.y - y) <= stop) return h;
     const primary = Math.abs(h.x - x) >= Math.abs(h.y - y)
       ? (h.x < x ? 'ArrowRight' : 'ArrowLeft')
       : (h.y < y ? 'ArrowDown' : 'ArrowUp');
@@ -1040,14 +1040,14 @@ async function talkNpc(page, who){
     await page.evaluate(() => { try{ window.__game.OW.hideDialogue?.(); }catch(_){} });
     const npc = await page.evaluate((who) => (window.__game.OW.__listNpcs() || []).find(n => String(n.name).includes(who)), who);
     if(!npc){ await sleep(280); continue; }
-    await stepNear(page, npc.x, npc.y, 28);
+    await stepNear(page, npc.x, npc.y, 28, 2);
     const name = await page.evaluate((who) => {
       const list = window.__game.OW.__listNpcs() || [];
       const n = list.find(p => String(p.name).includes(who));
       if(!n) return '';
       const h = window.__game.OW.__debug().hero;
       const dist = Math.abs(h.x - n.x) + Math.abs(h.y - n.y);
-      return dist <= 1 ? n.name : '';
+      return dist <= 2 ? n.name : '';
     }, who);
     if(!name) continue;
     await page.evaluate((nm) => window.__game.OW.__talkTo(nm), name);

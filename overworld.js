@@ -303,56 +303,50 @@ function naSpec(t, x, y){
   const cell=pack[1][j%pack[1].length];
   return {src:NA_SHEET[pack[0]], sx:cell[0], sy:cell[1]};
 }
-const PASS_SNOW=[
-  './assets/pixel/tiles-na/cut/snow1.png',
-  './assets/pixel/tiles-na/cut/snow.png',
-  './assets/pixel/tiles-na/cut/snow3.png',
-];
+const CAMP='./assets/pixel/camp/';
+const CAMP_PEAKS=CAMP+'peaks.png';
+const CAMP_SNOW=[CAMP+'snow_a.png', CAMP+'snow_b.png', CAMP+'snow_c.png'];
+function blitCamp(ctx, file, sx, sy, tw){
+  const im=loadImg(file);
+  if(im.complete && (im.naturalWidth||im.width)>4){
+    ctx.drawImage(im, 0, 0, im.naturalWidth||im.width, im.naturalHeight||im.height, sx, sy, tw, tw);
+    return true;
+  }
+  return false;
+}
+function passGround(t){ return t==='sand'||t==='path'||t==='grass'||t==='floor'||t==='plaza'||t==='snow'||t==='water'; }
 function paintPassTile(ctx, t, x, y, sx, sy, tw){
   if(_map?.preset!=='wall') return false;
-  const SNOW='#e7eef4';
-  const ROCK='#6a7278';
-  const ROCK_DARK='#525960';
-  const cliff=t==='stone'||t==='wall'||t==='cliff';
-  if(cliff){
-    ctx.fillStyle=ROCK;
-    ctx.fillRect(sx, sy, tw, tw);
-    ctx.fillStyle=ROCK_DARK;
-    ctx.fillRect(sx, sy+tw-Math.max(2, Math.round(tw*0.12)), tw, Math.max(2, Math.round(tw*0.12)));
-    const above=_map.tiles?.[y-1]?.[x];
-    const snowAbove=above==='sand'||above==='path'||above==='grass'||above==='floor'||above==='plaza'||above==='snow';
-    if(snowAbove){
-      ctx.fillStyle=SNOW;
-      ctx.fillRect(sx, sy, tw, Math.max(2, Math.round(tw*0.16)));
-    }
-    return true;
-  }
-  const ground=t==='sand'||t==='grass'||t==='floor'||t==='plaza'||t==='path'||t==='water'||t==='snow';
-  if(!ground) return false;
-  if(t==='water'){
-    ctx.fillStyle='#c3d3df';
-    ctx.fillRect(sx, sy, tw, tw);
-    ctx.fillStyle='#a9bfce';
-    ctx.fillRect(sx, sy+Math.floor(tw*0.62), tw, Math.max(1, Math.floor(tw*0.08)));
-    return true;
-  }
-  const im=loadImg(PASS_SNOW[0]);
-  if(im.complete && im.naturalWidth) ctx.drawImage(im, 0, 0, im.naturalWidth, im.naturalHeight, sx, sy, tw, tw);
-  else ctx.fillStyle=SNOW, ctx.fillRect(sx, sy, tw, tw);
   const north=_map.tiles?.[y-1]?.[x];
-  if(north==='stone'||north==='wall'||north==='cliff'){
-    ctx.fillStyle='rgba(62,74,88,0.20)';
-    ctx.fillRect(sx, sy, tw, Math.max(3, Math.round(tw*0.42)));
+  const south=_map.tiles?.[y+1]?.[x];
+  const stone=t==='stone'||t==='wall'||t==='cliff';
+  const northStone=north==='stone'||north==='wall'||north==='cliff';
+  const southGround=passGround(south);
+  if(stone){
+    const lip=[CAMP+'cliff_lip.png', CAMP+'cliff_lip_b.png', CAMP+'cliff_lip_c.png'][Math.abs(x)%3];
+    const face=[CAMP+'cliff_face.png', CAMP+'cliff_face_b.png'][Math.abs(x)%2];
+    const out=[CAMP+'cliff_out.png', CAMP+'cliff_out_b.png', CAMP+'cliff_out_c.png'][Math.abs(x)%3];
+    const northGround=passGround(north);
+    const file=(northGround && southGround) ? out : (northGround ? lip : (southGround ? CAMP+'cliff_base.png' : face));
+    if(!blitCamp(ctx, file, sx, sy, tw)){ ctx.fillStyle='#6a7278'; ctx.fillRect(sx,sy,tw,tw); }
+    const east=_map.tiles?.[y]?.[x+1];
+    const west=_map.tiles?.[y]?.[x-1];
+    const edge=Math.max(2, Math.round(tw*0.05));
+    ctx.fillStyle='#3e464d';
+    if(passGround(east)) ctx.fillRect(sx+tw-edge, sy, edge, tw);
+    if(passGround(west)) ctx.fillRect(sx, sy, edge, tw);
+    return true;
   }
-  if(t==='path'){
-    ctx.fillStyle='rgba(98,114,128,0.10)';
-    ctx.fillRect(sx, sy, tw, tw);
-  } else if((x%8)===3 && (y%7)===2){
-    ctx.fillStyle='rgba(176,190,204,0.45)';
-    ctx.beginPath();
-    ctx.ellipse(sx+tw*0.5, sy+tw*0.66, tw*0.42, tw*0.16, 0, 0, Math.PI*2);
-    ctx.fill();
+  if(!passGround(t)) return false;
+  if(t==='water'){
+    if(!blitCamp(ctx, CAMP+'snow_shade.png', sx, sy, tw)){ ctx.fillStyle='#c3d3df'; ctx.fillRect(sx,sy,tw,tw); }
+    return true;
   }
+  const underCliff=northStone;
+  const file=t==='path'
+    ? CAMP+(((x+y)&1)?'path_b.png':'path_a.png')
+    : (underCliff ? CAMP+'snow_shade.png' : CAMP_SNOW[Math.abs((x*3+y*5)|0)%CAMP_SNOW.length]);
+  if(!blitCamp(ctx, file, sx, sy, tw)){ ctx.fillStyle='#e7eef3'; ctx.fillRect(sx,sy,tw,tw); }
   return true;
 }
 function paintNa(ctx, t, x, y, dx, dy, dw, dh){
@@ -1013,12 +1007,17 @@ export function buildMapForLocation(S, ort){
     for(let y=0;y<ht;y++) for(let x=0;x<w;x++){
       tiles[y][x] = (x<2 || x>=w-2) ? 'stone' : 'sand';
     }
-    // One shelter: north bar joined to a west leg and a shorter east leg. The east road at spawn height stays open.
-    const wallY=cy-5;
-    for(let x=cx-7;x<=cx+7;x++){ if(tiles[wallY]) tiles[wallY][x]='stone'; }
-    for(let y=wallY;y<=cy+2;y++){ if(tiles[y]) tiles[y][cx-7]='stone'; }
-    for(let y=wallY;y<=cy-1;y++){ if(tiles[y]) tiles[y][cx+7]='stone'; }
-    for(let y=2;y<ht-2;y++){
+    // Irregular rock mass: every column shares the base row, so the shelter is one piece.
+    const wall=[];
+    const rock=(x,y)=>{ if(tiles[y]&&x>1&&x<w-2){ tiles[y][x]='stone'; wall.push({x,y}); } };
+    for(let x=cx-6;x<=cx-2;x++) for(let y=cy-4;y<=cy-2;y++) rock(x,y);
+    for(let x=cx+2;x<=cx+7;x++) for(let y=cy-4;y<=cy-2;y++) rock(x,y);
+    for(let x=cx-1;x<=cx+1;x++) rock(x, cy-4);
+    for(let x=cx-6;x<=cx-4;x++) rock(x, cy-5);
+    for(let x=cx+5;x<=cx+7;x++) rock(x, cy-5);
+    rock(cx-6, cy-1); rock(cx-5, cy-1);
+    rock(cx+6, cy-1); rock(cx+7, cy-1);
+    for(let y=cy-1;y<ht-2;y++){
       if(tiles[y]?.[cx] && tiles[y][cx]!=='stone') tiles[y][cx]='path';
       if(tiles[y]?.[cx+1] && tiles[y][cx+1]!=='stone') tiles[y][cx+1]='path';
     }
@@ -1028,27 +1027,31 @@ export function buildMapForLocation(S, ort){
     const blocks=[
       {x:cx, y:cy, kind:'spawn'},
       {x:cx-1, y:cy+2, kind:'fire'},
-      {x:cx-2, y:cy+2, kind:'bench'},
+      {x:cx-3, y:cy+2, kind:'bench'},
       {x:cx+2, y:cy+2, kind:'bench'},
-      {x:cx-5, y:cy-1, kind:'barrel'},
-      {x:cx+4, y:cy-2, kind:'chest'},
+      {x:cx-5, y:cy, kind:'barrel'},
+      {x:cx+5, y:cy-1, kind:'chest'},
       {x:cx+2, y:cy, kind:'wolf'},
     ];
     for(const b of blocks){
       if(b.kind==='spawn'||b.kind==='wolf') continue;
-      if(tiles[b.y]) tiles[b.y][b.x]='sand';
+      if(tiles[b.y] && tiles[b.y][b.x]!=='stone') tiles[b.y][b.x]='sand';
     }
     prop(cx-1, cy+2, 'campfire');
     anim(cx-1, cy+2, 'torch');
-    prop(cx-5, cy-1, 'barrel');
-    prop(cx-2, cy+2, 'bench');
+    prop(cx-5, cy, 'barrel');
+    prop(cx-3, cy+2, 'bench');
     prop(cx+2, cy+2, 'bench');
-    overhead.push({x:cx+8, y:cy-1, src:DECOR.watchtower, tw:2.1, th:3.1, label:'Wachturm'});
-    overhead.push({x:cx-8, y:cy-1, src:DECOR.pine, tw:1.6, th:2.4, label:'pine'});
+    prop(cx-5, cy+4, 'snowdrift');
+    prop(cx+6, cy+1, 'snowdrift');
+    prop(cx-7, cy+1, 'rock');
+    prop(cx-2, cy+4, 'snowdrift');
+    overhead.push({x:cx+8, y:cy-1, src:DECOR.watchtower, tw:2.3, th:3.6, label:'Wachturm'});
+    overhead.push({x:cx-8, y:cy, src:DECOR.pine, tw:1.7, th:2.5, label:'pine'});
     const seats=[
-      {name:'Wächter Toren', sheet:'guard', e:'🛡️', x:cx-4, y:cy-2},
-      {name:'Schmiedin Kael', sheet:'merchant', e:'🔨', x:cx-2, y:cy-3},
-      {name:'Kundschafterin Lira', sheet:'spy', e:'🕵️', x:cx+2, y:cy-3},
+      {name:'Wächter Toren', sheet:'guard', e:'🛡️', x:cx-4, y:cy-1},
+      {name:'Schmiedin Kael', sheet:'merchant', e:'🔨', x:cx-2, y:cy},
+      {name:'Kundschafterin Lira', sheet:'spy', e:'🕵️', x:cx+3, y:cy-1},
       {name:'Händler Bram', sheet:'merchant', e:'🧳', x:cx+5, y:cy+3},
       {name:'Spionin Nyx', sheet:'spy', e:'🗡️', x:cx+4, y:cy+1},
       {name:'Rekrut Venn', sheet:'villager', e:'🛡️', x:cx-5, y:cy+2},
@@ -1058,14 +1061,10 @@ export function buildMapForLocation(S, ort){
     for(const s of seats){
       _hubNpcs.push({name:s.name, x:s.x, y:s.y, px:s.x, py:s.y, sheet:s.sheet, e:s.e, home:{x:s.x,y:s.y}});
     }
-    placeChest(cx+4, cy-2, {gold:15, item:'Eisen-Schild'});
+    placeChest(cx+5, cy-1, {gold:15, item:'Eisen-Schild'});
     placeChest(8, 11, {gold:10, item:'Antidot'});
     placeChest(w-9, cy+2, {gold:18, item:'Nyx-Bericht'});
-    questMark(cx, cy-4, 'Grenzpass', 'story');
-    const wall=[];
-    for(let x=cx-7;x<=cx+7;x++) wall.push({x, y:wallY});
-    for(let y=wallY;y<=cy+2;y++) wall.push({x:cx-7, y});
-    for(let y=wallY;y<=cy-1;y++) wall.push({x:cx+7, y});
+    questMark(cx, cy-1, 'Grenzpass', 'story');
     questMark._campAudit.wall=wall;
     placeHouse(Math.max(8,cx-3), Math.min(ht-8, cy+9), 'Herberge', {variant:3});
     questMark(Math.max(4,cx-6), Math.min(ht-4,cy+5), 'Eishöhlen am Pass', 'side');
@@ -2237,7 +2236,7 @@ function ensurePassJobs(S){
     for(const [x,y] of spots){ if(placeMark(x,y,'Höllenhund','boss')) break; }
   }
   if(S.campaign.flags.passArrived && !S.campaign.flags.solmirArrived){
-    const spots=[[cx,cy-2],[cx+1,cy-2],[cx,cy-1],[cx+1,cy-1]];
+    const spots=[[cx,cy-1],[cx+1,cy-1],[cx,cy],[cx+1,cy]];
     for(const [x,y] of spots){ if(placeMark(x,y,'Nach Solmir','solmir')) break; }
   }
   const add=(name,sheet,x,y)=>{
@@ -2691,7 +2690,7 @@ function drawSprite(ctx, im, frame, dir, dx, dy, tw){
   const fr=frame%cols;
   // LPC sheet rows: 0=down, 1=left, 2=right, 3=up — matches our dir
   const d=Math.min(dir%4, rows-1);
-  const drawH=tw*1.85, drawW=tw*1.2;
+  const drawH=tw*1.55, drawW=tw*1.05;
   const bob=(frame%2)?Math.round(tw*0.06):0;
   ctx.drawImage(im, fr*fw, d*fh, fw, fh, dx-(drawW-tw)*0.5, dy+(tw-drawH)+tw*0.05-bob, drawW, drawH);
 }
@@ -2826,7 +2825,7 @@ function draw(){
           if(viewW / viewH < aspect) viewW = Math.max(viewW, Math.ceil(viewH * aspect));
           else viewH = Math.max(viewH, Math.ceil(viewW / aspect));
         }
-        if(_map.preset==='wall'){ viewW=18; viewH=10; }
+        if(_map.preset==='wall'){ viewW=16; viewH=11; }
       }
     }
   }catch(_){}
@@ -3139,10 +3138,23 @@ function draw(){
     }
   }
 
+  const _cast=[];
   for(const n of _npcs){
     const k=fogKey(Math.round(n.x), Math.round(n.y));
     if(!_visible.has(k)) continue;
+    _cast.push(n);
+  }
+  _cast.push({_hero:true, x:_hero.x, y:_hero.y, px:_hero.px, py:_hero.py, dir:_hero.dir, frame:_hero.frame});
+  _cast.sort((a,b)=>(a.py??a.y)-(b.py??b.y));
+  for(const n of _cast){
     const sx=ox+(n.px-camX)*tw, sy=oy+(n.py-camY)*tw - tw*0.55;
+    if(n._hero){
+      const him=loadImg('./assets/pixel/hero/walk.png');
+      const sh=loadImg(DECOR.shadow);
+      if(sh.complete && sh.naturalWidth) ctx.drawImage(sh, sx+tw*0.1, sy+tw*0.72, tw*0.8, tw*0.28);
+      drawSprite(ctx, him, n.frame|0, n.dir|0, sx, sy, tw);
+      continue;
+    }
     if(n._mapEncounter && n._encImg){
       const mim=loadImg(n._encImg);
       if(mim.complete&&mim.naturalWidth){
@@ -3155,26 +3167,13 @@ function draw(){
       const sheet=look?.sheet||n.sheet;
       const src=NPC_SHEETS[sheet]||NPC_SHEETS.default;
       const im=look?.tint ? tintedSheet(src, look.tint) : loadImg(src);
+      const sh=loadImg(DECOR.shadow);
+      if(sh.complete && sh.naturalWidth) ctx.drawImage(sh, sx+tw*0.1, sy+tw*0.72, tw*0.8, tw*0.28);
       const stepping=Math.abs(n.x-n.px)+Math.abs(n.y-n.py)>0.15;
       const fr=stepping ? ((n.frame|0)%4) : ((_animFrame>>4)%2);
       drawSprite(ctx, im, fr, n.dir|0, sx, sy, tw);
     }
   }
-
-  const him=loadImg('./assets/pixel/hero/walk.png');
-  const hx=ox+(_hero.px-camX)*tw, hy=oy+(_hero.py-camY)*tw - tw*0.55;
-  // entity shadows
-  const sh=loadImg(DECOR.shadow);
-  if(sh.complete && sh.naturalWidth){
-    ctx.drawImage(sh, hx+tw*0.1, hy+tw*0.85, tw*0.8, tw*0.35);
-    for(const n of _npcs){
-      const k=fogKey(Math.round(n.x), Math.round(n.y));
-      if(!_visible.has(k)) continue;
-      const nsx=ox+(n.px-camX)*tw, nsy=oy+(n.py-camY)*tw - tw*0.55;
-      ctx.drawImage(sh, nsx+tw*0.1, nsy+tw*0.85, tw*0.8, tw*0.35);
-    }
-  }
-  drawSprite(ctx, him, _hero.frame, _hero.dir, hx, hy, tw);
   // One nameplate: the person being talked to, otherwise the nearest neighbour.
   try{
     const speaking=isDialogueOpen() ? String(document.getElementById('owDlgName')?.textContent||'') : '';
@@ -3292,7 +3291,7 @@ function draw(){
     ctx.globalAlpha=vis?(night?0.95:1):(night?0.7:0.5);
     let dw=(oh.tw||3)*tw, dh=(oh.th||3)*tw;
     // v62: tall landmarks keep sprite aspect (watchtower/pine)
-    if(/watchtower|pine|throne_chair|altar|pine_tall/.test(String(oh.src||oh.label||''))){
+    if(/watchtower|pine|peaks|throne_chair|altar|pine_tall/.test(String(oh.src||oh.label||''))){
       const aspect=im.naturalHeight/Math.max(1,im.naturalWidth);
       dw=(oh.tw||3)*tw;
       dh=dw*aspect;
