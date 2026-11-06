@@ -1408,10 +1408,10 @@ async function jrpgPick(ch){
             if(win && setOpts?.bossId){ try{ C67.markSetpieceBeat(S, setOpts.bossId); }catch(_){} }
             if(win && isBoss){
               applyJrpgPack(C63.onBossVictory(S,{toast}));
-            } else if((lost || (sum && sum.result==='surrender')) && (bid==='wolf' || (S.campaign?.flags?.passField && bid!=='lesser_fiend' && bid!=='demon_imp'))){
+            } else if((lost || (sum && sum.result==='surrender')) && (bid==='wolf' || ((S.campaign?.flags?.passField || S.campaign?.flags?.solmirField) && bid!=='lesser_fiend' && bid!=='demon_imp'))){
               try{ document.body.classList.add('field-play'); }catch(_){}
               try{ S.st.hp=Math.max(1,(S.st.hp|0)||(S.st.maxhp|0)||1); }catch(_){}
-              showFieldRetry(bid==='wolf' ? 'wolf' : 'boss');
+              showFieldRetry(bid==='wolf' ? 'wolf' : (bid==='boss_lich' ? 'lich' : 'boss'));
             } else if(win && bid==='wolf'){
               S.campaign.flags=S.campaign.flags||{};
               S.campaign.flags.passWolf=true;
@@ -1508,6 +1508,10 @@ function applyJrpgPack(pack){
     if(S.campaign.sceneId==='c1_reward' && !S.flags.fieldReward){
       S.flags.fieldReward=true;
       try{ window.__game?.OW?.fieldReward?.(S); }catch(_){}
+    }
+    if(S.campaign.sceneId==='c3_field' && !S.flags.cryptEndShown){
+      S.flags.cryptEndShown=true;
+      try{ window.__game?.OW?.fieldCryptEnd?.(S); }catch(_){}
     }
     if(S.campaign.sceneId==='c2_field' && !S.flags.passEndShown){
       S.flags.passEndShown=true;

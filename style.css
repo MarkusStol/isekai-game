@@ -5405,8 +5405,8 @@ body.battle-open .composer,
   image-rendering:pixelated;
 }
 /* Companions same visual size as hero — no back-row shrink */
-.battle-root.battle-pixel .party-stage-spr,
-.battle-root.battle-pixel .party-stage-spr.row-back{
+.battle-root.battle-pixel .party-stage-spr:not(.atk-ant):not(.atk-strike):not(.atk-cast):not(.hit-from-left):not(.hit-from-right),
+.battle-root.battle-pixel .party-stage-spr.row-back:not(.atk-ant):not(.atk-strike):not(.atk-cast):not(.hit-from-left):not(.hit-from-right){
   transform: translateY(calc(var(--i,0) * -8px)) !important;
   opacity:1 !important;
   filter:none !important;
@@ -7463,7 +7463,6 @@ body.ow-desktop #overworld canvas{
   top: calc(2% + (var(--i, 0) * 16.5%)) !important;
   left:auto !important;
   bottom:auto !important;
-  transform:none !important;
   margin:0 !important;
   flex:none !important;
   width:auto !important;
@@ -7474,8 +7473,12 @@ body.ow-desktop #overworld canvas{
   filter:none !important;
   opacity:1 !important;
 }
-.battle-root.battle-ff67 .party-stage-spr.row-back,
-.battle-root.battle-ff67.battle-pixel .party-stage-spr.row-back{
+.battle-root.battle-ff67 .party-stage-spr:not(.atk-ant):not(.atk-strike):not(.atk-cast):not(.hit-from-left):not(.hit-from-right),
+.battle-root.battle-ff67.battle-pixel .party-stage-spr:not(.atk-ant):not(.atk-strike):not(.atk-cast):not(.hit-from-left):not(.hit-from-right){
+  transform:none !important;
+}
+.battle-root.battle-ff67 .party-stage-spr.row-back:not(.atk-ant):not(.atk-strike):not(.atk-cast):not(.hit-from-left):not(.hit-from-right),
+.battle-root.battle-ff67.battle-pixel .party-stage-spr.row-back:not(.atk-ant):not(.atk-strike):not(.atk-cast):not(.hit-from-left):not(.hit-from-right){
   filter:brightness(0.96) !important;
   opacity:1 !important;
   transform:none !important;
@@ -7595,26 +7598,39 @@ body.ow-desktop #overworld canvas{
 }
 
 /* Strike rhythm: anticipate, hit, recover. Small camera nudge, not a shake loop. */
-.battle-root.battle-ff67 .party-stage-spr.atk-ant,
-.battle-root.battle-ff67 .foe-card.atk-ant{
-  animation: atkAnt .09s ease-out forwards;
+.battle-root.battle-ff67 .party-stage-spr.atk-ant{
+  animation: atkAnt .32s ease-out forwards !important;
 }
-.battle-root.battle-ff67 .party-stage-spr.atk-strike,
+.battle-root.battle-ff67 .foe-card.atk-ant{
+  animation: atkAntFoe .32s ease-out forwards !important;
+}
+.battle-root.battle-ff67 .party-stage-spr.atk-strike{
+  animation: atkStrike .7s ease-out !important;
+}
 .battle-root.battle-ff67 .foe-card.atk-strike{
-  animation: atkStrike .32s ease-out;
+  animation: atkStrikeFoe .7s ease-out !important;
 }
 .battle-root.battle-ff67 .party-stage-spr.atk-cast,
 .battle-root.battle-ff67 .foe-card.atk-cast{
   animation: atkCast .4s ease-out;
 }
 @keyframes atkAnt{
-  from{ transform:translateX(0) !important; }
-  to{ transform:translateX(28px) !important; }
+  from{ translate:0 0; }
+  to{ translate:70px 0; }
 }
 @keyframes atkStrike{
-  0%{ transform:translateX(28px) !important; }
-  38%{ transform:translateX(-78px) !important; }
-  100%{ transform:translateX(0) !important; }
+  0%{ translate:70px 0; }
+  38%{ translate:-180px 0; }
+  100%{ translate:0 0; }
+}
+@keyframes atkAntFoe{
+  from{ translate:0 0; }
+  to{ translate:-48px 0; }
+}
+@keyframes atkStrikeFoe{
+  0%{ translate:-48px 0; }
+  38%{ translate:160px 0; }
+  100%{ translate:0 0; }
 }
 @keyframes atkCast{
   0%{ filter:brightness(1); transform:translateX(8px) scale(1); }
@@ -7630,14 +7646,14 @@ body.ow-desktop #overworld canvas{
   animation: hitLeft .28s ease-out;
 }
 @keyframes hitRight{
-  0%{ transform:translateX(0); filter:brightness(1); }
-  30%{ transform:translateX(-28px); filter:brightness(2.4); }
-  100%{ transform:translateX(0); filter:none; }
+  0%{ translate:0 0; filter:brightness(1); }
+  30%{ translate:-40px 0; filter:brightness(2.4); }
+  100%{ translate:0 0; filter:none; }
 }
 @keyframes hitLeft{
-  0%{ transform:translateX(0); filter:brightness(1); }
-  35%{ transform:translateX(16px); filter:brightness(2.1); }
-  100%{ transform:translateX(0); filter:none; }
+  0%{ translate:0 0; filter:brightness(1); }
+  35%{ translate:16px 0; filter:brightness(2.1); }
+  100%{ translate:0 0; filter:none; }
 }
 .battle-root.cam-nudge{ animation: camNudge .22s ease-out; }
 .battle-root.cam-nudge-hard{ animation: camNudgeHard .26s ease-out; }

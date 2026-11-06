@@ -1166,23 +1166,30 @@ export function buildMapForLocation(S, ort){
     questMark(cx, 7, 'Grenzpass', 'story');
     // camp NPCs with context
         placeHouse(Math.max(8,cx-3), Math.min(ht-8, cy+4), 'Herberge', {variant:3});
-    const seat=(dx,dy)=>{
-      let x=Math.max(6, Math.min(w-7, cx+dx));
-      let y=Math.max(4, Math.min(ht-5, cy+dy));
+    // Around the fire, on the path, so they stay in frame while someone is talking.
+    // Spawn sits one tile north of the fire; leave that tile empty.
+    const fireX=campX+3, fireY=campY+2;
+    const taken=new Set([cx+','+cy]);
+    const campSpot=(dx,dy)=>{
       const solid=new Set(['wall','water','tree','void','house','ruin','fence','well','stall']);
-      for(let r=0;r<6;r++){
+      const x0=fireX+dx, y0=fireY+dy;
+      for(let r=0;r<4;r++){
         for(let oy=-r;oy<=r;oy++) for(let ox=-r;ox<=r;ox++){
-          const xx=Math.max(6, Math.min(w-7, x+ox));
-          const yy=Math.max(4, Math.min(ht-5, y+oy));
+          const xx=Math.max(2, Math.min(w-3, x0+ox));
+          const yy=Math.max(2, Math.min(ht-3, y0+oy));
+          const key=xx+','+yy;
+          if(taken.has(key)) continue;
           const t=tiles[yy]?.[xx];
-          if(t && !solid.has(t)) return {x:xx,y:yy};
+          if(t && !solid.has(t)){ taken.add(key); return {x:xx,y:yy}; }
         }
       }
-      if(tiles[y]) tiles[y][x]='sand';
-      return {x,y};
+      if(tiles[y0]) tiles[y0][x0]='path';
+      taken.add(x0+','+y0);
+      return {x:x0,y:y0};
     };
-    const toren=seat(0,-6), lira=seat(6,-2), kael=seat(-6,-2);
-    const bram=seat(-6,3), nyx=seat(6,3), venn=seat(-8,1), aria=seat(8,1);
+    // Off the east and north roads out of camp, so walking to a mark does not bump someone.
+    const nyx=campSpot(3,1), toren=campSpot(-2,0), lira=campSpot(2,-2);
+    const kael=campSpot(-2,-2), bram=campSpot(2,1), venn=campSpot(-2,1), aria=campSpot(0,1);
     _hubNpcs.push({name:'Wächter Toren', x:toren.x, y:toren.y, px:toren.x, py:toren.y, sheet:'guard', e:'🛡️', home:toren});
     _hubNpcs.push({name:'Kundschafterin Lira', x:lira.x, y:lira.y, px:lira.x, py:lira.y, sheet:'spy', e:'🕵️', home:lira});
     _hubNpcs.push({name:'Schmiedin Kael', x:kael.x, y:kael.y, px:kael.x, py:kael.y, sheet:'merchant', e:'🔨', home:kael});
@@ -2200,6 +2207,22 @@ function resolveAriaNight(S, yes, underage){
   fadeIntimate();
   showDialogue('Aria', 'Licht aus. Was danach ist, bleibt zwischen uns. Morgen holen wir Lio.', 'princess');
 }
+export function fieldCryptEnd(S){
+  if(!S) return;
+  const f=campFlags(S);
+  document.body.classList.add('field-play');
+  const beats=[];
+  if(f.ariaStood && f.ariaRomance){
+    beats.push({name:'Aria', sheet:'princess', text:'Er ist still. Ich geh mit dir zum Feuer zurück. Morgen reden wir. Heute holen wir erst Lio.'});
+  } else if(f.ariaRefused){
+    beats.push({name:'Velka', sheet:'mage', text:'Er ist still. Venn kann schlafen. Die Asche nehm ich mit, die Knochen nicht.'});
+    beats.push({name:'Aria', sheet:'princess', text:'Das reicht für Lios Husten nicht, aber der Lärm hört auf. Ich geh zurück zum Pass.'});
+  } else {
+    beats.push({name:'Jex', sheet:'spy', text:'Still da unten. Die Münzen im Vorraum nehm ich. Du hast die Asche. Die Kathedrale ist noch zu.'});
+  }
+  beats.push({name:'Mara', sheet:'mage', text:'Ich schreib: der Lich ist still. Die Kathedrale mach ich heute nicht auf.'});
+  queueBeats(beats);
+}
 export function fieldPassEnd(S){
   if(!S) return;
   const f=campFlags(S);
@@ -2304,14 +2327,15 @@ function goToSolmir(S){
   showOverworld(S);
   const beats=[];
   if(f.ariaStood && f.ariaRomance){
-    beats.push({name:'Aria', sheet:'princess', text:'Die Gruft bleibt zu. Lio ist am Pass, am Feuer. Ich geh in den Hof, nicht in das Loch.'});
+    beats.push({name:'Aria', sheet:'princess', text:'Ich geh mit in den Hof. Nicht weiter, bis die Tür auf ist. Lio bleibt am Pass, am Feuer.'});
   } else if(f.ariaRefused){
-    beats.push({name:'Aria', sheet:'princess', text:'Hier liegt Staub, kein Hund. Ich such etwas für Lios Husten und geh dann zurück.'});
+    beats.push({name:'Aria', sheet:'princess', text:'Hier liegt Staub, kein Hund. Ich such etwas für Lios Husten. Danach geh ich zurück.'});
   } else if(f.ariaCool || f.ariaNoRomance || f.ariaRomanceRefused){
     beats.push({name:'Jex', sheet:'spy', text:'Die Blonde ist am Pass geblieben. Sie hat nicht nach dir gefragt. Der Hof ist offen. Die Gruft nicht.'});
   } else {
-    beats.push({name:'Mara', sheet:'mage', text:'Der Hof ist offen. Die Tür zur Gruft ist verriegelt. Heute kommst du nicht weiter.'});
+    beats.push({name:'Mara', sheet:'mage', text:'Der Hof ist offen. Die Tür zur Gruft ist zu. Heute kommst du da nicht durch.'});
   }
+  beats.push({name:'Orun', sheet:'guard', text:'Vier Kammern. In jeder stehen zwei Särge. Die Tür will acht. Nicht vier, und nicht ein Gebet.'});
   queueBeats(beats);
   try{ _hooks.save?.(); }catch(_){}
 }
@@ -2334,15 +2358,15 @@ function ensurePassJobs(S){
   if(!onPassMap() || !S?.campaign?.flags?.passField) return;
   const cx=Math.floor((_map.w||30)/2), cy=Math.floor((_map.h||30)/2);
   if(!S.campaign.flags.passWolf){
-    const spots=[[cx,cy+12],[cx+1,cy+12],[cx-1,cy+11],[cx,cy+11]];
+    const spots=[[cx+2,cy],[cx-2,cy],[cx,cy+2],[cx+2,cy+1]];
     for(const [x,y] of spots){ if(placeMark(x,y,'Wolf','hunt')) break; }
   }
   if(!S.campaign.flags.beat_hellhound && !S.campaign.flags.passClear){
     const spots=[[cx+12,cy-8],[cx+11,cy-7],[cx+12,cy-6],[cx+10,cy-8]];
     for(const [x,y] of spots){ if(placeMark(x,y,'Höllenhund','boss')) break; }
   }
-  if(S.campaign.flags.passClear && !S.campaign.flags.solmirArrived){
-    const spots=[[cx+2,cy-8],[cx+3,cy-7],[cx-2,cy-8],[cx+2,cy-7]];
+  if(S.campaign.flags.passArrived && !S.campaign.flags.solmirArrived){
+    const spots=[[cx,cy-3],[cx-1,cy-3],[cx+1,cy-3],[cx,cy-4]];
     for(const [x,y] of spots){ if(placeMark(x,y,'Nach Solmir','solmir')) break; }
   }
   const add=(name,sheet,x,y)=>{
@@ -2362,8 +2386,16 @@ function ensureSolmir(S){
     if(!walkable(x,y)) return;
     _npcs.push({name, sheet, x, y, px:x, py:y, dir:0, frame:0, home:{x,y}});
   };
-  if((f.ariaStood && f.ariaRomance) || f.ariaRefused) add('Heldin Aria','princess', cx+5, cy+4);
-  if((S.party||[]).includes('Sekretärin Velka')) add('Sekretärin Velka','mage', cx-6, cy+4);
+  if((f.ariaStood && f.ariaRomance) || f.ariaRefused) add('Heldin Aria','princess', cx+4, cy+3);
+  if((S.party||[]).includes('Sekretärin Velka')) add('Sekretärin Velka','mage', cx-5, cy+3);
+  if(!f.solmirSeal && !f.c3Clear){
+    const spots=[[cx,cy-2],[cx,cy-3],[cx-1,cy-2],[cx+1,cy-2]];
+    for(const [x,y] of spots){ if(placeMark(x,y,'Grufttür','crypt')) break; }
+  }
+  if(f.solmirSeal && !f.beat_boss_lich && !f.c3Clear){
+    const spots=[[cx,cy-5],[cx,cy-4],[cx-1,cy-5],[cx+1,cy-4]];
+    for(const [x,y] of spots){ if(placeMark(x,y,'Lich','boss')) break; }
+  }
 }
 function passFieldLine(S, label, sh, party, f){
   if(label==='Heldin Aria'){
@@ -2389,14 +2421,14 @@ function passFieldLine(S, label, sh, party, f){
     return {text:'Grenzpass. Der Hund im Ostturm hat zwei von uns geholt. Feuer ist da. Rein geh ich nicht.'};
   }
   if(label==='Spionin Nyx'){
-    if(f.nyxReport) return {text:'Ostturm, an der Kette. Licht tut ihm nichts. Eis oder Wasser, sonst Stahl. Mehr hab ich nicht verkauft.'};
-    return {text:'Fünfzehn Gold. Der Hund steht am Ostturm an der Kette. Licht tut ihm nichts. Eis oder Wasser, wenn du das hast. Sonst Stahl.', choices:[
+    if(f.nyxReport) return {text:'Er hängt im Ostturm, an der Kette. Licht kannst du dir sparen, das beißt ihn nicht. Wenn du Eis oder Wasser dabei hast, nimm das. Wenn nicht, geh mit Stahl rein und bleib nicht stehen.'};
+    return {text:'Fünfzehn Gold, dann sag ich dir, wo er steht. Er hängt im Ostturm an der Kette. Licht beißt ihn nicht. Hast du Eis oder Wasser, nimm das mit. Hast du keins, nimm Stahl, und geh nicht allein rein.', choices:[
       {label:'Zahlen', pick:()=>{
-        if((S.st?.gold|0)<15){ showDialogue(label,'Fünfzehn. Nicht weniger.', sh); return; }
+        if((S.st?.gold|0)<15){ showDialogue(label,'Fünfzehn. Weniger nehm ich nicht.', sh); return; }
         S.st.gold=(S.st.gold|0)-15;
         f.nyxReport=true;
         try{ _hooks.save?.(); }catch(_){}
-        showDialogue(label,'Ostturm. Fass die Kette nicht an. Und die Wache hat Order gegen Aria, falls sie bei dir ist. Das ist nicht meine Order.', sh);
+        showDialogue(label,'Ostturm, an der Kette. Fass die Kette nicht an. Wenn Aria bei dir ist, hat die Wache eine Order gegen sie. Das ist nicht meine Order.', sh);
       }},
       {label:'Später', pick:()=>hideDialogue()},
     ]};
@@ -2406,17 +2438,17 @@ function passFieldLine(S, label, sh, party, f){
     return {text:'Ich hust noch. Zwei von uns hat der Hund geholt. Wenn Brok bei dir ist, sag ihm das, bevor ihr den Turm aufmacht.'};
   }
   if(label==='Kundschafterin Lira'){
-    if(f.passWolf) return {text:'Der Wolf ist tot. Das Fell kannst du behalten. Der Hund im Turm ist größer, und er hört nicht auf Zuruf.'};
-    return {text:'Wolf auf dem Weg, Hund im Turm. Der Wolf ist kleiner. Trotzdem beißt er, wenn du ihm den Rücken drehst.'};
+    if(f.passWolf) return {text:'Der Wolf ist tot. Das Fell kannst du behalten. Der Hund im Turm ist größer, und der kommt nicht, wenn du rufst.'};
+    return {text:'Ein Wolf auf dem Weg, der Hund im Turm. Der Wolf ist der kleinere. Dreh ihm trotzdem nicht den Rücken zu.'};
   }
   if(label==='Händler Bram'){
     return {text:'Decken, Seil, ein Trank. Der Weg nach Solmir friert zu. Ich frag nicht, wen du mitbringst.'};
   }
   if(label==='Schmiedin Kael'){
-    return {text:'Stahl für den Turm, nicht für Reden. Wenn die Klinge splittert, bring sie her. Sonst stör mich nicht am Feuer.'};
+    return {text:'Der Turm braucht Stahl, keine Rede. Wenn die Klinge splittert, bring sie her. Lass mich sonst am Feuer.'};
   }
   if(label==='Sekretärin Velka' && party.includes(label)){
-    return {text:'Zwei Wachen fehlen. Der Hund hat sie, nicht der Schnee. Ich zähl sie nicht zu den Lebenden.'};
+    return {text:'Zwei von der Wache fehlen. Der Hund hat sie geholt. Ich zähl die beiden nicht mehr mit.'};
   }
   if(label==='General Brok' && party.includes(label)){
     return {text:'Ostturm. Ich geh vor. Wenn du Aria anfasst, ohne dass sie es will, schlag ich dich. König oder nicht.'};
@@ -2426,22 +2458,39 @@ function passFieldLine(S, label, sh, party, f){
 function onSolmirMap(){
   return _map?.preset==='graveyard';
 }
+function openCryptDoor(S){
+  const f=campFlags(S);
+  showDialogue('Orun','Vier Kammern, zwei Särge in jeder. Wie viele sind das?','guard',[
+    {label:'Vier', pick:()=>{ S.st.hp=Math.max(1,(S.st.hp|0)-8); showDialogue('Orun','Zu wenig. Zähl die Kammern noch mal.','guard'); }},
+    {label:'Acht', pick:()=>{
+      f.solmirSeal=true;
+      const spots=[[_hero.x,_hero.y-2],[_hero.x+1,_hero.y-2],[_hero.x-1,_hero.y-2],[_hero.x,_hero.y+2],[_hero.x+2,_hero.y]];
+      for(const [x,y] of spots){ if(placeMark(x|0,y|0,'Lich','boss')) break; }
+      showDialogue('Orun','Acht. Die Riegel gehen. Der Lich steht direkt hinter der Tür.','guard');
+    }},
+    {label:'Zwölf', pick:()=>{ S.st.hp=Math.max(1,(S.st.hp|0)-8); showDialogue('Orun','Zu viele. Es sind zwei pro Kammer.','guard'); }},
+  ]);
+}
 function solmirLine(S, label, party, f){
   if(label==='Heldin Aria'){
-    if(f.ariaStood && f.ariaRomance) return {text:'Ich bleib im Hof. Die Nacht hat uns nicht verheiratet, und die Gruft macht es nicht besser. Lio wartet am Feuer.'};
-    if(f.ariaRefused) return {text:'Ein Mittel für den Husten, dann zurück. Fass das nicht als Einladung an.'};
+    if(f.c3Clear && f.ariaStood) return {text:'Er ist still. Lio kann am Feuer bleiben. Ich geh mit dir zurück, und wir reden morgen. Heute nicht.'};
+    if(f.ariaStood && f.ariaRomance) return {text:'Ich geh mit bis zur Tür. Die Nacht hat uns nicht verheiratet. Wenn du acht sagst, komm ich mit rein.'};
+    if(f.ariaRefused) return {text:'Etwas für den Husten, dann zurück. Das hier ist kein Spaziergang mit mir.'};
     return {text:'Ich bin wegen Lio hier. Nicht wegen der Gruft, und nicht wegen dir.'};
   }
   if(label==='Grabräuber Jex'){
-    if(f.ariaCool || f.ariaNoRomance || f.ariaRomanceRefused) return {text:'Sie ist nicht mit dir gekommen. Gut für sie. Ich nehm Münzen im Vorraum. Die Knochen lass ich liegen.'};
-    if(f.ariaStood) return {text:'Sie steht hinter dir und guckt, als wär das kein Ausflug. Die Gruft ist zu. Ich bleib im Hof.'};
-    return {text:'Staub und Münzen. Die Tür unten ist zu. Ich klopf nicht.'};
+    if(f.c3Clear) return {text:'Der Lich ist unten still. Ich nehm die Münzen im Vorraum und geh. Die Knochen bleiben.'};
+    if(f.ariaCool || f.ariaNoRomance || f.ariaRomanceRefused) return {text:'Sie ist nicht mit dir gekommen. Gut für sie. Die Tür will acht Särge. Ich zähl nicht für dich.'};
+    if(f.ariaStood) return {text:'Sie steht hinter dir. Die Gruft ist zu, bis jemand acht sagt. Ich bleib im Hof.'};
+    return {text:'Staub und Münzen. Die Tür ist zu. Ich klopf nicht.'};
   }
   if(label==='Chronistin Mara'){
-    return {text:'Ich schreib, wer hier gelegen hat. Die Gruft bleibt verriegelt. Heute ist nur der Hof offen.'};
+    if(f.c3Clear) return {text:'Ich schreib: der Lich ist still. Die Gruft bleibt sonst zu. Mehr hab ich heute nicht.'};
+    return {text:'Ich schreib, wer hier gelegen hat. Vier Kammern, zwei Särge. Die Tür geht auf acht auf.'};
   }
   if(label==='Hüter Orun'){
-    return {text:'Hof ja. Gruft nein. Wenn du klopfst, klopft es zurück. Lass es.'};
+    if(f.solmirSeal) return {text:'Die Riegel sind auf. Norden. Und komm zurück, wenn er dich hinlegt.'};
+    return {text:'Vier Kammern. Zwei Särge in jeder. Sag acht an der Tür, dann geht sie auf.'};
   }
   if(label==='Sekretärin Velka' && party.includes(label)){
     return {text:'Trockener Staub, nicht wie bei Venn. Die Tür ist zu. Ich les hier nichts vor.'};
@@ -2540,8 +2589,24 @@ function talkNearest(){
     const byHero=Math.abs((m.x|0)-_hero.x)<=1 && Math.abs((m.y|0)-_hero.y)<=1;
     return byFace || byHero;
   });
+  const crypt=nearMark('crypt');
+  if(crypt && onSolmirMap() && S?.campaign?.flags?.solmirField && !S.campaign.flags.solmirSeal){
+    openCryptDoor(S);
+    return 'crypt';
+  }
   const boss=nearMark('boss');
   if(boss && fieldChapter(S)){
+    if(onSolmirMap()){
+      if(!S.campaign?.flags?.solmirSeal){
+        showDialogue('Orun','Die Tür ist zu. Vier Kammern, zwei Särge. Sag acht.','guard');
+        return 'locked';
+      }
+      S.campaign.chapterIdx=2;
+      S.campaign.flags.solmirField=true;
+      S.campaign.dungeon=null;
+      try{ window.__game?.startFieldBoss?.(); }catch(_){}
+      return 'boss';
+    }
     const open=!!S.campaign?.flags?.puzzle_c1_ledger_seal;
     const hound=/hund|turm|pass/i.test(String(boss.label||'')) || onPassMap();
     if(!hound && !open){ showDialogue('Velka','Das Siegel hält noch. Erst neun, neun, neun. Dann das Ding dahinter.','mage'); return 'locked'; }
@@ -2560,7 +2625,7 @@ function talkNearest(){
     return 'pass';
   }
   const solmir=nearMark('solmir');
-  if(solmir && S?.campaign?.flags?.passClear && !S.campaign.flags.solmirArrived){
+  if(solmir && S?.campaign?.flags?.passArrived && !S.campaign.flags.solmirArrived){
     goToSolmir(S);
     return 'solmir';
   }
@@ -2741,13 +2806,15 @@ function tintedSheet(src, tint){
   return c;
 }
 function drawSprite(ctx, im, frame, dir, dx, dy, tw){
-  if(!(im.complete && im.naturalWidth)){
+  const sw=im?.naturalWidth||im?.width||0;
+  const sh=im?.naturalHeight||im?.height||0;
+  if(!(sw>8 && sh>8)){
     ctx.fillStyle='#3a3428'; ctx.fillRect(dx+tw*0.2, dy+tw*0.15, tw*0.6, tw*1.0);
     return;
   }
   const fw=SPR, fh=SPR;
-  const cols=Math.max(1, Math.floor(im.naturalWidth/fw));
-  const rows=Math.max(1, Math.floor(im.naturalHeight/fh));
+  const cols=Math.max(1, Math.floor(sw/fw));
+  const rows=Math.max(1, Math.floor(sh/fh));
   const fr=frame%cols;
   // LPC sheet rows: 0=down, 1=left, 2=right, 3=up — matches our dir
   const d=Math.min(dir%4, rows-1);
@@ -3222,39 +3289,9 @@ function draw(){
       const sheet=look?.sheet||n.sheet;
       const src=NPC_SHEETS[sheet]||NPC_SHEETS.default;
       const im=look?.tint ? tintedSheet(src, look.tint) : loadImg(src);
-      const fr=n.pace ? (n.frame|0) : ((_animFrame>>3)%4);
+      const stepping=Math.abs(n.x-n.px)+Math.abs(n.y-n.py)>0.15;
+      const fr=stepping ? ((n.frame|0)%4) : ((_animFrame>>4)%2);
       drawSprite(ctx, im, fr, n.dir|0, sx, sy, tw);
-    }
-    // v66: nameplate only near hero; font sized in CSS-px so desktop upscale stays mobile-sized
-    const nearDist=2.2;
-    const near=Math.hypot((n.px||n.x)-_hero.px,(n.py||n.y)-_hero.py)<nearDist;
-    if(near){
-      let label='';
-      try{
-        const Know=window.__game?.Know;
-        const S=_hooks.getS?.();
-        const ROLE={guard:'Wächter',mage:'Gelehrte',merchant:'Händler',spy:'Vermummte',villager:'Passant',daemon:'Gestalt',princess:'Edelfrau',orc:'Ork',succubus:'Sukkubus'};
-        if(Know?.isNameKnown?.(S,n.name)) label=String(n.name||'');
-        else label=ROLE[n.sheet]||ROLE[String(n.sheet||'').toLowerCase()]||'Fremde';
-      }catch(_){ label='Fremde'; }
-      label=String(label||'').trim().replace(/[,.;:]+$/,'');
-      if(label.length>18){
-        const parts=label.split(/\s+/);
-        let acc='';
-        for(const p of parts){ const next=acc?acc+' '+p:p; if(next.length>18) break; acc=next; }
-        label=acc||parts[0].slice(0,18);
-      }
-      if(label){
-        const sc=Math.max(1, _intScale||1);
-        const fontPx=Math.max(6, Math.round(16/sc));
-        const pad=Math.max(1, Math.round(3/sc));
-        const boxH=Math.max(7, Math.round(14/sc));
-        ctx.fillStyle='rgba(0,0,0,.62)';
-        ctx.font=`bold ${fontPx}px "Noto Sans",system-ui,sans-serif`;
-        const twm=ctx.measureText(label).width;
-        ctx.fillRect(sx+tw/2-twm/2-pad, sy-boxH-1, twm+pad*2, boxH);
-        ctx.fillStyle='#ffe8a0'; ctx.fillText(label, sx+tw/2-twm/2, sy-Math.max(2, Math.round(3/sc)));
-      }
     }
   }
 
@@ -3272,6 +3309,45 @@ function draw(){
     }
   }
   drawSprite(ctx, him, _hero.frame, _hero.dir, hx, hy, tw);
+  // One nameplate: the person being talked to, otherwise the nearest neighbour.
+  try{
+    const speaking=isDialogueOpen() ? String(document.getElementById('owDlgName')?.textContent||'') : '';
+    let pick=null, best=1.6;
+    for(const n of _npcs){
+      if(n._mapEncounter) continue;
+      const k=fogKey(Math.round(n.x), Math.round(n.y));
+      if(!_visible.has(k)) continue;
+      if(speaking && speaking!=='…' && (n.name===speaking || speaking.includes(n.name) || n.name.includes(speaking))){ pick=n; break; }
+      const d=Math.hypot((n.px||n.x)-_hero.px,(n.py||n.y)-_hero.py);
+      if(d<best){ best=d; pick=n; }
+    }
+    if(pick){
+      const nsx=ox+(pick.px-camX)*tw, nsy=oy+(pick.py-camY)*tw - tw*0.55;
+      let label=pick.name||'';
+      try{
+        const Know=window.__game?.Know;
+        const S=_hooks.getS?.();
+        const ROLE={guard:'Wächter',mage:'Gelehrte',merchant:'Händler',spy:'Vermummte',villager:'Passant',daemon:'Gestalt',princess:'Edelfrau'};
+        const named=speaking && (pick.name===speaking || speaking.includes(pick.name) || pick.name.includes(speaking));
+        if(named) label=speaking;
+        else if(!(Know?.isNameKnown?.(S, pick.name))) label=ROLE[pick.sheet]||label;
+      }catch(_){}
+      label=String(label||'').trim();
+      if(label.length>18) label=label.split(/\s+/).slice(0,2).join(' ');
+      if(label){
+        const sc=Math.max(1, _intScale||1);
+        const fontPx=Math.max(8, Math.round(18/sc));
+        const pad=Math.max(2, Math.round(4/sc));
+        const boxH=Math.max(10, Math.round(16/sc));
+        ctx.font=`bold ${fontPx}px "Noto Sans",system-ui,sans-serif`;
+        const twm=ctx.measureText(label).width;
+        ctx.fillStyle='rgba(8,6,14,.78)';
+        ctx.fillRect(nsx+tw/2-twm/2-pad, nsy-boxH-2, twm+pad*2, boxH);
+        ctx.fillStyle='#ffe8a0';
+        ctx.fillText(label, nsx+tw/2-twm/2, nsy-Math.max(3, Math.round(4/sc)));
+      }
+    }
+  }catch(_){}
 
   // v74: interaction prompt (NPC / chest / door under face tile)
   try{
@@ -3561,10 +3637,22 @@ function calendarSlot(n, hour){
   return cal.home||n.home;
 }
 function stepNpcs(dt){
+  if(isDialogueOpen()){
+    for(const n of _npcs){
+      n.px+=(n.x-n.px)*Math.min(1, dt*8);
+      n.py+=(n.y-n.py)*Math.min(1, dt*8);
+    }
+    return;
+  }
   const phase=phaseNow();
   let hour=12;
   try{ const raw=_hooks.getS?.()?.cal?.hour; if(raw!=null && raw!=='') hour=Number(raw)|0; }catch(_){}
   for(const n of _npcs){
+    if(n.pace==='idle' || n.pace==='still'){
+      n.px+=(n.x-n.px)*Math.min(1, dt*8);
+      n.py+=(n.y-n.py)*Math.min(1, dt*8);
+      continue;
+    }
     n.wait=(n.wait||0)-dt;
     let target=null;
     const wps=n.waypoints||[];
@@ -4151,4 +4239,4 @@ export function __talkNearest(){ return talkNearest(); }
 export function __talkTo(name){ return talkTo(name); }
 export function __listNpcs(){ return _npcs.map(n=>({name:n.name,x:n.x,y:n.y,sheet:n.sheet})); }
 
-export default { mountOverworld, showOverworld, hideOverworld, refreshOverworld, isOverworldActive, buildMapForLocation, showDialogue, hideDialogue, queueBeats, fieldReward, fieldPassEnd, syncDialogueFromVN, __debug, __setHero, __tryMove, __talkNearest, __talkTo, __listNpcs, get __map(){ return __map; } };
+export default { mountOverworld, showOverworld, hideOverworld, refreshOverworld, isOverworldActive, buildMapForLocation, showDialogue, hideDialogue, queueBeats, fieldReward, fieldPassEnd, fieldCryptEnd, syncDialogueFromVN, __debug, __setHero, __tryMove, __talkNearest, __talkTo, __listNpcs, get __map(){ return __map; } };

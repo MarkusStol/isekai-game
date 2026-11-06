@@ -426,10 +426,10 @@ export async function runFieldBoss({ browser, port, fail, ok }){
   }
 }
 
-async function stepNear(page, x, y){
+async function stepNear(page, x, y, limit=90){
   let stuck = 0;
   let last = '';
-  for(let i=0;i<90;i++){
+  for(let i=0;i<limit;i++){
     const h = await page.evaluate(() => window.__game.OW.__debug().hero);
     const open = await page.evaluate(() => { const el=document.getElementById('owDlg'); return !!(el && !el.classList.contains('hidden') && !document.querySelector('#owDlgChoices button')); });
     if(open){ await page.keyboard.press('Enter'); await sleep(70); continue; }
@@ -561,6 +561,10 @@ async function runAriaYes(browser, port, fail, ok){
     if(!cool.ariaRomance || !cool.ariaCool || cool.party.includes('Heldin Aria') || (cool.rom?.stage|0) > 2){
       fail('aria-yes', 'standing aside did not end the affection', cool);
     } else ok('aria-pass-cool', { party: cool.party, stage: cool.rom?.stage, events: cool.rom?.events });
+    if(!(await walkMark(page, 'solmir'))){ fail('aria-yes', 'no road to Solmir'); return; }
+    const coolYard = await page.evaluate(() => document.getElementById('owDlgText')?.dataset?.full || '');
+    if(!/nicht mit dir|Pass geblieben/.test(coolYard)) fail('aria-yes', 'yard ignored that she was stopped', { coolYard: coolYard.slice(0, 140) });
+    else ok('aria-cool-yard', { line: coolYard.slice(0, 90) });
   } finally {
     await page.close().catch(()=>{});
   }
@@ -617,6 +621,33 @@ export async function runAriaStood(browser, port, fail, ok){
     if(!again.ariaStood || !again.ariaRomance || !again.passClear || !again.party.includes('Heldin Aria')){
       fail('aria-stood', 'reload lost the stand', again);
     } else ok('aria-stood-reload', { party: again.party, stage: again.rom?.stage });
+    if(!(await walkMark(page, 'solmir'))){ fail('aria-stood', 'no road to Solmir'); return; }
+    const stoodLine = await page.evaluate(() => document.getElementById('owDlgText')?.dataset?.full || '');
+    if(!/Hof|Lio/.test(stoodLine)) fail('aria-stood', 'yard line forgot she came', { stoodLine: stoodLine.slice(0, 140) });
+    else ok('aria-stood-yard', { line: stoodLine.slice(0, 90) });
+    await clearDlg(page, 8);
+    if(!(await walkMark(page, 'crypt'))){ fail('aria-stood', 'crypt door missing'); return; }
+    if(!(await clickChoice(page, '^Acht$'))){ fail('aria-stood', 'coffin count missing'); return; }
+    await clearDlg(page, 4);
+    await page.evaluate(() => { window.__game.S.st.hp = window.__game.S.st.maxhp; window.__game.S.flags.nachklangAuto = true; });
+    if(!(await walkMark(page, 'boss'))){ fail('aria-stood', 'lich missing'); return; }
+    const upL = await page.waitForFunction(() => !!window.__game?.Battle?.getBattle?.(), { timeout: 8000 }).then(()=>true).catch(()=>false);
+    if(!upL){ fail('aria-stood', 'lich did not start'); return; }
+    await page.evaluate(() => { const b=window.__game.Battle.getBattle(); if(b) b.atbMode='wait'; });
+    const lich = await finishFight(page, 120000);
+    if(!lich.ok || lich.result!=='win'){ fail('aria-stood', 'protected lich not won', lich); return; }
+    await page.waitForFunction(() => window.__game.S.campaign.flags.c3Clear, { timeout: 8000 }).catch(()=>{});
+    await sleep(400);
+    const endL = await flags(page);
+    if(!endL.c3Clear || !endL.ariaStood || !endL.party.includes('Heldin Aria')){
+      fail('aria-stood', 'lich cleared her out', endL);
+    } else ok('aria-stood-lich', { party: endL.party, stage: endL.rom?.stage });
+    const savedL = await persist(page);
+    if(!savedL) fail('aria-stood', 'crypt save failed');
+    await reloadContinue(page);
+    const againL = await flags(page);
+    if(!againL.c3Clear || !againL.ariaStood || !againL.party.includes('Heldin Aria')) fail('aria-stood', 'crypt reload lost her', againL);
+    else ok('aria-stood-lich-reload', { party: againL.party });
   } finally {
     await page.close().catch(()=>{});
   }
@@ -738,11 +769,38 @@ export async function runAriaLoyal(browser, port, fail, ok){
     if(!yard.field || yard.menu || !/Solmir/.test(yard.ort||'') || !/Husten|Gruft|Hof/.test(yard.line)){
       fail('aria-loyal', 'Solmir opened as a menu or without a line', yard);
     } else ok('aria-solmir', { ort: yard.ort, line: yard.line.slice(0, 100) });
+    await clearDlg(page, 10);
+    if(!(await walkMark(page, 'crypt'))){ fail('aria-loyal', 'crypt door missing'); return; }
+    if(!(await clickChoice(page, '^Acht$'))){ fail('aria-loyal', 'coffin count missing'); return; }
+    await clearDlg(page, 4);
+    const sealed = await flags(page);
+    if(!sealed.solmirSeal){ fail('aria-loyal', 'eight coffins did not open the crypt', sealed); return; }
+    ok('aria-crypt-seal');
+    await page.evaluate(() => { window.__game.S.st.hp = window.__game.S.st.maxhp; });
+    if(!(await walkMark(page, 'boss'))){ fail('aria-loyal', 'lich mark missing'); return; }
+    const lichUp = await page.waitForFunction(() => !!window.__game?.Battle?.getBattle?.(), { timeout: 8000 }).then(()=>true).catch(()=>false);
+    if(!lichUp){ fail('aria-loyal', 'lich did not start'); return; }
+    const lichDown = await surrender(page);
+    if(!lichDown.ok) fail('aria-loyal', 'lich defeat did not present', lichDown);
+    else ok('aria-lich-defeat', lichDown);
+    await sleep(1900);
+    if(!(await clickChoice(page, 'Noch mal'))){ fail('aria-loyal', 'no lich retry'); return; }
+    await page.waitForFunction(() => !!window.__game?.Battle?.getBattle?.(), { timeout: 8000 }).catch(()=>{});
+    await page.evaluate(() => { window.__game.S.flags.nachklangAuto = true; window.__game.S.st.hp = window.__game.S.st.maxhp; const b=window.__game.Battle.getBattle(); if(b) b.atbMode='wait'; });
+    const lich = await finishFight(page, 120000);
+    if(!lich.ok || lich.result!=='win'){ fail('aria-loyal', 'lich not won with attacks', lich); return; }
+    await page.waitForFunction(() => window.__game.S.campaign.flags.c3Clear, { timeout: 8000 }).catch(()=>{});
+    await sleep(400);
+    const clearedCrypt = await flags(page);
+    const ash = await page.evaluate(() => (window.__game.S.inv||[]).some(i => /Lichasche/.test(i?.name||'')));
+    if(!clearedCrypt.c3Clear || !ash || !clearedCrypt.party.includes('Sekretärin Velka')){
+      fail('aria-loyal', 'lich clear missed the reward or the party', { ...clearedCrypt, ash });
+    } else ok('aria-lich-win', { party: clearedCrypt.party, ash: true });
     const savedPass = await persist(page);
     if(!savedPass) fail('aria-loyal', 'pass save failed');
     await reloadContinue(page);
     const back = await flags(page);
-    if(!back.passClear || !back.ariaRefused || back.ariaRomance || !back.nyxReport || !back.solmirArrived || !back.party.includes('Spionin Nyx')){
+    if(!back.passClear || !back.ariaRefused || back.ariaRomance || !back.nyxReport || !back.solmirArrived || !back.c3Clear || !back.party.includes('Spionin Nyx')){
       fail('aria-loyal', 'pass reload lost the route', back);
     } else ok('aria-pass-reload', { passClear: true, solmir: true, party: back.party });
   } finally {
@@ -787,6 +845,10 @@ async function runAriaPageOnly(browser, port, fail, ok){
     const goldAfter = await page.evaluate(() => window.__game.S.st.gold|0);
     if(declined.nyxReport || goldAfter !== goldBefore) fail('aria-page', 'declining Nyx still charged or hired her', { goldBefore, goldAfter, nyx: declined.nyxReport });
     else ok('aria-nyx-decline', { gold: goldAfter });
+    if(!(await walkMark(page, 'solmir'))){ fail('aria-page', 'no road to Solmir'); return; }
+    const pageYard = await page.evaluate(() => document.getElementById('owDlgText')?.dataset?.full || '');
+    if(!/nicht mit dir|Pass geblieben/.test(pageYard)) fail('aria-page', 'yard ignored the page-only split', { pageYard: pageYard.slice(0, 140) });
+    else ok('aria-page-yard', { line: pageYard.slice(0, 90) });
     const saved = await persist(page);
     if(!saved) fail('aria-page', 'save did not write');
     await reloadContinue(page);
@@ -824,6 +886,10 @@ async function runAriaNo(browser, port, fail, ok){
     const line = await page.evaluate(() => document.getElementById('owDlgText')?.dataset?.full || '');
     if(!/nein gesagt|kein Bett|Zelt/.test(line)) fail('aria-no', 'pass ignored the refusal', { line: line.slice(0, 160) });
     else ok('aria-no-pass', { line: line.slice(0, 110) });
+    if(!(await walkMark(page, 'solmir'))){ fail('aria-no', 'no road to Solmir'); return; }
+    const noYard = await page.evaluate(() => document.getElementById('owDlgText')?.dataset?.full || '');
+    if(!/nicht mit dir|Pass geblieben|nicht nach dir/.test(noYard)) fail('aria-no', 'yard ignored the refusal', { noYard: noYard.slice(0, 140) });
+    else ok('aria-no-yard', { line: noYard.slice(0, 90) });
     const saved = await persist(page);
     if(!saved) fail('aria-no', 'save did not write');
     await reloadContinue(page);
@@ -924,20 +990,24 @@ async function clickChoice(page, re){
 }
 
 async function talkNpc(page, who){
-  const npc = await page.evaluate((who) => (window.__game.OW.__listNpcs() || []).find(n => String(n.name).includes(who)), who);
-  if(!npc) return null;
-  for(let attempt=0; attempt<3; attempt++){
+  for(let attempt=0; attempt<6; attempt++){
     await page.evaluate(() => { try{ window.__game.OW.hideDialogue?.(); }catch(_){} });
-    await stepNear(page, npc.x, npc.y);
-    const dist = await page.evaluate((x, y) => {
+    const npc = await page.evaluate((who) => (window.__game.OW.__listNpcs() || []).find(n => String(n.name).includes(who)), who);
+    if(!npc){ await sleep(280); continue; }
+    await stepNear(page, npc.x, npc.y, 28);
+    const name = await page.evaluate((who) => {
+      const list = window.__game.OW.__listNpcs() || [];
+      const n = list.find(p => String(p.name).includes(who));
+      if(!n) return '';
       const h = window.__game.OW.__debug().hero;
-      return Math.abs(h.x - x) + Math.abs(h.y - y);
-    }, npc.x, npc.y);
-    if(dist > 1) continue;
-    await page.evaluate((name) => window.__game.OW.__talkTo(name), npc.name);
+      const dist = Math.abs(h.x - n.x) + Math.abs(h.y - n.y);
+      return dist <= 1 ? n.name : '';
+    }, who);
+    if(!name) continue;
+    await page.evaluate((nm) => window.__game.OW.__talkTo(nm), name);
     await sleep(200);
     const shown = await page.evaluate(() => document.getElementById('owDlgName')?.textContent || '');
-    if(who.split(' ').some(part => shown.includes(part))) return npc;
+    if(who.split(' ').some(part => shown.includes(part))) return { name };
   }
   return null;
 }
@@ -964,6 +1034,8 @@ async function flags(page){
       passClear: !!f.passClear,
       nyxReport: !!f.nyxReport,
       solmirArrived: !!f.solmirArrived,
+      solmirSeal: !!f.solmirSeal,
+      c3Clear: !!f.c3Clear,
       step: f.ariaStep|0,
       beat: !!f.beat_lesser_fiend,
       party: S.party || [],
@@ -1010,14 +1082,18 @@ async function advanceToChoice(page, re){
 
 async function walkMark(page, kind){
   await clearDlg(page, 12);
+  await page.evaluate(() => window.__game.OW.hideDialogue?.());
   const m = await page.evaluate((kind) => (window.__game.OW.__debug().questMarks || []).find(x => x.kind === kind), kind);
   if(!m) return null;
   await stepNear(page, m.x, m.y);
-  await clearDlg(page, 8);
+  await page.evaluate(() => window.__game.OW.hideDialogue?.());
+  const dist = await page.evaluate((x, y) => {
+    const h = window.__game.OW.__debug().hero;
+    return Math.abs(h.x - x) + Math.abs(h.y - y);
+  }, m.x, m.y);
+  if(dist > 1) return null;
   await page.keyboard.press('Enter');
-  await sleep(250);
-  await page.keyboard.press('Enter');
-  await sleep(350);
+  await sleep(400);
   return m;
 }
 
@@ -1077,7 +1153,8 @@ async function reloadContinue(page){
   await page.waitForFunction(() => window.__game?.VER === '75', { timeout: 45000 });
   await page.waitForSelector('#btnContinue', { timeout: 15000 });
   await page.click('#btnContinue');
-  await sleep(900);
+  await page.waitForFunction(() => window.__game?.OW?.__debug?.()?.active, { timeout: 15000 }).catch(()=>{});
+  await sleep(500);
   await clearDlg(page, 8);
 }
 

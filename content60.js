@@ -692,13 +692,26 @@ export function onBossVictory(S, hooks={}){
   S.campaign.mode='scene';
   S.campaign.dungeon=null;
   S.st=S.st||{}; S.st.gold=(S.st.gold|0)+50; S.st.xp=(S.st.xp|0)+80;
-  if(ch.recruit?.id && !(ch.id==='c2' && S.campaign.flags?.passField)){ recruitMember(S, ch.recruit.id, hooks); }
+  if(ch.recruit?.id && !(ch.id==='c2' && S.campaign.flags?.passField) && !(ch.id==='c3' && S.campaign.flags?.solmirField)){ recruitMember(S, ch.recruit.id, hooks); }
   // v70: chapter-1 reward beat before advancing
   if(ch?.id==='c1'){
     const reward=ch.scenes.find(s=>s.id==='c1_reward')||ch.scenes[0];
     S.campaign.sceneId=reward.id;
     hooks.toast?.('Kapitel 1 — Fiend besiegt!');
     return showPack(S, reward, `Boss besiegt. +50 Gold. ${ch.recruit?.blurb||''}`);
+  }
+  if(ch?.id==='c3' && S.campaign.flags?.solmirField){
+    S.campaign.mode='scene';
+    S.campaign.dungeon=null;
+    S.campaign.sceneId='c3_field';
+    S.world.scene.ort='Ruinen von Solmir';
+    S.flags=S.flags||{};
+    S.flags.owNeedsRefresh=true;
+    S.campaign.flags.c3Clear=true;
+    S.inv=S.inv||[];
+    if(!S.inv.some(i=>i&&i.name==='Lichasche')) S.inv.push({name:'Lichasche', icon:'💎', type:'mat'});
+    hooks.toast?.('Der Lich ist still.');
+    return showPack(S, { speaker:'Mara', text:'Der Lich ist still. Die Kathedrale bleibt heute zu.', choices:[] }, '');
   }
   if(ch?.id==='c2' && S.campaign.flags?.passField){
     S.campaign.mode='scene';
@@ -750,10 +763,20 @@ export function startCampaign(S, hooks={}){
     S.skills.push({name:'Hieb', mp:0, pow:1.1, elem:'phys'});
   }
   S.campaign.mode='scene';
-  const { scene, chapter } = findScene(S, S.campaign.sceneId);
-  S.campaign.sceneId = scene.id;
-  S.world.scene.ort = chapter.hub;
-  return showPack(S, scene, '');
+  const savedId = S.campaign.sceneId;
+  const found = findScene(S, savedId);
+  // c2_field / c3_field are walked scenes, not menu packs. Unknown ids used to
+  // fall back to the throne and wipe the road the player had just opened.
+  if((savedId==='c2_field' || savedId==='c3_field') && found.scene.id!==savedId){
+    S.world.scene = S.world.scene || {};
+    S.world.scene.ort = savedId==='c3_field' ? 'Ruinen von Solmir' : 'Grenzpass';
+    S.choices = [];
+    S.campaign._choiceObjs = [];
+    return { speaker:'', text:'', choices:[], changes:{ choices:[] } };
+  }
+  S.campaign.sceneId = found.scene.id;
+  S.world.scene.ort = found.chapter.hub;
+  return showPack(S, found.scene, '');
 }
 
 export function renderJrpgChoices(S, hooks){

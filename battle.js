@@ -1218,6 +1218,12 @@ function aiEnemy(e){
     const aff=skills.filter(s=>(s.mp|0)<=(e.mp|0)); if(aff.length) skill=R(aff);
   }
   skill=skill||{name:'Angriff',pow:1.0,elem:e.element||'phys'};
+  if(e.id==='boss_lich' && (e.phaseIdx|0)>=2){
+    skill={name:'Knochenhieb',pow:1.25,elem:'phys'};
+  } else if(e.id==='boss_lich' && (e.phaseIdx|0)===1){
+    const nova=(e.skills||[]).find(s=>s.id==='todesnova' && (s.mp|0)<=(e.mp|0));
+    if(nova) skill=nova;
+  }
   if(skill.mp) e.mp-=skill.mp|0;
   if(skill.heal){ e.hp=Math.min(e.maxhp,e.hp+skill.heal); _B.log.push(`${e.name}: ${skill.name}`); return }
   if(skill.summon){ _B.log.push(`${e.name} ruft Verstärkung!`); /* simplified: self buff */ applyStatus(e,'staerkung',2); return }
@@ -1392,7 +1398,8 @@ function refreshUI(){
         </div>`;
       }).join('');
     }
-    foes.innerHTML=B.foes.map(f=>`
+    const holdSpr=Date.now()<_strikeUntil;
+    if(!holdSpr) foes.innerHTML=B.foes.map(f=>`
       <button type="button" class="foe-card foe-bare ${foeScaleClass(f)} ${f.alive?'':'dead'} ${B.selecting&&needsTarget()?(_B._hover===f._iid?'target':''):''}" data-iid="${f._iid}" ${f.alive?'':'disabled'}>
         <div class="foe-art-wrap pixel-foe"><img class="foe-art battler-spr" src="${pixelEnemyArt(f)}" alt="${f.name}" loading="eager" decoding="sync" onerror="this.onerror=null;this.style.display='none';const fb=this.nextElementSibling;if(fb){fb.style.display='flex';fb.style.fontSize='48px';}"/><div class="foe-fallback" style="display:none">${f.icon||'👹'}</div></div>
       </button>`).join('');
@@ -1440,7 +1447,7 @@ function refreshUI(){
       </div>`).join('');
   }
   const pspr=el('battlePartySpr');
-  if(pspr){
+  if(pspr && !(Date.now()<_strikeUntil)){
     pspr.innerHTML=B.party.map((p,i)=>{
       const row=p.row||'front';
       const slot=row==='back'?i:i;
@@ -1866,7 +1873,9 @@ function stageEl(unit){
   if(!unit) return null;
   return document.querySelector(`.party-stage-spr[data-iid="${unit._iid}"], .foe-card[data-iid="${unit._iid}"]`);
 }
+let _strikeUntil=0;
 function playStrike(attacker, target, opts={}){
+  _strikeUntil=Date.now()+1500;
   const magic=!!opts.magic;
   const aid=attacker?._iid, tid=target?._iid;
   const fromParty=(_B?.party||[]).some(p=>p._iid===aid);
@@ -1892,12 +1901,12 @@ function playStrike(attacker, target, opts={}){
           tg.classList.remove('hit-from-left','hit-from-right');
           void tg.offsetWidth;
           tg.classList.add(fromParty?'hit-from-right':'hit-from-left');
-          setTimeout(()=>{ const t3=tgtNow(); t3?.classList.remove('hit-from-left','hit-from-right'); }, 420);
+          setTimeout(()=>{ const t3=tgtNow(); t3?.classList.remove('hit-from-left','hit-from-right'); }, 480);
         }
         impact();
-      }, magic?260:160);
-      setTimeout(()=>{ const s3=sprNow(); s3?.classList.remove('atk-strike','atk-cast'); }, 620);
-    }, 140);
+      }, magic?320:240);
+      setTimeout(()=>{ const s3=sprNow(); s3?.classList.remove('atk-strike','atk-cast'); }, 780);
+    }, 320);
   }, 40);
 }
 function spawnSlash(target){
