@@ -1877,7 +1877,9 @@ function enterFieldDungeon(name){
   S.flags=S.flags||{};
   S.flags.owNeedsRefresh=false;
   showOverworld(S);
-  showDialogue('Velka','Stufen. Das Siegel ist Norden. Neun, neun, neun.','mage');
+  const f=S.campaign?.flags||{};
+  if(f.ariaPact) showDialogue('Aria','Stufen. Die Seite liegt beim Siegel, nicht bei den Knochen.','princess');
+  else showDialogue('Velka','Stufen. Das Siegel ist im Norden. Neun, neun, neun. Fass nichts an, bevor ich\'s gelesen hab.','mage');
 }
 function fieldChapter(S){
   return (S?.campaign?.chapterIdx|0)===0 && S?.campaign?.id==='nocturna';
@@ -2041,28 +2043,176 @@ function facingTile(){
   const dx=d===1?-1:d===2?1:0, dy=d===3?-1:d===0?1:0;
   return {x:_hero.x+dx, y:_hero.y+dy};
 }
+function campFlags(S){
+  S.campaign=S.campaign||{};
+  S.campaign.flags=S.campaign.flags||{};
+  return S.campaign.flags;
+}
+function leaveParty(S, names){
+  const ban=new Set(names);
+  S.party=(S.party||[]).filter(n=>!ban.has(n));
+  if(S.campaign) S.campaign.party=(S.campaign.party||[]).filter(n=>!ban.has(n));
+}
+function noteAria(S, ev, aff, trust, stage){
+  const f=campFlags(S);
+  S.romance=S.romance||{};
+  const prev=S.romance['Heldin Aria']||{};
+  const r=S.romance['Heldin Aria']=Object.assign({affection:0,trust:0,stage:0,events:[],adult:true}, prev);
+  r.adult=true;
+  r.events=Array.isArray(r.events)?r.events:[];
+  if(ev && !r.events.includes(ev)) r.events.push(ev);
+  if(aff!=null) r.affection=Math.max(-100, Math.min(100, aff|0));
+  if(trust!=null) r.trust=Math.max(0, Math.min(100, trust|0));
+  if(stage!=null) r.stage=stage|0;
+  r.route=f.ariaRomance?'romance':f.ariaPact?'betray':f.ariaRefused?'loyal':f.ariaClosed?'closed':'open';
+  try{
+    const n=S.world?.npcs?.['Heldin Aria'];
+    if(n){ n.adult=true; n.romance=true; }
+  }catch(_){}
+  try{ _hooks.save?.(); }catch(_){}
+}
+function joinAria(S){
+  try{ window.__game?.C60?.recruitMember?.(S, 'Heldin Aria', {}); }catch(_){}
+}
+function fadeIntimate(){
+  let el=document.getElementById('owFade');
+  if(!el){
+    el=document.createElement('div');
+    el.id='owFade';
+    el.setAttribute('aria-hidden','true');
+    document.body.appendChild(el);
+  }
+  el.classList.remove('on');
+  void el.offsetWidth;
+  el.classList.add('on');
+  setTimeout(()=>{ try{ el.classList.remove('on'); }catch(_){} }, 1800);
+}
+function resolveAriaNight(S, yes, underage){
+  const f=campFlags(S);
+  f.ariaSplit=true;
+  leaveParty(S, ['Sekretärin Velka','General Brok']);
+  if(underage || !yes){
+    f.ariaRomanceRefused=true;
+    if(underage) f.ariaUnderageStop=true;
+    leaveParty(S, ['Heldin Aria']);
+    noteAria(S, underage?'stop':'nein', underage?0:22, underage?0:28, underage?0:1);
+    showDialogue('Aria', underage
+      ? 'Dann ist hier Schluss. So was fang ich nicht an. Die Seite nehm ich mit, den Rest nicht.'
+      : 'Dann bleib König. Die Seite nehm ich mit. Ich schlaf nicht aus Dankbarkeit.', 'princess');
+    return;
+  }
+  f.ariaRomance=true;
+  f.ariaAdults=true;
+  try{ if(S.pc) S.pc.adult=true; }catch(_){}
+  try{ window.__game?.C60?.recruitMember?.(S, 'Heldin Aria', {}); }catch(_){}
+  noteAria(S, 'ja', 78, 68, 4);
+  fadeIntimate();
+  showDialogue('Aria', 'Licht aus. Was danach ist, bleibt zwischen uns. Morgen holen wir Lio.', 'princess');
+}
+export function fieldReward(S){
+  if(!S) return;
+  const f=campFlags(S);
+  document.body.classList.add('field-play');
+  if(f.ariaPact && f.ariaPageTaken){
+    const beats=[
+      {name:'Velka', sheet:'mage', text:'Sie hat die Seite. Du hast ja gesagt. Ich hab\'s gesehen. Such dir jemand anders für die Zahlen. Ich geh zu Venn.'},
+      {name:'Brok', sheet:'guard', text:'Die Nacht war für Venn. Du hast sie für Aria ausgegeben. Ich geh hoch. Such dir eine andere Wand.'},
+    ];
+    if(f.ariaCourt && !f.ariaNoRomance && !f.ariaRomance && !f.ariaRomanceRefused){
+      beats.push({name:'Aria', sheet:'princess', text:'Die beiden gehen. Das hast du gewusst. Ich bin sechsundzwanzig, und ich frag trotzdem: bist du erwachsen? Eine Nacht am Pass, bei mir, nicht auf dem Thron. Ja oder nein.', choices:[
+        {label:'Ja. Ich bin erwachsen. Ich komm mit.', pick:()=>resolveAriaNight(S, true, false)},
+        {label:'Nein. Ich bleib.', pick:()=>resolveAriaNight(S, false, false)},
+        {label:'Ich bin nicht erwachsen.', pick:()=>resolveAriaNight(S, false, true)},
+      ]});
+    }else if(f.ariaRomance){
+      beats.push({name:'Aria', sheet:'princess', text:'Wir haben ja gesagt. Lio wartet. Wir gehen zu Fuß.'});
+    }else{
+      beats.push({name:'Aria', sheet:'princess', text:'Die Seite hab ich. Du hast nicht gefragt, und das ist in Ordnung. Ich hol Lio. Damit hat sich\'s.'});
+      leaveParty(S, ['Sekretärin Velka','General Brok','Heldin Aria']);
+      f.ariaSplit=true;
+      noteAria(S, 'seite-ohne-frage', 24, 30, 2);
+    }
+    queueBeats(beats);
+    return;
+  }
+  const beats=[
+    {name:'Velka', sheet:'mage', text:'Er hat Broks Stimme benutzt. Danach war er still. Das Buch bleibt ganz.'},
+    {name:'Brok', sheet:'guard', text:'Morgen sag ich Venn, der Staub hat aufgehört. Komm mit hoch, wenn du willst.'},
+  ];
+  if(f.ariaGuest && !f.ariaClosed){
+    beats.push({name:'Aria', sheet:'princess', text:'Ich hol Lio. Danke fürs Mitkommen. Mehr war nicht ausgemacht.'});
+    leaveParty(S, ['Heldin Aria']);
+  }
+  queueBeats(beats);
+}
 function fieldLine(S, label, sh){
   const party=(S.party||[]);
+  const f=campFlags(S);
   if(label==='Sekretärin Velka'){
-    if(party.includes(label)) return {text:'Neun, neun, neun. Unter dem Thron, und am Siegel.'};
-    return {text:'Venn hustet Staub. Nimm mich mit. Jemand muss die Namen lesen.', choices:[
-      {label:'Mitnehmen', pick:()=>{ try{ window.__game?.C60?.recruitMember?.(S, label, {}); }catch(_){} showDialogue(label,'Ich lese, wenn du vergisst.', sh); }},
+    if(f.ariaSplit) return {text:'Die Seite ist raus. Mach deine Kasse allein. Ich les dir nichts mehr vor.'};
+    if(f.ariaPageTaken) return {text:'Ich hab die Seite in ihrer Hand gesehen. Erklär das nach dem Fiend. Nicht jetzt.'};
+    if(f.ariaPact){
+      const line='Du guckst die ganze Zeit zu Aria. Wenn aus dem Buch eine Seite fehlt, seh ich das noch heute.';
+      if(party.includes(label)) return {text:line};
+      return {text:line+' Ich komm trotzdem mit. Venn wartet nicht.', choices:[
+        {label:'Mitnehmen', pick:()=>{ try{ window.__game?.C60?.recruitMember?.(S, label, {}); }catch(_){} showDialogue(label,'Gut. Und ich guck auf das Buch, nicht auf sie.', sh); }},
+        {label:'Noch nicht', pick:()=>hideDialogue()},
+      ]};
+    }
+    if(party.includes(label)) return {text:'Neun, neun, neun. Unterm Thron, und noch mal am Siegel. Nicht laut. Unten hört einer mit.'};
+    return {text:'Venn wird nicht gesünder, wenn wir hier stehen. Ich komm mit runter. Du vergisst Zahlen, ich nicht.', choices:[
+      {label:'Mitnehmen', pick:()=>{ try{ window.__game?.C60?.recruitMember?.(S, label, {}); }catch(_){} showDialogue(label,'Gut. Wenn du\'s unterwegs vergisst: neun, neun, neun, unter dem Sitz.', sh); }},
       {label:'Noch nicht', pick:()=>hideDialogue()},
     ]};
   }
   if(label==='General Brok'){
-    if(party.includes(label)) return {text:'Wenn es meinen Namen kennt, schlag nicht daneben.'};
-    return {text:'Eine Nacht. Ich komme mit hinunter. Für Venn.', choices:[
-      {label:'Brok kommt mit', pick:()=>{ try{ window.__game?.C60?.recruitMember?.(S, label, {}); }catch(_){} showDialogue(label,'Dann runter.', sh); }},
+    if(f.ariaSplit) return {text:'Gegen mich. Gegen Venn. Für sie. Such dir eine andere Wand.'};
+    if(f.ariaPageTaken) return {text:'Du hast ihr die Seite gegeben. Vor meinen Augen. Den Fiend kämpf ich noch. Danach nicht mehr für dich.'};
+    if(f.ariaPact){
+      const line='Aria redet leise mit dir. Ich hör das trotzdem. Überleg dir, für wen die Nacht draufgeht.';
+      if(party.includes(label)) return {text:line};
+      return {text:line, choices:[
+        {label:'Brok kommt mit', pick:()=>{ try{ window.__game?.C60?.recruitMember?.(S, label, {}); }catch(_){} showDialogue(label,'Na gut. Runter. Ich pass auf, wem du die Seite gibst.', sh); }},
+        {label:'Bleib oben', pick:()=>hideDialogue()},
+      ]};
+    }
+    if(party.includes(label)) return {text:'Wenn das Ding unten weiß, wer ich bin, hau nicht daneben.'};
+    return {text:'Eine Nacht. Ich komm mit runter. Nicht für die Krone. Für Venn.', choices:[
+      {label:'Brok kommt mit', pick:()=>{ try{ window.__game?.C60?.recruitMember?.(S, label, {}); }catch(_){} showDialogue(label,'Na gut. Runter. Und hau nicht daneben.', sh); }},
       {label:'Bleib oben', pick:()=>hideDialogue()},
     ]};
   }
   if(label==='Heldin Aria'){
-    if(S.campaign?.flags?.ariaGuest) return {text:'Bis zum Fiend. Danach hole ich Lio.'};
-    return {text:'Lio steht am Pass. Ich gehe mit hinunter. Danach nicht.', choices:[
-      {label:'Sie geht mit', pick:()=>{ S.campaign.flags=S.campaign.flags||{}; S.campaign.flags.ariaGuest=true; showDialogue(label,'Solstich gegen die Münzrüstung. Nicht weiter.', sh); }},
-      {label:'Geh zu Lio', pick:()=>hideDialogue()},
-    ]};
+    if(f.ariaRomance) return {text:'Pass. Lio. Und du gehst zu Fuß, nicht auf dem Thron.'};
+    if(f.ariaUnderageStop) return {text:'Ich hab Schluss gesagt. Fass mich nicht an. Hol dir jemand in deinem Alter.'};
+    if(f.ariaRomanceRefused) return {text:'Ich hab nein gesagt. Die Seite hab ich. Mehr gibt\'s nicht.'};
+    if(f.ariaClosed && !f.ariaPact) return {text:'Ich hab nein gesagt. Geh.'};
+    const step=f.ariaStep|0;
+    if(step<1){
+      return {text:'Lio ist neunzehn und steht draußen Wache. Ich bin sechsundzwanzig. Wir sind beide erwachsen, und ich lass ihn nicht stehen, nur weil du ein Siegel brauchst. Im Buch unten steht seine Schicht. Velka liest die Summen. Die Zeile lässt sie weg.', choices:[
+        {label:'Erzähl weiter.', pick:()=>{ f.ariaStep=1; f.ariaHeard=true; noteAria(S,'gehört',12,18,1); showDialogue(label,'Nicht hier. Brok hört durch die Säulen. Geh zwei Schritte und komm wieder.', sh); }},
+        {label:'Geh zu ihm.', pick:()=>{ f.ariaStep=2; f.ariaClosed=true; noteAria(S,'weg',4,0,0); showDialogue(label,'Wie du willst. Ich hol ihn allein.', sh); }},
+      ]};
+    }
+    if(!f.ariaPact && !f.ariaRefused && !f.ariaClosed){
+      return {text:'Die Zeile mit seiner Schicht. Die will ich draußen haben, nicht im Buch. Wenn du sie rausnimmst, sind Velka und Brok gegen dich. Die merken das. Ich lüg die beiden nicht an, und du sollst es nicht hinter ihrem Rücken tun. Sag\'s jetzt.', choices:[
+        {label:'Ich nehm die Seite. Den beiden sag ich\'s.', pick:()=>{ f.ariaStep=2; f.ariaPact=true; f.ariaGuest=true; joinAria(S); noteAria(S,'pakt',36,40,2); showDialogue(label,'Dann geh ich mit runter. Wenn du kneifst, geh ich ohne dich.', sh); }},
+        {label:'Die Seite bleibt. Du kannst als Klinge mit.', pick:()=>{ f.ariaStep=2; f.ariaRefused=true; f.ariaGuest=true; joinAria(S); noteAria(S,'klinge',20,24,2); showDialogue(label,'In Ordnung. Klinge, keine Komplizin. Verwechsel das nicht.', sh); }},
+        {label:'Weder die Seite noch du.', pick:()=>{ f.ariaStep=2; f.ariaClosed=true; noteAria(S,'zu',0,0,0); showDialogue(label,'Dann sind wir fertig.', sh); }},
+      ]};
+    }
+    if(f.ariaPact && !f.ariaCourt && !f.ariaNoRomance && !f.ariaRomance && !f.ariaRomanceRefused){
+      return {text:'Die Seite ist eine Sache. Ich bin keine Belohnung dafür. Sechsundzwanzig, und du bist alt genug für ein Nein. Wenn du mich willst, frag mich, wenn das Ding unten still ist. Nicht im Keller. Ein Nein bleibt ein Nein.', choices:[
+        {label:'Ich frag dich danach. Nicht jetzt.', pick:()=>{ f.ariaCourt=true; noteAria(S,'warte',48,55,3); showDialogue(label,'Mal sehen, ob du das aushältst. Bis dahin halt ich das Schwert, nicht deine Hand.', sh); }},
+        {label:'Nur die Seite. Mehr nicht.', pick:()=>{ f.ariaNoRomance=true; noteAria(S,'nur-seite',30,36,2); showDialogue(label,'Ehrlich. Das kann ich brauchen.', sh); }},
+      ]};
+    }
+    if(f.ariaPact && f.ariaCourt && !f.ariaPageTaken) return {text:'Frag mich, wenn er still ist. Nicht vorher. Ich halt das Schwert.'};
+    if(f.ariaPact && f.ariaNoRomance) return {text:'Nur die Seite. Abgemacht. Dräng nicht nach.'};
+    if(f.ariaPageTaken && f.ariaCourt) return {text:'Sie hat\'s gesehen. Nach dem Fiend fragst du. Nicht hier zwischen den Knochen.'};
+    if(f.ariaPageTaken) return {text:'Die Seite ist draußen. Mehr hab ich nicht von dir verlangt.'};
+    if(f.ariaRefused) return {text:'Ich kämpf mit. Dräng nicht. Lio wartet, und ich hab keine Lust auf einen König, der Grenzen vergisst.'};
+    return {text:'Bis zum Fiend. Danach hol ich Lio.'};
   }
   return null;
 }
@@ -2073,7 +2223,7 @@ function talkNearest(){
   const boss=nearMark('boss');
   if(boss && fieldChapter(S)){
     const open=!!S.campaign?.flags?.puzzle_c1_ledger_seal;
-    if(!open){ showDialogue('Velka','Das Siegel hält noch. Neun, neun, neun.','mage'); return 'locked'; }
+    if(!open){ showDialogue('Velka','Das Siegel hält noch. Erst neun, neun, neun. Dann das Ding dahinter.','mage'); return 'locked'; }
     try{ window.__game?.startFieldBoss?.(); }catch(_){}
     return 'boss';
   }
@@ -3521,15 +3671,16 @@ export function showOverworld(S){
 
 function maybeFieldBoot(){
   const S=_hooks.getS?.();
-  if(!fieldChapter(S) || S.flags?.c1FieldBoot) return;
+  if(!fieldChapter(S)) return;
+  document.body.classList.add('field-play');
+  if(S.flags?.c1FieldBoot) return;
   if(_map?.preset!=='throne') return;
   S.flags.c1FieldBoot=true;
-  document.body.classList.add('field-play');
   queueBeats([
-    {name:'Velka', sheet:'mage', text:'Vierzehn Gold. Venn hustet Staub. Nicht aus der Tasche.'},
-    {name:'Brok', sheet:'guard', text:'Letzte Woche hieß ich für ihn nur Soldat. Nicht Brok.'},
-    {name:'Aria', sheet:'princess', text:'Lio steht am Pass. Ich gehe mit hinunter. Danach nicht.'},
-    {name:'Velka', sheet:'mage', text:'Unter dem Thron: neun, neun, neun.'},
+    {name:'Velka', sheet:'mage', text:'Bleib stehen. In der Kasse sind vierzehn Gold, und Venn hustet seit Dienstag. Der Staub kommt von unten. Ich leg das nicht aus meiner Tasche drauf.'},
+    {name:'Brok', sheet:'guard', text:'Letzte Woche war ich für ihn nur noch der Soldat. Ich heiß Brok. Wenn du das auch vergisst, sag ich\'s dir einmal.'},
+    {name:'Aria', sheet:'princess', text:'Lio steht am Pass in der zweiten Wache. Ich bin nicht zum Knien hergekommen. Wenn du was willst, komm rüber.'},
+    {name:'Velka', sheet:'mage', text:'Unter dem Sitz sind drei Kerben. Neun, neun, neun. Seine Hand. Merk dir das, bevor wir runtergehen.'},
   ]);
 }
 
@@ -3584,4 +3735,4 @@ export function __talkNearest(){ return talkNearest(); }
 export function __talkTo(name){ return talkTo(name); }
 export function __listNpcs(){ return _npcs.map(n=>({name:n.name,x:n.x,y:n.y,sheet:n.sheet})); }
 
-export default { mountOverworld, showOverworld, hideOverworld, refreshOverworld, isOverworldActive, buildMapForLocation, showDialogue, hideDialogue, queueBeats, syncDialogueFromVN, __debug, __setHero, __tryMove, __talkNearest, __talkTo, __listNpcs, get __map(){ return __map; } };
+export default { mountOverworld, showOverworld, hideOverworld, refreshOverworld, isOverworldActive, buildMapForLocation, showDialogue, hideDialogue, queueBeats, fieldReward, syncDialogueFromVN, __debug, __setHero, __tryMove, __talkNearest, __talkTo, __listNpcs, get __map(){ return __map; } };

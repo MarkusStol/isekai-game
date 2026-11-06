@@ -25,23 +25,23 @@ export const CHAPTERS = [
     recruit: { id: 'Sekretärin Velka', role: 'mage', blurb: 'Velka legt das Klemmbrett beiseite — nur für dich.' },
     estimatedMin: 55,
     scenes: [
-      { id: 'c1_intro', speaker: 'Noctis', text: 'Die Krone ist warm vom Sitzen, nicht vom Blut. Du kennst Velkas Schritte, bevor du sie siehst. Brok atmet, als hätte er seit einer Stunde nicht gebrüllt. Das ist schlimmer als Lärm. Irgendwo im Saal hustet jemand, kurz, und hört dann auf.',
+      { id: 'c1_intro', speaker: 'Noctis', text: 'Die Krone drückt, weil du zu lange sitzt. Velka ist schon im Raum, bevor du den Kopf hebst. Brok atmet, als hätte er seit einer Stunde nicht gebrüllt. Irgendwer hustet und hört dann auf.',
         choices: [
           { id: 'wake', label: 'Augen öffnen — Thronsaal', next: 'c1_velka' },
         ]},
-      { id: 'c1_velka', speaker: 'Velka', text: 'Vierzehn Gold. Ein offener Posten auf deinen Namen, den du nicht unterschrieben hast. Rekrut Venn hat heute Morgen Goldstaub gehustet — aus der Lunge, Noctis, nicht aus der Tasche. Ich habe dem alten König die Bücher geführt, bis er unsere Namen nicht mehr sagte. Ich werde das nicht noch einmal höflich tun.',
+      { id: 'c1_velka', speaker: 'Velka', text: 'In der Kasse sind vierzehn Gold. Ein Posten auf dich, den du nicht unterschrieben hast. Venn hustet seit heute früh Staub, aus der Lunge, nicht aus der Tasche. Ich hab dem alten König die Bücher geführt, bis er uns nicht mehr erkannt hat. Höflich mach ich das nicht noch mal.',
         choices: [
           { id: 'hear', label: 'Sie ausreden lassen', next: 'c1_brok_in' },
         ]},
-      { id: 'c1_brok_in', speaker: 'Brok', text: 'Sie hat ihm die Seiten umgeschlagen, während er uns vergaß. Ich stand mit ihm im Matsch, und am Ende kannte er meine Stimme nicht. Er hat mich Soldat genannt. Nicht Brok. Gib mir die Nacht am Pass, oder Venn stirbt an ihrer Tinte. Aria ist schon im Saal. Ihr Bruder steht oben in der zweiten Wache.',
+      { id: 'c1_brok_in', speaker: 'Brok', text: 'Sie hat ihm die Seiten umgeschlagen, während er uns vergessen hat. Ich stand mit ihm im Matsch, und am Ende kannte er meine Stimme nicht. Für ihn war ich der Soldat. Nicht Brok. Gib mir die Nacht am Pass, oder Venn stirbt an dem Zeug in der Lunge. Aria ist schon im Saal. Ihr Bruder steht oben in der zweiten Wache.',
         choices: [
           { id: 'both', label: 'Beide anhören', next: 'c1_aria' },
         ]},
-      { id: 'c1_aria', speaker: 'Aria', text: 'Solara will die Festung brennen, wenn das unter dem Thron bis zur dritten Glocke nicht versiegelt ist. Ich glaube ihr nicht. Ich glaube dir nicht. Mein Bruder Lio schreibt, der Wind am Pass sagt deinen Namen. Ich gehe mit in den Keller. Danach gehe ich. Nicht in deine Gruppe. In den Keller, und dann zu ihm.',
+      { id: 'c1_aria', speaker: 'Aria', text: 'Solara will die Festung anzünden, wenn das unter dem Thron bis zur dritten Glocke nicht zu ist. Ich glaub ihr das nicht. Dir auch nicht. Lio schreibt vom Pass. Ich geh mit in den Keller. Danach geh ich zu ihm. Nicht in deine Gruppe.',
         choices: [
           { id: 'hall', label: 'In den Saal', next: 'c1_open' },
         ]},
-      { id: 'c1_open', speaker: 'Velka', text: 'Brok will heute Nacht marschieren. Ich will die Edikte, sonst frisst die Kasse morgen Venns Namen. Aria wartet auf die Treppe, nicht auf einen Titel. Unter dem Sitz des Throns sind drei Kerben: neun, neun, neun. Dieselbe Folge steht im Register, in deiner Handschrift. Du erinnerst dich nicht. Das ist der Teil, der mir Angst macht.',
+      { id: 'c1_open', speaker: 'Velka', text: 'Brok will heute Nacht los. Ich will die Edikte, sonst frisst die Kasse morgen Venns Sold. Aria wartet an der Treppe, nicht auf einen Titel. Unter dem Sitz sind drei Kerben: neun, neun, neun. Dieselbe Folge steht im Register, in deiner Schrift. Du erinnerst dich nicht. Genau das macht mir Sorgen.',
         choices: [
           { id: 'budget', label: 'Finanzen — die Wahrheit der Zahlen', next: 'c1_budget' },
           { id: 'war', label: 'Kriegsrat mit Brok', next: 'c1_brok' },
@@ -50,53 +50,53 @@ export const CHAPTERS = [
           { id: 'dungeon', label: 'Schatzkatakomben', next: 'c1_dung' },
           { id: 'town', label: 'Festung erkunden', next: 'town' },
         ]},
-      { id: 'c1_budget', speaker: 'Velka', text: 'Wenn ich die Edikte mit deiner Aura siegle, ist morgen Brot da. Venn wird bezahlt. Brok wird mich eine Mörderin mit Stempel nennen, und er hat nicht ganz unrecht: das Gold kommt aus derselben Kasse, die Venn aushustet. Oder du hältst die Rede und lässt die Fürsten selbst zittern. Beides füllt Taschen. Beides hat danach noch einen Namen, den wir aussprechen müssen.',
+      { id: 'c1_budget', speaker: 'Velka', text: 'Wenn ich die Edikte mit deiner Aura siegle, ist morgen Brot da. Venn wird bezahlt. Brok wird mich dafür hassen, und er hat nicht ganz unrecht: das Gold kommt aus derselben Kasse, an der Venn hustet. Oder du hältst die Rede und lässt die Fürsten selbst zittern. Beides füllt Taschen. Beides lässt danach noch jemanden übrig, dem wir es sagen müssen.',
         choices: [
           { id: 'sign', label: 'Edikte siegeln', effect: 'gold+40|flag:edicts', next: 'c1_after_budget' },
           { id: 'speech', label: 'Rede an die Fürsten', effect: 'ruf+5|flag:speech', next: 'c1_after_budget' },
           { id: 'back', label: 'Zurück', next: 'c1_open' },
         ]},
-      { id: 'c1_after_budget', speaker: 'Velka', text: 'Sie legt den Stempel hin, als wäre er schwerer als das Klemmbrett. Brok sagt nichts. Das ist neu. Aria wischt Goldstaub von einer Bank, die nicht ihr gehört. „Lio hat so gehustet, bevor er an den Pass ging“, sagt sie, zu niemandem. Leg die Hand flach unters Thronholz: drei Kerben. Neun. Neun. Neun. Dieselbe Folge öffnet das Siegel unten.',
+      { id: 'c1_after_budget', speaker: 'Velka', text: 'Sie legt den Stempel hin, als wär er schwerer als das Brett. Brok sagt nichts. Das ist neu. Aria wischt Staub von einer Bank, die ihr nicht gehört. „Lio hat so gehustet, bevor er an den Pass ist“, sagt sie, zu niemandem. Hand unters Holz: drei Kerben. Neun. Neun. Neun. Dieselbe Folge macht das Siegel unten auf.',
         choices: [
           { id: 'dung', label: 'In die Katakomben', next: 'c1_dung' },
           { id: 'town', label: 'Festung', next: 'town' },
         ]},
-      { id: 'c1_aria_quiet', speaker: 'Aria', text: 'Ich bleibe bis zum Fiend. Danach hole ich Lio, ob du König bist oder nur ein Mann mit einer Handschrift, an die er sich nicht erinnert. Solstich nehme ich mit — Licht gegen die Münzrüstung. Wenn er die Rüstung abwirft und mit der Stimme eures Königs spricht, hilft Licht weniger. Dann braucht ihr Broks Gewicht und Velkas Tinte. Nicht mich als Heilige.',
+      { id: 'c1_aria_quiet', speaker: 'Aria', text: 'Ich bleib bis zum Fiend. Danach hol ich Lio, ob du König bist oder nur ein Mann mit einer Schrift, an die er sich nicht erinnert. Solstich nehm ich mit, Licht gegen die Münzrüstung. Wenn er die Rüstung abwirft und mit eurer alten Stimme spricht, hilft Licht weniger. Dann braucht ihr Brok und Velka. Nicht mich als Heilige.',
         choices: [
           { id: 'guest', label: 'Sie geht mit hinunter', effect: 'flag:ariaGuest|aff:Heldin Aria:+12', next: 'c1_open' },
           { id: 'back', label: 'Zurück', next: 'c1_open' },
         ]},
-      { id: 'c1_side', speaker: 'Velka', text: 'Hinter dem Thron liegt das Register offen. Letzte Zeile, deine Hand: „Wenn ich sie vergesse, verbrennt die Seite, nicht die Stadt.“ Darunter, kleiner, nicht deine Tinte: drei Neunen. Ich habe das Datum nicht geschrieben. Daneben steht nur: er hat uns noch gekannt. Am Rand ein durchgestrichenes Wort. Ich lese es nicht vor.',
+      { id: 'c1_side', speaker: 'Velka', text: 'Hinter dem Thron liegt das Register offen. Letzte Zeile, deine Hand: „Wenn ich sie vergesse, verbrennt die Seite, nicht die Stadt.“ Darunter, kleiner, nicht deine Tinte: drei Neunen. Das Datum hab ich nicht geschrieben. Daneben steht nur: er hat uns noch gekannt. Am Rand ein durchgestrichenes Wort. Ich les es nicht vor.',
         choices: [
           { id: 'read', label: 'Lesen (Geheimnis)', effect: 'aff:Sekretärin Velka:+10|ruf+2', next: 'c1_side_read' },
           { id: 'later', label: 'Später', next: 'c1_open' },
         ]},
-      { id: 'c1_side_read', speaker: 'Noctis', text: 'Du liest es laut. Brok setzt sich, was er nie tut. Aria sagt: „Dann ist das Siegel keine Magie. Es ist, ihn daran zu erinnern, wen er gemeint hat.“ Velka, leise: „Ich habe ihm die Feder geführt, Noctis. An dem Abend. Nicht du. Das Wort am Rand heißt Thronhunger. Ich benutze es nicht. Noch nicht.“',
+      { id: 'c1_side_read', speaker: 'Noctis', text: 'Du liest es laut. Brok setzt sich, was er nie tut. Aria sagt: „Dann ist das Siegel keine Magie. Es erinnert ihn, wen er gemeint hat.“ Velka, leise: „Ich hab ihm die Feder geführt, Noctis. An dem Abend. Nicht du. Das Wort am Rand heißt Thronhunger. Ich benutz es nicht. Noch nicht.“',
         choices: [
           { id: 'ask', label: 'Velka konfrontieren', next: 'c1_side_ask' },
           { id: 'keep', label: 'Schweigen bewahren', effect: 'aff:Sekretärin Velka:+5', next: 'c1_open' },
         ]},
-      { id: 'c1_side_ask', speaker: 'Velka', text: 'Ja. Ich habe die Feder gehalten, weil seine Hand schon Goldstaub war. Wenn du mich dafür hasst, tu es laut. Wenn du mich mitnimmst, tu es nicht, weil ich nützlich bin. Tu es, weil jemand die Namen noch lesen kann, wenn du sie vergisst. Die drei Neunen sind sein Satz. Im Kampf ist es derselbe Takt: triff das helle Feld, oder der Schlag wird dünn.',
+      { id: 'c1_side_ask', speaker: 'Velka', text: 'Ja. Ich hab die Feder gehalten, weil seine Hand schon Goldstaub war. Wenn du mich dafür hasst, sag es laut. Wenn du mich mitnimmst, dann nicht, weil ich nützlich bin. Sondern weil jemand die Zeilen noch lesen kann, wenn du sie vergisst. Die drei Neunen sind sein Satz. Im Kampf ist es derselbe Takt: triff das helle Feld, sonst wird der Schlag dünn.',
         choices: [
           { id: 'trust', label: 'Ich vertraue dir trotzdem', effect: 'aff:Sekretärin Velka:+20|recruit:Sekretärin Velka', next: 'c1_open' },
           { id: 'watch', label: 'Ich behalte dich im Auge', effect: 'aff:Sekretärin Velka:+5', next: 'c1_open' },
         ]},
-      { id: 'c1_brok', speaker: 'Brok', text: 'Nicht Krieg. Lio und Venn. Eine Nacht. Ich bringe sie zurück, oder ich bringe ihre Namen zurück, und dann rede ich leiser. Ein Duell vorher, damit die Truppe sieht, dass du noch selbst stehst. Kein Spektakel. Ein Beweis. Wenn das Ding unten meinen Namen kennt, schlag nicht daneben.',
+      { id: 'c1_brok', speaker: 'Brok', text: 'Nicht Krieg. Lio und Venn. Eine Nacht. Ich bring sie zurück, oder ich bring ihre Posten zurück, und dann red ich leiser. Ein Duell vorher, damit die Truppe sieht, dass du noch selbst stehst. Kein Spektakel. Ein Beweis. Wenn das Ding unten weiß, wer ich bin, hau nicht daneben.',
         choices: [
           { id: 'duel', label: 'Ehren-Duell (Kampf)', effect: 'battle:hellhound', next: 'c1_after_brok' },
           { id: 'later', label: 'Später — erst Gold', next: 'c1_open' },
         ]},
-      { id: 'c1_after_brok', speaker: 'Brok', text: 'Du stehst. Er nickt, einmal, wie einem Gleichen. „Er hat mich in der letzten Woche Soldat genannt. Nicht Brok. Ich komme mit runter. Nicht weil ich dir glaube. Weil Venn heute noch einen Namen haben soll, den jemand laut sagt.“',
+      { id: 'c1_after_brok', speaker: 'Brok', text: 'Du stehst. Er nickt, einmal, wie einem Gleichen. „Letzte Woche war ich für ihn nur der Soldat. Nicht Brok. Ich komm mit runter. Nicht weil ich dir glaub. Weil Venn heute noch jemand haben soll, der ihren Posten laut sagt.“',
         choices: [
           { id: 'rec', label: 'Brok in die Party', effect: 'recruit:General Brok', next: 'c1_open' },
           { id: 'town', label: 'Festung', next: 'town' },
         ]},
-      { id: 'c1_dung', speaker: 'Velka', text: 'Die Treppe ist schmaler als in deiner Erinnerung. Ich zähle Stufen, damit Brok nicht die falsche nimmt. Aria geht zuletzt. „Wenn er Lios Namen sagt, schlagt weiter. Ich kann das nicht.“ Unten: ein Siegel aus Knochen und Tinte. Drei Neunen. Falsche Hand, und es beißt. Am Altar im Norden drückst du den Satz — im Kampf ist es derselbe Takt.',
+      { id: 'c1_dung', speaker: 'Velka', text: 'Die Treppe ist schmaler, als du sie im Kopf hast. Ich zähl Stufen, damit Brok nicht die falsche nimmt. Aria geht zuletzt. „Wenn er Lios Posten sagt, schlagt weiter. Ich kann das nicht.“ Unten ein Siegel aus Knochen und Tinte. Drei Neunen. Falsche Hand, und es beißt.',
         choices: [
           { id: 'enter', label: 'Dungeon betreten', effect: 'dungeon:c1', next: 'dungeon' },
           { id: 'back', label: 'Zurück zum Thron', next: 'c1_open' },
         ]},
-      { id: 'c1_reward', speaker: 'Velka', text: 'Er fällt nicht wie ein Monster. Er setzt sich. Gold rieselt, und darin die Zeile aus dem Register, mit der Stimme, die Brok vermisst hat: „Verbrennt die Seite nicht.“ Du streicht sie nicht durch. Du schreibst darunter drei Namen, langsam, als müsste die Tinte sie sich merken. Aria nickt — keine Allianz, eine Quittung — und geht zum Pass, Lio holen. Brok bleibt. „Morgen sagen wir Venn, dass der Staub aufgehört hat.“ Die Festung ist nicht gerettet. Jemand in ihr hat noch einen Namen.',
+      { id: 'c1_reward', speaker: 'Velka', text: 'Er setzt sich. Gold rieselt, und darin sagt eine Stimme, die Brok kennt: „Verbrennt die Seite nicht.“ Aria nickt nur und geht Lio holen. Brok bleibt. „Morgen sagen wir Venn, der Staub hat aufgehört.“',
         choices: [
           { id: 'keep', label: 'Siegel einstecken (+Loot)', effect: 'gold+80|aff:Sekretärin Velka:+15|recruit:Sekretärin Velka', next: 'c2_open' },
           { id: 'town', label: 'Festung feiern', effect: 'gold+40', next: 'town' },
@@ -517,7 +517,7 @@ export function dungeonMenu(S){
   if(puzzleRoom && d.room===puzzleRoom && !puzzleDone){
     return {
       speaker: d.name,
-      text: `Raum ${d.room}/${d.rooms}. Knochen und Tinte. Unter dem Thron waren drei Kerben, und im Register dieselbe Folge: neun, neun, neun. Velka, ohne aufzusehen: „Seine Hand. Nicht irgendeine Summe.“`,
+      text: `Raum ${d.room}/${d.rooms}. Velka tippt auf die Kerben. „Neun, neun, neun. Seine Hand. Nicht irgendeine Summe.“`,
       choices: [
         { id: 'pz_a', label: 'Siegel: 3-7-12 (Summe 22)', next: 'dung_puzzle_wrong' },
         { id: 'pz_b', label: 'Siegel: 9-9-9 (Summe 27)', next: 'dung_puzzle_ok' },
@@ -642,7 +642,7 @@ export function resolveChoice(S, choice, hooks={}){
   }
   if(next==='dung_puzzle_wrong'){
     S.st=S.st||{}; S.st.hp=Math.max(1,(S.st.hp|0)-12);
-    return showPack(S, { speaker:'Velka', text:'Das ist nicht seine Hand. Brok zieht dich zurück, bevor das Siegel mehr nimmt als Atem. 12 Schaden. Die Kerben warten: neun, neun, neun.', choices:[{id:'c',label:'Erneut versuchen',next:'dungeon'}] }, note);
+    return showPack(S, { speaker:'Velka', text:'Das ist nicht seine Hand. Brok zieht dich zurück, bevor das Siegel mehr nimmt als Luft. Zwölf Schaden. Die Kerben warten: neun, neun, neun.', choices:[{id:'c',label:'Erneut versuchen',next:'dungeon'}] }, note);
   }
   if(next==='boss_pending' || next==='boss_win'){
     // Battle starts via pendingBattle; onEnd calls onBossVictory. Never advance pre-fight

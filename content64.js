@@ -22,14 +22,14 @@ export const HUB_NPC_LINES = {
   ],
 
   'Sekretärin Velka': [
-    'Velka: Vierzehn Gold, und Venn hustet Staub. Lies das, bevor du mich nützlich nennst.',
-    'Velka: Unter dem Sitz: drei Kerben. Neun, neun, neun. Dieselbe Folge wie in deiner Handschrift.',
-    'Velka: Ich habe die Feder gehalten, weil seine Hand schon Gold war. Sag es laut, wenn du mich hasst.',
+    'Velka: Vierzehn Gold in der Kasse, und Venn hustet seit Dienstag. Lies das, bevor du mich nützlich findest.',
+    'Velka: Unter dem Sitz sind drei Kerben. Neun, neun, neun. Dieselbe Folge wie in deiner Schrift.',
+    'Velka: Ich hab die Feder gehalten, weil seine Hand schon Gold war. Wenn du mich dafür hasst, sag es laut.',
   ],
   'General Brok': [
-    'Brok: In der letzten Woche hieß ich für ihn nur noch Soldat. Nicht Brok.',
-    'Brok: Eine Nacht am Pass, oder Venn stirbt an ihrer Tinte. Ich schreie nicht. Heute nicht.',
-    'Brok: Wenn es meinen Namen kennt, schlag nicht daneben.',
+    'Brok: Letzte Woche war ich für ihn nur noch der Soldat. Nicht Brok.',
+    'Brok: Eine Nacht am Pass, oder Venn stirbt an dem Zeug in der Lunge. Ich schrei heute nicht.',
+    'Brok: Wenn das Ding unten weiß, wer ich bin, hau nicht daneben.',
   ],
   'Wächter Toren': [
     'Toren: Halt! Grenzpass. Pässe und Absichten, bitte.',
@@ -72,18 +72,18 @@ export const HUB_NPC_LINES = {
   ],
   'Heldin Aria': [
     'Aria: Lio hält die zweite Wache. Ich bin nicht hier, um zu knien.',
-    'Aria: Wenn das Ding unten seinen Namen sagt, schlagt weiter. Ich kann das nicht.',
-    'Aria: Ich gehe mit in den Keller. Danach gehe ich. Das ist kein Bündnis.',
+    'Aria: Wenn das Ding unten seinen Posten sagt, schlagt weiter. Ich kann das nicht.',
+    'Aria: Ich geh mit in den Keller. Danach geh ich. Das ist kein Bündnis.',
   ],
   'Grabräuber Jex': [
-    'Jex: Ich nehme Münzen, keinen Staub. Der Fiend zahlt in beidem.',
-    'Jex: Westkammer klirrt. Ostkammer hustet. Ich bleibe in der Mitte.',
-    'Jex: Drei Neunen, sagen sie. Ich kann nicht zählen, wenn die Knochen zählen.',
+    'Jex: Ich nehm Münzen. Staub lass ich liegen. Der Fiend zahlt mit beidem, und ich will nur eins davon.',
+    'Jex: Links klirrt es, rechts hustet es. Ich bleib in der Mitte, da ist es nur kalt.',
+    'Jex: Drei Neunen, sagen sie. Ich zähl nicht mit, wenn die Knochen mitzählen.',
   ],
   'Imp-Schuldner': [
-    'Imp: Schulden, Schulden. Dein Name steht schon in der Spalte.',
+    'Imp: Schulden. Dein Posten steht schon in der Spalte, auch wenn du den nicht geschrieben hast.',
     'Imp: Der König hat uns noch gekannt. Du riechst nach seiner Feder.',
-    'Imp: Schlag im Takt. Sonst wird der Schlag dünn.',
+    'Imp: Schlag im Takt, sonst kommt der zweite Schlag nicht an.',
   ],
   'Chronistin Mara': [
     'Mara: Ich schreibe, was bleibt. Namen verblassen sonst.',

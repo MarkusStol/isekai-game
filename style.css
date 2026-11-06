@@ -7762,6 +7762,16 @@ body.field-play .ow-region-minimap{
   right:12px !important;
   z-index:26 !important;
 }
+#owFade{
+  position:fixed;
+  inset:0;
+  background:#000;
+  opacity:0;
+  pointer-events:none;
+  z-index:80;
+  transition:opacity .7s ease;
+}
+#owFade.on{ opacity:1; }
 body.field-play .ow-dlg{
   width:min(640px, 92vw);
   bottom:16px;
@@ -7773,11 +7783,17 @@ body.field-play .ow-dlg-port{
   object-fit:contain;
   background:#120c18;
 }
+body.field-play.ow-dialogue .ow-dlg-inner{
+  max-height:none !important;
+  overflow:visible !important;
+}
 body.field-play .ow-dlg-text{
   font-family:"Noto Sans",system-ui,sans-serif !important;
   font-size:16px !important;
   line-height:1.45 !important;
   color:#f4efe4;
+  max-height:none !important;
+  overflow:visible !important;
 }
 body.field-play .ow-dlg-name{
   font-family:"Noto Sans",system-ui,sans-serif !important;

@@ -719,9 +719,10 @@ async function runLocal(browser){
   await page.close();
 
   try{
-    const { runChapterSlice, runFieldBoss } = await import('./play-chapter1.mjs');
+    const { runChapterSlice, runFieldBoss, runAriaRoutes } = await import('./play-chapter1.mjs');
     await runChapterSlice({ browser, port: PORT, fail, ok });
     await runFieldBoss({ browser, port: PORT, fail, ok });
+    await runAriaRoutes({ browser, port: PORT, fail, ok });
   }catch(e){ fail('chapter-slice','exception',{err:String(e)}); }
 }
 

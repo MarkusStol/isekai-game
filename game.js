@@ -749,7 +749,7 @@ function parseCrime(a){const t=a.toLowerCase();const who=findNpcTarget(a);
 
 
 /* ---------- save / toast / gate ---------- */
-function save(){if(!S)return;Persist.atomicSave(S,{toast:(m)=>{ /* v64: never surface stale-overwrite toast over OW HUD/minimap */ if(/Stand nicht überschrieben/i.test(String(m||''))) return; toast(m); }}).then(r=>{if(!r.ok&&r.reason==='stale'){/* suppressed */} else if(!r.ok)toast('⚠ Speichern fehlgeschlagen')}).catch(()=>toast('⚠ Speichern fehlgeschlagen'))}
+function save(){if(!S)return Promise.resolve();return Persist.atomicSave(S,{toast:(m)=>{ /* v64: never surface stale-overwrite toast over OW HUD/minimap */ if(/Stand nicht überschrieben/i.test(String(m||''))) return; toast(m); }}).then(r=>{if(!r.ok&&r.reason==='stale'){/* suppressed */} else if(!r.ok)toast('⚠ Speichern fehlgeschlagen'); return r;}).catch(()=>{ toast('⚠ Speichern fehlgeschlagen'); return {ok:false}; })}
 async function loadSave(){const s=await Persist.loadBest(migrate);return s}
 function applyCatchUp(){if(!S)return null;
  // v13.1 default: skip auto catch-up (preserves ongoing scene). Opt-in via S.cfgCatchupOptIn or confirm.
@@ -1435,18 +1435,24 @@ function openC1Seal(){
     const OW=window.__game?.OW;
     if(!OW?.showDialogue){ applyJrpgPack(C60.dungeonMenu(S)); return; }
     if(S.campaign.flags?.puzzle_c1_ledger_seal){
-      OW.showDialogue('Velka','Das Siegel schläft. Der Fiend ist Norden.','mage');
+      const taken=!!S.campaign.flags.ariaPageTaken;
+      OW.showDialogue(taken?'Aria':'Velka', taken?'Die Seite ist draußen. Norden ist offen.':'Das Siegel ist auf. Norden. Fass die lose Seite nicht an.','mage');
       return;
     }
-    OW.showDialogue('Velka','Nur seine Hand. Neun, neun, neun.','mage',[
-      {label:'3-7-12', pick:()=>{ S.st.hp=Math.max(1,(S.st.hp|0)-8); OW.showDialogue('Velka','Das ist nicht seine Hand.','mage'); }},
+    OW.showDialogue('Velka','Drei Kerben. Seine Hand, nicht deine. Wenn du rätst, beißt es.','mage',[
+      {label:'3-7-12', pick:()=>{ S.st.hp=Math.max(1,(S.st.hp|0)-8); OW.showDialogue('Velka','Das ist nicht seine Hand. Nochmal, und ohne zu raten.','mage'); }},
       {label:'9-9-9', pick:()=>{
         S.campaign.flags=S.campaign.flags||{};
         S.campaign.flags.puzzle_c1_ledger_seal=true;
         S.st=S.st||{}; S.st.gold=(S.st.gold|0)+35;
-        OW.showDialogue('Velka','Die Knochen klappen. Norden ist frei.','mage');
+        if(S.campaign.flags.ariaPact){
+          S.campaign.flags.ariaPageTaken=true;
+          OW.showDialogue('Aria','Die Knochen gehen auf. Ich steck die Seite ein. Velka hat\'s gesehen.','princess');
+        }else{
+          OW.showDialogue('Velka','Die Knochen klappen. Norden ist frei.','mage');
+        }
       }},
-      {label:'1-1-1', pick:()=>{ S.st.hp=Math.max(1,(S.st.hp|0)-8); OW.showDialogue('Velka','Das ist nicht seine Hand.','mage'); }},
+      {label:'1-1-1', pick:()=>{ S.st.hp=Math.max(1,(S.st.hp|0)-8); OW.showDialogue('Velka','Das ist nicht seine Hand. Nochmal, und ohne zu raten.','mage'); }},
     ]);
   }catch(e){ console.warn('seal', e); }
 }
@@ -1472,10 +1478,7 @@ function applyJrpgPack(pack){
     document.body.classList.add('field-play');
     if(S.campaign.sceneId==='c1_reward' && !S.flags.fieldReward){
       S.flags.fieldReward=true;
-      try{ window.__game?.OW?.queueBeats?.([
-        {name:'Velka', sheet:'mage', text:'Er sagte Broks Namen. Dann das stille Buch.'},
-        {name:'Brok', sheet:'guard', text:'Morgen sagen wir Venn: der Staub hat aufgehört.'},
-      ]); }catch(_){}
+      try{ window.__game?.OW?.fieldReward?.(S); }catch(_){}
     }
   }
   hud(); renderChoices();
